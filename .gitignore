@@ -1,0 +1,4 @@
+*.py[co]
+*.sw?
+ayame/__version__.py
+build/
