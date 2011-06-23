@@ -27,7 +27,7 @@
 from __future__ import unicode_literals
 
 
-__all__ = ['to_bytes', 'to_list']
+__all__ = ['to_bytes', 'to_list', 'version']
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
@@ -42,3 +42,11 @@ def to_list(o):
     elif hasattr(o, '__iter__'):
         return list(o)
     return [o]
+
+def version():
+    try:
+        from ayame import __version__
+
+        return __version__.version
+    except ImportError:
+        return 'unknown'

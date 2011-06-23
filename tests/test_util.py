@@ -65,3 +65,6 @@ def test_to_list():
     eq_(util.to_list([1]), [1])
     eq_(util.to_list((1,)), [1])
     eq_(util.to_list({'a': 1}), ['a'])
+
+def test_version():
+    ok_(util.version())
