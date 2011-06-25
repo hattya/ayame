@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 from wsgiref import util
 
 from nose.tools import assert_raises, eq_, ok_

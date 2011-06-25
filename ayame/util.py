@@ -24,9 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
-
-
 __all__ = ['to_bytes', 'to_list', 'version']
 
 def to_bytes(s, encoding='utf-8', errors='strict'):

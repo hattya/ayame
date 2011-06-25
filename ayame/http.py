@@ -24,8 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
-
 import xml.sax.saxutils
 
 from ayame import exception

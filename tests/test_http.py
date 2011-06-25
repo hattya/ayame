@@ -24,8 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
-
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import exception, http
