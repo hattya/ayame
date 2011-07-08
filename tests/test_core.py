@@ -27,9 +27,10 @@
 import os
 import wsgiref.util
 
-from nose.tools import eq_, ok_
+from nose.tools import assert_raises, eq_, ok_
 
 from ayame import core
+from ayame.exception import AyameError, ComponentError
 
 
 def test_simple_app():
@@ -53,3 +54,12 @@ def wsgi_call(application, **kwargs):
     wsgiref.util.setup_testing_defaults(environ)
     data = application(environ, start_response)
     return var['status'], var['headers'], var['exc_info'], data
+
+def test_component():
+    assert_raises(ComponentError, core.Component, None)
+
+    c = core.Component('1')
+    eq_(c.id, '1')
+    assert_raises(AyameError, lambda: c.app)
+    assert_raises(AyameError, lambda: c.config)
+    eq_(c.render(''), '')

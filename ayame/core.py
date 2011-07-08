@@ -32,10 +32,10 @@ import threading
 from beaker.middleware import SessionMiddleware
 
 from ayame import http, route
-from ayame.exception import AyameError
+from ayame.exception import AyameError, ComponentError
 
 
-__all__ = ['Ayame']
+__all__ = ['Ayame', 'Component']
 
 _local = threading.local()
 _local.app = None
@@ -94,3 +94,37 @@ class Ayame(object):
         finally:
             self.environ = None
             _local.app = None
+
+class Component(object):
+
+    def __init__(self, id, model=None):
+        if id is None:
+            raise ComponentError('component id is not set')
+        self.__id = id
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def app(self):
+        return Ayame.instance()
+
+    @property
+    def config(self):
+        return self.app.config
+
+    def render(self, element):
+        self.on_before_render()
+        element = self.on_render(element)
+        self.on_after_render()
+        return element
+
+    def on_before_render(self):
+        pass
+
+    def on_render(self, element):
+        return element
+
+    def on_after_render(self):
+        pass
