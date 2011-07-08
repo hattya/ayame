@@ -35,7 +35,7 @@ from ayame import http, route
 from ayame.exception import AyameError, ComponentError
 
 
-__all__ = ['Ayame', 'Component']
+__all__ = ['Ayame', 'Component', 'Model']
 
 _local = threading.local()
 _local.app = None
@@ -101,10 +101,29 @@ class Component(object):
         if id is None:
             raise ComponentError('component id is not set')
         self.__id = id
+        self.model = model
 
     @property
     def id(self):
         return self.__id
+
+    def model():
+        def fget(self):
+            return self.__model
+        def fset(self, model):
+            if (model is not None and
+                not isinstance(model, Model)):
+                self.__model = None
+                raise ComponentError(
+                        '{!r} is not an instance of Model'.format(model))
+            self.__model = model
+        return locals()
+
+    model = property(**model())
+
+    @property
+    def model_object(self):
+        return self.model.object if self.model else None
 
     @property
     def app(self):
@@ -128,3 +147,14 @@ class Component(object):
 
     def on_after_render(self):
         pass
+
+class Model(object):
+
+    def __init__(self, object):
+        self.__object = object
+
+    @property
+    def object(self):
+        if isinstance(self.__object, Model):
+            return self.__object.object
+        return self.__object

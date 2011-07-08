@@ -60,6 +60,27 @@ def test_component():
 
     c = core.Component('1')
     eq_(c.id, '1')
+    eq_(c.model, None)
+    eq_(c.model_object, None)
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     eq_(c.render(''), '')
+
+def test_component_with_model():
+    assert_raises(ComponentError, core.Component, '1', '')
+
+    m = core.Model(None)
+    eq_(m.object, None)
+    c = core.Component('1', m)
+    eq_(c.id, '1')
+    eq_(c.model, m)
+    eq_(c.model_object, None)
+    assert_raises(AyameError, lambda: c.app)
+    assert_raises(AyameError, lambda: c.config)
+    eq_(c.render(''), '')
+
+def test_nested_model():
+    inner = core.Model(None)
+    outer = core.Model(inner)
+    eq_(inner.object, None)
+    eq_(outer.object, None)
