@@ -25,11 +25,47 @@
 #
 
 from __future__ import unicode_literals
+import io
+import sys
 
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import util
 
+
+def test_load_data():
+    class Foo(object):
+        pass
+    with util.load_data(Foo, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Foo.txt')
+    with util.load_data(Foo(), '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Foo.txt')
+
+    module = sys.modules[__name__]
+    sys.modules[__name__] = object()
+    assert_raises(IOError, util.load_data, Foo, '.txt')
+    sys.modules[__name__] = module
+
+    class Module(object):
+        __file__ = __file__
+        __loader__ = True
+    sys.modules[__name__] = Module()
+    assert_raises(IOError, util.load_data, Foo, '.txt')
+    sys.modules[__name__] = module
+
+    class Loader(object):
+        def get_data(self, path):
+            with io.open(path, encoding='utf-8') as fp:
+                return fp.read().strip() + ' from Loader'
+    class Module(object):
+        __file__ = __file__
+        __loader__ = Loader()
+    sys.modules[__name__] = Module()
+    with util.load_data(Foo, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
+    with util.load_data(Foo(), '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
+    sys.modules[__name__] = module
 
 def test_to_bytes():
     # iroha in hiragana

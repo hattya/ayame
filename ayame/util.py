@@ -24,7 +24,40 @@
 #   SOFTWARE.
 #
 
-__all__ = ['to_bytes', 'to_list', 'version']
+import io
+import os
+import sys
+import types
+
+
+__all__ = ['load_data', 'to_bytes', 'to_list', 'version']
+
+def load_data(obj, suffix, encoding='utf-8'):
+    if (isinstance(obj, type) or
+        isinstance(obj, types.ClassType)):
+        cls = obj
+    else:
+        cls = obj.__class__
+    try:
+        module = sys.modules[cls.__module__]
+        parent, name = os.path.split(module.__file__)
+    except (AttributeError, KeyError):
+        raise IOError("could not determine "
+                      "'{}' module location".format(cls.__module__))
+    name = os.path.splitext(name)[0]
+    if name.lower() != '__init__':
+        parent = os.path.join(parent, name)
+    path = os.path.join(parent, cls.__name__ + suffix)
+    loader = getattr(module, '__loader__', None)
+    if loader:
+        # load data from loader
+        try:
+            data = loader.get_data(path)
+        except (AttributeError, IOError):
+            raise IOError("could not load '{}' "
+                          "from loader {!r}".format(path, loader))
+        return io.StringIO(data.decode(encoding))
+    return io.open(path, encoding=encoding)
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
