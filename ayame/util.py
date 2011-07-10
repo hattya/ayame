@@ -30,14 +30,16 @@ import sys
 import types
 
 
-__all__ = ['load_data', 'to_bytes', 'to_list', 'version']
+__all__ = ['fqcn_of', 'load_data', 'to_bytes', 'to_list', 'version']
+
+def fqcn_of(obj):
+    cls = _class_of(obj)
+    if cls.__module__ == '__builtin__':
+        return cls.__name__
+    return cls.__module__ + '.' + cls.__name__
 
 def load_data(obj, suffix, encoding='utf-8'):
-    if (isinstance(obj, type) or
-        isinstance(obj, types.ClassType)):
-        cls = obj
-    else:
-        cls = obj.__class__
+    cls = _class_of(obj)
     try:
         module = sys.modules[cls.__module__]
         parent, name = os.path.split(module.__file__)
@@ -58,6 +60,13 @@ def load_data(obj, suffix, encoding='utf-8'):
                           "from loader {!r}".format(path, loader))
         return io.StringIO(data.decode(encoding))
     return io.open(path, encoding=encoding)
+
+def _class_of(obj):
+    if (isinstance(obj, type) or
+        isinstance(obj, types.ClassType)):
+        return obj
+    else:
+        return obj.__class__
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
