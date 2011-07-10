@@ -55,7 +55,7 @@ class Ayame(object):
         try:
             module = sys.modules[name]
             self._root = os.path.abspath(os.path.dirname(module.__file__))
-        except (KeyError, AttributeError):
+        except (AttributeError, KeyError):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
         self.config = {
