@@ -84,3 +84,23 @@ def test_nested_model():
     outer = core.Model(inner)
     eq_(inner.object, None)
     eq_(outer.object, None)
+
+def test_markup_container():
+    mc = core.MarkupContainer('1')
+    eq_(len(mc.children), 0)
+    eq_(mc.find(None), mc)
+    eq_(mc.find(''), mc)
+
+    child2a = core.Component('2a')
+    mc.add(child2a)
+    eq_(len(mc.children), 1)
+    eq_(mc.find('2a'), child2a)
+    assert_raises(ComponentError, mc.add, child2a)
+
+    child2b = core.MarkupContainer('2b')
+    mc.add(child2b)
+    eq_(len(mc.children), 2)
+    eq_(mc.find('2b'), child2b)
+    assert_raises(ComponentError, mc.add, child2b)
+
+    eq_(mc.render(''), '')

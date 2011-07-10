@@ -35,7 +35,7 @@ from ayame import http, route
 from ayame.exception import AyameError, ComponentError
 
 
-__all__ = ['Ayame', 'Component', 'Model']
+__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Model']
 
 _local = threading.local()
 _local.app = None
@@ -102,6 +102,7 @@ class Component(object):
             raise ComponentError('component id is not set')
         self.__id = id
         self.model = model
+        self.parent = None
 
     @property
     def id(self):
@@ -147,6 +148,44 @@ class Component(object):
 
     def on_after_render(self):
         pass
+
+class MarkupContainer(Component):
+
+    def __init__(self, id, model=None):
+        super(MarkupContainer, self).__init__(id, model)
+        self.children = []
+        self._ref = {}
+
+    def add(self, *args):
+        for obj in args:
+            if isinstance(obj, Component):
+                if obj.id in self._ref:
+                    raise ComponentError(
+                            "component for '{}' already exist".format(obj.id))
+                self.children.append(obj)
+                self._ref[obj.id] = obj
+                obj.parent = self
+        return self
+
+    def find(self, path):
+        if not path:
+            return self
+        p = path.split(':', 1)
+        id, tail = p[0], p[1] if len(p) > 1 else None
+        child = self._ref.get(id)
+        if isinstance(child, MarkupContainer):
+            return child.find(tail)
+        return child
+
+    def on_before_render(self):
+        super(MarkupContainer, self).on_before_render()
+        for child in self.children:
+            child.on_before_render()
+
+    def on_after_render(self):
+        super(MarkupContainer, self).on_after_render()
+        for child in self.children:
+            child.on_after_render()
 
 class Model(object):
 
