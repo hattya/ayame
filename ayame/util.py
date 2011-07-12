@@ -30,13 +30,17 @@ import sys
 import types
 
 
-__all__ = ['fqcn_of', 'load_data', 'to_bytes', 'to_list', 'version']
+__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'version']
 
-def fqcn_of(obj):
-    cls = _class_of(obj)
-    if cls.__module__ == '__builtin__':
-        return cls.__name__
-    return cls.__module__ + '.' + cls.__name__
+def fqon_of(obj):
+    if not hasattr(obj, '__name__'):
+        obj = obj.__class__
+    if hasattr(obj, '__module__'):
+        if obj.__module__ is None:
+            return '<unknown>.' + obj.__name__
+        elif obj.__module__ != '__builtin__':
+            return obj.__module__ + '.' + obj.__name__
+    return obj.__name__
 
 def load_data(obj, suffix, encoding='utf-8'):
     cls = _class_of(obj)

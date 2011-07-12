@@ -33,22 +33,30 @@ from nose.tools import assert_raises, eq_, ok_
 from ayame import util
 
 
-def test_fqcn_of():
+def test_fqon_of():
     class O:
         pass
     class N(object):
         pass
     o = O()
     n = N()
-    eq_(util.fqcn_of(O), __name__ + '.O')
-    eq_(util.fqcn_of(o), __name__ + '.O')
-    eq_(util.fqcn_of(N), __name__ + '.N')
-    eq_(util.fqcn_of(n), __name__ + '.N')
+    def f():
+        pass
+    def u():
+        pass
+    del u.__module__
+    eq_(util.fqon_of(O), __name__ + '.O')
+    eq_(util.fqon_of(o), __name__ + '.O')
+    eq_(util.fqon_of(N), __name__ + '.N')
+    eq_(util.fqon_of(n), __name__ + '.N')
+    eq_(util.fqon_of(f), __name__ + '.f')
+    eq_(util.fqon_of(u), '<unknown>.u')
+    eq_(util.fqon_of(util), 'ayame.util')
     # __builtin__
-    eq_(util.fqcn_of([]), 'list')
-    eq_(util.fqcn_of({}), 'dict')
-    eq_(util.fqcn_of(1), 'int')
-    eq_(util.fqcn_of(1.0), 'float')
+    eq_(util.fqon_of([]), 'list')
+    eq_(util.fqon_of({}), 'dict')
+    eq_(util.fqon_of(1), 'int')
+    eq_(util.fqon_of(1.0), 'float')
 
 def test_load_data():
     class Foo(object):
