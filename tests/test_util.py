@@ -31,6 +31,7 @@ import sys
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import util
+from ayame.exception import ResourceError
 
 
 def test_fqon_of():
@@ -61,21 +62,41 @@ def test_fqon_of():
 def test_load_data():
     class Foo(object):
         pass
+    def foo():
+        pass
+
     with util.load_data(Foo, '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Foo.txt')
     with util.load_data(Foo(), '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Foo.txt')
+    with util.load_data(foo, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/foo.txt')
+    with util.load_data(sys.modules[__name__], '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util.txt')
 
+    def bar():
+        pass
+    del bar.__module__
+    assert_raises(ResourceError, util.load_data, bar, '.txt')
+
+    class Module(object):
+        __name__ = __name__
     module = sys.modules[__name__]
-    sys.modules[__name__] = object()
-    assert_raises(IOError, util.load_data, Foo, '.txt')
+    sys.modules[__name__] = Module()
+    assert_raises(ResourceError, util.load_data, Foo, '.txt')
+    assert_raises(ResourceError, util.load_data, foo, '.txt')
+    assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
 
     class Module(object):
         __file__ = __file__
         __loader__ = True
+        __name__ = __name__
+    module = sys.modules[__name__]
     sys.modules[__name__] = Module()
-    assert_raises(IOError, util.load_data, Foo, '.txt')
+    assert_raises(ResourceError, util.load_data, Foo, '.txt')
+    assert_raises(ResourceError, util.load_data, foo, '.txt')
+    assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
 
     class Loader(object):
@@ -85,11 +106,23 @@ def test_load_data():
     class Module(object):
         __file__ = __file__
         __loader__ = Loader()
+        __name__ = __name__
+    module = sys.modules[__name__]
     sys.modules[__name__] = Module()
     with util.load_data(Foo, '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
     with util.load_data(Foo(), '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
+    with util.load_data(foo, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/foo.txt from Loader')
+    loader = getattr(module, '__loader__', None)
+    module.__loader__ = Loader()
+    with util.load_data(module, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util.txt from Loader')
+    if loader:
+        module.__loader__ = loader
+    else:
+        del module.__loader__
     sys.modules[__name__] = module
 
 def test_to_bytes():

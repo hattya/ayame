@@ -29,6 +29,8 @@ import os
 import sys
 import types
 
+from ayame.exception import ResourceError
+
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'version']
 
@@ -43,34 +45,39 @@ def fqon_of(obj):
     return obj.__name__
 
 def load_data(obj, suffix, encoding='utf-8'):
-    cls = _class_of(obj)
+    if not hasattr(obj, '__name__'):
+        obj = obj.__class__
+    if isinstance(obj, types.ModuleType):
+        module = obj
+        is_module = True
+    else:
+        try:
+            module = sys.modules[obj.__module__]
+            is_module = False
+        except (AttributeError, KeyError):
+            raise ResourceError('could not find module of {!r}'.format(obj))
     try:
-        module = sys.modules[cls.__module__]
         parent, name = os.path.split(module.__file__)
-    except (AttributeError, KeyError):
-        raise IOError("could not determine "
-                      "'{}' module location".format(cls.__module__))
+    except AttributeError:
+        raise ResourceError("could not determine "
+                            "'{}' module location".format(module.__name__))
     name = os.path.splitext(name)[0]
     if name.lower() != '__init__':
         parent = os.path.join(parent, name)
-    path = os.path.join(parent, cls.__name__ + suffix)
+    if is_module:
+        path = parent + suffix
+    else:
+        path = os.path.join(parent, obj.__name__ + suffix)
     loader = getattr(module, '__loader__', None)
     if loader:
         # load data from loader
         try:
             data = loader.get_data(path)
         except (AttributeError, IOError):
-            raise IOError("could not load '{}' "
-                          "from loader {!r}".format(path, loader))
+            raise ResourceError("could not load '{}' "
+                                "from loader {!r}".format(path, loader))
         return io.StringIO(data.decode(encoding))
     return io.open(path, encoding=encoding)
-
-def _class_of(obj):
-    if (isinstance(obj, type) or
-        isinstance(obj, types.ClassType)):
-        return obj
-    else:
-        return obj.__class__
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
