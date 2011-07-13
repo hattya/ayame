@@ -32,7 +32,8 @@ import types
 from ayame.exception import ResourceError
 
 
-__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'version']
+__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'version',
+           'FilterDict']
 
 def fqon_of(obj):
     if not hasattr(obj, '__name__'):
@@ -100,3 +101,53 @@ def version():
         return __version__.version
     except ImportError:
         return 'unknown'
+
+class FilterDict(dict):
+
+    def __init__(self, *args, **kwargs):
+        super(FilterDict, self).__init__(*args, **kwargs)
+        convert = self.__convert__
+        pop = super(FilterDict, self).pop
+        for key in self:
+            new_key = convert(key)
+            if new_key != key:
+                self[new_key] = pop(key)
+
+    def __convert__(self, key):
+        return key
+
+    def __getitem__(self, key):
+        return super(FilterDict, self).__getitem__(self.__convert__(key))
+
+    def __setitem__(self, key, value):
+        return super(FilterDict, self).__setitem__(self.__convert__(key),
+                                                   value)
+
+    def __delitem__(self, key):
+        super(FilterDict, self).__delitem__(self.__convert__(key))
+
+    def __contains__(self, item):
+        return super(FilterDict, self).__contains__(self.__convert__(item))
+
+    def get(self, key, *args):
+        return super(FilterDict, self).get(self.__convert__(key), *args)
+
+    def has_key(self, key):
+        return self.__contains__(key)
+
+    def pop(self, key, *args):
+        return super(FilterDict, self).pop(self.__convert__(key), *args)
+
+    def setdefault(self, key, *args):
+        return super(FilterDict, self).setdefault(self.__convert__(key), *args)
+
+    def update(self, *args, **kwargs):
+        prev_keys = tuple(self)
+        super(FilterDict, self).update(*args, **kwargs)
+        convert = self.__convert__
+        pop = super(FilterDict, self).pop
+        for key in self:
+            if key not in prev_keys:
+                new_key = convert(key)
+                if new_key != key:
+                    self[new_key] = pop(key)

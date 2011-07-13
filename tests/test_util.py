@@ -162,3 +162,46 @@ def test_to_list():
 
 def test_version():
     ok_(util.version())
+
+def test_filter_dict():
+    class LowerDict(util.FilterDict):
+        def __convert__(self, key):
+            if isinstance(key, basestring):
+                return key.lower()
+            return super(LowerDict, self).__convert__(key)
+    d = LowerDict(A=0)
+
+    eq_(d['A'], 0)
+    eq_(d['a'], 0)
+    ok_('A' in d)
+    ok_('a' in d)
+    eq_(d.get('A'), 0)
+    eq_(d.get('a'), 0)
+    ok_(d.has_key('A'))
+    ok_(d.has_key('a'))
+    d.setdefault('a', -1)
+    eq_(d, {'a': 0})
+
+    d['B'] = 1
+    eq_(d['B'], 1)
+    eq_(d['b'], 1)
+    ok_('B' in d)
+    ok_('b' in d)
+    eq_(d.get('B'), 1)
+    eq_(d.get('b'), 1)
+    ok_(d.has_key('B'))
+    ok_(d.has_key('b'))
+    d.setdefault('b', -1)
+    eq_(d, {'a': 0, 'b': 1})
+
+    del d['b']
+    eq_(d, {'a': 0})
+
+    eq_(d.pop('a'), 0)
+    eq_(d, {})
+
+    d.update(A=0, b=1)
+    eq_(d, {'a': 0, 'b': 1})
+
+    d[0] = 'a'
+    eq_(d, {'a': 0, 'b': 1, 0: 'a'})
