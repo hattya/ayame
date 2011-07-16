@@ -24,13 +24,16 @@
 #   SOFTWARE.
 #
 
-__all__ = ['AyameError', 'ComponentError', 'ResourceError', 'RouteError',
-           'RequestSlash', 'ValidationError']
+__all__ = ['AyameError', 'ComponentError', 'MarkupError', 'ResourceError',
+           'RouteError', 'RequestSlash', 'ValidationError']
 
 class AyameError(Exception):
     pass
 
 class ComponentError(AyameError):
+    pass
+
+class MarkupError(AyameError):
     pass
 
 class ResourceError(AyameError):
