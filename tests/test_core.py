@@ -113,3 +113,43 @@ def test_markup_container():
     assert_raises(ComponentError, mc.add, child2b)
 
     eq_(mc.render(''), '')
+
+def test_compound_model():
+    class Object(object):
+        attr = 'attr'
+    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc.add(core.Component('attr'))
+    eq_(len(mc.children), 1)
+    eq_(mc.find('attr').model.object, 'attr')
+
+    class Object(object):
+        def get_getter(self):
+            return 'getter'
+    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc.add(core.Component('getter'))
+    eq_(len(mc.children), 1)
+    eq_(mc.find('getter').model.object, 'getter')
+
+    class Object(object):
+        def __getitem__(self, key):
+            if key == 'key':
+                return 'key'
+            raise KeyError(key)
+    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc.add(core.Component('key'))
+    eq_(len(mc.children), 1)
+    eq_(mc.find('key').model.object, 'key')
+    mc.model = core.CompoundModel(object())
+    mc.find('key').model = None
+    assert_raises(AttributeError, lambda: mc.find('key').model.object)
+
+    mc = core.MarkupContainer('1', core.CompoundModel({'2': '2', '3': '3'}))
+    mc.add(core.MarkupContainer('2'))
+    eq_(len(mc.children), 1)
+    eq_(mc.find('2').model.object, '2')
+    mc.find('2').add(core.Component('3'))
+    eq_(len(mc.children), 1)
+    eq_(len(mc.find('2').children), 1)
+    eq_(mc.find('2:3').model.object, '3')
+
+    eq_(mc.render(''), '')

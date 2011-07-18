@@ -36,7 +36,7 @@ from ayame import http, route
 from ayame.exception import AyameError, ComponentError
 
 
-__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Model']
+__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Model', 'CompoundModel']
 
 _local = threading.local()
 _local.app = None
@@ -112,7 +112,17 @@ class Component(object):
 
     def model():
         def fget(self):
-            return self.__model
+            if self.__model:
+                return self.__model
+            else:
+                current = self.parent
+                while current:
+                    model = current.model
+                    if isinstance(model, CompoundModel):
+                        self.__model = model.wrap(self)
+                        return self.__model
+                    current = current.parent
+
         def fset(self, model):
             if (model is not None and
                 not isinstance(model, Model)):
@@ -203,3 +213,37 @@ class Model(object):
         if isinstance(self.__object, Model):
             return self.__object.object
         return self.__object
+
+class CompoundModel(Model):
+
+    def wrap(self, component):
+        class InheritedModel(Model):
+
+            def __init__(self, model):
+                super(InheritedModel, self).__init__(None)
+                self._component = component
+                self._object = model.object
+
+            @property
+            def object(self):
+                object = self._object
+                name = self._component.id
+                # instance variable
+                try:
+                    return getattr(object, name)
+                except AttributeError:
+                    pass
+                # getter method
+                try:
+                    getter = getattr(object, 'get_' + name)
+                    if callable(getter):
+                        return getter()
+                except AttributeError:
+                    pass
+                # __getitem__
+                try:
+                    return object.__getitem__(name)
+                except (AttributeError, LookupError):
+                    pass
+                raise AttributeError(name)
+        return InheritedModel(self)
