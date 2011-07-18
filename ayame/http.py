@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-import xml.sax.saxutils
+import cgi
 
 from ayame import exception
 
@@ -89,8 +89,7 @@ class HTTPStatus(exception.AyameError):
 
 def _location_init(supercls, s):
     def __init__(self, location):
-        supercls.__init__(self,
-                          s.format(location=xml.sax.saxutils.escape(location)),
+        supercls.__init__(self, s.format(location=cgi.escape(location, True)),
                           headers=[('Location', location)])
     return __init__
 
