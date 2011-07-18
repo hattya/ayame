@@ -25,6 +25,7 @@
 #
 
 from datetime import timedelta
+import cgi
 import os
 import sys
 import threading
@@ -103,6 +104,7 @@ class Component(object):
         self.__id = id
         self.model = model
         self.parent = None
+        self.escape_model_string = True
 
     @property
     def id(self):
@@ -124,7 +126,11 @@ class Component(object):
 
     @property
     def model_object(self):
-        return self.model.object if self.model else None
+        object = self.model.object if self.model else None
+        if (isinstance(object, basestring) and
+            self.escape_model_string):
+            return cgi.escape(object)
+        return object
 
     @property
     def app(self):

@@ -79,6 +79,15 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.config)
     eq_(c.render(''), '')
 
+    m = core.Model('&<>')
+    eq_(m.object, '&<>')
+    c = core.Component('1', m)
+    eq_(c.id, '1')
+    eq_(c.model, m)
+    eq_(c.model_object, '&amp;&lt;&gt;')
+    c.escape_model_string = False
+    eq_(c.model_object, '&<>')
+
 def test_nested_model():
     inner = core.Model(None)
     outer = core.Model(inner)
