@@ -29,7 +29,7 @@ def find_executable(cmd, path=None):
             if os.path.isfile(cmd):
                 return cmd
 
-def runcmd(argv):
+def runcmd(argv, env):
     proc = subprocess.Popen(argv,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
@@ -47,7 +47,8 @@ if os.path.isdir('.git'):
     if 'SystemRoot' in os.environ:
         env['SystemRoot'] = os.environ['SystemRoot']
     out, err = runcmd([find_executable('git'), 'describe', '--tags',
-                       '--always', '--dirty=+'])
+                       '--always', '--dirty=+'],
+                       env)
     if err:
         print('warning: could not generate ayame/__version__.py',
               file=sys.stderr)
