@@ -31,7 +31,7 @@ from ayame.exception import ComponentError
 
 
 def test_label():
-    c = basic.Label('1')
+    c = basic.Label('a')
     eq_(c.model, None)
     elem = c.render(markup.Element(None))
     eq_(elem.attrib, {})
@@ -39,18 +39,18 @@ def test_label():
 
 def test_label_with_model():
     m = core.Model([])
-    c = basic.Label('1', m)
+    c = basic.Label('a', m)
     eq_(c.model, m)
     assert_raises(ComponentError, c.render, markup.Element(None))
 
     m = core.Model('<tag>')
-    c = basic.Label('1', m)
+    c = basic.Label('a', m)
     eq_(c.model, m)
     elem = c.render(markup.Element(None))
     eq_(elem.attrib, {})
     eq_(elem.children, ['&lt;tag&gt;'])
 
-    c = basic.Label('1', '<tag>')
+    c = basic.Label('a', '<tag>')
     eq_(c.model.object, '<tag>')
     elem = c.render(markup.Element(None))
     eq_(elem.attrib, {})

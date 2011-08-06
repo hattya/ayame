@@ -58,8 +58,8 @@ def wsgi_call(application, **kwargs):
 def test_component():
     assert_raises(ComponentError, core.Component, None)
 
-    c = core.Component('1')
-    eq_(c.id, '1')
+    c = core.Component('a')
+    eq_(c.id, 'a')
     eq_(c.model, None)
     eq_(c.model_object, None)
     assert_raises(AyameError, lambda: c.app)
@@ -71,8 +71,8 @@ def test_component_with_model():
 
     m = core.Model(None)
     eq_(m.object, None)
-    c = core.Component('1', m)
-    eq_(c.id, '1')
+    c = core.Component('a', m)
+    eq_(c.id, 'a')
     eq_(c.model, m)
     eq_(c.model_object, None)
     assert_raises(AyameError, lambda: c.app)
@@ -81,8 +81,8 @@ def test_component_with_model():
 
     m = core.Model('&<>')
     eq_(m.object, '&<>')
-    c = core.Component('1', m)
-    eq_(c.id, '1')
+    c = core.Component('a', m)
+    eq_(c.id, 'a')
     eq_(c.model, m)
     eq_(c.model_object, '&amp;&lt;&gt;')
     c.escape_model_string = False
@@ -95,29 +95,29 @@ def test_nested_model():
     eq_(outer.object, None)
 
 def test_markup_container():
-    mc = core.MarkupContainer('1')
+    mc = core.MarkupContainer('a')
     eq_(len(mc.children), 0)
     eq_(mc.find(None), mc)
     eq_(mc.find(''), mc)
 
-    child2a = core.Component('2a')
-    mc.add(child2a)
+    b1 = core.Component('b1')
+    mc.add(b1)
     eq_(len(mc.children), 1)
-    eq_(mc.find('2a'), child2a)
-    assert_raises(ComponentError, mc.add, child2a)
+    eq_(mc.find('b1'), b1)
+    assert_raises(ComponentError, mc.add, b1)
 
-    child2b = core.MarkupContainer('2b')
-    mc.add(child2b)
+    b2 = core.MarkupContainer('b2')
+    mc.add(b2)
     eq_(len(mc.children), 2)
-    eq_(mc.find('2b'), child2b)
-    assert_raises(ComponentError, mc.add, child2b)
+    eq_(mc.find('b2'), b2)
+    assert_raises(ComponentError, mc.add, b2)
 
     eq_(mc.render(''), '')
 
 def test_compound_model():
     class Object(object):
         attr = 'attr'
-    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
     mc.add(core.Component('attr'))
     eq_(len(mc.children), 1)
     eq_(mc.find('attr').model.object, 'attr')
@@ -125,7 +125,7 @@ def test_compound_model():
     class Object(object):
         def get_getter(self):
             return 'getter'
-    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
     mc.add(core.Component('getter'))
     eq_(len(mc.children), 1)
     eq_(mc.find('getter').model.object, 'getter')
@@ -135,7 +135,7 @@ def test_compound_model():
             if key == 'key':
                 return 'key'
             raise KeyError(key)
-    mc = core.MarkupContainer('1', core.CompoundModel(Object()))
+    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
     mc.add(core.Component('key'))
     eq_(len(mc.children), 1)
     eq_(mc.find('key').model.object, 'key')
@@ -143,13 +143,13 @@ def test_compound_model():
     mc.find('key').model = None
     assert_raises(AttributeError, lambda: mc.find('key').model.object)
 
-    mc = core.MarkupContainer('1', core.CompoundModel({'2': '2', '3': '3'}))
-    mc.add(core.MarkupContainer('2'))
+    mc = core.MarkupContainer('a', core.CompoundModel({'b': 'b', 'c': 'c'}))
+    mc.add(core.MarkupContainer('b'))
     eq_(len(mc.children), 1)
-    eq_(mc.find('2').model.object, '2')
-    mc.find('2').add(core.Component('3'))
+    eq_(mc.find('b').model.object, 'b')
+    mc.find('b').add(core.Component('c'))
     eq_(len(mc.children), 1)
-    eq_(len(mc.find('2').children), 1)
-    eq_(mc.find('2:3').model.object, '3')
+    eq_(len(mc.find('b').children), 1)
+    eq_(mc.find('b:c').model.object, 'c')
 
     eq_(mc.render(''), '')
