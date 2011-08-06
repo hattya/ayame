@@ -32,8 +32,7 @@ import types
 from ayame.exception import ResourceError
 
 
-__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'version',
-           'FilterDict']
+__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list' 'FilterDict']
 
 def fqon_of(obj):
     if not hasattr(obj, '__name__'):
@@ -93,14 +92,6 @@ def to_list(o):
     elif hasattr(o, '__iter__'):
         return list(o)
     return [o]
-
-def version():
-    try:
-        from ayame import __version__
-
-        return __version__.version
-    except ImportError:
-        return 'unknown'
 
 class FilterDict(dict):
 

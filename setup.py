@@ -69,9 +69,9 @@ if version:
         print_("version = '{}'".format(version))
 
 try:
-    from ayame import __version__
+    import ayame
 
-    version = __version__.version
+    version = ayame.__version__
 except ImportError:
     version = 'unknown'
 

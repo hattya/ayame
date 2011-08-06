@@ -23,3 +23,8 @@
 #   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 #
+
+try:
+    from ayame.__version__ import version as __version__
+except ImportError:
+    __version__ = 'unknown'
