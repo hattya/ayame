@@ -33,12 +33,13 @@ from ayame import util
 from ayame.exception import MarkupError
 
 
-__all__ = ['XML_NS', 'XHTML_NS', 'XHTML1_STRICT', 'QName', 'Markup', 'Element',
-           'MarkupLoader']
+__all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
+           'Markup', 'Element', 'MarkupLoader']
 
 # namespace URI
 XML_NS = 'http://www.w3.org/XML/1998/namespace'
 XHTML_NS = 'http://www.w3.org/1999/xhtml'
+AYAME_NS = 'http://hattya.github.com/ayame'
 
 # XML declaration
 _xml_decl_re = re.compile(r'''
