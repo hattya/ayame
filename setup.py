@@ -45,7 +45,7 @@ if os.path.isdir('.git'):
         env['SystemRoot'] = os.environ['SystemRoot']
     out, err = runcmd([find_executable('git'), 'describe', '--tags',
                        '--always', '--dirty=+'],
-                       env)
+                      env)
     if err:
         print('warning: could not generate ayame/__version__.py',
               file=sys.stderr)
