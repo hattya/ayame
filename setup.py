@@ -35,10 +35,7 @@ def runcmd(argv, env):
                             stderr=subprocess.PIPE,
                             env=env,
                             universal_newlines=True)
-    out, err = proc.communicate()
-    if err:
-        return ''
-    return out, err
+    return proc.communicate()
 
 version = None
 
