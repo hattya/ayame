@@ -120,6 +120,11 @@ class FilterDict(dict):
     def __contains__(self, item):
         return super(FilterDict, self).__contains__(self.__convert__(item))
 
+    def __copy__(self):
+        return self.__class__(self)
+
+    copy = __copy__
+
     def get(self, key, *args):
         return super(FilterDict, self).get(self.__convert__(key), *args)
 

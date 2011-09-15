@@ -202,3 +202,11 @@ def test_filter_dict():
 
     d[0] = 'a'
     eq_(d, {'a': 0, 'b': 1, 0: 'a'})
+
+    x = d.copy()
+    ok_(isinstance(x, LowerDict))
+    eq_(x, d)
+
+    x[0] = 'b'
+    eq_(d, {'a': 0, 'b': 1, 0: 'a'})
+    eq_(x, {'a': 0, 'b': 1, 0: 'b'})
