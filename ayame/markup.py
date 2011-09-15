@@ -114,6 +114,17 @@ class Element(object):
             self.ns.update(ns)
         self.children = []
 
+    def __copy__(self):
+        element = self.__class__(self.qname)
+        element.attrib = self.attrib.copy()
+        element.type = self.type
+        element.ns = self.ns.copy()
+        element.children = [c.copy() if isinstance(c, self.__class__) else c
+                            for c in self.children]
+        return element
+
+    copy = __copy__
+
 class _AttributeDict(util.FilterDict):
 
     __slots__ = ()

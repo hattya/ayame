@@ -45,8 +45,15 @@ def test_element():
     eq_(foo.ns, {'': 'foo'})
     eq_(repr(foo.qname), '{foo}foo')
 
+    bar = foo.copy()
     foo.attrib[0] = 'a'
     eq_(foo.attrib, {'id': 'a', 0: 'a'})
+
+    eq_(bar.qname, markup.QName('foo', 'foo'))
+    eq_(bar.attrib, {'id': 'a'})
+    eq_(bar.type, markup.Element.EMPTY)
+    eq_(bar.ns, {'': 'foo'})
+    eq_(repr(bar.qname), '{foo}foo')
 
 def test_load_error():
     test = test_load_error
