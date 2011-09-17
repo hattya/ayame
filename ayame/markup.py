@@ -59,19 +59,18 @@ _xml_decl_re = re.compile(r'''
     )?
     \s*
     \?
+    \Z
 ''', re.VERBOSE)
 
 # DOCTYPE of (X)HTML
 XHTML1_STRICT = ('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
                  '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
 _xhtml1_strict_re = re.compile(
-        '^'
         'DOCTYPE\s+html\s+'
         'PUBLIC\s+"-//W3C//DTD XHTML 1.0 Strict//EN"\s+'
         '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"'
-        '$')
+        '\Z')
 _html_re = re.compile(
-        '^'
         'DOCTYPE\s+'
         '(?:HTML|html)\s+'
         'PUBLIC\s+')
