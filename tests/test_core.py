@@ -29,7 +29,7 @@ import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import core
+from ayame import core, markup
 from ayame.exception import AyameError, ComponentError
 
 
@@ -153,3 +153,114 @@ def test_compound_model():
     eq_(mc.find('b:c').model.object, 'c')
 
     eq_(mc.render(''), '')
+
+def test_render_children():
+    # no child component
+    root = markup.Element(markup.QName('', 'root'))
+    mc = core.MarkupContainer('a')
+    eq_(mc.render(root), root)
+
+    # unknown ayame attribute
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'b'
+    root.attrib[markup.QName(markup.AYAME_NS, 'foo')] = ''
+    mc = core.MarkupContainer('a')
+    mc.add(core.Component('b'))
+    assert_raises(ComponentError, mc.render, root)
+
+    # component is not found
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'c'
+    mc = core.MarkupContainer('a')
+    mc.add(core.Component('b'))
+    assert_raises(ComponentError, mc.render, root)
+
+    # replace root element
+    class Component(core.Component):
+        def on_render(self, element):
+            return None
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'b'
+    mc = core.MarkupContainer('a')
+    mc.add(Component('b'))
+    eq_(mc.render(root), '')
+
+    # remove element
+    class Component(core.Component):
+        def on_render(self, element):
+            return None
+    root = markup.Element(markup.QName('', 'root'))
+    root.children.append('')
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    root.children.append('')
+    mc = core.MarkupContainer('a')
+    mc.add(Component('b'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 1)
+
+    # replace element by string
+    class Component(core.Component):
+        def on_render(self, element):
+            return ''
+    root = markup.Element(markup.QName('', 'root'))
+    root.children.append('')
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    root.children.append('')
+    mc = core.MarkupContainer('a')
+    mc.add(Component('b'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 1)
+    eq_(root.children[0], '')
+
+    # replace element by list
+    class Component(core.Component):
+        def on_render(self, element):
+            return ['', '', 0, '', '']
+    root = markup.Element(markup.QName('', 'root'))
+    root.children.append('')
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    root.children.append('')
+    mc = core.MarkupContainer('a')
+    mc.add(Component('b'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 3)
+    eq_(root.children[0], '')
+    eq_(root.children[1], 0)
+    eq_(root.children[2], '')
+
+    # replace element by list
+    class Component(core.Component):
+        def on_render(self, element):
+            return ['', '', 0, '', '']
+    root = markup.Element(markup.QName('', 'root'))
+    root.children.append('')
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    root.children.append(1)
+    mc = core.MarkupContainer('a')
+    mc.add(Component('b'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 4)
+    eq_(root.children[0], '')
+    eq_(root.children[1], 0)
+    eq_(root.children[2], '')
+    eq_(root.children[3], 1)

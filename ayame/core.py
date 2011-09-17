@@ -26,13 +26,14 @@
 
 from datetime import timedelta
 import cgi
+from collections import deque
 import os
 import sys
 import threading
 
 from beaker.middleware import SessionMiddleware
 
-from ayame import http, route
+from ayame import http, markup, route
 from ayame.exception import AyameError, ComponentError
 
 
@@ -197,6 +198,127 @@ class MarkupContainer(Component):
         super(MarkupContainer, self).on_before_render()
         for child in self.children:
             child.on_before_render()
+
+    def on_render(self, element):
+        root = element
+        queue = deque()
+
+        def push_children(element):
+            if isinstance(element, markup.Element):
+                index = len(element.children) - 1
+                while 0 <= index:
+                    child = element.children[index]
+                    if isinstance(child, markup.Element):
+                        queue.append((element, index, child))
+                    index -= 1
+
+        # push root element
+        if isinstance(root, markup.Element):
+            queue.append((None, -1, root))
+        while queue:
+            # render component
+            parent, index, element = queue.pop()
+            if markup.AYAME_ID in element.attrib:
+                ayame_id, value = self.render_component(element)
+            else:
+                # there is no associated component
+                push_children(element)
+                continue
+
+            if parent is None:
+                # replace root element
+                root = '' if value is None else value
+                push_children(root)
+            elif hasattr(value, '__iter__'):
+                # replace element
+                children = parent.children[:index]
+                tail = parent.children[index + 1:]
+                # check consecutive strings
+                text = None
+                for v in value:
+                    if isinstance(v, basestring):
+                        if (text is None and
+                            (children and
+                             isinstance(children[-1], basestring))):
+                            # current and previous children are a string
+                            text = [children[-1], v]
+                            children = children[:-1]
+                        elif text is not None:
+                            # text buffer exists
+                            text.append(v)
+                        else:
+                            children.append(v)
+                    else:
+                        if text is not None:
+                            # flush text buffer
+                            children.append(''.join(text))
+                            text = None
+                        children.append(v)
+                        push_children(v)
+                if text is not None:
+                    # flush text buffer
+                    children.append(''.join(text))
+                    text = None
+                if ((children and
+                     isinstance(children[-1], basestring)) and
+                    (tail and
+                     isinstance(tail[0], basestring))):
+                    # current and next children are a string
+                    children[-1] = ''.join((children[-1], tail[0]))
+                    children += tail[1:]
+                else:
+                    children += tail
+                parent.children = children
+            else:
+                children = parent.children
+                if value is None:
+                    # remove element
+                    del children[index]
+                else:
+                    # replace element
+                    children[index] = value
+                    push_children(value)
+                # check consecutive strings
+                if (0 <= index < len(children) and
+                    isinstance(children[index], basestring)):
+                    beg = end = index
+                    if (0 < index and
+                        isinstance(children[index - 1], basestring)):
+                        # current and previous children are a string
+                        beg = index - 1
+                        end = index + 1
+                    if (index + 1 < len(children) and
+                        isinstance(children[index + 1], basestring)):
+                        # current and next children are a string
+                        end = index + 2
+                    if (beg != index or
+                        index != end):
+                        # join consecutive strings
+                        parent.children = children[:beg]
+                        parent.children.append(''.join(children[beg:end]))
+                        parent.children += children[end:]
+        return root
+
+    def render_component(self, element):
+        # retrieve ayame:id
+        ayame_id = None
+        for attr in list(element.attrib):
+            if attr.ns_uri != markup.AYAME_NS:
+                continue
+            elif attr.name == 'id':
+                ayame_id = element.attrib.pop(attr)
+            else:
+                raise ComponentError(
+                        "unknown attribute 'ayame:{}'".format(attr.name))
+        if ayame_id is None:
+            return None, element
+        # render component
+        component = self.find(ayame_id)
+        if component is None:
+            raise ComponentError(
+                    "component for '{}' is not found".format(ayame_id))
+        element = component.on_render(element)
+        return ayame_id, element
 
     def on_after_render(self):
         super(MarkupContainer, self).on_after_render()
