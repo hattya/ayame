@@ -350,9 +350,11 @@ class StringConverter(Converter):
         value = super(StringConverter, self).to_uri(value)
         if self.min:
             if (len(value) < self.min or
-                (self.length and len(value) > self.length)):
+                (self.length and
+                 len(value) > self.length)):
                 raise ValidationError()
-        elif self.length and len(value) != self.length:
+        elif (self.length and
+              len(value) != self.length):
             raise ValidationError()
         return value
 
@@ -374,8 +376,10 @@ class IntegerConverter(Converter):
 
     def to_python(self, value):
         value = int(value)
-        if ((self.min is not None and value < self.min) or
-            (self.max is not None and value > self.max)):
+        if ((self.min is not None and
+             value < self.min) or
+            (self.max is not None and
+             value > self.max)):
             raise ValidationError()
         return value
 

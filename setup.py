@@ -18,7 +18,8 @@ def find_executable(cmd, path=None):
         raise SystemExit('PATH environment variable is not set')
     name, ext = os.path.splitext(cmd)
     cands = []
-    if not ext and sys.platform == 'win32':
+    if (not ext and
+        sys.platform == 'win32'):
         for ext in ('.exe', '.bat', '.cmd'):
             cands.append(name + ext)
     else:
@@ -58,6 +59,7 @@ if version:
     with open('ayame/__version__.py', 'w') as fp:
         def print_(*args):
             print(*args, file=fp)
+
         print_('#')
         print_('# ayame.__version__')
         print_('#')

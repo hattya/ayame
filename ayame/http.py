@@ -59,7 +59,8 @@ class _HTTPStatusMetaclass(type):
                 for ch in name:
                     if (prev and
                         buf and
-                        (prev.islower() and ch.isupper())):
+                        (prev.islower() and
+                         ch.isupper())):
                         buf.append(' ')
                     buf.append(ch)
                     prev = ch

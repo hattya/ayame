@@ -230,8 +230,8 @@ class MarkupLoader(object, HTMLParser):
             self.markup.doctype = '<!' + decl + '>'
 
     def handle_pi(self, data):
-        if not (data.startswith('xml ')
-                and data.endswith('?')):
+        if not (data.startswith('xml ') and
+                data.endswith('?')):
             return
 
         m = _xml_decl_re.match(data)

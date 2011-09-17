@@ -131,6 +131,7 @@ class Component(object):
                 raise ComponentError(
                         '{!r} is not an instance of Model'.format(model))
             self.__model = model
+
         return locals()
 
     model = property(**model())
@@ -368,4 +369,5 @@ class CompoundModel(Model):
                 except (AttributeError, LookupError):
                     pass
                 raise AttributeError(name)
+
         return InheritedModel(self)
