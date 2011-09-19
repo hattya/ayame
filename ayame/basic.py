@@ -24,11 +24,13 @@
 #   SOFTWARE.
 #
 
-from ayame import core, util
+from collections import Sequence
+
+from ayame import core, markup, util
 from ayame.exception import ComponentError
 
 
-__all__ = ['Label']
+__all__ = ['Label', 'ListView']
 
 class Label(core.Component):
 
@@ -47,3 +49,58 @@ class Label(core.Component):
             raise ComponentError(
                     "could not render '{}'".format(util.fqon_of(object)))
         return element
+
+class ListView(core.MarkupContainer):
+
+    def __init__(self, id, model=None, populate_item=None):
+        if isinstance(model, Sequence):
+            model = core.Model(model)
+        super(ListView, self).__init__(id, model)
+        self._populate_item = populate_item
+
+    def on_before_render(self):
+        object = self.model_object
+        if object is not None:
+            for i in range(len(object)):
+                li = self.new_item(i)
+                self.add(li)
+                self.populate_item(li)
+        super(ListView, self).on_before_render()
+
+    def on_render(self, element):
+        skel = element.copy()
+        skel.qname = markup.QName(markup.XHTML_NS, 'div')
+        element.children = []
+        for component in self.children:
+            element.children += component.on_render(skel.copy()).children
+        return element
+
+    def populate_item(self, item):
+        if callable(self._populate_item):
+            return self._populate_item(item)
+
+    def new_item(self, index):
+        return _ListItem(index, self.new_model(index))
+
+    def new_model(self, index):
+        return _ListItemModel(self, index)
+
+class _ListItem(core.MarkupContainer):
+
+    def __init__(self, index, model):
+        super(_ListItem, self).__init__(str(index), model)
+        self.__index = index
+
+    @property
+    def index(self):
+        return self.__index
+
+class _ListItemModel(core.Model):
+
+    def __init__(self, list_view, index):
+        self.__list_view = list_view
+        self.__index = index
+
+    @property
+    def object(self):
+        return self.__list_view.model_object[self.__index]
