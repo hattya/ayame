@@ -30,7 +30,7 @@ from ayame import core, markup, util
 from ayame.exception import ComponentError
 
 
-__all__ = ['Label', 'ListView']
+__all__ = ['Label', 'ListView', 'PropertyListView']
 
 class Label(core.Component):
 
@@ -104,3 +104,9 @@ class _ListItemModel(core.Model):
     @property
     def object(self):
         return self.__list_view.model_object[self.__index]
+
+class PropertyListView(ListView):
+
+    def new_model(self, index):
+        return core.CompoundModel(
+                super(PropertyListView, self).new_model(index))

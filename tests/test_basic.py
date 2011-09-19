@@ -96,3 +96,45 @@ def test_list_view():
     eq_(lv.children[0].index, 0)
     eq_(lv.children[1].index, 1)
     eq_(lv.children[2].index, 2)
+
+def test_property_list_view():
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'b'
+    label = markup.Element(markup.QName('', 'label'))
+    label.attrib[markup.AYAME_ID] = 'c'
+    root.children.append(label)
+    m = core.CompoundModel({'b': [str(i) for i in range(3)]})
+    mc = core.MarkupContainer('a', m)
+    def populate_item(li):
+        li.add(basic.Label('c', li.model_object))
+    mc.add(basic.PropertyListView('b', None, populate_item))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 3)
+
+    label = root.children[0]
+    eq_(label.qname, markup.QName('', 'label'))
+    eq_(label.attrib, {})
+    eq_(len(label.children), 1)
+    eq_(label.children[0], '0')
+
+    label = root.children[1]
+    eq_(label.qname, markup.QName('', 'label'))
+    eq_(label.attrib, {})
+    eq_(len(label.children), 1)
+    eq_(label.children[0], '1')
+
+    label = root.children[2]
+    eq_(label.qname, markup.QName('', 'label'))
+    eq_(label.attrib, {})
+    eq_(len(label.children), 1)
+    eq_(label.children[0], '2')
+
+    eq_(len(mc.children), 1)
+    lv = mc.children[0]
+    eq_(len(lv.children), 3)
+    eq_(lv.children[0].index, 0)
+    eq_(lv.children[1].index, 1)
+    eq_(lv.children[2].index, 2)
