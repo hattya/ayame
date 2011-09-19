@@ -264,3 +264,32 @@ def test_render_children():
     eq_(root.children[1], 0)
     eq_(root.children[2], '')
     eq_(root.children[3], 1)
+
+def test_attribute_modifier():
+    # component
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.QName('', 'a')] = ''
+    c = core.Component('a')
+    c.add(core.AttributeModifier('a', core.Model(None)))
+    c.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
+    c.add(core.AttributeModifier('c', core.Model('')))
+    eq_(len(c.modifiers), 3)
+
+    root = c.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {markup.QName('', 'c'): ''})
+    eq_(len(root.children), 0)
+
+    # markup container
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.QName('', 'a')] = ''
+    mc = core.MarkupContainer('a')
+    mc.add(core.AttributeModifier('a', core.Model(None)))
+    mc.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
+    mc.add(core.AttributeModifier('c', core.Model('')))
+    eq_(len(mc.modifiers), 3)
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {markup.QName('', 'c'): ''})
+    eq_(len(root.children), 0)

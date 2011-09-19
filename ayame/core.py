@@ -37,7 +37,8 @@ from ayame import http, markup, route
 from ayame.exception import AyameError, ComponentError
 
 
-__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Model', 'CompoundModel']
+__all__ = ['Ayame', 'Component', 'MarkupContainer', 'AttributeModifier',
+           'Model', 'CompoundModel']
 
 _local = threading.local()
 _local.app = None
@@ -106,6 +107,7 @@ class Component(object):
         self.model = model
         self.parent = None
         self.escape_model_string = True
+        self.modifiers = []
 
     @property
     def id(self):
@@ -152,6 +154,12 @@ class Component(object):
     def config(self):
         return self.app.config
 
+    def add(self, *args):
+        for obj in args:
+            if isinstance(obj, AttributeModifier):
+                self.modifiers.append(obj)
+        return self
+
     def render(self, element):
         self.on_before_render()
         element = self.on_render(element)
@@ -162,6 +170,8 @@ class Component(object):
         pass
 
     def on_render(self, element):
+        for modifier in self.modifiers:
+            modifier.on_component(self, element)
         return element
 
     def on_after_render(self):
@@ -183,6 +193,8 @@ class MarkupContainer(Component):
                 self.children.append(obj)
                 self._ref[obj.id] = obj
                 obj.parent = self
+            else:
+                super(MarkupContainer, self).add(obj)
         return self
 
     def find(self, path):
@@ -213,6 +225,8 @@ class MarkupContainer(Component):
                         queue.append((element, index, child))
                     index -= 1
 
+        # apply modifiers
+        element = super(MarkupContainer, self).on_render(element)
         # push root element
         if isinstance(root, markup.Element):
             queue.append((None, -1, root))
@@ -325,6 +339,36 @@ class MarkupContainer(Component):
         super(MarkupContainer, self).on_after_render()
         for child in self.children:
             child.on_after_render()
+
+class AttributeModifier(object):
+
+    def __init__(self, attr, model):
+        self._attr = attr
+        self._model = model
+
+    @property
+    def app(self):
+        return Ayame.instance()
+
+    @property
+    def config(self):
+        return self.app.config
+
+    def on_component(self, component, element):
+        if isinstance(self._attr, markup.QName):
+            attr = self._attr
+        else:
+            attr = markup.QName(element.qname.ns_uri, self._attr)
+        value = self._model.object if self._model else None
+        new_value = self.new_value(element.attrib.get(attr), value)
+        if new_value is None:
+            if attr in element.attrib:
+                del element.attrib[attr]
+        else:
+            element.attrib[attr] = new_value
+
+    def new_value(self, value, new_value):
+        return new_value
 
 class Model(object):
 
