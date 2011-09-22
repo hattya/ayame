@@ -30,7 +30,8 @@ from ayame import core, markup, uri, util
 from ayame.exception import ComponentError
 
 
-__all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator']
+__all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
+           'ContextImage']
 
 class Label(core.Component):
 
@@ -119,3 +120,9 @@ class ContextPathGenerator(core.AttributeModifier):
 
     def new_value(self, value, new_value):
         return uri.relative_uri(self.app.environ, new_value)
+
+class ContextImage(core.Component):
+
+    def __init__(self, id, relative_path):
+        super(ContextImage, self).__init__(id)
+        self.add(ContextPathGenerator('src', relative_path))

@@ -161,3 +161,26 @@ def test_context_path_generator():
 
     environ = {'PATH_INFO': '/a/'}
     assert_attr(environ, '../foo.html')
+
+def test_context_image():
+    local = core._local
+    app = core.Ayame(__name__)
+
+    def assert_img(environ, value):
+        img = markup.Element(markup.QName(markup.XHTML_NS, 'img'))
+        src = markup.QName(markup.XHTML_NS, 'src')
+        try:
+            local.app = app
+            local.environ = environ
+            c = basic.ContextImage(src, 'foo.gif')
+            img = c.render(img)
+        finally:
+            local.environ = None
+            local.app = None
+        eq_(img.attrib[src], value)
+
+    environ = {'PATH_INFO': '/a'}
+    assert_img(environ, 'foo.gif')
+
+    environ = {'PATH_INFO': '/a/'}
+    assert_img(environ, '../foo.gif')
