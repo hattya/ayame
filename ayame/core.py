@@ -42,6 +42,8 @@ __all__ = ['Ayame', 'Component', 'MarkupContainer', 'AttributeModifier',
 
 _local = threading.local()
 _local.app = None
+_local.environ = None
+_local._router = None
 
 class Ayame(object):
 
@@ -71,6 +73,14 @@ class Ayame(object):
                 'beaker.session.key': None,
                 'beaker.session.secret': None}
 
+    @property
+    def environ(self):
+        return _local.environ
+
+    @property
+    def _router(self):
+        return _local._router
+
     def make_app(self):
         beaker = dict((k, self.config[k]) for k in self.config
                       if k.startswith('beaker.'))
@@ -80,9 +90,9 @@ class Ayame(object):
     def __call__(self, environ, start_response):
         try:
             _local.app = self
-            self.environ = environ
-            self._router = self.config['ayame.route.map'].bind(environ)
-            obj, values = self._router.match()
+            _local.environ = environ
+            _local._router = self.config['ayame.route.map'].bind(environ)
+            obj, values = _local._router.match()
 
             start_response(http.OK.status,
                            [('Content-Type', 'text/plain;charset=UTF-8')])
@@ -95,7 +105,8 @@ class Ayame(object):
             start_response(e.status, headers)
             return data
         finally:
-            self.environ = None
+            _local._router = None
+            _local.environ = None
             _local.app = None
 
 class Component(object):
