@@ -31,7 +31,7 @@ from ayame import util
 
 
 __all__ = ['quote', 'quote_plus', 'application_uri', 'request_uri',
-           'request_path', 'is_relative_uri']
+           'request_path', 'is_relative_uri', 'relative_uri']
 
 _safe = "/-._~!$&'()*+,;=:@"
 
@@ -103,3 +103,19 @@ def is_relative_uri(uri):
           uri[0] in ('/', '#')):
         return False
     return not urlparse.urlsplit(uri).scheme
+
+def relative_uri(environ, uri):
+    if not is_relative_uri(uri):
+        return uri
+    # PATH_INFO
+    path_info = environ.get('PATH_INFO')
+    if not path_info:
+        return uri
+    # count segments
+    up = 0 if path_info[-1] == '/' else -1
+    for x in path_info.split('/'):
+        if x:
+            up += 1
+    relative_uri = ['..'] * up
+    relative_uri.append(uri)
+    return '/'.join(relative_uri)
