@@ -184,3 +184,28 @@ def test_context_image():
 
     environ = {'PATH_INFO': '/a/'}
     assert_img(environ, '../foo.gif')
+
+def test_context_css():
+    local = core._local
+    app = core.Ayame(__name__)
+
+    def assert_meta(environ, value):
+        meta = markup.Element(markup.QName(markup.XHTML_NS, 'meta'))
+        href = markup.QName(markup.XHTML_NS, 'href')
+        try:
+            local.app = app
+            local.environ = environ
+            c = basic.ContextCSS(href, 'foo.css')
+            meta = c.render(meta)
+        finally:
+            local.environ = None
+            local.app = None
+        eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'rel')], 'stylesheet')
+        eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'type')], 'text/css')
+        eq_(meta.attrib[href], value)
+
+    environ = {'PATH_INFO': '/a'}
+    assert_meta(environ, 'foo.css')
+
+    environ = {'PATH_INFO': '/a/'}
+    assert_meta(environ, '../foo.css')

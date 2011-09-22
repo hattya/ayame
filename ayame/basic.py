@@ -31,7 +31,7 @@ from ayame.exception import ComponentError
 
 
 __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
-           'ContextImage']
+           'ContextImage', 'ContextCSS']
 
 class Label(core.Component):
 
@@ -126,3 +126,11 @@ class ContextImage(core.Component):
     def __init__(self, id, relative_path):
         super(ContextImage, self).__init__(id)
         self.add(ContextPathGenerator('src', relative_path))
+
+class ContextCSS(core.Component):
+
+    def __init__(self, id, relative_path):
+        super(ContextCSS, self).__init__(id)
+        self.add(core.AttributeModifier('rel', core.Model('stylesheet')))
+        self.add(core.AttributeModifier('type', core.Model('text/css')))
+        self.add(ContextPathGenerator('href', relative_path))
