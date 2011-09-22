@@ -138,3 +138,26 @@ def test_property_list_view():
     eq_(lv.children[0].index, 0)
     eq_(lv.children[1].index, 1)
     eq_(lv.children[2].index, 2)
+
+def test_context_path_generator():
+    local = core._local
+    app = core.Ayame(__name__)
+
+    def assert_attr(environ, value):
+        element = markup.Element(markup.QName(markup.XHTML_NS, 'a'))
+        href = markup.QName(markup.XHTML_NS, 'href')
+        try:
+            local.app = app
+            local.environ = environ
+            am = basic.ContextPathGenerator(href, 'foo.html')
+            am.on_component(None, element)
+        finally:
+            local.environ = None
+            local.app = None
+        eq_(element.attrib[href], value)
+
+    environ = {'PATH_INFO': '/a'}
+    assert_attr(environ, 'foo.html')
+
+    environ = {'PATH_INFO': '/a/'}
+    assert_attr(environ, '../foo.html')

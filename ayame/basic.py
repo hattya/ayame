@@ -26,11 +26,11 @@
 
 from collections import Sequence
 
-from ayame import core, markup, util
+from ayame import core, markup, uri, util
 from ayame.exception import ComponentError
 
 
-__all__ = ['Label', 'ListView', 'PropertyListView']
+__all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator']
 
 class Label(core.Component):
 
@@ -110,3 +110,12 @@ class PropertyListView(ListView):
     def new_model(self, index):
         return core.CompoundModel(
                 super(PropertyListView, self).new_model(index))
+
+class ContextPathGenerator(core.AttributeModifier):
+
+    def __init__(self, attribute, relative_path):
+        super(ContextPathGenerator, self).__init__(attribute,
+                                                   core.Model(relative_path))
+
+    def new_value(self, value, new_value):
+        return uri.relative_uri(self.app.environ, new_value)
