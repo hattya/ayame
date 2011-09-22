@@ -220,3 +220,15 @@ def test_request_path():
     environ = {'SCRIPT_NAME': '/ayame',
                'PATH_INFO': '/'}
     eq_(uri.request_path(environ), '/ayame/')
+
+def test_is_relative_uri():
+    ok_(not uri.is_relative_uri(None))
+    ok_(not uri.is_relative_uri('/ayame'))
+    ok_(not uri.is_relative_uri('#fragment'))
+    ok_(not uri.is_relative_uri('http://localhost/ayame'))
+
+    ok_(uri.is_relative_uri(''))
+    ok_(uri.is_relative_uri('.'))
+    ok_(uri.is_relative_uri('..'))
+    ok_(uri.is_relative_uri('foo.html'))
+    ok_(uri.is_relative_uri('foo/bar.html'))

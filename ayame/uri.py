@@ -25,12 +25,13 @@
 #
 
 import urllib
+import urlparse
 
 from ayame import util
 
 
 __all__ = ['quote', 'quote_plus', 'application_uri', 'request_uri',
-           'request_path']
+           'request_path', 'is_relative_uri']
 
 _safe = "/-._~!$&'()*+,;=:@"
 
@@ -94,3 +95,11 @@ def request_path(environ):
             path_info = path_info[1:]
         path.append(quote(path_info))
     return ''.join(path)
+
+def is_relative_uri(uri):
+    if uri == '':
+        return True
+    elif (uri is None or
+          uri[0] in ('/', '#')):
+        return False
+    return not urlparse.urlsplit(uri).scheme
