@@ -148,7 +148,6 @@ class MarkupLoader(object, HTMLParser):
         self.__stack = deque()
 
         self._object = None
-        self._idlist = []
         self._text = None
 
     def load(self, object, src, encoding='utf-8', lang='xhtml1'):
@@ -168,7 +167,6 @@ class MarkupLoader(object, HTMLParser):
         self.markup.lang = lang
         self.__stack.clear()
         self._object = object
-        self._idlist = []
         self._text = None
 
         while True:
