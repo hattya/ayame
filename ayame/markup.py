@@ -149,6 +149,7 @@ class MarkupLoader(object, HTMLParser):
 
         self._object = None
         self._idlist = []
+        self._text = None
 
     def load(self, object, src, encoding='utf-8', lang='xhtml1'):
         if isinstance(src, basestring):
@@ -168,6 +169,7 @@ class MarkupLoader(object, HTMLParser):
         self.__stack.clear()
         self._object = object
         self._idlist = []
+        self._text = None
 
         while True:
             data = fp.read(8192)
@@ -210,15 +212,15 @@ class MarkupLoader(object, HTMLParser):
 
     def handle_data(self, data):
         if self._ptr() > 0:
-            self._append_text(self._peek(), data)
+            self._append_text(data)
 
     def handle_charref(self, name):
         if self._ptr() > 0:
-            self._append_text(self._peek(), '&#{};'.format(name))
+            self._append_text('&#{};'.format(name))
 
     def handle_entityref(self, name):
         if self._ptr() > 0:
-            self._append_text(self._peek(), '&{};'.format(name))
+            self._append_text('&{};'.format(name))
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
@@ -281,20 +283,26 @@ class MarkupLoader(object, HTMLParser):
                 self._throw('there is no default namespace')
         return QName(uri, name)
 
-    def _append_text(self, element, text):
-        if (element.children and
-            isinstance(element.children[-1], basestring)):
-            element.children[-1] += text
+    def _append_text(self, text):
+        if self._text is None:
+            self._text = [text]
         else:
-            element.children.append(text)
+            self._text.append(text)
 
     def _push(self, element):
         if self._ptr() > 0:
+            self._flush_text()
             self._peek().children.append(element)
         self.__stack.append((self.getpos(), element))
 
     def _pop(self):
+        self._flush_text()
         return self.__stack.pop()
+
+    def _flush_text(self):
+        if self._text is not None:
+            self._peek().children.append(''.join(self._text))
+            self._text = None
 
     def _peek(self):
         if self._ptr() > 0:
