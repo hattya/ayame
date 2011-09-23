@@ -35,7 +35,7 @@ from ayame import http, uri, util
 from ayame.exception import RouteError, RequestSlash, ValidationError
 
 
-__all__ = ['Rule', 'Map', 'Router']
+__all__ = ['Rule', 'Map', 'Router', 'Converter']
 
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)
@@ -224,10 +224,10 @@ class Map(object):
         self.encoding = encoding
         self.slash = slash
         self.converters = {
-                'default': StringConverter,
-                'string': StringConverter,
-                'path': PathConverter,
-                'int': IntegerConverter}
+                'default': _StringConverter,
+                'string': _StringConverter,
+                'path': _PathConverter,
+                'int': _IntegerConverter}
         if converters:
             self.converters.update(converters)
         self.sort_key = sort_key
@@ -331,10 +331,10 @@ class Converter(object):
     def to_uri(self, value):
         return uri.quote(value, encoding=self.map.encoding)
 
-class StringConverter(Converter):
+class _StringConverter(Converter):
 
     def __init__(self, map, length=None, min=None):
-        super(StringConverter, self).__init__(map)
+        super(_StringConverter, self).__init__(map)
         self.length = length
         self.min = min
         if min is not None:
@@ -347,7 +347,7 @@ class StringConverter(Converter):
         self.regex = '[^/]{{{}}}'.format(count)
 
     def to_uri(self, value):
-        value = super(StringConverter, self).to_uri(value)
+        value = super(_StringConverter, self).to_uri(value)
         if self.min:
             if (len(value) < self.min or
                 (self.length and
@@ -358,16 +358,16 @@ class StringConverter(Converter):
             raise ValidationError()
         return value
 
-class PathConverter(Converter):
+class _PathConverter(Converter):
 
     regex = '[^/].*?'
 
-class IntegerConverter(Converter):
+class _IntegerConverter(Converter):
 
     regex = '\d+'
 
     def __init__(self, map, digits=None, min=None, max=None):
-        super(IntegerConverter, self).__init__(map)
+        super(_IntegerConverter, self).__init__(map)
         self.digits = digits
         self.min = min
         self.max = max
