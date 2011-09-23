@@ -114,23 +114,23 @@ class PropertyListView(ListView):
 
 class ContextPathGenerator(core.AttributeModifier):
 
-    def __init__(self, attribute, relative_path):
-        super(ContextPathGenerator, self).__init__(attribute,
-                                                   core.Model(relative_path))
+    def __init__(self, attr, rel_path):
+        super(ContextPathGenerator, self).__init__(attr,
+                                                   core.Model(rel_path))
 
     def new_value(self, value, new_value):
         return uri.relative_uri(self.app.environ, new_value)
 
 class ContextImage(core.Component):
 
-    def __init__(self, id, relative_path):
+    def __init__(self, id, rel_path):
         super(ContextImage, self).__init__(id)
-        self.add(ContextPathGenerator('src', relative_path))
+        self.add(ContextPathGenerator('src', rel_path))
 
 class ContextCSS(core.Component):
 
-    def __init__(self, id, relative_path):
+    def __init__(self, id, rel_path):
         super(ContextCSS, self).__init__(id)
         self.add(core.AttributeModifier('rel', core.Model('stylesheet')))
         self.add(core.AttributeModifier('type', core.Model('text/css')))
-        self.add(ContextPathGenerator('href', relative_path))
+        self.add(ContextPathGenerator('href', rel_path))
