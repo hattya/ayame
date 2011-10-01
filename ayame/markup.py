@@ -34,7 +34,7 @@ from ayame.exception import MarkupError
 
 
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
-           'AYAME_ID', 'Markup', 'Element', 'MarkupLoader']
+           'AYAME_REMOVE', 'AYAME_ID', 'Markup', 'Element', 'MarkupLoader']
 
 # namespace URI
 XML_NS = 'http://www.w3.org/XML/1998/namespace'
@@ -81,6 +81,9 @@ class QName(namedtuple('QName', 'ns_uri, name')):
 
     def __repr__(self):
         return '{{{}}}{}'.format(*self)
+
+# ayame elements
+AYAME_REMOVE = QName(AYAME_NS, 'remove')
 
 # ayame attributes
 AYAME_ID = QName(AYAME_NS, 'id')
@@ -149,6 +152,7 @@ class MarkupLoader(object, HTMLParser):
 
         self._object = None
         self._text = None
+        self._remove = False
 
     def load(self, object, src, encoding='utf-8', lang='xhtml1'):
         if isinstance(src, basestring):
@@ -168,6 +172,7 @@ class MarkupLoader(object, HTMLParser):
         self.__stack.clear()
         self._object = object
         self._text = None
+        self._remove = False
 
         while True:
             data = fp.read(8192)
@@ -184,29 +189,49 @@ class MarkupLoader(object, HTMLParser):
         self._impl_of('finish')()
 
     def handle_starttag(self, name, attrs):
-        if (self._ptr() == 0 and
-            self.markup.root is not None):
-            self._throw('multiple root element')
-        # push new element
+        if self._remove:
+            return # children of ayame:remove
+        # new element
         element = self._impl_of('new_element')(name, attrs)
+        if (self._ptr() == 0 and
+            self.markup.root is not None and
+            element.qname != AYAME_REMOVE):
+            self._throw('multiple root element')
+        # push element
         self._impl_of('push')(element)
-        if self.markup.root is None:
+        if element.qname == AYAME_REMOVE:
+            self._remove = True
+            if self._ptr() > 1:
+                # remove from parent element
+                del self._at(-2).children[-1]
+        elif self.markup.root is None:
             self.markup.root = element
 
     def handle_startendtag(self, name, attrs):
-        if (self._ptr() == 0 and
-            self.markup.root is not None):
-            self._throw('multiple root element')
-        # push and pop new element
+        if self._remove:
+            return # children of ayame:remove
+        # new element
         element = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
+        if element.qname == AYAME_REMOVE:
+            return
+        elif (self._ptr() == 0 and
+              self.markup.root is not None):
+            self._throw('multiple root element')
+        # push and pop element
         self._impl_of('push')(element)
         self._impl_of('pop')(element.qname)
         if self.markup.root is None:
             self.markup.root = element
 
     def handle_endtag(self, name):
+        qname = self._new_qname(name)
+        if qname == AYAME_REMOVE:
+            # end tag of ayame:remove
+            self._remove = False
+        if self._remove:
+            return # children of ayame:remove
         # pop element
-        pos, element = self._impl_of('pop')(self._new_qname(name))
+        pos, element = self._impl_of('pop')(qname)
 
     def handle_data(self, data):
         if self._ptr() > 0:
@@ -282,7 +307,9 @@ class MarkupLoader(object, HTMLParser):
         return QName(uri, name)
 
     def _append_text(self, text):
-        if self._text is None:
+        if self._remove:
+            return # children of ayame:remove
+        elif self._text is None:
             self._text = [text]
         else:
             self._text.append(text)

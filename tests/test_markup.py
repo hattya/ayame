@@ -394,3 +394,74 @@ def test_invalid_xhtml1():
                   markup.XHTML1_STRICT +
                   '<html xmlns="http://www.w3.org/1999/xhtml">',
                   (1, 173))
+
+def test_ayame_remove():
+    test = test_ayame_remove
+
+    # descendant of root element
+    xhtml = ('<?xml version="1.0"?>'
+             '{doctype}'
+             '<html xmlns="{xhtml}" xmlns:ayame="{ayame}">'
+             '<ayame:remove>'
+             '<body>'
+             '<h1>text</h1>'
+             '<hr/>'
+             '</body>'
+             '</ayame:remove>'
+             '</html>').format(doctype=markup.XHTML1_STRICT,
+                               xhtml=markup.XHTML_NS,
+                               ayame=markup.AYAME_NS)
+    src = io.StringIO(xhtml.decode())
+    loader = markup.MarkupLoader()
+    m = loader.load(test, src, lang='xhtml1')
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    html = m.root
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html.children), 0)
+
+    # multiple root element
+    xhtml = ('<?xml version="1.0"?>'
+             '{doctype}'
+             '<ayame:remove xmlns:ayame="{ayame}">'
+             'before html'
+             '</ayame:remove>'
+             '<ayame:remove xmlns:ayame="{ayame}"/>'
+             '<html xmlns="{xhtml}" xmlns:ayame="{ayame}">'
+             '<ayame:remove>'
+             '<body>'
+             '<h1>text</h1>'
+             '<hr/>'
+             '</body>'
+             '</ayame:remove>'
+             '</html>'
+             '<ayame:remove xmlns:ayame="{ayame}"/>'
+             '<ayame:remove xmlns:ayame="{ayame}">'
+             'after html'
+             '</ayame:remove>').format(doctype=markup.XHTML1_STRICT,
+                                       xhtml=markup.XHTML_NS,
+                                       ayame=markup.AYAME_NS)
+    src = io.StringIO(xhtml.decode())
+    loader = markup.MarkupLoader()
+    m = loader.load(test, src, lang='xhtml1')
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    html = m.root
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html.children), 0)
