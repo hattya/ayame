@@ -30,7 +30,7 @@ import wsgiref.util
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import core, markup
-from ayame.exception import AyameError, ComponentError
+from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 def test_simple_app():
@@ -166,7 +166,7 @@ def test_render_children():
     root.attrib[markup.QName(markup.AYAME_NS, 'foo')] = ''
     mc = core.MarkupContainer('a')
     mc.add(core.Component('b'))
-    assert_raises(ComponentError, mc.render, root)
+    assert_raises(RenderingError, mc.render, root)
 
     # component is not found
     root = markup.Element(markup.QName('', 'root'))

@@ -34,7 +34,7 @@ import threading
 from beaker.middleware import SessionMiddleware
 
 from ayame import http, markup, route
-from ayame.exception import AyameError, ComponentError
+from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 __all__ = ['Ayame', 'Component', 'MarkupContainer', 'AttributeModifier',
@@ -334,7 +334,7 @@ class MarkupContainer(Component):
             elif attr.name == 'id':
                 ayame_id = element.attrib.pop(attr)
             else:
-                raise ComponentError(
+                raise RenderingError(
                         "unknown attribute 'ayame:{}'".format(attr.name))
         if ayame_id is None:
             return None, element
