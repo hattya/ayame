@@ -34,7 +34,8 @@ from ayame.exception import MarkupError
 
 
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
-           'AYAME_REMOVE', 'AYAME_ID', 'Markup', 'Element', 'MarkupLoader']
+           'AYAME_CONTAINER', 'AYAME_REMOVE', 'AYAME_ID', 'Markup', 'Element',
+           'MarkupLoader']
 
 # namespace URI
 XML_NS = 'http://www.w3.org/XML/1998/namespace'
@@ -83,6 +84,7 @@ class QName(namedtuple('QName', 'ns_uri, name')):
         return '{{{}}}{}'.format(*self)
 
 # ayame elements
+AYAME_CONTAINER = QName(AYAME_NS, 'container')
 AYAME_REMOVE = QName(AYAME_NS, 'remove')
 
 # ayame attributes

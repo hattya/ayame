@@ -29,7 +29,7 @@ import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import core, markup
+from ayame import basic, core, markup
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
@@ -293,3 +293,60 @@ def test_attribute_modifier():
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {markup.QName('', 'c'): ''})
     eq_(len(root.children), 0)
+
+def test_render_unknown_ayame_element():
+    root = markup.Element(markup.QName(markup.AYAME_NS, 'foo'))
+    mc = core.MarkupContainer('a')
+    assert_raises(RenderingError, mc.render, root)
+
+def test_render_ayame_container():
+    # ayame:id is not found
+    root = markup.Element(markup.QName('', 'root'))
+    container = markup.Element(markup.AYAME_CONTAINER)
+    root.children.append(container)
+    mc = core.MarkupContainer('a')
+    assert_raises(RenderingError, mc.render, root)
+
+    # component is not found
+    root = markup.Element(markup.QName('', 'root'))
+    container = markup.Element(markup.AYAME_CONTAINER)
+    container.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(container)
+    mc = core.MarkupContainer('a')
+    assert_raises(ComponentError, mc.render, root)
+
+    # ayame:container
+    root = markup.Element(markup.QName('', 'root'))
+    container = markup.Element(markup.AYAME_CONTAINER)
+    container.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(container)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'c'
+    container.children.append(a)
+    mc = core.MarkupContainer('a')
+    def populate_item(li):
+        li.add(basic.Label('c', li.model_object))
+    mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 3)
+
+    a = root.children[0]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 1)
+    eq_(a.children[0], '0')
+
+    a = root.children[1]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 1)
+    eq_(a.children[0], '1')
+
+    a = root.children[2]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 1)
+    eq_(a.children[0], '2')

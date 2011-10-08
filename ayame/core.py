@@ -118,6 +118,7 @@ class Component(object):
         self.model = model
         self.parent = None
         self.escape_model_string = True
+        self.render_body_only = False
         self.modifiers = []
 
     @property
@@ -242,9 +243,16 @@ class MarkupContainer(Component):
         if isinstance(root, markup.Element):
             queue.append((None, -1, root))
         while queue:
-            # render component
             parent, index, element = queue.pop()
-            if markup.AYAME_ID in element.attrib:
+            if element.qname.ns_uri == markup.AYAME_NS:
+                # render ayame element
+                value = self.render_ayame_element(element)
+                if value is not None:
+                    if isinstance(value, markup.Element):
+                        queue.append((parent, index, value))
+                    continue
+            elif markup.AYAME_ID in element.attrib:
+                # render component
                 ayame_id, value = self.render_component(element)
             else:
                 # there is no associated component
@@ -325,6 +333,29 @@ class MarkupContainer(Component):
                         parent.children += children[end:]
         return root
 
+    def render_ayame_element(self, element):
+        def get(e, a):
+            v = e.attrib.get(a)
+            if v is None:
+                raise RenderingError("'ayame:{}' attribute is required for "
+                                     "'ayame:{}' element".format(a.name,
+                                                                 e.qname.name))
+            return v
+
+        def find(p):
+            c = self.find(p)
+            if c is None:
+                raise ComponentError(
+                        "component for '{}' is not found".format(p))
+            return c
+
+        if element.qname == markup.AYAME_CONTAINER:
+            find(get(element, markup.AYAME_ID)).render_body_only = True
+            element.qname = markup.QName(markup.XHTML_NS, 'div')
+            return element
+        raise RenderingError(
+                "unknown element 'ayame:{}'".format(element.qname.name))
+
     def render_component(self, element):
         # retrieve ayame:id
         ayame_id = None
@@ -344,7 +375,8 @@ class MarkupContainer(Component):
             raise ComponentError(
                     "component for '{}' is not found".format(ayame_id))
         element = component.on_render(element)
-        return ayame_id, element
+        return (ayame_id,
+                element.children if component.render_body_only else element)
 
     def on_after_render(self):
         super(MarkupContainer, self).on_after_render()
