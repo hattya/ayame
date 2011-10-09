@@ -350,3 +350,104 @@ def test_render_ayame_container():
     eq_(a.attrib, {})
     eq_(len(a.children), 1)
     eq_(a.children[0], '2')
+
+def test_render_ayame_enclosure():
+    # ayame:child is not found
+    root = markup.Element(markup.QName('', 'root'))
+    enclosure = markup.Element(markup.AYAME_ENCLOSURE)
+    root.children.append(enclosure)
+    mc = core.MarkupContainer('a')
+    assert_raises(RenderingError, mc.render, root)
+
+    # component is not found
+    root = markup.Element(markup.QName('', 'root'))
+    enclosure = markup.Element(markup.AYAME_ENCLOSURE)
+    enclosure.attrib[markup.AYAME_CHILD] = 'b'
+    root.children.append(enclosure)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    enclosure.children.append(a)
+    mc = core.MarkupContainer('a')
+    assert_raises(ComponentError, mc.render, root)
+
+    # ayame:enclosure with visible component
+    root = markup.Element(markup.QName('', 'root'))
+    a = markup.Element(markup.QName('', 'a'))
+    root.children.append(a)
+    enclosure = markup.Element(markup.AYAME_ENCLOSURE)
+    enclosure.attrib[markup.AYAME_CHILD] = 'b1'
+    a.children.append(enclosure)
+    b = markup.Element(markup.QName('', 'b'))
+    b.attrib[markup.AYAME_ID] = 'b1'
+    enclosure.children.append(b)
+    b = markup.Element(markup.QName('', 'b'))
+    a.children.append(b)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b2'
+    root.children.append(a)
+    mc = core.MarkupContainer('a')
+    mc.add(basic.Label('b1', 'foo'))
+    mc.add(basic.Label('b2', 'bar'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 2)
+
+    a = root.children[0]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 2)
+
+    b = a.children[0]
+    eq_(b.qname, markup.QName('', 'b'))
+    eq_(b.attrib, {})
+    eq_(len(b.children), 1)
+    eq_(b.children[0], 'foo')
+
+    b = a.children[1]
+    eq_(b.qname, markup.QName('', 'b'))
+    eq_(b.attrib, {})
+    eq_(len(b.children), 0)
+
+    a = root.children[1]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 1)
+    eq_(a.children[0], 'bar')
+
+    # ayame:enclosure with invisible component
+    root = markup.Element(markup.QName('', 'root'))
+    a = markup.Element(markup.QName('', 'a'))
+    root.children.append(a)
+    enclosure = markup.Element(markup.AYAME_ENCLOSURE)
+    enclosure.attrib[markup.AYAME_CHILD] = 'b1'
+    a.children.append(enclosure)
+    b = markup.Element(markup.QName('', 'b'))
+    b.attrib[markup.AYAME_ID] = 'b1'
+    enclosure.children.append(b)
+    b = markup.Element(markup.QName('', 'b'))
+    a.children.append(b)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b2'
+    root.children.append(a)
+    mc = core.MarkupContainer('a')
+    mc.add(basic.Label('b1', 'foo'))
+    mc.add(basic.Label('b2', 'bar'))
+    mc.find('b1').visible = False
+    mc.find('b2').visible = False
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root.children), 1)
+
+    a = root.children[0]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 1)
+
+    b = a.children[0]
+    eq_(b.qname, markup.QName('', 'b'))
+    eq_(b.attrib, {})
+    eq_(len(b.children), 0)

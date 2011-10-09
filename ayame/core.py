@@ -119,6 +119,7 @@ class Component(object):
         self.parent = None
         self.escape_model_string = True
         self.render_body_only = False
+        self.visible = True
         self.modifiers = []
 
     @property
@@ -250,6 +251,32 @@ class MarkupContainer(Component):
                 if value is not None:
                     if isinstance(value, markup.Element):
                         queue.append((parent, index, value))
+                    elif hasattr(value, '__iter__'):
+                        children = parent.children[:index]
+                        elements = []
+                        # save same parent elements
+                        while queue:
+                            q = queue.pop()
+                            if q[0] != parent:
+                                queue.append(q)
+                                break
+                            elements.append(q[2])
+                        # append rendered children
+                        for v in value:
+                            if isinstance(v, markup.Element):
+                                elements.append(v)
+                            children.append(v)
+                        if elements:
+                            # replace ayame element (queue)
+                            total = len(elements)
+                            last = index + total - 1
+                            i = 0
+                            while i < total:
+                                queue.append((parent, last - i, elements[i]))
+                                i += 1
+                        # replace ayame element (parent)
+                        children += parent.children[index + 1:]
+                        parent.children = children
                     continue
             elif markup.AYAME_ID in element.attrib:
                 # render component
@@ -353,6 +380,9 @@ class MarkupContainer(Component):
             find(get(element, markup.AYAME_ID)).render_body_only = True
             element.qname = markup.QName(markup.XHTML_NS, 'div')
             return element
+        elif element.qname == markup.AYAME_ENCLOSURE:
+            component = find(get(element, markup.AYAME_CHILD))
+            return element.children if component.visible else None
         raise RenderingError(
                 "unknown element 'ayame:{}'".format(element.qname.name))
 
@@ -369,11 +399,14 @@ class MarkupContainer(Component):
                         "unknown attribute 'ayame:{}'".format(attr.name))
         if ayame_id is None:
             return None, element
-        # render component
+        # find component
         component = self.find(ayame_id)
         if component is None:
             raise ComponentError(
                     "component for '{}' is not found".format(ayame_id))
+        elif not component.visible:
+            return ayame_id, None
+        # render component
         element = component.on_render(element)
         return (ayame_id,
                 element.children if component.render_body_only else element)
