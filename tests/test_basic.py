@@ -149,18 +149,18 @@ def test_context_path_generator():
         try:
             local.app = app
             local.environ = environ
-            am = basic.ContextPathGenerator(href, 'foo.html')
+            am = basic.ContextPathGenerator(href, 'eggs.html')
             am.on_component(None, element)
         finally:
             local.environ = None
             local.app = None
         eq_(element.attrib[href], value)
 
-    environ = {'PATH_INFO': '/a'}
-    assert_attr(environ, 'foo.html')
+    environ = {'PATH_INFO': '/spam'}
+    assert_attr(environ, 'eggs.html')
 
-    environ = {'PATH_INFO': '/a/'}
-    assert_attr(environ, '../foo.html')
+    environ = {'PATH_INFO': '/spam/'}
+    assert_attr(environ, '../eggs.html')
 
 def test_context_image():
     local = core._local
@@ -172,18 +172,18 @@ def test_context_image():
         try:
             local.app = app
             local.environ = environ
-            c = basic.ContextImage(src, 'foo.gif')
+            c = basic.ContextImage(src, 'eggs.gif')
             img = c.render(img)
         finally:
             local.environ = None
             local.app = None
         eq_(img.attrib[src], value)
 
-    environ = {'PATH_INFO': '/a'}
-    assert_img(environ, 'foo.gif')
+    environ = {'PATH_INFO': '/spam'}
+    assert_img(environ, 'eggs.gif')
 
-    environ = {'PATH_INFO': '/a/'}
-    assert_img(environ, '../foo.gif')
+    environ = {'PATH_INFO': '/spam/'}
+    assert_img(environ, '../eggs.gif')
 
 def test_context_css():
     local = core._local
@@ -195,7 +195,7 @@ def test_context_css():
         try:
             local.app = app
             local.environ = environ
-            c = basic.ContextCSS(href, 'foo.css')
+            c = basic.ContextCSS(href, 'eggs.css')
             meta = c.render(meta)
         finally:
             local.environ = None
@@ -204,8 +204,8 @@ def test_context_css():
         eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'type')], 'text/css')
         eq_(meta.attrib[href], value)
 
-    environ = {'PATH_INFO': '/a'}
-    assert_meta(environ, 'foo.css')
+    environ = {'PATH_INFO': '/spam'}
+    assert_meta(environ, 'eggs.css')
 
-    environ = {'PATH_INFO': '/a/'}
-    assert_meta(environ, '../foo.css')
+    environ = {'PATH_INFO': '/spam/'}
+    assert_meta(environ, '../eggs.css')

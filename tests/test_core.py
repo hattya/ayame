@@ -163,7 +163,7 @@ def test_render_children():
     # unknown ayame attribute
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.AYAME_ID] = 'b'
-    root.attrib[markup.QName(markup.AYAME_NS, 'foo')] = ''
+    root.attrib[markup.QName(markup.AYAME_NS, 'spam')] = ''
     mc = core.MarkupContainer('a')
     mc.add(core.Component('b'))
     assert_raises(RenderingError, mc.render, root)
@@ -295,7 +295,7 @@ def test_attribute_modifier():
     eq_(len(root.children), 0)
 
 def test_render_unknown_ayame_element():
-    root = markup.Element(markup.QName(markup.AYAME_NS, 'foo'))
+    root = markup.Element(markup.QName(markup.AYAME_NS, 'spam'))
     mc = core.MarkupContainer('a')
     assert_raises(RenderingError, mc.render, root)
 
@@ -386,8 +386,8 @@ def test_render_ayame_enclosure():
     a.attrib[markup.AYAME_ID] = 'b2'
     root.children.append(a)
     mc = core.MarkupContainer('a')
-    mc.add(basic.Label('b1', 'foo'))
-    mc.add(basic.Label('b2', 'bar'))
+    mc.add(basic.Label('b1', 'spam'))
+    mc.add(basic.Label('b2', 'eggs'))
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
@@ -403,7 +403,7 @@ def test_render_ayame_enclosure():
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
     eq_(len(b.children), 1)
-    eq_(b.children[0], 'foo')
+    eq_(b.children[0], 'spam')
 
     b = a.children[1]
     eq_(b.qname, markup.QName('', 'b'))
@@ -414,7 +414,7 @@ def test_render_ayame_enclosure():
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
     eq_(len(a.children), 1)
-    eq_(a.children[0], 'bar')
+    eq_(a.children[0], 'eggs')
 
     # ayame:enclosure with invisible component
     root = markup.Element(markup.QName('', 'root'))
@@ -432,8 +432,8 @@ def test_render_ayame_enclosure():
     a.attrib[markup.AYAME_ID] = 'b2'
     root.children.append(a)
     mc = core.MarkupContainer('a')
-    mc.add(basic.Label('b1', 'foo'))
-    mc.add(basic.Label('b2', 'bar'))
+    mc.add(basic.Label('b1', 'spam'))
+    mc.add(basic.Label('b2', 'eggs'))
     mc.find('b1').visible = False
     mc.find('b2').visible = False
 

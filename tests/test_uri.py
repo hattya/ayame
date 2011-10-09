@@ -230,31 +230,31 @@ def test_is_relative_uri():
     ok_(uri.is_relative_uri(''))
     ok_(uri.is_relative_uri('.'))
     ok_(uri.is_relative_uri('..'))
-    ok_(uri.is_relative_uri('foo.html'))
-    ok_(uri.is_relative_uri('foo/bar.html'))
+    ok_(uri.is_relative_uri('spam.html'))
+    ok_(uri.is_relative_uri('spam/eggs.html'))
 
 def test_relative_uri():
     environ = {}
-    eq_(uri.relative_uri(environ, '/foo.html'), '/foo.html')
-    eq_(uri.relative_uri(environ, 'foo.html'), 'foo.html')
+    eq_(uri.relative_uri(environ, '/spam.html'), '/spam.html')
+    eq_(uri.relative_uri(environ, 'spam.html'), 'spam.html')
 
     environ = {'PATH_INFO': '/'}
-    eq_(uri.relative_uri(environ, 'foo.html'), 'foo.html')
+    eq_(uri.relative_uri(environ, 'spam.html'), 'spam.html')
 
-    environ = {'PATH_INFO': '/a'}
-    eq_(uri.relative_uri(environ, 'foo.html'), 'foo.html')
+    environ = {'PATH_INFO': '/spam'}
+    eq_(uri.relative_uri(environ, 'eggs.html'), 'eggs.html')
 
-    environ = {'PATH_INFO': '//a'}
-    eq_(uri.relative_uri(environ, 'foo.html'), 'foo.html')
+    environ = {'PATH_INFO': '//spam'}
+    eq_(uri.relative_uri(environ, 'eggs.html'), 'eggs.html')
 
-    environ = {'PATH_INFO': '/a/'}
-    eq_(uri.relative_uri(environ, 'foo.html'), '../foo.html')
+    environ = {'PATH_INFO': '/spam/'}
+    eq_(uri.relative_uri(environ, 'eggs.html'), '../eggs.html')
 
-    environ = {'PATH_INFO': '/a/b'}
-    eq_(uri.relative_uri(environ, 'foo.html'), '../foo.html')
+    environ = {'PATH_INFO': '/spam/eggs'}
+    eq_(uri.relative_uri(environ, 'ham.html'), '../ham.html')
 
-    environ = {'PATH_INFO': '/a/b/'}
-    eq_(uri.relative_uri(environ, 'foo.html'), '../../foo.html')
+    environ = {'PATH_INFO': '/spam/eggs/'}
+    eq_(uri.relative_uri(environ, 'ham.html'), '../../ham.html')
 
-    environ = {'PATH_INFO': '/a/b/c'}
-    eq_(uri.relative_uri(environ, 'foo.html'), '../../foo.html')
+    environ = {'PATH_INFO': '/spam/eggs/ham'}
+    eq_(uri.relative_uri(environ, 'toast.html'), '../../toast.html')

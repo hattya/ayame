@@ -35,25 +35,27 @@ from ayame.exception import MarkupError
 
 
 def test_element():
-    foo = markup.Element(markup.QName('foo', 'foo'),
-                         attrib={'id': 'a'},
-                         type=markup.Element.EMPTY,
-                         ns={'': 'foo'})
-    eq_(foo.qname, markup.QName('foo', 'foo'))
-    eq_(foo.attrib, {'id': 'a'})
-    eq_(foo.type, markup.Element.EMPTY)
-    eq_(foo.ns, {'': 'foo'})
-    eq_(repr(foo.qname), '{foo}foo')
+    spam = markup.Element(markup.QName('spam', 'spam'),
+                          attrib={'id': 'a'},
+                          type=markup.Element.EMPTY,
+                          ns={'': 'spam'})
+    eq_(spam.qname, markup.QName('spam', 'spam'))
+    eq_(spam.attrib, {'id': 'a'})
+    eq_(spam.type, markup.Element.EMPTY)
+    eq_(spam.ns, {'': 'spam'})
+    eq_(repr(spam.qname), '{spam}spam')
 
-    bar = foo.copy()
-    foo.attrib[0] = 'a'
-    eq_(foo.attrib, {'id': 'a', 0: 'a'})
+    eggs = spam.copy()
+    eggs.qname = markup.QName('spam', 'eggs')
+    spam.attrib[0] = 'a'
+    eq_(spam.qname, markup.QName('spam', 'spam'))
+    eq_(spam.attrib, {'id': 'a', 0: 'a'})
 
-    eq_(bar.qname, markup.QName('foo', 'foo'))
-    eq_(bar.attrib, {'id': 'a'})
-    eq_(bar.type, markup.Element.EMPTY)
-    eq_(bar.ns, {'': 'foo'})
-    eq_(repr(bar.qname), '{foo}foo')
+    eq_(eggs.qname, markup.QName('spam', 'eggs'))
+    eq_(eggs.attrib, {'id': 'a'})
+    eq_(eggs.type, markup.Element.EMPTY)
+    eq_(eggs.ns, {'': 'spam'})
+    eq_(repr(eggs.qname), '{spam}eggs')
 
 def test_load_error():
     test = test_load_error
@@ -153,27 +155,27 @@ def test_invalid_xml():
     assert_xml('<?xml version=\'1.0"?>', (1, 0))
 
     # no xml declaration
-    assert_xml('<foo></foo>', (1, 0))
+    assert_xml('<spam></spam>', (1, 0))
 
     # multiple root element
     assert_xml('<?xml version="1.0"?>'
-               '<foo/>'
-               '<bar/>',
-               (1, 27))
+               '<spam/>'
+               '<eggs/>',
+               (1, 28))
     assert_xml('<?xml version="1.0"?>'
-               '<foo></foo>'
-               '<bar></bar>',
-               (1, 32))
+               '<spam></spam>'
+               '<eggs></eggs>',
+               (1, 34))
 
     # omitted end tag for root element
     assert_xml('<?xml version="1.0"?>'
-               '<foo>',
-               (1, 26))
+               '<spam>',
+               (1, 27))
 
     # mismatched tag
     assert_xml('<?xml version="1.0"?>'
-               '<foo></bar>',
-               (1, 26))
+               '<spam></eggs>',
+               (1, 27))
 
 def test_load_empty_xml():
     test = test_load_empty_xml
@@ -191,44 +193,44 @@ def test_load_xml():
     test = test_load_xml
 
     xml = ('<?xml version="1.0"?>'
-           '<!DOCTYPE test SYSTEM "foo.dtd">'
-           '<foo xmlns="foo" id="a">'
+           '<!DOCTYPE spam SYSTEM "spam.dtd">'
+           '<spam xmlns="spam" id="a">'
            '&amp;'
-           '<bar/>'
+           '<eggs/>'
            '&#38;'
            'x'
-           '</foo>')
+           '</spam>')
     src = io.StringIO(xml.decode())
     loader = markup.MarkupLoader()
     m = loader.load(test, src, lang='xml')
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xml')
-    eq_(m.doctype, '<!DOCTYPE test SYSTEM "foo.dtd">')
+    eq_(m.doctype, '<!DOCTYPE spam SYSTEM "spam.dtd">')
     ok_(m.root)
 
-    foo = m.root
-    eq_(foo.qname, markup.QName('foo', 'foo'))
-    eq_(foo.attrib, {markup.QName('foo', 'id'): 'a'})
-    eq_(foo.type, markup.Element.OPEN)
-    eq_(foo.ns, {'': 'foo', 'xml': markup.XML_NS})
-    eq_(len(foo.children), 3)
-    eq_(foo.children[0], '&amp;')
-    eq_(foo.children[2], '&#38;x')
+    spam = m.root
+    eq_(spam.qname, markup.QName('spam', 'spam'))
+    eq_(spam.attrib, {markup.QName('spam', 'id'): 'a'})
+    eq_(spam.type, markup.Element.OPEN)
+    eq_(spam.ns, {'': 'spam', 'xml': markup.XML_NS})
+    eq_(len(spam.children), 3)
+    eq_(spam.children[0], '&amp;')
+    eq_(spam.children[2], '&#38;x')
 
-    bar = foo.children[1]
-    eq_(bar.qname, markup.QName('foo', 'bar'))
-    eq_(bar.attrib, {})
-    eq_(bar.type, markup.Element.EMPTY)
-    eq_(bar.ns, {})
-    eq_(len(bar.children), 0)
+    eggs = spam.children[1]
+    eq_(eggs.qname, markup.QName('spam', 'eggs'))
+    eq_(eggs.attrib, {})
+    eq_(eggs.type, markup.Element.EMPTY)
+    eq_(eggs.ns, {})
+    eq_(len(eggs.children), 0)
 
 def test_load_xml_with_prefix():
     test = test_load_xml_with_prefix
 
     xml = ('<?xml version="1.0"?>'
-           '<foo xmlns="foo" xmlns:bar="bar">'
-           '<bar:bar/>'
-           '</foo>')
+           '<spam xmlns="spam" xmlns:eggs="eggs">'
+           '<eggs:eggs/>'
+           '</spam>')
     src = io.StringIO(xml.decode())
     loader = markup.MarkupLoader()
     m = loader.load(test, src, lang='xml')
@@ -237,19 +239,19 @@ def test_load_xml_with_prefix():
     ok_(m.doctype is None)
     ok_(m.root)
 
-    foo = m.root
-    eq_(foo.qname, markup.QName('foo', 'foo'))
-    eq_(foo.attrib, {})
-    eq_(foo.type, markup.Element.OPEN)
-    eq_(foo.ns, {'': 'foo', 'bar': 'bar', 'xml': markup.XML_NS})
-    eq_(len(foo.children), 1)
+    spam = m.root
+    eq_(spam.qname, markup.QName('spam', 'spam'))
+    eq_(spam.attrib, {})
+    eq_(spam.type, markup.Element.OPEN)
+    eq_(spam.ns, {'': 'spam', 'eggs': 'eggs', 'xml': markup.XML_NS})
+    eq_(len(spam.children), 1)
 
-    bar = foo.children[0]
-    eq_(bar.qname, markup.QName('bar', 'bar'))
-    eq_(bar.attrib, {})
-    eq_(bar.type, markup.Element.EMPTY)
-    eq_(bar.ns, {})
-    eq_(len(bar.children), 0)
+    eggs = spam.children[0]
+    eq_(eggs.qname, markup.QName('eggs', 'eggs'))
+    eq_(eggs.attrib, {})
+    eq_(eggs.type, markup.Element.EMPTY)
+    eq_(eggs.ns, {})
+    eq_(len(eggs.children), 0)
 
     # no default namespace
     class Loader(markup.MarkupLoader):
@@ -266,13 +268,13 @@ def test_load_xml_with_prefix():
         ok_(False)
     except MarkupError as e:
         eq_(e.args[0], __name__ + '.test_load_xml_with_prefix')
-        eq_(e.args[1], (1, 64))
+        eq_(e.args[1], (1, 70))
 
-    # no bar namespace
+    # no eggs namespace
     class Loader(markup.MarkupLoader):
         def new_xml_element(self, *args, **kwargs):
             element = super(Loader, self).new_xml_element(*args, **kwargs)
-            element.ns.pop('bar', None)
+            element.ns.pop('eggs', None)
             return element
     src = io.StringIO(xml.decode())
     loader = Loader()
@@ -283,7 +285,7 @@ def test_load_xml_with_prefix():
         ok_(False)
     except MarkupError as e:
         eq_(e.args[0], __name__ + '.test_load_xml_with_prefix')
-        eq_(e.args[1], (1, 54))
+        eq_(e.args[1], (1, 58))
 
 def test_load_xhtml1():
     test = test_load_xhtml1

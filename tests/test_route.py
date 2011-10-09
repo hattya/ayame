@@ -119,13 +119,13 @@ def test_duplicate_variable():
 
 def test_unknown_converter():
     map = route.Map()
-    assert_raises(RouteError, map.connect, '/<foo:a>', 0)
+    assert_raises(RouteError, map.connect, '/<spam:a>', 0)
 
 def test_custom_converter():
-    class FooConverter(route.Converter):
+    class SpamConverter(route.Converter):
         pass
-    map = route.Map(converters={'foo': FooConverter})
-    map.connect('/<foo:a>', 0)
+    map = route.Map(converters={'spam': SpamConverter})
+    map.connect('/<spam:a>', 0)
 
     # case: GET /app
     router = map.bind(new_environ('/app'))

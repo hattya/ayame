@@ -60,31 +60,31 @@ def test_fqon_of():
     eq_(util.fqon_of(1.0), 'float')
 
 def test_load_data():
-    class Foo(object):
+    class Spam(object):
         pass
-    def foo():
+    def spam():
         pass
 
-    with util.load_data(Foo, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Foo.txt')
-    with util.load_data(Foo(), '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Foo.txt')
-    with util.load_data(foo, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/foo.txt')
+    with util.load_data(Spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt')
+    with util.load_data(Spam(), '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt')
+    with util.load_data(spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/spam.txt')
     with util.load_data(sys.modules[__name__], '.txt') as fp:
         eq_(fp.read().strip(), 'test_util.txt')
 
-    def bar():
+    def eggs():
         pass
-    del bar.__module__
-    assert_raises(ResourceError, util.load_data, bar, '.txt')
+    del eggs.__module__
+    assert_raises(ResourceError, util.load_data, eggs, '.txt')
 
     class Module(object):
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
-    assert_raises(ResourceError, util.load_data, Foo, '.txt')
-    assert_raises(ResourceError, util.load_data, foo, '.txt')
+    assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
 
@@ -94,8 +94,8 @@ def test_load_data():
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
-    assert_raises(ResourceError, util.load_data, Foo, '.txt')
-    assert_raises(ResourceError, util.load_data, foo, '.txt')
+    assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
 
@@ -109,12 +109,12 @@ def test_load_data():
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
-    with util.load_data(Foo, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
-    with util.load_data(Foo(), '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Foo.txt from Loader')
-    with util.load_data(foo, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/foo.txt from Loader')
+    with util.load_data(Spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
+    with util.load_data(Spam(), '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
+    with util.load_data(spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/spam.txt from Loader')
     loader = getattr(module, '__loader__', None)
     module.__loader__ = Loader()
     with util.load_data(module, '.txt') as fp:
