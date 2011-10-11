@@ -301,7 +301,7 @@ class MarkupContainer(Component):
                         if (text is None and
                             (children and
                              isinstance(children[-1], basestring))):
-                            # current and previous children are a string
+                            # current and previous children are strings
                             text = [children[-1], v]
                             children = children[:-1]
                         elif text is not None:
@@ -324,7 +324,7 @@ class MarkupContainer(Component):
                      isinstance(children[-1], basestring)) and
                     (tail and
                      isinstance(tail[0], basestring))):
-                    # current and next children are a string
+                    # current and next children are strings
                     children[-1] = ''.join((children[-1], tail[0]))
                     children += tail[1:]
                 else:
@@ -345,12 +345,12 @@ class MarkupContainer(Component):
                     beg = end = index
                     if (0 < index and
                         isinstance(children[index - 1], basestring)):
-                        # current and previous children are a string
+                        # current and previous children are strings
                         beg = index - 1
                         end = index + 1
                     if (index + 1 < len(children) and
                         isinstance(children[index + 1], basestring)):
-                        # current and next children are a string
+                        # current and next children are strings
                         end = index + 2
                     if (beg != index or
                         index != end):

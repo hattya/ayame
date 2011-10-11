@@ -184,7 +184,7 @@ class Rule(object):
         for var in self._variables:
             if var not in values:
                 return
-
+        # path
         buf = []
         cache = {}
         for dyn, var in self._segments:
@@ -199,7 +199,7 @@ class Rule(object):
                     return
             else:
                 buf.append(var)
-
+        # query
         if append_query:
             query = []
             for var in values:
@@ -210,11 +210,10 @@ class Rule(object):
                 query = sorted(query, key=self.map.sort_key)
                 buf.append('?')
                 buf.append(urllib.urlencode(query, doseq=True))
-
+        # anchor
         if anchor:
             buf.append('#')
             buf.append(uri.quote(anchor, encoding=self.map.encoding))
-
         return ''.join(buf)
 
 class Map(object):
