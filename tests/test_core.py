@@ -451,3 +451,259 @@ def test_render_ayame_enclosure():
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
     eq_(len(b.children), 0)
+
+def test_markup_inheritance():
+    local = core._local
+    app = core.Ayame(__name__)
+
+    class Spam(core.MarkupContainer):
+        pass
+    class Eggs(Spam):
+        pass
+    class Ham(Eggs):
+        pass
+
+    class Toast(core.MarkupContainer):
+        pass
+
+    class Beans(core.MarkupContainer):
+        pass
+
+    # markup inheritance
+    try:
+        local.app = app
+        mc = Ham('a')
+        m = mc.load_markup()
+    finally:
+        local.app = None
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    html = m.root
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html.children), 5)
+    ok_(isinstance(html.children[0], basestring))
+    ok_(isinstance(html.children[2], basestring))
+    ok_(isinstance(html.children[4], basestring))
+
+    head = html.children[1]
+    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
+    eq_(head.attrib, {})
+    eq_(head.type, markup.Element.OPEN)
+    eq_(head.ns, {})
+    eq_(len(head.children), 9)
+    ok_(isinstance(head.children[0], basestring))
+    ok_(isinstance(head.children[2], basestring))
+    ok_(isinstance(head.children[4], basestring))
+    ok_(isinstance(head.children[6], basestring))
+    ok_(isinstance(head.children[8], basestring))
+
+    title = head.children[1]
+    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
+    eq_(title.attrib, {})
+    eq_(title.type, markup.Element.OPEN)
+    eq_(title.ns, {})
+    eq_(len(title.children), 1)
+    eq_(title.children[0], 'Spam')
+
+    meta = head.children[3]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    meta = head.children[5]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Eggs'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    meta = head.children[7]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Ham'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    body = html.children[3]
+    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
+    eq_(body.attrib, {})
+    eq_(body.type, markup.Element.OPEN)
+    eq_(body.ns, {})
+    eq_(len(body.children), 9)
+    ok_(isinstance(body.children[0], basestring))
+    ok_(isinstance(body.children[2], basestring))
+    ok_(isinstance(body.children[4], basestring))
+    ok_(isinstance(body.children[6], basestring))
+    ok_(isinstance(body.children[8], basestring))
+
+    p = body.children[1]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'before ayame:child (Spam)')
+
+    p = body.children[3]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'inside ayame:extend (Eggs)')
+
+    p = body.children[5]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'inside ayame:extend (Ham)')
+
+    p = body.children[7]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'after ayame:child (Spam)')
+
+    # child markup is empty
+    class Bacon(Spam):
+        pass
+    try:
+        local.app = app
+        mc = Bacon('a')
+        m = mc.load_markup()
+    finally:
+        local.app = None
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    html = m.root
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html.children), 5)
+    ok_(isinstance(html.children[0], basestring))
+    ok_(isinstance(html.children[2], basestring))
+    ok_(isinstance(html.children[4], basestring))
+
+    head = html.children[1]
+    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
+    eq_(head.attrib, {})
+    eq_(head.type, markup.Element.OPEN)
+    eq_(head.ns, {})
+    eq_(len(head.children), 7)
+    ok_(isinstance(head.children[0], basestring))
+    ok_(isinstance(head.children[2], basestring))
+    ok_(isinstance(head.children[4], basestring))
+    ok_(isinstance(head.children[6], basestring))
+
+    title = head.children[1]
+    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
+    eq_(title.attrib, {})
+    eq_(title.type, markup.Element.OPEN)
+    eq_(title.ns, {})
+    eq_(len(title.children), 1)
+    eq_(title.children[0], 'Spam')
+
+    meta = head.children[3]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    meta = head.children[5]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Bacon'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    body = html.children[3]
+    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
+    eq_(body.attrib, {})
+    eq_(body.type, markup.Element.OPEN)
+    eq_(body.ns, {})
+    eq_(len(body.children), 5)
+    ok_(isinstance(body.children[0], basestring))
+    ok_(isinstance(body.children[2], basestring))
+    ok_(isinstance(body.children[4], basestring))
+
+    p = body.children[1]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'before ayame:child (Spam)')
+
+    p = body.children[3]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'after ayame:child (Spam)')
+
+    # superclass is not found
+    class Bacon(core.MarkupContainer):
+        pass
+    try:
+        local.app = app
+        mc = Bacon('a')
+        assert_raises(AyameError, mc.load_markup)
+    finally:
+        local.app = None
+
+    # multiple inheritance
+    class Bacon(Spam, Toast, Beans):
+        pass
+    try:
+        local.app = app
+        mc = Bacon('a')
+        assert_raises(AyameError, mc.load_markup)
+    finally:
+        local.app = None
+
+    # ayame:child element is not found
+    class Bacon(Toast):
+        pass
+    try:
+        local.app = app
+        mc = Bacon('a')
+        assert_raises(AyameError, mc.load_markup)
+    finally:
+        local.app = None
+
+    # head element is not found
+    class Bacon(Beans):
+        pass
+    try:
+        local.app = app
+        mc = Bacon('a')
+        assert_raises(AyameError, mc.load_markup)
+    finally:
+        local.app = None
