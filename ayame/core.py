@@ -362,7 +362,7 @@ class MarkupContainer(Component):
 
         if element.qname == markup.AYAME_CONTAINER:
             find(get(element, markup.AYAME_ID)).render_body_only = True
-            element.qname = markup.QName(markup.XHTML_NS, 'div')
+            element.qname = markup.DIV
             return element
         elif element.qname == markup.AYAME_ENCLOSURE:
             component = find(get(element, markup.AYAME_CHILD))
@@ -474,7 +474,7 @@ class MarkupContainer(Component):
         if extra_head:
             for node in m.root.children:
                 if (isinstance(node, markup.Element) and
-                    node.qname == markup.QName(markup.XHTML_NS, 'head')):
+                    node.qname == markup.HEAD):
                     join_children(node.children, extra_head)
                     extra_head = None
             if extra_head is not None:

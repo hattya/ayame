@@ -70,7 +70,7 @@ class ListView(core.MarkupContainer):
 
     def on_render(self, element):
         skel = element.copy()
-        skel.qname = markup.QName(markup.XHTML_NS, 'div')
+        skel.qname = markup.DIV
         element.children = []
         for component in self.children:
             element.children += component.on_render(skel.copy()).children
