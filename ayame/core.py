@@ -195,6 +195,7 @@ class MarkupContainer(Component):
 
     def __init__(self, id, model=None):
         super(MarkupContainer, self).__init__(id, model)
+        self.markup_type = markup.MarkupType('.html', 'text/html')
         self.children = []
         self._ref = {}
 
@@ -399,7 +400,7 @@ class MarkupContainer(Component):
         for child in self.children:
             child.on_after_render()
 
-    def load_markup(self, cls=None, suffix='.html'):
+    def load_markup(self, cls=None):
         new_queue = self._new_queue
         push_children = self._push_children
         join_children = self._join_children
@@ -420,11 +421,12 @@ class MarkupContainer(Component):
 
         cls = self.__class__ if cls is None else cls
         loader = self.config['ayame.class.MarkupLoader']()
+        ext = self.markup_type.extension
         encoding = self.config['ayame.markup.encoding']
         extra_head = []
         ayame_child = None
         while True:
-            m = loader.load(cls, util.load_data(cls, suffix, encoding))
+            m = loader.load(cls, util.load_data(cls, ext, encoding))
             html = 'html' in m.lang
             ayame_extend = ayame_head = None
             for parent, index, element in walk(m.root):
