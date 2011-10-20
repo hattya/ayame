@@ -198,6 +198,7 @@ class MarkupContainer(Component):
         self.markup_type = markup.MarkupType('.html', 'text/html')
         self.children = []
         self._ref = {}
+        self._extra_head = None
 
     def add(self, *args):
         for obj in args:
@@ -235,6 +236,7 @@ class MarkupContainer(Component):
         # apply modifiers
         element = super(MarkupContainer, self).on_render(element)
 
+        self._extra_head = []
         queue = self._new_queue(root)
         while queue:
             parent, index, element = queue.pop()
@@ -342,6 +344,8 @@ class MarkupContainer(Component):
                         parent.children = children[:beg]
                         parent.children.append(''.join(children[beg:end]))
                         parent.children += children[end:]
+        # merge ayame:head
+        self.merge_ayame_head(root)
         return root
 
     def render_ayame_element(self, element):
@@ -369,6 +373,29 @@ class MarkupContainer(Component):
             return element.children if component.visible else None
         raise RenderingError(
                 "unknown element 'ayame:{}'".format(element.qname.name))
+
+    def push_ayame_head(self, ayame_head):
+        parent = self
+        while parent.parent is not None:
+            parent = parent.parent
+        self._join_children(parent._extra_head, ayame_head.children)
+
+    def merge_ayame_head(self, root):
+        if self._extra_head:
+            if (isinstance(root, markup.Element) and
+                root.qname == markup.HTML):
+                for node in root.children:
+                    if (isinstance(node, markup.Element) and
+                        node.qname == markup.HEAD):
+                        node.type = markup.Element.OPEN
+                        self._join_children(node.children, self._extra_head)
+                        self._extra_head = None
+                if self._extra_head is not None:
+                    raise RenderingError('head element is not found')
+            else:
+                raise RenderingError('root element is not html')
+        else:
+            self._extra_head = None
 
     def render_component(self, element):
         # retrieve ayame:id

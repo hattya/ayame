@@ -797,3 +797,62 @@ def test_markup_inheritance():
         assert_raises(AyameError, mc.load_markup)
     finally:
         local.app = None
+
+def test_ayame_head():
+    ayame_head = markup.Element(markup.AYAME_HEAD)
+    h = markup.Element(markup.QName('', 'h'))
+    ayame_head.children.append(h)
+
+    class MarkupContainer(core.MarkupContainer):
+        def on_render(self, element):
+            self.push_ayame_head(ayame_head)
+            return element
+
+    # root element is not html
+    root = markup.Element(markup.QName('', 'root'))
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    mc = core.MarkupContainer('a')
+    mc.add(MarkupContainer('b'))
+    assert_raises(RenderingError, mc.render, root)
+
+    # head element is not found
+    root = markup.Element(markup.HTML)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    mc = core.MarkupContainer('a')
+    mc.add(MarkupContainer('b'))
+    assert_raises(RenderingError, mc.render, root)
+
+    # push ayame:head
+    root = markup.Element(markup.HTML)
+    head = markup.Element(markup.HEAD)
+    root.children.append(head)
+    a = markup.Element(markup.QName('', 'a'))
+    a.attrib[markup.AYAME_ID] = 'b'
+    root.children.append(a)
+    mc = core.MarkupContainer('a')
+    mc.add(MarkupContainer('b'))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.HTML)
+    eq_(root.attrib, {})
+    eq_(len(root.children), 2)
+
+    head = root.children[0]
+    eq_(head.qname, markup.HEAD)
+    eq_(head.attrib, {})
+    eq_(head.type, markup.Element.OPEN)
+    eq_(len(head.children), 1)
+
+    h = head.children[0]
+    eq_(h.qname, markup.QName('', 'h'))
+    eq_(h.attrib, {})
+    eq_(len(h.children), 0)
+
+    a = root.children[1]
+    eq_(a.qname, markup.QName('', 'a'))
+    eq_(a.attrib, {})
+    eq_(len(a.children), 0)
