@@ -469,6 +469,9 @@ def test_markup_inheritance():
     class Beans(core.MarkupContainer):
         pass
 
+    class Bacon(core.MarkupContainer):
+        pass
+
     # markup inheritance
     try:
         local.app = app
@@ -581,12 +584,12 @@ def test_markup_inheritance():
     eq_(len(p.children), 1)
     eq_(p.children[0], 'after ayame:child (Spam)')
 
-    # child markup is empty
-    class Bacon(Spam):
+    # submarkup is empty
+    class Sausage(Spam):
         pass
     try:
         local.app = app
-        mc = Bacon('a')
+        mc = Sausage('a')
         m = mc.load_markup()
     finally:
         local.app = None
@@ -637,7 +640,7 @@ def test_markup_inheritance():
     meta = head.children[5]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'Bacon'})
+                      markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
     eq_(len(meta.children), 0)
@@ -668,42 +671,129 @@ def test_markup_inheritance():
     eq_(len(p.children), 1)
     eq_(p.children[0], 'after ayame:child (Spam)')
 
-    # superclass is not found
-    class Bacon(core.MarkupContainer):
+    # merge ayame:head into ayame:head in supermarkup
+    class Sausage(Bacon):
         pass
     try:
         local.app = app
-        mc = Bacon('a')
+        mc = Sausage('a')
+        m = mc.load_markup()
+    finally:
+        local.app = None
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    html = m.root
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html.children), 5)
+    ok_(isinstance(html.children[0], basestring))
+    ok_(isinstance(html.children[2], basestring))
+    ok_(isinstance(html.children[4], basestring))
+
+    ayame_head = html.children[1]
+    eq_(ayame_head.qname, markup.QName(markup.AYAME_NS, 'head'))
+    eq_(ayame_head.attrib, {})
+    eq_(ayame_head.type, markup.Element.OPEN)
+    eq_(ayame_head.ns, {})
+    eq_(len(ayame_head.children), 7)
+    ok_(isinstance(ayame_head.children[0], basestring))
+    ok_(isinstance(ayame_head.children[2], basestring))
+    ok_(isinstance(ayame_head.children[4], basestring))
+    ok_(isinstance(ayame_head.children[6], basestring))
+
+    title = ayame_head.children[1]
+    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
+    eq_(title.attrib, {})
+    eq_(title.type, markup.Element.OPEN)
+    eq_(title.ns, {})
+    eq_(len(title.children), 1)
+    eq_(title.children[0], 'Bacon')
+
+    meta = ayame_head.children[3]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Bacon'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    meta = ayame_head.children[5]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(len(meta.children), 0)
+
+    body = html.children[3]
+    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
+    eq_(body.attrib, {})
+    eq_(body.type, markup.Element.OPEN)
+    eq_(body.ns, {})
+    eq_(len(body.children), 5)
+    ok_(isinstance(body.children[0], basestring))
+    ok_(isinstance(body.children[2], basestring))
+    ok_(isinstance(body.children[4], basestring))
+
+    p = body.children[1]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'before ayame:child (Bacon)')
+
+    p = body.children[3]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(len(p.children), 1)
+    eq_(p.children[0], 'after ayame:child (Bacon)')
+
+    # superclass is not found
+    class Sausage(core.MarkupContainer):
+        pass
+    try:
+        local.app = app
+        mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
     finally:
         local.app = None
 
     # multiple inheritance
-    class Bacon(Spam, Toast, Beans):
+    class Sausage(Spam, Toast, Beans, Bacon):
         pass
     try:
         local.app = app
-        mc = Bacon('a')
+        mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
     finally:
         local.app = None
 
     # ayame:child element is not found
-    class Bacon(Toast):
+    class Sausage(Toast):
         pass
     try:
         local.app = app
-        mc = Bacon('a')
+        mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
     finally:
         local.app = None
 
     # head element is not found
-    class Bacon(Beans):
+    class Sausage(Beans):
         pass
     try:
         local.app = app
-        mc = Bacon('a')
+        mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
     finally:
         local.app = None

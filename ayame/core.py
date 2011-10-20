@@ -472,11 +472,17 @@ class MarkupContainer(Component):
                 extra_head = join_children(ayame_head.children[:], extra_head)
         # merge ayame:head into supermarkup
         if extra_head:
-            for node in m.root.children:
-                if (isinstance(node, markup.Element) and
-                    node.qname == markup.HEAD):
-                    join_children(node.children, extra_head)
-                    extra_head = None
+            if ayame_head is None:
+                # merge to head
+                for node in m.root.children:
+                    if (isinstance(node, markup.Element) and
+                        node.qname == markup.HEAD):
+                        join_children(node.children, extra_head)
+                        extra_head = None
+            else:
+                # merge to ayame:head
+                join_children(ayame_head.children, extra_head)
+                extra_head = None
             if extra_head is not None:
                 throw(cls, 'head element is not found')
         return m
