@@ -169,6 +169,7 @@ class MarkupLoader(object, HTMLParser):
         self.markup = None
         self.__stack = deque()
 
+        self._cache = {}
         self._object = None
         self._text = None
         self._remove = False
@@ -189,6 +190,7 @@ class MarkupLoader(object, HTMLParser):
         self.markup = Markup()
         self.markup.lang = lang
         self.__stack.clear()
+        self._cache.clear()
         self._object = object
         self._text = None
         self._remove = False
@@ -297,11 +299,16 @@ class MarkupLoader(object, HTMLParser):
                           e.format(*args, **kwargs))
 
     def _impl_of(self, name):
+        # from method cache
+        impl = self._cache.get(name)
+        if impl is not None:
+            return impl
+        # from instance
         decl = MarkupLoader._decl.get(name)
         if decl is not None:
             impl = getattr(self, decl.format(self.markup.lang), None)
             if impl is not None:
-                return impl
+                return self._cache.setdefault(name, impl)
         self._throw("'{}' for '{}' document is not implemented", name,
                     self.markup.lang)
 
