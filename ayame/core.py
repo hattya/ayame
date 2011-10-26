@@ -217,7 +217,7 @@ class MarkupContainer(Component):
         if not path:
             return self
         p = path.split(':', 1)
-        id, tail = p[0], p[1] if len(p) > 1 else None
+        id, tail = p[0], p[1] if 1 < len(p) else None
         child = self._ref.get(id)
         if isinstance(child, MarkupContainer):
             return child.find(tail)
@@ -400,7 +400,7 @@ class MarkupContainer(Component):
     def render_component(self, element):
         # retrieve ayame:id
         ayame_id = None
-        for attr in list(element.attrib):
+        for attr in tuple(element.attrib):
             if attr.ns_uri != markup.AYAME_NS:
                 continue
             elif attr.name == 'id':
@@ -496,7 +496,8 @@ class MarkupContainer(Component):
             ayame_child = ayame_extend.children
             # merge ayame:head
             if ayame_head is not None:
-                extra_head = join_children(ayame_head.children[:], extra_head)
+                extra_head = join_children(list(ayame_head.children),
+                                           extra_head)
         # merge ayame:head into supermarkup
         if extra_head:
             if ayame_head is None:

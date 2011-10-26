@@ -202,6 +202,7 @@ def test_render_children():
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
     eq_(len(root.children), 1)
+    eq_(root.children[0], '')
 
     # replace element by string
     class Component(core.Component):

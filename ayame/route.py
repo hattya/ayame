@@ -350,7 +350,7 @@ class _StringConverter(Converter):
         if self.min:
             if (len(value) < self.min or
                 (self.length and
-                 len(value) > self.length)):
+                 self.length < len(value))):
                 raise ValidationError()
         elif (self.length and
               len(value) != self.length):
@@ -378,7 +378,7 @@ class _IntegerConverter(Converter):
         if ((self.min is not None and
              value < self.min) or
             (self.max is not None and
-             value > self.max)):
+             self.max < value)):
             raise ValidationError()
         return value
 
@@ -389,7 +389,7 @@ class _IntegerConverter(Converter):
             raise ValidationError()
         if self.digits:
             value = '{:0{}d}'.format(value, self.digits)
-            if len(value) > self.digits:
+            if self.digits < len(value):
                 raise ValidationError()
             return value
         return str(value)
