@@ -394,7 +394,10 @@ class MarkupLoader(object, HTMLParser):
         # convert attr name to qname
         xmlns[''] = element.qname.ns_uri
         for n, v in attrs:
-            element.attrib[new_qname(n, xmlns)] = v
+            qname = new_qname(n, xmlns)
+            if qname in element.attrib:
+                self._throw('attribute {} already exist', qname)
+            element.attrib[qname] = v
         return element
 
     def xml_push(self, element):

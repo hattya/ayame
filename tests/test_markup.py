@@ -177,6 +177,11 @@ def test_invalid_xml():
                '<spam></eggs>',
                (1, 27))
 
+    # attribute duplication
+    assert_xml('<?xml version="1.0"?>'
+               '<spam a="1" a="2"/>',
+               (1, 21))
+
 def test_load_empty_xml():
     test = test_load_empty_xml
 
