@@ -24,20 +24,21 @@
 #   SOFTWARE.
 #
 
+from __future__ import unicode_literals
 from HTMLParser import HTMLParser
 from collections import deque, namedtuple
 import io
 import re
 
 from ayame import util
-from ayame.exception import MarkupError
+from ayame.exception import MarkupError, RenderingError
 
 
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'HTML', 'HEAD', 'DIV', 'AYAME_CONTAINER', 'AYAME_ENCLOSURE',
            'AYAME_EXTEND', 'AYAME_CHILD', 'AYAME_PANEL', 'AYAME_BORDER',
            'AYAME_BODY', 'AYAME_HEAD', 'AYAME_REMOVE', 'AYAME_ID',
-           'MarkupType', 'Markup', 'Element', 'MarkupLoader']
+           'MarkupType', 'Markup', 'Element', 'MarkupLoader', 'MarkupRenderer']
 
 # namespace URI
 XML_NS = 'http://www.w3.org/XML/1998/namespace'
@@ -77,6 +78,23 @@ _html_re = re.compile(
         'DOCTYPE\s+'
         '(?:HTML|html)\s+'
         'PUBLIC\s+')
+
+# from DTD
+_empty = ('base', 'meta', 'link', 'hr', 'br', 'param', 'img', 'area', 'input',
+          'col')
+_pcdata = ('title', 'style', 'script', 'div', 'p', 'h1', 'h2', 'h3', 'h4',
+           'h5', 'h6', 'li', 'dt', 'dd', 'address', 'pre', 'blockquote', 'ins',
+           'del', 'a', 'span', 'bdo', 'em', 'strong', 'dfn', 'code', 'samp',
+           'kbd', 'var', 'cite', 'abbr', 'acronym', 'q', 'sub', 'sup', 'tt',
+           'i', 'b', 'big', 'small', 'object', 'label', 'option', 'textarea',
+           'fieldset', 'legend', 'button', 'caption', 'th', 'td')
+
+_block = ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'ul', 'ol', 'dl',
+          'pre', 'hr', 'blockquote', 'address', 'fieldset', 'table')
+_block_ex = _block + ('form', 'noscript', 'ins', 'del', 'script')
+
+# regex: 2+ spaces
+_space_re = re.compile('\s{2,}')
 
 class QName(namedtuple('QName', 'ns_uri, name')):
 
@@ -433,3 +451,428 @@ class MarkupLoader(object, HTMLParser):
     xhtml1_push = xml_push
     xhtml1_pop = xml_pop
     xhtml1_finish = xml_finish
+
+class MarkupRenderer(object):
+
+    _decl = {'compile_element': 'compile_{}_element',
+             'indent_tag': 'indent_{}_tag',
+             'render_start_tag': 'render_{}_start_tag',
+             'render_end_tag': 'render_{}_end_tag',
+             'render_text': 'render_{}_text'}
+
+    def __init__(self):
+        self.__stack = deque()
+        self._cache = {}
+
+        self._object = None
+        self._buffer = None
+        self._lang = None
+        self._indent = 0
+
+    def is_xml(self):
+        return (self._lang == 'xml' or
+                'xhtml' in self._lang)
+
+    def render(self, object, markup, encoding='utf-8', indent=2, pretty=False):
+        self.__stack.clear()
+        self._cache.clear()
+        self._object = object
+        self._buffer = io.StringIO()
+        self._lang = markup.lang.lower()
+        self._indent = indent
+
+        # render XML declaration
+        if self.is_xml():
+            self.render_xml_decl(markup.xml_decl, encoding)
+        # render DOCTYPE
+        self.render_doctype(markup.doctype)
+        # render nodes
+        if pretty:
+            compile_element = self._impl_of('compile_element')
+        else:
+            compile_element = lambda element: (element, False)
+        queue = deque()
+        if isinstance(markup.root, Element):
+            queue.append((-1, markup.root))
+        while queue:
+            index, node = queue.pop()
+            if 0 < self._ptr():
+                self._peek().pending -= 1
+            if isinstance(node, Element):
+                # render start or empty tag
+                element, newline = compile_element(node)
+                self._push(element, newline)
+                if element.children:
+                    element.type = Element.OPEN
+                else:
+                    element.type = Element.EMPTY
+                self.render_start_tag(index, element)
+                if element.type == Element.EMPTY:
+                    self._pop()
+                # push children
+                child_index = len(element.children) - 1
+                while 0 <= child_index:
+                    queue.append((child_index, element.children[child_index]))
+                    child_index -= 1
+            elif isinstance(node, basestring):
+                # render text
+                self.render_text(index, node)
+            else:
+                raise RenderingError(self._object,
+                                     "invalid type '{}'", type(node))
+            # render end tag(s)
+            while (0 < self._ptr() and
+                   self._peek().pending == 0):
+                self.render_end_tag(self._peek().element)
+                self._pop()
+        self._writeln()
+        try:
+            return self._buffer.getvalue().encode(encoding)
+        finally:
+            self._buffer.close()
+
+    def render_xml_decl(self, xml_decl, encoding):
+        self._write('<?xml',
+                    # VersionInfo
+                    ' version="', xml_decl.get('version', '1.0'), '"')
+        # EncodingDecl
+        encoding = xml_decl.get('encoding', encoding).upper()
+        if (encoding != 'UTF-8' and
+            'UTF-16' not in encoding):
+            self._write(' encoding="', encoding, '"')
+        # SDDecl
+        standalone = xml_decl.get('standalone')
+        if standalone:
+            self._write(' standalone="', standalone, '"')
+        self._writeln('?>')
+
+    def render_doctype(self, doctype):
+        if self._lang == 'xml':
+            if doctype:
+                self._writeln(doctype)
+        elif self._lang == 'xhtml1':
+            if doctype:
+                self._writeln(doctype)
+            else:
+                self._writeln(XHTML1_STRICT)
+
+    def render_start_tag(self, index, element):
+        # stack pointer of parent element
+        sp = self._ptr() - 2
+        # indent start tag
+        if (0 <= sp and
+            self._at(sp).newline):
+            self._impl_of('indent_tag')(self._at(sp).element, index)
+        # render start tag
+        self._impl_of('render_start_tag')(index, element)
+
+    def render_end_tag(self, element):
+        # indent end tag
+        if self._peek().newline:
+            self._impl_of('indent_tag')(None, -1)
+        # render end tag
+        self._impl_of('render_end_tag')(element)
+
+    def render_text(self, index, text):
+        self._impl_of('render_text')(index, text)
+
+    def _write(self, *args):
+        write = self._buffer.write
+        for s in args:
+            write(s)
+
+    def _writeln(self, *args):
+        self._write(*args + ('\n',))
+
+    def _impl_of(self, name):
+        # from method cache
+        impl = self._cache.get(name)
+        if impl is not None:
+            return impl
+        # from instance
+        decl = MarkupRenderer._decl.get(name)
+        if decl is not None:
+            impl = getattr(self, decl.format(self._lang), None)
+            if impl is not None:
+                return self._cache.setdefault(name, impl)
+        raise RenderingError(self._object,
+                             "'{}' for '{}' document is not "
+                             "implemented".format(name, self._lang))
+
+    def _push(self, element, newline=False):
+        self.__stack.append(_ElementState(element, newline))
+
+    def _pop(self):
+        return self.__stack.pop()
+
+    def _peek(self):
+        if 0 < self._ptr():
+            return self.__stack[-1]
+
+    def _at(self, index):
+        return self.__stack[index]
+
+    def _ptr(self):
+        return len(self.__stack)
+
+    def _count(self, ptr):
+        count = i = 0
+        while i < ptr:
+            if self._at(i).element.type == Element.OPEN:
+                count += 1
+            i += 1
+        return count
+
+    def _prefix_for(self, ns_uri):
+        i = self._ptr() - 1
+        known_prefixes = []
+        while 0 <= i:
+            element = self._at(i).element
+            if element.ns:
+                for prefix in element.ns:
+                    if prefix in known_prefixes:
+                        raise RenderingError(self._object,
+                                             "namespace URI for '{}' was "
+                                             "overwritten".format(prefix))
+                    elif element.ns[prefix] == ns_uri:
+                        return prefix
+                    known_prefixes.append(prefix)
+            i -= 1
+        raise RenderingError(self._object,
+                             "unknown namespace URI '{}'".format(ns_uri))
+
+    def _compile_children(self, parent, element=True, text=True, space=True):
+        last = len(parent.children) - 1
+        children = []
+        shift_width = -1
+        marks = []
+        line_count = index = 0
+        for node in parent.children:
+            if isinstance(node, Element):
+                if element:
+                    children.append(node)
+            elif isinstance(node, basestring):
+                if (text and
+                    node):
+                    # strip newlines at the beginning of the 1st node
+                    if index == 0:
+                        node = node.lstrip('\r\n')
+                    # calculate shift width
+                    for l in node.splitlines():
+                        # skip empty line
+                        s = l.lstrip()
+                        if s:
+                            # number of leading spaces
+                            sp_count = len(l) - len(s)
+                            if space:
+                                # 1+ spaces -> space
+                                s = _space_re.sub(' ', s)
+                                if 0 < sp_count:
+                                    l = ''.join((' ' * sp_count, s))
+                                    # order: element -> text
+                                    if (children and
+                                        isinstance(children[-1], Element)):
+                                        children.append('')
+                                else:
+                                    l = s
+                            # mark text node index
+                            marks.append(len(children))
+                            if (shift_width < 0 or
+                                sp_count < shift_width):
+                                shift_width = sp_count
+                            children.append(l)
+                            line_count += 1
+                        elif (children and
+                              isinstance(children[-1], Element)):
+                            # order: element -> text
+                            if space:
+                                children.append('')
+                            # count line if previous node is element
+                            line_count += 1
+                    if space:
+                        if (index < last and
+                            node[-1] in ('\r', '\n') and
+                            (children and
+                             isinstance(children[-1], basestring) and
+                             not children[-1].endswith(' '))):
+                            # newline -> space
+                            children.append('')
+                        elif (index == last and
+                              (children and
+                               isinstance(children[-1], basestring) and
+                               children[-1].endswith(' '))):
+                            # strip space at the end of the last node
+                            children[-1] = children[-1][:-1]
+            else:
+                raise RenderingError(self._object,
+                                     "invalid type '{}'", type(node))
+            index += 1
+        # remove indent
+        if 0 < shift_width:
+            for i in marks:
+                children[i] = children[i][shift_width:]
+        parent.children = children
+        return parent, line_count
+
+    def compile_xml_element(self, element):
+        if element.children:
+            element, line_count = self._compile_children(element, space=False)
+        else:
+            line_count = 0
+        newline = (1 < line_count or
+                   0 < len(element.children) - line_count)
+        return element, newline
+
+    def indent_xml_tag(self, parent, index):
+        self._write('\n',
+                    ' ' * (self._indent * self._count(self._ptr() - 1)))
+
+    def render_xml_start_tag(self, index, element):
+        prefix_for = self._prefix_for
+
+        element_prefix = prefix_for(element.qname.ns_uri)
+        self._write('<')
+        if element_prefix != '':
+            self._write(element_prefix, ':')
+        self._write(element.qname.name)
+        # xmlns attributes
+        for prefix in sorted(element.ns):
+            ns_uri = element.ns[prefix]
+            if ns_uri != XML_NS:
+                self._write(' xmlns')
+                if prefix != '':
+                    self._write(':', prefix)
+                self._write('="', ns_uri, '"')
+        # attributes
+        attrib = [(prefix_for(a.ns_uri), a.name, v)
+                  for a, v in element.attrib.iteritems()]
+        default_ns = False
+        for prefix, name, value in sorted(attrib):
+            self._write(' ')
+            if prefix == '':
+                default_ns = True
+            elif prefix != element_prefix:
+                self._write(prefix, ':')
+            elif (default_ns and
+                  prefix == element_prefix):
+                raise RenderingError(self._object,
+                                     'cannout combine with default namespace')
+            self._write(name, '="', value, '"')
+        self._write('/>' if element.type == Element.EMPTY else '>')
+
+    def render_xml_end_tag(self, element):
+        prefix = self._prefix_for(element.qname.ns_uri)
+        self._write('</')
+        if prefix != '':
+            self._write(prefix, ':')
+        self._write(element.qname.name, '>')
+
+    def render_xml_text(self, index, text):
+        # indent
+        if self._peek().newline:
+            self._write('\n',
+                        ' ' * (self._indent * self._count(self._ptr())))
+        self._write(text)
+
+    def compile_xhtml1_element(self, element):
+        # reset XML and XHTML namespaces
+        if element.qname == HTML:
+            for prefix in tuple(element.ns):
+                if element.ns[prefix] in (XML_NS, XHTML_NS):
+                    del element.ns[prefix]
+            element.ns['xml'] = XML_NS
+            element.ns[''] = XHTML_NS
+        # force element type as OPEN
+        if element.type != Element.EMPTY:
+            element.type = Element.OPEN
+        return self.compile_html4_element(element)
+
+    def indent_xhtml1_tag(self, parent, index):
+        return self.indent_xml_tag(parent, index)
+
+    def render_xhtml1_start_tag(self, index, element):
+        for attr in element.attrib:
+            if element.attrib[attr] is None:
+                raise RenderingError(self._object,
+                                     "'{}' attribute is None".format(attr))
+        return self.render_xml_start_tag(index, element)
+
+    render_xhtml1_end_tag = render_xml_end_tag
+
+    def render_xhtml1_text(self, index, text):
+        if (self._peek().newline and
+            text != ''):
+            # indent
+            self._write('\n',
+                        ' ' * (self._indent * self._count(self._ptr())))
+        elif text == '':
+            # space
+            self._write(' ')
+        self._write(text)
+
+    def compile_html4_element(self, element):
+        name = element.qname.name
+        newline = False
+        if element.qname.ns_uri != XHTML_NS:
+            element = self._compile_children(element)[0]
+            newline = True
+        elif name in _empty:
+            element.children = []
+        elif name not in _pcdata:
+            element.children = [c for c in element.children
+                                if not isinstance(c, basestring)]
+            newline = True
+        elif name in ('title', 'style', 'script', 'option', 'textarea'):
+            element, line_count = self._compile_children(element,
+                                                         element=False)
+            newline = (name not in ('title', 'option') and
+                       1 < line_count)
+        elif name in ('div', 'li', 'dd', 'object', 'fieldset', 'button', 'th',
+                      'td', 'ins', 'del'):
+            element = self._compile_children(element)[0]
+            newline = self._has_html4_block_element(element)
+        elif name == 'blockquote':
+            element = self._compile_children(element, text=False)[0]
+            newline = True
+        elif name == 'pre':
+            return element, newline
+        else:
+            element = self._compile_children(element)[0]
+        # remove leading spaces
+        if not newline:
+            i = len(element.children) - 1
+            while 0 <= i:
+                node = element.children[i]
+                if isinstance(node, basestring):
+                    element.children[i] = node.lstrip()
+                i -= 1
+        return element, newline
+
+    def _has_html4_block_element(self, root):
+        queue = deque()
+        if isinstance(root, Element):
+            queue.append(root)
+        while queue:
+            element = queue.pop()
+            for node in element.children:
+                if not isinstance(node, Element):
+                    continue
+                elif node.qname.ns_uri != XHTML_NS:
+                    return True
+                name = node.qname.name
+                if name in ('ins', 'del'):
+                    queue.appendleft(node)
+                elif name in _block_ex:
+                    return True
+
+class _ElementState(object):
+
+    __slots__ = ('element', 'pending', 'newline')
+
+    def __init__(self, element, newline):
+        # element
+        self.element = element
+        # number of pending children
+        self.pending = len(element.children)
+        # newline flag for children
+        self.newline = newline
