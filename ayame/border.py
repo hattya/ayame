@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from ayame import core, markup, util
+from ayame import core, markup
 from ayame.exception import RenderingError
 
 
@@ -49,9 +49,6 @@ class Border(core.MarkupContainer):
     def on_render(self, element):
         body = element
         push_children = self._push_children
-
-        def throw(cls, msg):
-            raise RenderingError('{}: {}'.format(util.fqon_of(cls), msg))
 
         def walk(root):
             queue = self._new_queue(root)
@@ -84,9 +81,9 @@ class Border(core.MarkupContainer):
                     ayame_head is None):
                     ayame_head = element
         if ayame_border is None:
-            throw(self, 'ayame:border element is not found')
+            raise RenderingError(self, 'ayame:border element is not found')
         elif ayame_body is None:
-            throw(self, 'ayame:body element is not found')
+            raise RenderingError(self, 'ayame:body element is not found')
         # push ayame:head to parent component
         if ayame_head:
             self.push_ayame_head(ayame_head)

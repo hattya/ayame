@@ -785,7 +785,7 @@ def test_markup_inheritance():
     try:
         local.app = app
         mc = Sausage('a')
-        assert_raises(AyameError, mc.load_markup)
+        assert_raises(RenderingError, mc.load_markup)
     finally:
         local.app = None
 
@@ -795,7 +795,7 @@ def test_markup_inheritance():
     try:
         local.app = app
         mc = Sausage('a')
-        assert_raises(AyameError, mc.load_markup)
+        assert_raises(RenderingError, mc.load_markup)
     finally:
         local.app = None
 

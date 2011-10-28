@@ -183,8 +183,7 @@ class MarkupLoader(object, HTMLParser):
         else:
             fp = src
         if not fp:
-            raise MarkupError(util.fqon_of(object), (0, 0),
-                              'could not load markup')
+            raise MarkupError(object, (0, 0), 'could not load markup')
 
         self.reset()
         self.__stack.clear()
@@ -217,7 +216,8 @@ class MarkupLoader(object, HTMLParser):
         if (self._ptr() == 0 and
             self._markup.root is not None and
             element.qname != AYAME_REMOVE):
-            self._throw('multiple root element')
+            raise MarkupError(self._object, self.getpos(),
+                              'multiple root element')
         # push element
         self._impl_of('push')(element)
         if element.qname == AYAME_REMOVE:
@@ -237,7 +237,8 @@ class MarkupLoader(object, HTMLParser):
             return
         elif (self._ptr() == 0 and
               self._markup.root is not None):
-            self._throw('multiple root element')
+            raise MarkupError(self._object, self.getpos(),
+                              'multiple root element')
         # push and pop element
         self._impl_of('push')(element)
         self._impl_of('pop')(element.qname)
@@ -271,7 +272,8 @@ class MarkupLoader(object, HTMLParser):
             self._markup.lang = 'xhtml1'
             self._markup.doctype = XHTML1_STRICT
         elif _html_re.match(decl):
-            self._throw('unsupported html version')
+            raise MarkupError(self._object, self.getpos(),
+                              'unsupported html version')
         else:
             self._markup.doctype = '<!' + decl + '>'
 
@@ -282,7 +284,8 @@ class MarkupLoader(object, HTMLParser):
 
         m = _xml_decl_re.match(data)
         if not m:
-            self._throw('malformed xml declaration')
+            raise MarkupError(self._object, self.getpos(),
+                              'malformed xml declaration')
         self._markup.lang = 'xml'
 
         for k, v in m.groupdict().iteritems():
@@ -290,13 +293,10 @@ class MarkupLoader(object, HTMLParser):
                 continue
             elif v[0] in ('"', "'"):
                 if v[-1] != v[0]:
-                    self._throw('mismatched quotes')
+                    raise MarkupError(self._object, self.getpos(),
+                                      'mismatched quotes')
                 v = v.strip(v[0])
             self._markup.xml_decl[k] = v
-
-    def _throw(self, e, *args, **kwargs):
-        raise MarkupError(util.fqon_of(self._object), self.getpos(),
-                          e.format(*args, **kwargs))
 
     def _impl_of(self, name):
         # from method cache
@@ -309,8 +309,9 @@ class MarkupLoader(object, HTMLParser):
             impl = getattr(self, decl.format(self._markup.lang), None)
             if impl is not None:
                 return self._cache.setdefault(name, impl)
-        self._throw("'{}' for '{}' document is not implemented", name,
-                    self._markup.lang)
+        raise MarkupError(self._object, self.getpos(),
+                          "'{}' for '{}' document is not "
+                          "implemented".format(name, self._markup.lang))
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(prefix):
@@ -327,11 +328,14 @@ class MarkupLoader(object, HTMLParser):
             prefix, name = name.split(':', 1)
             uri = ns.get(prefix, ns_uri_of(prefix))
             if uri is None:
-                self._throw("unknown namespace prefix '{}'", prefix)
+                raise MarkupError(self._object, self.getpos(),
+                                  "unknown namespace prefix "
+                                  "'{}'".format(prefix))
         else:
             uri = ns.get('', ns_uri_of(''))
             if uri is None:
-                self._throw('there is no default namespace')
+                raise MarkupError(self._object, self.getpos(),
+                                  'there is no default namespace')
         return QName(uri, name)
 
     def _append_text(self, text):
@@ -396,24 +400,30 @@ class MarkupLoader(object, HTMLParser):
         for n, v in attrs:
             qname = new_qname(n, xmlns)
             if qname in element.attrib:
-                self._throw('attribute {} already exist', qname)
+                raise MarkupError(self._object, self.getpos(),
+                                  'attribute {} already exist'.format(qname))
             element.attrib[qname] = v
         return element
 
     def xml_push(self, element):
         if not self._markup.xml_decl:
-            self._throw('xml declaration is not found')
+            raise MarkupError(self._object, self.getpos(),
+                              'xml declaration is not found')
         self._push(element)
 
     def xml_pop(self, qname):
         if (self._ptr() == 0 or
             self._peek().qname != qname):
-            self._throw("end tag for element '{}' which is not open", qname)
+            raise MarkupError(self._object, self.getpos(),
+                              "end tag for element '{}' "
+                              "which is not open".format(qname))
         return self._pop()
 
     def xml_finish(self):
         if 0 < self._ptr():
-            self._throw("end tag for element '{}' omitted", self._peek().qname)
+            raise MarkupError(self._object, self.getpos(),
+                              "end tag for element '{}' "
+                              "omitted".format(self._peek().qname))
 
     def new_xhtml1_element(self, name, attrs, type=None):
         return self.new_xml_element(name, attrs,

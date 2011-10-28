@@ -51,8 +51,8 @@ class Ayame(object):
     def instance():
         app = _local.app
         if not isinstance(app, Ayame):
-            raise AyameError('there is no application attached '
-                             "to '{}'".format(threading.current_thread().name))
+            raise AyameError('there is no application attached to '
+                             "'{}'".format(threading.current_thread().name))
         return app
 
     def __init__(self, name):
@@ -114,7 +114,7 @@ class Component(object):
 
     def __init__(self, id, model=None):
         if id is None:
-            raise ComponentError('component id is not set')
+            raise ComponentError(self, 'component id is not set')
         self.__id = id
         self.model = model
         self.parent = None
@@ -144,8 +144,9 @@ class Component(object):
             if (model is not None and
                 not isinstance(model, Model)):
                 self.__model = None
-                raise ComponentError(
-                        '{!r} is not an instance of Model'.format(model))
+                raise ComponentError(self,
+                                     '{!r} is not an instance of '
+                                     'Model'.format(model))
             self.__model = model
 
         return locals()
@@ -204,8 +205,9 @@ class MarkupContainer(Component):
         for obj in args:
             if isinstance(obj, Component):
                 if obj.id in self._ref:
-                    raise ComponentError(
-                            "component for '{}' already exist".format(obj.id))
+                    raise ComponentError(self,
+                                         "component for '{}' already "
+                                         "exist".format(obj.id))
                 self.children.append(obj)
                 self._ref[obj.id] = obj
                 obj.parent = self
@@ -352,7 +354,8 @@ class MarkupContainer(Component):
         def get(e, a):
             v = e.attrib.get(a)
             if v is None:
-                raise RenderingError("'ayame:{}' attribute is required for "
+                raise RenderingError(self,
+                                     "'ayame:{}' attribute is required for "
                                      "'ayame:{}' element".format(a.name,
                                                                  e.qname.name))
             return v
@@ -360,8 +363,9 @@ class MarkupContainer(Component):
         def find(p):
             c = self.find(p)
             if c is None:
-                raise ComponentError(
-                        "component for '{}' is not found".format(p))
+                raise ComponentError(self,
+                                     "component for '{}' is not "
+                                     "found".format(p))
             return c
 
         if element.qname == markup.AYAME_CONTAINER:
@@ -371,8 +375,12 @@ class MarkupContainer(Component):
         elif element.qname == markup.AYAME_ENCLOSURE:
             component = find(get(element, markup.AYAME_CHILD))
             return element.children if component.visible else None
-        raise RenderingError(
-                "unknown element 'ayame:{}'".format(element.qname.name))
+
+        if element.qname.ns_uri == markup.AYAME_NS:
+            raise RenderingError(self,
+                                 "unknown element "
+                                 "'ayame:{}'".format(element.qname.name))
+        raise RenderingError(self, "unknown element {}".format(element.qname))
 
     def push_ayame_head(self, ayame_head):
         parent = self
@@ -391,9 +399,9 @@ class MarkupContainer(Component):
                         self._join_children(node.children, self._extra_head)
                         self._extra_head = None
                 if self._extra_head is not None:
-                    raise RenderingError('head element is not found')
+                    raise RenderingError(self, 'head element is not found')
             else:
-                raise RenderingError('root element is not html')
+                raise RenderingError(self, 'root element is not html')
         else:
             self._extra_head = None
 
@@ -406,15 +414,17 @@ class MarkupContainer(Component):
             elif attr.name == 'id':
                 ayame_id = element.attrib.pop(attr)
             else:
-                raise RenderingError(
-                        "unknown attribute 'ayame:{}'".format(attr.name))
+                raise RenderingError(self,
+                                     "unknown attribute "
+                                     "'ayame:{}'".format(attr.name))
         if ayame_id is None:
             return None, element
         # find component
         component = self.find(ayame_id)
         if component is None:
-            raise ComponentError(
-                    "component for '{}' is not found".format(ayame_id))
+            raise ComponentError(self,
+                                 "component for '{}' is not "
+                                 "found".format(ayame_id))
         elif not component.visible:
             return ayame_id, None
         # render component
@@ -431,9 +441,6 @@ class MarkupContainer(Component):
         new_queue = self._new_queue
         push_children = self._push_children
         join_children = self._join_children
-
-        def throw(cls, msg):
-            raise AyameError('{}: {}'.format(util.fqon_of(cls), msg))
 
         def walk(root):
             queue = new_queue(root)
@@ -466,11 +473,12 @@ class MarkupContainer(Component):
                                 c is MarkupContainer):
                                 continue
                             elif supercls is not None:
-                                throw(cls,
-                                      'does not support multiple inheritance')
+                                raise AyameError('does not support '
+                                                 'multiple inheritance')
                             supercls = c
                         if supercls is None:
-                            throw(cls, 'superclass is not found')
+                            raise AyameError("superclass of '{}' is not "
+                                             "found".format(util.fqon_of(cls)))
                         cls = supercls
                         ayame_extend = element
                 elif element.qname == markup.AYAME_CHILD:
@@ -489,7 +497,7 @@ class MarkupContainer(Component):
                         ayame_head is None):
                         ayame_head = element
             if ayame_child is not None:
-                throw(cls, 'ayame:child element is not found')
+                raise RenderingError(cls, 'ayame:child element is not found')
             elif ayame_extend is None:
                 break # ayame:extend is not found
             # for ayame:child in supermarkup
@@ -512,7 +520,7 @@ class MarkupContainer(Component):
                 join_children(ayame_head.children, extra_head)
                 extra_head = None
             if extra_head is not None:
-                throw(cls, 'head element is not found')
+                raise RenderingError(cls, 'head element is not found')
         return m
 
     def _new_queue(self, root):

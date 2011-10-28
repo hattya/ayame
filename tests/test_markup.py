@@ -67,7 +67,7 @@ def test_load_error():
         loader.load(test, None)
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load_error')
+        eq_(e.args[0], test)
         eq_(e.args[1], (0, 0))
 
     # cannot open src
@@ -78,7 +78,7 @@ def test_load_error():
         loader.load(test, src, lang='')
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load_error')
+        eq_(e.args[0], test)
         eq_(e.args[1], (0, 0))
 
     # src is empty string
@@ -90,7 +90,7 @@ def test_load_error():
         loader.load(test, src, lang='')
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load_error')
+        eq_(e.args[0], test)
         eq_(e.args[1], (1, 0))
 
 def test_load():
@@ -129,7 +129,7 @@ def test_load():
         loader.load(test, src, lang='xml')
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load')
+        eq_(e.args[0], test)
         eq_(e.args[1], (1, 21))
 
 def test_invalid_xml():
@@ -144,7 +144,7 @@ def test_invalid_xml():
             loader.load(test, src, lang='xml')
             ok_(False)
         except MarkupError as e:
-            eq_(e.args[0], __name__ + '.test_invalid_xml')
+            eq_(e.args[0], test)
             eq_(e.args[1], pos)
 
     # malformed xml declaration
@@ -272,7 +272,7 @@ def test_load_xml_with_prefix():
         loader.load(test, src, lang='xml')
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load_xml_with_prefix')
+        eq_(e.args[0], test)
         eq_(e.args[1], (1, 70))
 
     # no eggs namespace
@@ -289,7 +289,7 @@ def test_load_xml_with_prefix():
         loader.load(test, src, lang='xml')
         ok_(False)
     except MarkupError as e:
-        eq_(e.args[0], __name__ + '.test_load_xml_with_prefix')
+        eq_(e.args[0], test)
         eq_(e.args[1], (1, 58))
 
 def test_load_xhtml1():
@@ -380,7 +380,7 @@ def test_invalid_xhtml1():
             loader.load(test, src, lang='xhtml1')
             ok_(False)
         except MarkupError as e:
-            eq_(e.args[0], __name__ + '.test_invalid_xhtml1')
+            eq_(e.args[0], test)
             eq_(e.args[1], pos)
 
     # no xml declaration

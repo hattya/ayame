@@ -47,8 +47,9 @@ class Label(core.Component):
         elif object is None:
             element.children = ['']
         else:
-            raise ComponentError(
-                    "could not render '{}'".format(util.fqon_of(object)))
+            raise ComponentError(self,
+                                 "could not render "
+                                 "'{}'".format(util.fqon_of(object)))
         return element
 
 class ListView(core.MarkupContainer):
