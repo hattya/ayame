@@ -857,3 +857,14 @@ def test_ayame_head():
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
     eq_(len(a.children), 0)
+
+def test_failsafe():
+    # Ayame
+    aym = core.Ayame(None)
+    eq_(aym._root, os.getcwd())
+
+    # MarkupContainer
+    mc = core.MarkupContainer('a')
+    a = markup.Element(markup.QName('', 'a'))
+    assert_raises(RenderingError, mc.render_ayame_element, a)
+    eq_(mc.render_component(a), (None, a))
