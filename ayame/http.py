@@ -36,8 +36,8 @@ __all__ = ['HTTPStatus', 'HTTPSuccessful', 'OK', 'Created', 'Accepted',
            'RequestTimeout' 'ServerError', 'InternalServerError',
            'NotImplemented']
 
-HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
-        ' "http://www.w3.org/TR/html4/strict.dtd">\n'
+HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
+        '"http://www.w3.org/TR/html4/strict.dtd">\n'
         '<html>\n'
         '  <head>\n'
         '    <title>{status}</title>\n'
@@ -89,26 +89,27 @@ class HTTPStatus(exception.AyameError):
                            status=self.status,
                            description=self.description)
 
-def _location_init(supercls, s):
+def _location_init(superclass, s):
     def __init__(self, location):
-        supercls.__init__(self, s.format(location=cgi.escape(location, True)),
-                          headers=[('Location', location)])
+        superclass.__init__(self,
+                            s.format(location=cgi.escape(location, True)),
+                            headers=[('Location', location)])
     return __init__
 
-def _uri_init(supercls, s):
+def _uri_init(superclass, s):
     def __init__(self, uri):
-        supercls.__init__(self, s.format(uri=uri))
+        superclass.__init__(self, s.format(uri=uri))
     return __init__
 
-def _method_init(supercls, s):
+def _method_init(superclass, s):
     def __init__(self, method, uri, allow=None):
         headers = []
         if allow:
-            if isinstance(allow, (list, tuple)):
+            if hasattr(allow, '__iter__'):
                 allow = ','.join(allow)
             headers.append(('Allow', allow))
-        supercls.__init__(self, s.format(method=method, uri=uri),
-                          headers=headers)
+        superclass.__init__(self, s.format(method=method, uri=uri),
+                            headers=headers)
     return __init__
 
 class HTTPSuccessful(HTTPStatus):
@@ -183,10 +184,10 @@ class Unauthrized(ClientError):
 
     def __init__(self, headers=None):
         super(Unauthrized, self).__init__(
-                'This server could not verify that you are authorized '
-                'to access the document requested. Either you supplied the '
-                'wrong credentials (e.g. bad password), or your browser '
-                'does not understand how to supply the credentials required.',
+                'This server could not verify that you are authorized to '
+                'access the document requested. Either you supplied the wrong '
+                'credentials (e.g. bad password), or your browser does not '
+                'understand how to supply the credentials required.',
                 headers)
 
 class Forbidden(ClientError):
@@ -234,6 +235,5 @@ class NotImplemented(ServerError):
 
     code = 501
 
-    __init__ = _method_init(
-            ServerError,
-            '{method} to {uri} is not implemented.')
+    __init__ = _method_init(ServerError,
+                            '{method} to {uri} is not implemented.')

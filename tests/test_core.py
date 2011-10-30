@@ -36,13 +36,13 @@ from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 def test_simple_app():
-    aym = core.Ayame(__name__)
-    eq_(aym._name, __name__)
-    eq_(aym._root, os.path.dirname(__file__))
+    app = core.Ayame(__name__)
+    eq_(app._name, __name__)
+    eq_(app._root, os.path.dirname(__file__))
 
-    map = aym.config['ayame.route.map']
+    map = app.config['ayame.route.map']
     map.connect('/', 0)
-    status, headers, exc_info, data = wsgi_call(aym.make_app())
+    status, headers, exc_info, data = wsgi_call(app.make_app())
     eq_(status, '200 OK')
     eq_(headers, [('Content-Type', 'text/plain;charset=UTF-8')])
     eq_(exc_info, None)
@@ -862,8 +862,8 @@ def test_ayame_head():
 
 def test_failsafe():
     # Ayame
-    aym = core.Ayame(None)
-    eq_(aym._root, os.getcwd())
+    app = core.Ayame(None)
+    eq_(app._root, os.getcwd())
 
     # MarkupContainer
     mc = core.MarkupContainer('a')

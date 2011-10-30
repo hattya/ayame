@@ -92,8 +92,8 @@ class Rule(object):
 
     def bind(self, map):
         if self.map is not None:
-            raise RouteError('rule {!r} already bound '
-                             'to map {!r}'.format(self, self.map))
+            raise RouteError('rule {!r} already bound to map {!r}'
+                             .format(self, self.map))
         self.__map = map
         self._compile()
 
@@ -146,15 +146,15 @@ class Rule(object):
             yield None, None, path[pos:]
 
     def _new_converter(self, name, args):
-        cls = self.map.converters.get(name)
-        if not cls:
+        converter = self.map.converters.get(name)
+        if not converter:
             raise RouteError('converter {!r} not found'.format(name))
         if args:
             args, kwargs = eval('(lambda *a, **kw: (a, kw))({})'.format(args),
                                 {'__builtins__': None})
         else:
             args, kwargs = (), {}
-        return cls(self.map, *args, **kwargs)
+        return converter(self.map, *args, **kwargs)
 
     def match(self, path):
         assert self.map is not None, 'rule not bound to map'
@@ -205,7 +205,7 @@ class Rule(object):
             for var in values:
                 data = cache.get(var, util.to_list(values[var]))
                 var = util.to_bytes(var, self.map.encoding)
-                query.extend(((var, x) for x in data))
+                query.extend((var, x) for x in data)
             if query:
                 query = sorted(query, key=self.map.sort_key)
                 buf.append('?')
@@ -222,11 +222,10 @@ class Map(object):
                  sort_key=None):
         self.encoding = encoding
         self.slash = slash
-        self.converters = {
-                'default': _StringConverter,
-                'string': _StringConverter,
-                'path': _PathConverter,
-                'int': _IntegerConverter}
+        self.converters = {'default': _StringConverter,
+                           'string': _StringConverter,
+                           'path': _PathConverter,
+                           'int': _IntegerConverter}
         if converters:
             self.converters.update(converters)
         self.sort_key = sort_key
@@ -338,7 +337,7 @@ class _StringConverter(Converter):
         self.min = min
         if min is not None:
             max = '' if length is None else int(length)
-            count = '{},{}'.format(int(min), max)
+            count = '{:d},{}'.format(int(min), max)
         elif length is not None:
             count = int(length)
         else:

@@ -47,9 +47,8 @@ class Label(core.Component):
         elif object is None:
             element.children = ['']
         else:
-            raise ComponentError(self,
-                                 "could not render "
-                                 "'{}'".format(util.fqon_of(object)))
+            raise ComponentError(
+                    self, "could not render '{}'".format(util.fqon_of(object)))
         return element
 
 class ListView(core.MarkupContainer):
@@ -63,10 +62,13 @@ class ListView(core.MarkupContainer):
     def on_before_render(self):
         object = self.model_object
         if object is not None:
-            for i in range(len(object)):
+            n = len(object)
+            i = 0
+            while i < n:
                 li = self.new_item(i)
                 self.add(li)
                 self.populate_item(li)
+                i += 1
         super(ListView, self).on_before_render()
 
     def on_render(self, element):

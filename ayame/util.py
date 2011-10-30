@@ -34,48 +34,48 @@ from ayame.exception import ResourceError
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list' 'FilterDict']
 
-def fqon_of(obj):
-    if not hasattr(obj, '__name__'):
-        obj = obj.__class__
-    if hasattr(obj, '__module__'):
-        if obj.__module__ is None:
-            return '<unknown>.' + obj.__name__
-        elif obj.__module__ != '__builtin__':
-            return obj.__module__ + '.' + obj.__name__
-    return obj.__name__
+def fqon_of(object):
+    if not hasattr(object, '__name__'):
+        object = object.__class__
+    if hasattr(object, '__module__'):
+        if object.__module__ is None:
+            return '<unknown>.' + object.__name__
+        elif object.__module__ != '__builtin__':
+            return object.__module__ + '.' + object.__name__
+    return object.__name__
 
-def load_data(obj, suffix, encoding='utf-8'):
-    if not hasattr(obj, '__name__'):
-        obj = obj.__class__
-    if isinstance(obj, types.ModuleType):
-        module = obj
+def load_data(object, suffix, encoding='utf-8'):
+    if not hasattr(object, '__name__'):
+        object = object.__class__
+    if isinstance(object, types.ModuleType):
+        module = object
         is_module = True
     else:
         try:
-            module = sys.modules[obj.__module__]
+            module = sys.modules[object.__module__]
             is_module = False
         except (AttributeError, KeyError):
-            raise ResourceError('could not find module of {!r}'.format(obj))
+            raise ResourceError('could not find module of {!r}'.format(object))
     try:
         parent, name = os.path.split(module.__file__)
     except AttributeError:
-        raise ResourceError("could not determine "
-                            "'{}' module location".format(module.__name__))
+        raise ResourceError("could not determine '{}' module location"
+                            .format(module.__name__))
     name = os.path.splitext(name)[0]
     if name.lower() != '__init__':
         parent = os.path.join(parent, name)
     if is_module:
         path = parent + suffix
     else:
-        path = os.path.join(parent, obj.__name__ + suffix)
+        path = os.path.join(parent, object.__name__ + suffix)
     loader = getattr(module, '__loader__', None)
     if loader:
         # load data from loader
         try:
             data = loader.get_data(path)
         except (AttributeError, IOError):
-            raise ResourceError("could not load '{}' "
-                                "from loader {!r}".format(path, loader))
+            raise ResourceError("could not load '{}' from loader {!r}"
+                                .format(path, loader))
         return io.StringIO(data.decode(encoding))
     return io.open(path, encoding=encoding)
 

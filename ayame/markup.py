@@ -206,6 +206,7 @@ class MarkupLoader(object, HTMLParser):
         self.reset()
         self.__stack.clear()
         self._cache.clear()
+
         self._object = object
         self._markup = Markup()
         self._markup.lang = lang.lower()
@@ -214,7 +215,7 @@ class MarkupLoader(object, HTMLParser):
 
         while True:
             data = fp.read(8192)
-            if data == b'':
+            if data == '':
                 break
             self.feed(data)
         if isinstance(src, basestring):
@@ -293,28 +294,25 @@ class MarkupLoader(object, HTMLParser):
             raise MarkupError(self._object, self.getpos(),
                               'unsupported html version')
         else:
-            self._markup.doctype = '<!' + decl + '>'
+            self._markup.doctype = '<!{}>'.format(decl)
 
     def handle_pi(self, data):
-        if not (data.startswith('xml ') and
-                data.endswith('?')):
-            return
+        if data.startswith('xml '):
+            m = _xml_decl_re.match(data)
+            if not m:
+                raise MarkupError(self._object, self.getpos(),
+                                  'malformed xml declaration')
+            self._markup.lang = 'xml'
 
-        m = _xml_decl_re.match(data)
-        if not m:
-            raise MarkupError(self._object, self.getpos(),
-                              'malformed xml declaration')
-        self._markup.lang = 'xml'
-
-        for k, v in m.groupdict().iteritems():
-            if v is None:
-                continue
-            elif v[0] in ('"', "'"):
-                if v[-1] != v[0]:
-                    raise MarkupError(self._object, self.getpos(),
-                                      'mismatched quotes')
-                v = v.strip(v[0])
-            self._markup.xml_decl[k] = v
+            for k, v in m.groupdict().iteritems():
+                if v is None:
+                    continue
+                elif v[0] in ('"', "'"):
+                    if v[-1] != v[0]:
+                        raise MarkupError(self._object, self.getpos(),
+                                          'mismatched quotes')
+                    v = v.strip(v[0])
+                self._markup.xml_decl[k] = v
 
     def _impl_of(self, name):
         # from method cache
@@ -328,8 +326,8 @@ class MarkupLoader(object, HTMLParser):
             if impl is not None:
                 return self._cache.setdefault(name, impl)
         raise MarkupError(self._object, self.getpos(),
-                          "'{}' for '{}' document is not "
-                          "implemented".format(name, self._markup.lang))
+                          "'{}' for '{}' document is not implemented"
+                          .format(name, self._markup.lang))
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(prefix):
@@ -346,9 +344,9 @@ class MarkupLoader(object, HTMLParser):
             prefix, name = name.split(':', 1)
             uri = ns.get(prefix, ns_uri_of(prefix))
             if uri is None:
-                raise MarkupError(self._object, self.getpos(),
-                                  "unknown namespace prefix "
-                                  "'{}'".format(prefix))
+                raise MarkupError(
+                        self._object, self.getpos(),
+                        "unknown namespace prefix '{}'".format(prefix))
         else:
             uri = ns.get('', ns_uri_of(''))
             if uri is None:
@@ -432,16 +430,16 @@ class MarkupLoader(object, HTMLParser):
     def xml_pop(self, qname):
         if (self._ptr() == 0 or
             self._peek().qname != qname):
-            raise MarkupError(self._object, self.getpos(),
-                              "end tag for element '{}' "
-                              "which is not open".format(qname))
+            raise MarkupError(
+                    self._object, self.getpos(),
+                    "end tag for element '{}' which is not open".format(qname))
         return self._pop()
 
     def xml_finish(self):
         if 0 < self._ptr():
             raise MarkupError(self._object, self.getpos(),
-                              "end tag for element '{}' "
-                              "omitted".format(self._peek().qname))
+                              "end tag for element '{}' omitted"
+                              .format(self._peek().qname))
 
     def new_xhtml1_element(self, name, attrs, type=None):
         return self.new_xml_element(name, attrs,
@@ -476,6 +474,7 @@ class MarkupRenderer(object):
     def render(self, object, markup, encoding='utf-8', indent=2, pretty=False):
         self.__stack.clear()
         self._cache.clear()
+
         self._object = object
         self._buffer = io.StringIO()
         self._lang = markup.lang.lower()
@@ -595,9 +594,10 @@ class MarkupRenderer(object):
             impl = getattr(self, decl.format(self._lang), None)
             if impl is not None:
                 return self._cache.setdefault(name, impl)
-        raise RenderingError(self._object,
-                             "'{}' for '{}' document is not "
-                             "implemented".format(name, self._lang))
+        raise RenderingError(
+                self._object,
+                "'{}' for '{}' document is not implemented".format(name,
+                                                                   self._lang))
 
     def _push(self, element, newline=False):
         self.__stack.append(_ElementState(element, newline))

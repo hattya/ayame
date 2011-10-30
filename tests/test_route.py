@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from wsgiref import util
+import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
@@ -38,7 +38,7 @@ def new_environ(path_info, method='GET', query=None):
                'REQUEST_METHOD': method}
     if query:
         environ['QUERY_STRING'] = query
-    util.setup_testing_defaults(environ)
+    wsgiref.util.setup_testing_defaults(environ)
     return environ
 
 def test_static_rules():
@@ -46,19 +46,19 @@ def test_static_rules():
     map.connect('/', 0)
     map.connect('/news', 1, methods=['GET', 'HEAD'])
 
-    # case: GET /
+    # GET /
     router = map.bind(new_environ('/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {})
 
-    # case: GET /?a=1
+    # GET /?a=1
     router = map.bind(new_environ('/', query='a=1'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {})
 
-    # case: GET (empty path info) -> MovedPermanently
+    # GET (empty path info) -> MovedPermanently
     router = map.bind(new_environ(''))
     assert_raises(http.MovedPermanently, router.match)
     try:
@@ -66,7 +66,7 @@ def test_static_rules():
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/')])
 
-    # case: HEAD / -> NotImplemented
+    # HEAD / -> NotImplemented
     router = map.bind(new_environ('/', method='HEAD'))
     assert_raises(http.NotImplemented, router.match)
     try:
@@ -74,21 +74,21 @@ def test_static_rules():
     except http.NotImplemented as e:
         eq_(e.headers, [('Allow', 'GET,POST')])
 
-    # case: GET /news
+    # GET /news
     router = map.bind(new_environ('/news'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {})
 
-    # case: PUT /news -> NotImplemented
+    # PUT /news -> NotImplemented
     router = map.bind(new_environ('/news', method='PUT'))
     assert_raises(http.NotImplemented, router.match)
 
-    # case: GET /404 -> NotFound
+    # GET /404 -> NotFound
     router = map.bind(new_environ('/404'))
     assert_raises(http.NotFound, router.match)
 
-    # case: build URI
+    # build URI
     router = map.bind(new_environ('/'))
     assert_raises(RouteError, router.build, -1)
 
@@ -127,7 +127,7 @@ def test_custom_converter():
     map = route.Map(converters={'spam': SpamConverter})
     map.connect('/<spam:a>', 0)
 
-    # case: GET /app
+    # GET /app
     router = map.bind(new_environ('/app'))
     obj, values = router.match()
     eq_(obj, 0)
@@ -139,7 +139,7 @@ def test_int_converter():
     map.connect('/<int:y>/<int(2, min=1, max=12):m>/', 1)
     map.connect('/_/<int(2):a>/', 2)
 
-    # case: GET /2011 -> MovedPermanently
+    # GET /2011 -> MovedPermanently
     router = map.bind(new_environ('/2011'))
     assert_raises(http.MovedPermanently, router.match)
     try:
@@ -147,19 +147,19 @@ def test_int_converter():
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/2011/')])
 
-    # case: GET /2011/
+    # GET /2011/
     router = map.bind(new_environ('/2011/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'y': 2011})
 
-    # case: GET /0/
+    # GET /0/
     router = map.bind(new_environ('/0/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'y': 0})
 
-    # case: GET /2011/01 -> MovedPermanently
+    # GET /2011/01 -> MovedPermanently
     router = map.bind(new_environ('/2011/01'))
     assert_raises(http.MovedPermanently, router.match)
     try:
@@ -167,35 +167,35 @@ def test_int_converter():
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/2011/01/')])
 
-    # case: GET /2011/01/
+    # GET /2011/01/
     router = map.bind(new_environ('/2011/01/'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {'y': 2011, 'm': 1})
 
-    # case: GET /2011/12/
+    # GET /2011/12/
     router = map.bind(new_environ('/2011/12/'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {'y': 2011, 'm': 12})
 
-    # case: GET /2011/1/ -> NotFound
+    # GET /2011/1/ -> NotFound
     router = map.bind(new_environ('/2011/1/'))
     assert_raises(http.NotFound, router.match)
 
-    # case: GET /2011/100/ -> NotFound
+    # GET /2011/100/ -> NotFound
     router = map.bind(new_environ('/2011/100/'))
     assert_raises(http.NotFound, router.match)
 
-    # case: GET /2011/00/ -> NotFound
+    # GET /2011/00/ -> NotFound
     router = map.bind(new_environ('/2011/00/'))
     assert_raises(http.NotFound, router.match)
 
-    # case: GET /2011/13/ -> NotFound
+    # GET /2011/13/ -> NotFound
     router = map.bind(new_environ('/2011/13/'))
     assert_raises(http.NotFound, router.match)
 
-    # case: build URI
+    # build URI
     router = map.bind(new_environ('/'))
     assert_raises(RouteError, router.build, -1)
 
@@ -224,37 +224,37 @@ def test_string_converter():
     map.connect('/<string(3, min=3):s>/', 1)
     map.connect('/<string:s>/', 2)
 
-    # case: GET /jp -> MovedPermanently
+    # GET /jp -> MovedPermanently
     router = map.bind(new_environ('/jp'))
     assert_raises(http.MovedPermanently, router.match)
 
-    # case: GET /jp/
+    # GET /jp/
     router = map.bind(new_environ('/jp/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'s': 'jp'})
 
-    # case: GET /jpy -> MovedPermanently
+    # GET /jpy -> MovedPermanently
     router = map.bind(new_environ('/jpy'))
     assert_raises(http.MovedPermanently, router.match)
 
-    # case: GET /jpy/
+    # GET /jpy/
     router = map.bind(new_environ('/jpy/'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {'s': 'jpy'})
 
-    # case: GET /news -> MovedPermanently
+    # GET /news -> MovedPermanently
     router = map.bind(new_environ('/news'))
     assert_raises(http.MovedPermanently, router.match)
 
-    # case: GET /news/
+    # GET /news/
     router = map.bind(new_environ('/news/'))
     obj, values = router.match()
     eq_(obj, 2)
     eq_(values, {'s': 'news'})
 
-    # case: build URI
+    # build URI
     router = map.bind(new_environ('/'))
     assert_raises(RouteError, router.build, -1)
 
@@ -278,31 +278,31 @@ def test_path_converter():
     map.connect('/<path:p>/<m>', 0)
     map.connect('/<path:p>', 1)
 
-    # case: GET /WikiPage/edit
+    # GET /WikiPage/edit
     router = map.bind(new_environ('/WikiPage/edit'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'p': 'WikiPage', 'm': 'edit'})
 
-    # case: GET /WikiPage/edit/
+    # GET /WikiPage/edit/
     router = map.bind(new_environ('/WikiPage/edit/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'p': 'WikiPage', 'm': 'edit'})
 
-    # case: GET /WikiPage
+    # GET /WikiPage
     router = map.bind(new_environ('/WikiPage'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {'p': 'WikiPage'})
 
-    # case: GET /WikiPage/
+    # GET /WikiPage/
     router = map.bind(new_environ('/WikiPage/'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {'p': 'WikiPage'})
 
-    # case: build URI
+    # build URI
     router = map.bind(new_environ('/'))
     assert_raises(RouteError, router.build, -1)
 
@@ -324,7 +324,7 @@ def test_redirect():
     map.redirect('/<int:y>/<int(2, min=1, max=12):m>/', '/_/<y>/<m>/')
     map.redirect('/<string(2):s>/', redirect)
 
-    # case: GET /2011/01/ -> MovedPermanently
+    # GET /2011/01/ -> MovedPermanently
     router = map.bind(new_environ('/2011/01/'))
     assert_raises(http.MovedPermanently, router.match)
     try:
@@ -332,7 +332,7 @@ def test_redirect():
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/_/2011/01/')])
 
-    # case: GET /jp/ -> MovedPermanently
+    # GET /jp/ -> MovedPermanently
     router = map.bind(new_environ('/jp/'))
     assert_raises(http.MovedPermanently, router.match)
     try:
@@ -354,19 +354,19 @@ def test_mount():
     submap.redirect('/old', '/_/new')
     submap.add(rule)
 
-    # case: GET /_/
+    # GET /_/
     router = map.bind(new_environ('/_/'))
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {})
 
-    # case: GET /_/news/
+    # GET /_/news/
     router = map.bind(new_environ('/_/news/'))
     obj, values = router.match()
     eq_(obj, 1)
     eq_(values, {})
 
-    # case: GET /_/old -> MovedPermanently
+    # GET /_/old -> MovedPermanently
     router = map.bind(new_environ('/_/old'))
     assert_raises(http.MovedPermanently, router.match)
     try:
