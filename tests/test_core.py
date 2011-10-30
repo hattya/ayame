@@ -24,12 +24,14 @@
 #   SOFTWARE.
 #
 
+from __future__ import unicode_literals
+import io
 import os
 import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, markup
+from ayame import basic, core, http, markup
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
@@ -868,3 +870,187 @@ def test_failsafe():
     a = markup.Element(markup.QName('', 'a'))
     assert_raises(RenderingError, mc.render_ayame_element, a)
     eq_(mc.render_component(a), (None, a))
+
+def test_request():
+    # QUERY_STRING and CONTENT_TYPE are empty
+    environ = {'REQUEST_METHOD': 'POST'}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'POST')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(request.body, {})
+
+    # message body is empty
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'POST')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(request.body, {})
+
+    # ASCII
+    query = ('a=1&'
+             'b=1&'
+             'b=2&'
+             'c=1&'
+             'c=2&'
+             'c=3')
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="x"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="y"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="y"\r\n'
+            '\r\n'
+            '-2\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-2\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-3\r\n'
+            '--ayame.core--\r\n'
+            '\r\n')
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': query.encode('utf-8'),
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'POST')
+    eq_(request.uri, {})
+    eq_(request.query, {'a': ['1'],
+                        'b': ['1', '2'],
+                        'c': ['1', '2', '3']})
+    eq_(request.body, {'x': ['-1'],
+                       'y': ['-1', '-2'],
+                       'z': ['-1', '-2', '-3']})
+
+    # UTF-8
+    query = ('\u3044=\u58f1&'
+             '\u308d=\u58f1&'
+             '\u308d=\u5f10&'
+             '\u306f=\u58f1&'
+             '\u306f=\u5f10&'
+             '\u306f=\u53c2')
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u3082"\r\n'
+            '\r\n'
+            '\u767e\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u305b"\r\n'
+            '\r\n'
+            '\u767e\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u305b"\r\n'
+            '\r\n'
+            '\u5343\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u3059"\r\n'
+            '\r\n'
+            '\u767e\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u3059"\r\n'
+            '\r\n'
+            '\u5343\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="\u3059"\r\n'
+            '\r\n'
+            '\u4e07\r\n'
+            '--ayame.core--\r\n'
+            '\r\n')
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': query.encode('utf-8'),
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'POST')
+    eq_(request.uri, {})
+    eq_(request.query, {'\u3044': ['\u58f1'],
+                        '\u308d': ['\u58f1', '\u5f10'],
+                        '\u306f': ['\u58f1', '\u5f10', '\u53c2']})
+    eq_(request.body, {'\u3082': ['\u767e'],
+                       '\u305b': ['\u767e', '\u5343'],
+                       '\u3059': ['\u767e', '\u5343', '\u4e07']})
+
+    # filename
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
+            'Content-Type: text/plain\r\n'
+            '\r\n'
+            'spam\n'
+            'eggs\n'
+            'ham\n'
+            '\r\n'
+            '--ayame.core--\r\n'
+            '\r\n')
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': '',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'POST')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(tuple(request.body), ('a',))
+
+    fields = request.body['a']
+    eq_(len(fields), 1)
+
+    a = fields[0]
+    eq_(a.name, 'a')
+    eq_(a.filename, '\u3044')
+    eq_(a.value, ('spam\n'
+                  'eggs\n'
+                  'ham\n'))
+
+    # PUT
+    body = ('spam\n'
+            'eggs\n'
+            'ham\n')
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'PUT',
+               'QUERY_STRING': '',
+               'CONTENT_TYPE': 'text/plain',
+               'CONTENT_LENGTH': str(len(body))}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'PUT')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(request.body.value, ('spam\n'
+                             'eggs\n'
+                             'ham\n'))
+
+    # 408 Request Timeout
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="a"\r\n'
+            'Content-Type: text/plain\r\n')
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': '',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    assert_raises(http.RequestTimeout, core.Request, environ, {})
+
+    environ = {'wsgi.input': io.BytesIO(b''),
+               'REQUEST_METHOD': 'PUT',
+               'QUERY_STRING': '',
+               'CONTENT_TYPE': 'text/plain',
+               'CONTENT_LENGTH': '-1'}
+    assert_raises(http.RequestTimeout, core.Request, environ, {})

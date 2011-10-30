@@ -30,6 +30,7 @@ from collections import deque
 import os
 import sys
 import threading
+import urlparse
 
 from beaker.middleware import SessionMiddleware
 
@@ -37,8 +38,8 @@ from ayame import http, markup, route, util
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
-__all__ = ['Ayame', 'Component', 'MarkupContainer', 'AttributeModifier',
-           'Model', 'CompoundModel']
+__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Request',
+           'AttributeModifier', 'Model', 'CompoundModel']
 
 _local = threading.local()
 _local.app = None
@@ -548,6 +549,64 @@ class MarkupContainer(Component):
         else:
             a += b
         return a
+
+class Request(object):
+
+    __slots__ = ('environ', 'method', 'uri', 'query', 'post', 'body')
+
+    def __init__(self, environ, values):
+        self.environ = environ
+        self.method = environ['REQUEST_METHOD']
+        self.uri = values
+        self.query = self._parse_qs(environ)
+        self.body = self._parse_body(environ)
+
+    def _parse_qs(self, environ):
+        qs = environ.get('QUERY_STRING')
+        if not qs:
+            return {}
+        return self._transcode_qs(urlparse.parse_qs(qs,
+                                                    keep_blank_values=True))
+
+    def _transcode_qs(self, qs):
+        return dict((unicode(k, 'utf-8'), [unicode(s, 'utf-8') for s in v])
+                    for k, v in qs.iteritems())
+
+    def _parse_body(self, environ):
+        content_type = environ.get('CONTENT_TYPE')
+        if not content_type:
+            return {}
+        # strip media type parameters
+        if ';' in content_type:
+            content_type = content_type.split(';', 1)[0]
+        # isolate QUERY_STRING
+        fs_environ = environ.copy()
+        fs_environ['QUERY_STRING'] = ''
+        return self._transcode_body(cgi.FieldStorage(fp=environ['wsgi.input'],
+                                                     environ=fs_environ,
+                                                     keep_blank_values=True))
+
+    def _transcode_body(self, fs):
+        body = {}
+        if fs.list:
+            for field in fs.list:
+                if field.done == -1:
+                    raise http.RequestTimeout()
+                field.name = unicode(field.name, 'utf-8')
+                if field.filename:
+                    field.filename = unicode(field.filename, 'utf-8')
+                    value = field
+                else:
+                    value = unicode(field.value, 'utf-8')
+                if field.name in body:
+                    body[field.name].append(value)
+                else:
+                    body[field.name] = [value]
+        elif fs.file:
+            if fs.done == -1:
+                raise http.RequestTimeout()
+            body = fs
+        return body
 
 class AttributeModifier(object):
 
