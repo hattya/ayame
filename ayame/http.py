@@ -33,7 +33,8 @@ __all__ = ['HTTPStatus', 'HTTPSuccessful', 'OK', 'Created', 'Accepted',
            'NoContent', 'HTTPError', 'Redirection', 'MovedPermanently',
            'Found', 'SeeOther', 'NotModified', 'ClientError', 'BadRequest',
            'Unauthrized', 'Forbidden', 'NotFound', 'MethodNotAllowed',
-           'ServerError', 'InternalServerError', 'NotImplemented']
+           'RequestTimeout' 'ServerError', 'InternalServerError',
+           'NotImplemented']
 
 HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
         ' "http://www.w3.org/TR/html4/strict.dtd">\n'
@@ -211,6 +212,16 @@ class MethodNotAllowed(ClientError):
     __init__ = _method_init(
             ClientError,
             'The requested method {method} is not allowd for the URL {uri}.')
+
+class RequestTimeout(ClientError):
+
+    code = 408
+
+    def __init__(self, headers=None):
+        super(RequestTimeout, self).__init__(
+                'This server timed out while waiting for the request from the '
+                'client.',
+                headers)
 
 class ServerError(HTTPError):
     pass

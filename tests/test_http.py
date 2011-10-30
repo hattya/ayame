@@ -175,6 +175,16 @@ def test_http_405():
     eq_(e.headers, [('Allow', 'GET,POST')])
     ok_(e.html())
 
+def test_http_408():
+    e = http.RequestTimeout()
+    eq_(e.__class__.__bases__, (http.ClientError,))
+    eq_(str(e), e.status)
+    eq_(e.code, 408)
+    eq_(e.reason, 'Request Timeout')
+    eq_(e.status, '408 Request Timeout')
+    eq_(e.headers, [])
+    ok_(e.html())
+
 def test_http_500():
     e = http.InternalServerError()
     eq_(e.__class__.__bases__, (http.ServerError,))
