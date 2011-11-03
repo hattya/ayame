@@ -169,6 +169,10 @@ class Component(object):
     def config(self):
         return self.app.config
 
+    @property
+    def environ(self):
+        return self.app.environ
+
     def add(self, *args):
         for object in args:
             if isinstance(object, AttributeModifier):
@@ -619,6 +623,10 @@ class AttributeModifier(object):
     @property
     def config(self):
         return self.app.config
+
+    @property
+    def environ(self):
+        return self.app.environ
 
     def on_component(self, component, element):
         if isinstance(self._attr, markup.QName):

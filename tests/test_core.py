@@ -66,6 +66,7 @@ def test_component():
     eq_(c.model_object, None)
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
+    assert_raises(AyameError, lambda: c.environ)
     eq_(c.render(''), '')
 
 def test_component_with_model():
@@ -79,6 +80,7 @@ def test_component_with_model():
     eq_(c.model_object, None)
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
+    assert_raises(AyameError, lambda: c.environ)
     eq_(c.render(''), '')
 
     m = core.Model('&<>')
@@ -269,6 +271,11 @@ def test_render_children():
     eq_(root.children[3], 1)
 
 def test_attribute_modifier():
+    am = core.AttributeModifier('a', core.Model(None))
+    assert_raises(AyameError, lambda: am.app)
+    assert_raises(AyameError, lambda: am.config)
+    assert_raises(AyameError, lambda: am.environ)
+
     # component
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.QName('', 'a')] = ''
