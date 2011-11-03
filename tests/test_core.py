@@ -36,26 +36,67 @@ from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 def test_simple_app():
+    class SimplePage(core.Page):
+        pass
+
     app = core.Ayame(__name__)
     eq_(app._name, __name__)
     eq_(app._root, os.path.dirname(__file__))
 
     map = app.config['ayame.route.map']
-    map.connect('/', 0)
-    status, headers, exc_info, data = wsgi_call(app.make_app())
-    eq_(status, '200 OK')
-    eq_(headers, [('Content-Type', 'text/plain;charset=UTF-8')])
+    map.connect('/page', SimplePage)
+    map.connect('/int', 0)
+
+    # GET /page -> OK
+    xhtml = ('<?xml version="1.0"?>\n'
+             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
+             '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <title>SimplePage</title>\n'
+             '  <body>\n'
+             '    <p>Hello World!</p>\n'
+             '  </body>\n'
+             '</html>\n').format(xhtml=markup.XHTML_NS)
+    status, headers, exc_info, body = wsgi_call(app.make_app(),
+                                                REQUEST_METHOD='GET',
+                                                PATH_INFO='/page')
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', '255')])
     eq_(exc_info, None)
-    eq_(data, [])
+    eq_(body, xhtml)
+
+    # GET /page?{query in EUC-JP} -> InternalServerError
+    query = '\u3044\u308d\u306f'.encode('euc-jp')
+    status, headers, exc_info, body = wsgi_call(app.make_app(),
+                                                REQUEST_METHOD='GET',
+                                                PATH_INFO='/page',
+                                                QUERY_STRING=query)
+    eq_(status, http.InternalServerError.status)
+    eq_(headers, [])
+    ok_(exc_info)
+    eq_(body, [])
+
+    # GET /int -> NotFound
+    status, headers, exc_info, body = wsgi_call(app.make_app(),
+                                                REQUEST_METHOD='GET',
+                                                PATH_INFO='/int')
+    eq_(status, http.NotFound.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', '263')])
+    ok_(exc_info)
+    ok_(body)
 
 def wsgi_call(application, **kwargs):
-    environ = {}
-    var = {}
+    wsgi = {}
+
     def start_response(status, headers, exc_info=None):
-        var.update(status=status, headers=headers, exc_info=exc_info)
+        wsgi.update(status=status, headers=headers, exc_info=exc_info)
+
+    environ = dict(kwargs)
     wsgiref.util.setup_testing_defaults(environ)
     data = application(environ, start_response)
-    return var['status'], var['headers'], var['exc_info'], data
+    return wsgi['status'], wsgi['headers'], wsgi['exc_info'], data
 
 def test_component():
     assert_raises(ComponentError, core.Component, None)
@@ -1067,3 +1108,33 @@ def test_request():
                'CONTENT_TYPE': 'text/plain',
                'CONTENT_LENGTH': '-1'}
     assert_raises(http.RequestTimeout, core.Request, environ, {})
+
+def test_page():
+    local = core._local
+    app = core.Ayame(__name__)
+
+    class SpamPage(core.Page):
+        def __init__(self, request):
+            super(SpamPage, self).__init__(request)
+            self.headers['Content-Type'] = 'text/plain'
+    xhtml = ('<?xml version="1.0"?>\n'
+             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
+             '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <title>SpamPage</title>\n'
+             '  <body>\n'
+             '    <p>Hello World!</p>\n'
+             '  </body>\n'
+             '</html>\n').format(xhtml=markup.XHTML_NS)
+    try:
+        local.app = app
+        environ = {'REQUEST_METHOD': 'GET'}
+        request = core.Request(environ, {})
+        page = SpamPage(request)
+        status, headers, body = page.render()
+    finally:
+        local.app = None
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', '253')])
+    eq_(body, xhtml)

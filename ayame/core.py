@@ -31,14 +31,15 @@ import os
 import sys
 import threading
 import urlparse
+import wsgiref.headers
 
 from beaker.middleware import SessionMiddleware
 
-from ayame import http, markup, route, util
+from ayame import http, markup, route, uri, util
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
-__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Request',
+__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Page', 'Request',
            'AttributeModifier', 'Model', 'CompoundModel']
 
 _local = threading.local()
@@ -66,8 +67,11 @@ class Ayame(object):
         session_dir = os.path.join(self._root, 'session')
         self.config = {
                 'ayame.markup.encoding': 'utf-8',
+                'ayame.markup.pretty': False,
                 'ayame.route.map': route.Map(),
                 'ayame.class.MarkupLoader': markup.MarkupLoader,
+                'ayame.class.MarkupRenderer': markup.MarkupRenderer,
+                'ayame.class.Request': Request,
                 'beaker.session.type': 'file',
                 'beaker.session.data_dir': os.path.join(session_dir, 'data'),
                 'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
@@ -94,27 +98,47 @@ class Ayame(object):
             _local.app = self
             _local.environ = environ
             _local._router = self.config['ayame.route.map'].bind(environ)
-            obj, values = _local._router.match()
-
-            start_response(http.OK.status,
-                           [('Content-Type', 'text/plain;charset=UTF-8')])
-            return []
-        except http.HTTPError as e:
-            data = e.html()
-            headers = list(e.headers)
-            headers.append(('Content-Type', 'text/html;charset=UTF-8'))
-            headers.append(('Content-Length', str(len(data))))
-            start_response(e.status, headers)
-            return data
+            # dispatch
+            object, values = _local._router.match()
+            request = self.config['ayame.class.Request'](environ, values)
+            status, headers, body = self.handle_request(object, request)
+            exc_info = None
+        except Exception as e:
+            status, headers, body = self.handle_error(e)
+            exc_info = sys.exc_info()
         finally:
             _local._router = None
             _local.environ = None
             _local.app = None
 
+        start_response(status, headers, exc_info)
+        return body
+
+    def handle_request(self, object, request):
+        if isinstance(object, type):
+            if issubclass(object, Page):
+                page = object(request)
+                return page.render()
+        raise http.NotFound(uri.request_path(request.environ))
+
+    def handle_error(self, e):
+        if isinstance(e, http.HTTPError):
+            status = e.status
+            body = e.html()
+            headers = list(e.headers)
+            headers.append(('Content-Type', 'text/html; charset=UTF-8'))
+            headers.append(('Content-Length', str(len(body))))
+        else:
+            status = http.InternalServerError.status
+            headers = []
+            body = []
+        return status, headers, body
+
 class Component(object):
 
     def __init__(self, id, model=None):
-        if id is None:
+        if (not isinstance(self, Page) and
+            id is None):
             raise ComponentError(self, 'component id is not set')
         self.__id = id
         self.model = model
@@ -550,6 +574,32 @@ class MarkupContainer(Component):
         else:
             a += b
         return a
+
+class Page(MarkupContainer):
+
+    def __init__(self, request):
+        super(Page, self).__init__(None)
+        self.request = request
+        self.__headers = []
+        self.headers = wsgiref.headers.Headers(self.__headers)
+
+    def render(self):
+        # load markup and render components
+        m = self.load_markup()
+        m.root = super(Page, self).render(m.root)
+        # remove ayame namespace from root element
+        for prefix in tuple(m.root.ns):
+            if m.root.ns[prefix] == markup.AYAME_NS:
+                del m.root.ns[prefix]
+        # render markup
+        renderer = self.config['ayame.class.MarkupRenderer']()
+        body = renderer.render(self, m,
+                               pretty=self.config['ayame.markup.pretty'])
+        # HTTP headers
+        mime_type = self.markup_type.mime_type
+        self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
+        self.headers['Content-Length'] = str(len(body))
+        return http.OK.status, self.__headers, body
 
 class Request(object):
 
