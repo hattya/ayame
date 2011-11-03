@@ -173,6 +173,7 @@ class Component(object):
         for object in args:
             if isinstance(object, AttributeModifier):
                 self.modifiers.append(object)
+                object.component = self
         return self
 
     def render(self, element):
@@ -607,6 +608,7 @@ class Request(object):
 class AttributeModifier(object):
 
     def __init__(self, attr, model):
+        self.component = None
         self._attr = attr
         self._model = model
 

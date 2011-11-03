@@ -277,6 +277,9 @@ def test_attribute_modifier():
     c.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
     c.add(core.AttributeModifier('c', core.Model('')))
     eq_(len(c.modifiers), 3)
+    eq_(c.modifiers[0].component, c)
+    eq_(c.modifiers[1].component, c)
+    eq_(c.modifiers[2].component, c)
 
     root = c.render(root)
     eq_(root.qname, markup.QName('', 'root'))
@@ -291,6 +294,9 @@ def test_attribute_modifier():
     mc.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
     mc.add(core.AttributeModifier('c', core.Model('')))
     eq_(len(mc.modifiers), 3)
+    eq_(mc.modifiers[0].component, mc)
+    eq_(mc.modifiers[1].component, mc)
+    eq_(mc.modifiers[2].component, mc)
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
