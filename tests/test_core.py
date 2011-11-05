@@ -108,6 +108,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    eq_(c.path(), 'a')
     eq_(c.render(''), '')
 
 def test_component_with_model():
@@ -122,6 +123,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    eq_(c.path(), 'a')
     eq_(c.render(''), '')
 
     m = core.Model('&<>')
@@ -141,18 +143,21 @@ def test_nested_model():
 
 def test_markup_container():
     mc = core.MarkupContainer('a')
+    eq_(mc.path(), 'a')
     eq_(len(mc.children), 0)
     eq_(mc.find(None), mc)
     eq_(mc.find(''), mc)
 
     b1 = core.Component('b1')
     mc.add(b1)
+    eq_(b1.path(), 'a:b1')
     eq_(len(mc.children), 1)
     eq_(mc.find('b1'), b1)
     assert_raises(ComponentError, mc.add, b1)
 
     b2 = core.MarkupContainer('b2')
     mc.add(b2)
+    eq_(b2.path(), 'a:b2')
     eq_(len(mc.children), 2)
     eq_(mc.find('b2'), b2)
     assert_raises(ComponentError, mc.add, b2)
@@ -1116,6 +1121,7 @@ def test_page():
     class SpamPage(core.Page):
         def __init__(self, request):
             super(SpamPage, self).__init__(request)
+            self.add(basic.Label('greeting', 'Hello World!'))
             self.headers['Content-Type'] = 'text/plain'
     xhtml = ('<?xml version="1.0"?>\n'
              '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
@@ -1126,14 +1132,16 @@ def test_page():
              '    <p>Hello World!</p>\n'
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
+    environ = {'REQUEST_METHOD': 'GET'}
     try:
         local.app = app
-        environ = {'REQUEST_METHOD': 'GET'}
         request = core.Request(environ, {})
         page = SpamPage(request)
         status, headers, body = page.render()
     finally:
         local.app = None
+    eq_(page.path(), '')
+    eq_(page.find('greeting').path(), 'greeting')
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', '253')])

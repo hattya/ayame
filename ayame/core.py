@@ -204,6 +204,17 @@ class Component(object):
                 object.component = self
         return self
 
+    def path(self):
+        current = self
+        buf = [current.id]
+        while current.parent is not None:
+            current = current.parent
+            buf.append(current.id)
+        if (isinstance(current, Page) and
+            buf[-1] is None):
+            buf = buf[:-1]
+        return ':'.join(reversed(buf))
+
     def render(self, element):
         self.on_before_render()
         element = self.on_render(element)
