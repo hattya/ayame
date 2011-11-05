@@ -108,6 +108,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
 
@@ -123,6 +124,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
 
@@ -143,6 +145,7 @@ def test_nested_model():
 
 def test_markup_container():
     mc = core.MarkupContainer('a')
+    assert_raises(ComponentError, mc.page)
     eq_(mc.path(), 'a')
     eq_(len(mc.children), 0)
     eq_(mc.find(None), mc)
@@ -150,6 +153,7 @@ def test_markup_container():
 
     b1 = core.Component('b1')
     mc.add(b1)
+    assert_raises(ComponentError, mc.page)
     eq_(b1.path(), 'a:b1')
     eq_(len(mc.children), 1)
     eq_(mc.find('b1'), b1)
@@ -157,6 +161,7 @@ def test_markup_container():
 
     b2 = core.MarkupContainer('b2')
     mc.add(b2)
+    assert_raises(ComponentError, mc.page)
     eq_(b2.path(), 'a:b2')
     eq_(len(mc.children), 2)
     eq_(mc.find('b2'), b2)
@@ -1140,6 +1145,8 @@ def test_page():
         status, headers, body = page.render()
     finally:
         local.app = None
+    eq_(page.page(), page)
+    eq_(page.find('greeting').page(), page)
     eq_(page.path(), '')
     eq_(page.find('greeting').path(), 'greeting')
     eq_(status, http.OK.status)

@@ -204,6 +204,14 @@ class Component(object):
                 object.component = self
         return self
 
+    def page(self):
+        current = self
+        while current.parent is not None:
+            current = current.parent
+        if isinstance(current, Page):
+            return current
+        raise ComponentError(self, 'component is not attached to Page')
+
     def path(self):
         current = self
         buf = [current.id]
