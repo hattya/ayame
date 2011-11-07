@@ -105,9 +105,16 @@ class _ListItemModel(core.Model):
         self.__list_view = list_view
         self.__index = index
 
-    @property
-    def object(self):
-        return self.__list_view.model_object[self.__index]
+    def object():
+        def fget(self):
+            return self.__list_view.model_object[self.__index]
+
+        def fset(self, object):
+            self.__list_view.model_object[self.__index] = object
+
+        return locals()
+
+    object = property(**object())
 
 class PropertyListView(ListView):
 

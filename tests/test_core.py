@@ -105,6 +105,7 @@ def test_component():
     eq_(c.id, 'a')
     eq_(c.model, None)
     eq_(c.model_object, None)
+    assert_raises(ComponentError, setattr, c, 'model_object', '')
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
@@ -120,7 +121,16 @@ def test_component_with_model():
     c = core.Component('a', m)
     eq_(c.id, 'a')
     eq_(c.model, m)
+    eq_(c.model.object, None)
     eq_(c.model_object, None)
+    c.model.object = True
+    eq_(c.model, m)
+    eq_(c.model.object, True)
+    eq_(c.model_object, True)
+    c.model_object = False
+    eq_(c.model, m)
+    eq_(c.model.object, False)
+    eq_(c.model_object, False)
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
@@ -142,6 +152,8 @@ def test_nested_model():
     outer = core.Model(inner)
     eq_(inner.object, None)
     eq_(outer.object, None)
+    outer.object = core.Model('')
+    eq_(outer.object, '')
 
 def test_markup_container():
     mc = core.MarkupContainer('a')
@@ -171,34 +183,51 @@ def test_markup_container():
 
 def test_compound_model():
     class Object(object):
-        attr = 'attr'
-    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
+        attr = 'value'
+    o = Object()
+    m = core.CompoundModel(o)
+    mc = core.MarkupContainer('a', m)
     mc.add(core.Component('attr'))
     eq_(len(mc.children), 1)
-    eq_(mc.find('attr').model.object, 'attr')
+    eq_(o.attr, 'value')
+    eq_(mc.find('attr').model.object, 'value')
+    mc.find('attr').model.object = 'new_value'
+    eq_(o.attr, 'new_value')
+    eq_(mc.find('attr').model.object, 'new_value')
 
     class Object(object):
-        def get_getter(self):
-            return 'getter'
-    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
-    mc.add(core.Component('getter'))
+        def __init__(self):
+            self.__method = 'value'
+        def get_method(self):
+            return self.__method
+        def set_method(self, method):
+            self.__method = method
+    o = Object()
+    m = core.CompoundModel(o)
+    mc = core.MarkupContainer('a', m)
+    mc.add(core.Component('method'))
     eq_(len(mc.children), 1)
-    eq_(mc.find('getter').model.object, 'getter')
+    eq_(o.get_method(), 'value')
+    eq_(mc.find('method').model.object, 'value')
+    mc.find('method').model.object = 'new_value'
+    eq_(o.get_method(), 'new_value')
+    eq_(mc.find('method').model.object, 'new_value')
 
-    class Object(object):
-        def __getitem__(self, key):
-            if key == 'key':
-                return 'key'
-            raise KeyError(key)
-    mc = core.MarkupContainer('a', core.CompoundModel(Object()))
-    mc.add(core.Component('key'))
+    o = {'mapping': 'value'}
+    m = core.CompoundModel(o)
+    mc = core.MarkupContainer('a', m)
+    mc.add(core.Component('mapping'))
     eq_(len(mc.children), 1)
-    eq_(mc.find('key').model.object, 'key')
-    mc.model = core.CompoundModel(object())
-    mc.find('key').model = None
-    assert_raises(AttributeError, lambda: mc.find('key').model.object)
+    eq_(o['mapping'], 'value')
+    eq_(mc.find('mapping').model.object, 'value')
+    mc.find('mapping').model.object = 'new_value'
+    eq_(o['mapping'], 'new_value')
+    eq_(mc.find('mapping').model.object, 'new_value')
 
-    mc = core.MarkupContainer('a', core.CompoundModel({'b': 'b', 'c': 'c'}))
+    o = {'b': 'b',
+         'c': 'c'}
+    m = core.CompoundModel(o)
+    mc = core.MarkupContainer('a', m)
     mc.add(core.MarkupContainer('b'))
     eq_(len(mc.children), 1)
     eq_(mc.find('b').model.object, 'b')
@@ -206,7 +235,11 @@ def test_compound_model():
     eq_(len(mc.children), 1)
     eq_(len(mc.find('b').children), 1)
     eq_(mc.find('b:c').model.object, 'c')
-
+    mc.model = core.CompoundModel(object())
+    assert_raises(AttributeError, lambda: mc.find('b').model.object)
+    assert_raises(AttributeError, lambda: mc.find('b:c').model.object)
+    assert_raises(AttributeError, setattr, mc.find('b').model, 'object', '')
+    assert_raises(AttributeError, setattr, mc.find('b:c').model, 'object', '')
     eq_(mc.render(''), '')
 
 def test_render_children():
@@ -934,6 +967,10 @@ def test_failsafe():
     a = markup.Element(markup.QName('', 'a'))
     assert_raises(RenderingError, mc.render_ayame_element, a)
     eq_(mc.render_component(a), (None, a))
+
+    # InheritableModel
+    m = core.InheritableModel(None)
+    eq_(m.wrap(None), None)
 
 def test_request():
     # QUERY_STRING and CONTENT_TYPE are empty
