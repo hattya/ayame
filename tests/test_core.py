@@ -31,7 +31,7 @@ import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, http, markup
+from ayame import basic, core, http, markup, model
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
@@ -116,7 +116,7 @@ def test_component():
 def test_component_with_model():
     assert_raises(ComponentError, core.Component, '1', '')
 
-    m = core.Model(None)
+    m = model.Model(None)
     eq_(m.object, None)
     c = core.Component('a', m)
     eq_(c.id, 'a')
@@ -138,7 +138,7 @@ def test_component_with_model():
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
 
-    m = core.Model('&<>')
+    m = model.Model('&<>')
     eq_(m.object, '&<>')
     c = core.Component('a', m)
     eq_(c.id, 'a')
@@ -146,14 +146,6 @@ def test_component_with_model():
     eq_(c.model_object, '&amp;&lt;&gt;')
     c.escape_model_string = False
     eq_(c.model_object, '&<>')
-
-def test_nested_model():
-    inner = core.Model(None)
-    outer = core.Model(inner)
-    eq_(inner.object, None)
-    eq_(outer.object, None)
-    outer.object = core.Model('')
-    eq_(outer.object, '')
 
 def test_markup_container():
     mc = core.MarkupContainer('a')
@@ -179,67 +171,6 @@ def test_markup_container():
     eq_(mc.find('b2'), b2)
     assert_raises(ComponentError, mc.add, b2)
 
-    eq_(mc.render(''), '')
-
-def test_compound_model():
-    class Object(object):
-        attr = 'value'
-    o = Object()
-    m = core.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('attr'))
-    eq_(len(mc.children), 1)
-    eq_(o.attr, 'value')
-    eq_(mc.find('attr').model.object, 'value')
-    mc.find('attr').model.object = 'new_value'
-    eq_(o.attr, 'new_value')
-    eq_(mc.find('attr').model.object, 'new_value')
-
-    class Object(object):
-        def __init__(self):
-            self.__method = 'value'
-        def get_method(self):
-            return self.__method
-        def set_method(self, method):
-            self.__method = method
-    o = Object()
-    m = core.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('method'))
-    eq_(len(mc.children), 1)
-    eq_(o.get_method(), 'value')
-    eq_(mc.find('method').model.object, 'value')
-    mc.find('method').model.object = 'new_value'
-    eq_(o.get_method(), 'new_value')
-    eq_(mc.find('method').model.object, 'new_value')
-
-    o = {'mapping': 'value'}
-    m = core.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('mapping'))
-    eq_(len(mc.children), 1)
-    eq_(o['mapping'], 'value')
-    eq_(mc.find('mapping').model.object, 'value')
-    mc.find('mapping').model.object = 'new_value'
-    eq_(o['mapping'], 'new_value')
-    eq_(mc.find('mapping').model.object, 'new_value')
-
-    o = {'b': 'b',
-         'c': 'c'}
-    m = core.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.MarkupContainer('b'))
-    eq_(len(mc.children), 1)
-    eq_(mc.find('b').model.object, 'b')
-    mc.find('b').add(core.Component('c'))
-    eq_(len(mc.children), 1)
-    eq_(len(mc.find('b').children), 1)
-    eq_(mc.find('b:c').model.object, 'c')
-    mc.model = core.CompoundModel(object())
-    assert_raises(AttributeError, lambda: mc.find('b').model.object)
-    assert_raises(AttributeError, lambda: mc.find('b:c').model.object)
-    assert_raises(AttributeError, setattr, mc.find('b').model, 'object', '')
-    assert_raises(AttributeError, setattr, mc.find('b:c').model, 'object', '')
     eq_(mc.render(''), '')
 
 def test_render_children():
@@ -355,7 +286,7 @@ def test_render_children():
     eq_(root.children[3], 1)
 
 def test_attribute_modifier():
-    am = core.AttributeModifier('a', core.Model(None))
+    am = core.AttributeModifier('a', model.Model(None))
     assert_raises(AyameError, lambda: am.app)
     assert_raises(AyameError, lambda: am.config)
     assert_raises(AyameError, lambda: am.environ)
@@ -364,9 +295,9 @@ def test_attribute_modifier():
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.QName('', 'a')] = ''
     c = core.Component('a')
-    c.add(core.AttributeModifier('a', core.Model(None)))
-    c.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
-    c.add(core.AttributeModifier('c', core.Model('')))
+    c.add(core.AttributeModifier('a', model.Model(None)))
+    c.add(core.AttributeModifier(markup.QName('', 'b'), model.Model(None)))
+    c.add(core.AttributeModifier('c', model.Model('')))
     eq_(len(c.modifiers), 3)
     eq_(c.modifiers[0].component, c)
     eq_(c.modifiers[1].component, c)
@@ -381,9 +312,9 @@ def test_attribute_modifier():
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.QName('', 'a')] = ''
     mc = core.MarkupContainer('a')
-    mc.add(core.AttributeModifier('a', core.Model(None)))
-    mc.add(core.AttributeModifier(markup.QName('', 'b'), core.Model(None)))
-    mc.add(core.AttributeModifier('c', core.Model('')))
+    mc.add(core.AttributeModifier('a', model.Model(None)))
+    mc.add(core.AttributeModifier(markup.QName('', 'b'), model.Model(None)))
+    mc.add(core.AttributeModifier('c', model.Model('')))
     eq_(len(mc.modifiers), 3)
     eq_(mc.modifiers[0].component, mc)
     eq_(mc.modifiers[1].component, mc)
@@ -967,10 +898,6 @@ def test_failsafe():
     a = markup.Element(markup.QName('', 'a'))
     assert_raises(RenderingError, mc.render_ayame_element, a)
     eq_(mc.render_component(a), (None, a))
-
-    # InheritableModel
-    m = core.InheritableModel(None)
-    eq_(m.wrap(None), None)
 
 def test_request():
     # QUERY_STRING and CONTENT_TYPE are empty

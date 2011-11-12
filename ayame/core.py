@@ -36,12 +36,12 @@ import wsgiref.headers
 from beaker.middleware import SessionMiddleware
 
 from ayame import http, markup, route, uri, util
+from ayame import model as _model
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 __all__ = ['Ayame', 'Component', 'MarkupContainer', 'Page', 'Request',
-           'AttributeModifier', 'Model', 'InheritableModel', 'WrapModel',
-           'CompoundModel']
+           'AttributeModifier']
 
 _local = threading.local()
 _local.app = None
@@ -162,14 +162,14 @@ class Component(object):
                 current = self.parent
                 while current:
                     model = current.model
-                    if isinstance(model, InheritableModel):
+                    if isinstance(model, _model.InheritableModel):
                         self.__model = model.wrap(self)
                         return self.__model
                     current = current.parent
 
         def fset(self, model):
             if (model is not None and
-                not isinstance(model, Model)):
+                not isinstance(model, _model.Model)):
                 self.__model = None
                 raise ComponentError(
                         self, '{!r} is not an instance of Model'.format(model))
@@ -179,13 +179,13 @@ class Component(object):
             # propagate to child models
             if (isinstance(self, MarkupContainer) and
                 (prev and
-                 isinstance(prev, InheritableModel))):
+                 isinstance(prev, _model.InheritableModel))):
                 queue = deque()
                 queue.append(self)
                 while queue:
                     component = queue.pop()
                     # reset model
-                    if (isinstance(component.model, WrapModel) and
+                    if (isinstance(component.model, _model.WrapModel) and
                         component.model.wrapped_model == prev):
                         component.model = None
                     # push children
@@ -743,98 +743,3 @@ class AttributeModifier(object):
 
     def new_value(self, value, new_value):
         return new_value
-
-class Model(object):
-
-    def __init__(self, object):
-        self.__object = object
-
-    def object():
-        def fget(self):
-            if isinstance(self.__object, Model):
-                return self.__object.object
-            return self.__object
-
-        def fset(self, object):
-            self.__object = object
-
-        return locals()
-
-    object = property(**object())
-
-class InheritableModel(Model):
-
-    def wrap(self, component):
-        pass
-
-class WrapModel(Model):
-
-    def __init__(self, model):
-        super(WrapModel, self).__init__(None)
-        self.__wrapped_model = model
-
-    @property
-    def wrapped_model(self):
-        return self.__wrapped_model
-
-class CompoundModel(InheritableModel):
-
-    def wrap(self, component):
-        class CompoundWrapModel(WrapModel):
-
-            def __init__(self, model):
-                super(CompoundWrapModel, self).__init__(model)
-                self._component = component
-
-            def object():
-                def fget(self):
-                    wrapped_object = self.wrapped_model.object
-                    name = self._component.id
-                    # instance variable
-                    try:
-                        return getattr(wrapped_object, name)
-                    except AttributeError:
-                        pass
-                    # getter method
-                    try:
-                        getter = getattr(wrapped_object, 'get_' + name)
-                        if callable(getter):
-                            return getter()
-                    except AttributeError:
-                        pass
-                    # __getitem__
-                    try:
-                        return wrapped_object.__getitem__(name)
-                    except (AttributeError, LookupError):
-                        pass
-                    raise AttributeError(name)
-
-                def fset(self, object):
-                    wrapped_object = self.wrapped_model.object
-                    name = self._component.id
-                    # instance variable
-                    try:
-                        getattr(wrapped_object, name)
-                    except AttributeError:
-                        pass
-                    else:
-                        return setattr(wrapped_object, name, object)
-                    # setter method
-                    try:
-                        setter = getattr(wrapped_object, 'set_' + name)
-                        if callable(setter):
-                            return setter(object)
-                    except AttributeError:
-                        pass
-                    # __setitem__
-                    try:
-                        return wrapped_object.__setitem__(name, object)
-                    except AttributeError:
-                        pass
-                    raise AttributeError(name)
-
-                return locals()
-
-            object = property(**object())
-
-        return CompoundWrapModel(self)

@@ -26,7 +26,7 @@
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, markup
+from ayame import basic, core, markup, model
 from ayame.exception import ComponentError
 
 
@@ -38,12 +38,12 @@ def test_label():
     eq_(elem.children, [''])
 
 def test_label_with_model():
-    m = core.Model([])
+    m = model.Model([])
     c = basic.Label('a', m)
     eq_(c.model, m)
     assert_raises(ComponentError, c.render, markup.Element(None))
 
-    m = core.Model('<tag>')
+    m = model.Model('<tag>')
     c = basic.Label('a', m)
     eq_(c.model, m)
     elem = c.render(markup.Element(None))
@@ -113,7 +113,7 @@ def test_property_list_view():
     label = markup.Element(markup.QName('', 'label'))
     label.attrib[markup.AYAME_ID] = 'c'
     root.children.append(label)
-    m = core.CompoundModel({'b': [str(i) for i in range(3)]})
+    m = model.CompoundModel({'b': [str(i) for i in range(3)]})
     mc = core.MarkupContainer('a', m)
     def populate_item(li):
         li.add(basic.Label('c', li.model.object))
@@ -149,9 +149,9 @@ def test_property_list_view():
     eq_(lv.children[1].index, 1)
     eq_(lv.children[2].index, 2)
 
-    ok_(isinstance(lv.children[0].model, core.CompoundModel))
-    ok_(isinstance(lv.children[1].model, core.CompoundModel))
-    ok_(isinstance(lv.children[2].model, core.CompoundModel))
+    ok_(isinstance(lv.children[0].model, model.CompoundModel))
+    ok_(isinstance(lv.children[1].model, model.CompoundModel))
+    ok_(isinstance(lv.children[2].model, model.CompoundModel))
     lv.children[0].model.object = 10
     lv.children[1].model.object = 11
     lv.children[2].model.object = 12

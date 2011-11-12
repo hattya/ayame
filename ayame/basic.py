@@ -27,6 +27,7 @@
 from collections import Sequence
 
 from ayame import core, markup, uri, util
+from ayame import model as _model
 from ayame.exception import ComponentError
 
 
@@ -37,7 +38,7 @@ class Label(core.Component):
 
     def __init__(self, id, model=None):
         if isinstance(model, basestring):
-            model = core.Model(model)
+            model = _model.Model(model)
         super(Label, self).__init__(id, model)
 
     def on_render(self, element):
@@ -55,7 +56,7 @@ class ListView(core.MarkupContainer):
 
     def __init__(self, id, model=None, populate_item=None):
         if isinstance(model, Sequence):
-            model = core.Model(model)
+            model = _model.Model(model)
         super(ListView, self).__init__(id, model)
         self._populate_item = populate_item
 
@@ -99,7 +100,7 @@ class _ListItem(core.MarkupContainer):
     def index(self):
         return self.__index
 
-class _ListItemModel(core.Model):
+class _ListItemModel(_model.Model):
 
     def __init__(self, list_view, index):
         self.__list_view = list_view
@@ -119,14 +120,14 @@ class _ListItemModel(core.Model):
 class PropertyListView(ListView):
 
     def new_model(self, index):
-        return core.CompoundModel(
+        return _model.CompoundModel(
                 super(PropertyListView, self).new_model(index))
 
 class ContextPathGenerator(core.AttributeModifier):
 
     def __init__(self, attr, rel_path):
         super(ContextPathGenerator, self).__init__(attr,
-                                                   core.Model(rel_path))
+                                                   _model.Model(rel_path))
 
     def new_value(self, value, new_value):
         return uri.relative_uri(self.app.environ, new_value)
@@ -141,6 +142,6 @@ class ContextCSS(core.Component):
 
     def __init__(self, id, rel_path):
         super(ContextCSS, self).__init__(id)
-        self.add(core.AttributeModifier('rel', core.Model('stylesheet')))
-        self.add(core.AttributeModifier('type', core.Model('text/css')))
+        self.add(core.AttributeModifier('rel', _model.Model('stylesheet')))
+        self.add(core.AttributeModifier('type', _model.Model('text/css')))
         self.add(ContextPathGenerator('href', rel_path))
