@@ -42,14 +42,7 @@ class Label(core.Component):
         super(Label, self).__init__(id, model)
 
     def on_render(self, element):
-        object = self.model_object
-        if isinstance(object, basestring):
-            element.children = [object]
-        elif object is None:
-            element.children = ['']
-        else:
-            raise ComponentError(
-                    self, "could not render '{}'".format(util.fqon_of(object)))
+        element.children = [self.model_object_as_string()]
         return element
 
 class ListView(core.MarkupContainer):

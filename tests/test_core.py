@@ -143,9 +143,11 @@ def test_component_with_model():
     c = core.Component('a', m)
     eq_(c.id, 'a')
     eq_(c.model, m)
-    eq_(c.model_object, '&amp;&lt;&gt;')
+    eq_(c.model_object, '&<>')
+    eq_(c.model_object_as_string(), '&amp;&lt;&gt;')
     c.escape_model_string = False
     eq_(c.model_object, '&<>')
+    eq_(c.model_object_as_string(), '&<>')
 
 def test_markup_container():
     mc = core.MarkupContainer('a')

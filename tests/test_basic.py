@@ -24,37 +24,56 @@
 #   SOFTWARE.
 #
 
+from contextlib import contextmanager
+
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import basic, core, markup, model
 from ayame.exception import ComponentError
 
 
+@contextmanager
+def application(environ=None):
+    local = core._local
+    app = core.Ayame(__name__)
+    try:
+        local.app = app
+        local.environ = environ
+        yield
+    finally:
+        local.environ = None
+        local.app = None
+
 def test_label():
     c = basic.Label('a')
     eq_(c.model, None)
-    elem = c.render(markup.Element(None))
-    eq_(elem.attrib, {})
-    eq_(elem.children, [''])
+    element = c.render(markup.Element(None))
+    eq_(element.attrib, {})
+    eq_(element.children, [''])
 
 def test_label_with_model():
-    m = model.Model([])
-    c = basic.Label('a', m)
-    eq_(c.model, m)
-    assert_raises(ComponentError, c.render, markup.Element(None))
+    with application():
+        m = model.Model([])
+        c = basic.Label('a', m)
+        eq_(c.model, m)
+        element = c.render(markup.Element(None))
+        eq_(element.attrib, {})
+        eq_(element.children, ['[]'])
 
-    m = model.Model('<tag>')
-    c = basic.Label('a', m)
-    eq_(c.model, m)
-    elem = c.render(markup.Element(None))
-    eq_(elem.attrib, {})
-    eq_(elem.children, ['&lt;tag&gt;'])
+    with application():
+        m = model.Model('<tag>')
+        c = basic.Label('a', m)
+        eq_(c.model, m)
+        element = c.render(markup.Element(None))
+        eq_(element.attrib, {})
+        eq_(element.children, ['&lt;tag&gt;'])
 
-    c = basic.Label('a', '<tag>')
-    eq_(c.model.object, '<tag>')
-    elem = c.render(markup.Element(None))
-    eq_(elem.attrib, {})
-    eq_(elem.children, ['&lt;tag&gt;'])
+    with application():
+        c = basic.Label('a', '<tag>')
+        eq_(c.model.object, '<tag>')
+        element = c.render(markup.Element(None))
+        eq_(element.attrib, {})
+        eq_(element.children, ['&lt;tag&gt;'])
 
 def test_list_view():
     root = markup.Element(markup.QName('', 'root'))
@@ -160,20 +179,12 @@ def test_property_list_view():
     eq_(lv.children[2].model.object, 12)
 
 def test_context_path_generator():
-    local = core._local
-    app = core.Ayame(__name__)
-
     def assert_attr(environ, value):
         element = markup.Element(markup.QName(markup.XHTML_NS, 'a'))
         href = markup.QName(markup.XHTML_NS, 'href')
-        try:
-            local.app = app
-            local.environ = environ
+        with application(environ):
             am = basic.ContextPathGenerator(href, 'eggs.html')
             am.on_component(None, element)
-        finally:
-            local.environ = None
-            local.app = None
         eq_(element.attrib[href], value)
 
     environ = {'PATH_INFO': '/spam'}
@@ -183,20 +194,12 @@ def test_context_path_generator():
     assert_attr(environ, '../eggs.html')
 
 def test_context_image():
-    local = core._local
-    app = core.Ayame(__name__)
-
     def assert_img(environ, value):
         img = markup.Element(markup.QName(markup.XHTML_NS, 'img'))
         src = markup.QName(markup.XHTML_NS, 'src')
-        try:
-            local.app = app
-            local.environ = environ
+        with application(environ):
             c = basic.ContextImage(src, 'eggs.gif')
             img = c.render(img)
-        finally:
-            local.environ = None
-            local.app = None
         eq_(img.attrib[src], value)
 
     environ = {'PATH_INFO': '/spam'}
@@ -206,20 +209,12 @@ def test_context_image():
     assert_img(environ, '../eggs.gif')
 
 def test_context_css():
-    local = core._local
-    app = core.Ayame(__name__)
-
     def assert_meta(environ, value):
         meta = markup.Element(markup.QName(markup.XHTML_NS, 'meta'))
         href = markup.QName(markup.XHTML_NS, 'href')
-        try:
-            local.app = app
-            local.environ = environ
+        with application(environ):
             c = basic.ContextCSS(href, 'eggs.css')
             meta = c.render(meta)
-        finally:
-            local.environ = None
-            local.app = None
         eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'rel')], 'stylesheet')
         eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'type')], 'text/css')
         eq_(meta.attrib[href], value)

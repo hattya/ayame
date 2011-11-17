@@ -35,7 +35,7 @@ import wsgiref.headers
 
 from beaker.middleware import SessionMiddleware
 
-from ayame import http, markup, route, uri, util
+from ayame import converter, http, markup, route, uri, util
 from ayame import model as _model
 from ayame.exception import AyameError, ComponentError, RenderingError
 
@@ -67,6 +67,7 @@ class Ayame(object):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
         self.config = {
+                'ayame.converter.locator': converter.Locator(),
                 'ayame.markup.encoding': 'utf-8',
                 'ayame.markup.pretty': False,
                 'ayame.route.map': route.Map(),
@@ -201,11 +202,7 @@ class Component(object):
 
     def model_object():
         def fget(self):
-            object = self.model.object if self.model else None
-            if (isinstance(object, basestring) and
-                self.escape_model_string):
-                return cgi.escape(object)
-            return object
+            return self.model.object if self.model else None
 
         def fset(self, object):
             if self.model is None:
@@ -234,6 +231,20 @@ class Component(object):
                 self.modifiers.append(object)
                 object.component = self
         return self
+
+    def converter_for(self, value):
+        return self.config['ayame.converter.locator'].converter_for(value)
+
+    def model_object_as_string(self):
+        object = self.model_object
+        if object is not None:
+            if not isinstance(object, basestring):
+                converter = self.converter_for(object)
+                object = converter.to_string(object)
+            if self.escape_model_string:
+                return cgi.escape(object)
+            return object
+        return ''
 
     def page(self):
         current = self
