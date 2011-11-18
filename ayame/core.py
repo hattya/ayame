@@ -24,9 +24,9 @@
 #   SOFTWARE.
 #
 
-from datetime import timedelta
+import datetime
 import cgi
-from collections import deque
+import collections
 import os
 import sys
 import threading
@@ -77,7 +77,7 @@ class Ayame(object):
                 'beaker.session.type': 'file',
                 'beaker.session.data_dir': os.path.join(session_dir, 'data'),
                 'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
-                'beaker.session.cookie_expires': timedelta(31),
+                'beaker.session.cookie_expires': datetime.timedelta(31),
                 'beaker.session.key': None,
                 'beaker.session.secret': None}
 
@@ -181,7 +181,7 @@ class Component(object):
             if (isinstance(self, MarkupContainer) and
                 (prev and
                  isinstance(prev, _model.InheritableModel))):
-                queue = deque()
+                queue = collections.deque()
                 queue.append(self)
                 while queue:
                     component = queue.pop()
@@ -191,10 +191,7 @@ class Component(object):
                         component.model = None
                     # push children
                     if isinstance(component, MarkupContainer):
-                        i = len(component.children) - 1
-                        while 0 <= i:
-                            queue.append(component.children[i])
-                            i -= 1
+                        queue.extend(reversed(component.children))
 
         return locals()
 
@@ -611,7 +608,7 @@ class MarkupContainer(Component):
         return m
 
     def _new_queue(self, root):
-        queue = deque()
+        queue = collections.deque()
         if isinstance(root, markup.Element):
             queue.append((None, -1, root))
         return queue

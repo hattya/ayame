@@ -39,13 +39,16 @@ def test_fqon_of():
         pass
     class N(object):
         pass
+
     o = O()
     n = N()
+
     def f():
         pass
     def u():
         pass
     del u.__module__
+
     eq_(util.fqon_of(O), __name__ + '.O')
     eq_(util.fqon_of(o), __name__ + '.O')
     eq_(util.fqon_of(N), __name__ + '.N')
@@ -62,6 +65,7 @@ def test_fqon_of():
 def test_load_data():
     class Spam(object):
         pass
+
     def spam():
         pass
 
@@ -166,6 +170,7 @@ def test_filter_dict():
             if isinstance(key, basestring):
                 return key.lower()
             return super(LowerDict, self).__convert__(key)
+
     d = LowerDict(A=0)
 
     eq_(d['A'], 0)

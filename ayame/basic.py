@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from collections import Sequence
+import collections
 
 from ayame import core, markup, uri, util
 from ayame import model as _model
@@ -48,7 +48,7 @@ class Label(core.Component):
 class ListView(core.MarkupContainer):
 
     def __init__(self, id, model=None, populate_item=None):
-        if isinstance(model, Sequence):
+        if isinstance(model, collections.Sequence):
             model = _model.Model(model)
         super(ListView, self).__init__(id, model)
         self._populate_item = populate_item

@@ -24,32 +24,40 @@
 #   SOFTWARE.
 #
 
+from contextlib import contextmanager
+
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import basic, core, panel, markup
 from ayame.exception import RenderingError
 
 
-def test_panel():
+@contextmanager
+def application():
     local = core._local
     app = core.Ayame(__name__)
+    try:
+        local.app = app
+        yield
+    finally:
+        local.app = None
 
+def test_panel():
     class Spam(core.MarkupContainer):
         def __init__(self, id):
             super(Spam, self).__init__(id)
             self.add(SpamPanel('panel'))
+
     class SpamPanel(panel.Panel):
         def __init__(self, id):
             super(SpamPanel, self).__init__(id)
             self.add(basic.Label('class', self.__class__.__name__))
             self.find('class').render_body_only = True
-    try:
-        local.app = app
+
+    with application():
         mc = Spam('a')
         m = mc.load_markup()
         html = mc.render(m.root)
-    finally:
-        local.app = None
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xhtml1')
     eq_(m.doctype, markup.XHTML1_STRICT)
@@ -137,13 +145,11 @@ def test_panel():
     eq_(p.children[0], 'after panel (Spam)')
 
 def test_panel_with_markup_inheritance():
-    local = core._local
-    app = core.Ayame(__name__)
-
     class Eggs(core.MarkupContainer):
         def __init__(self, id):
             super(Eggs, self).__init__(id)
             self.add(HamPanel('panel'))
+
     class EggsPanel(panel.Panel):
         pass
     class HamPanel(EggsPanel):
@@ -151,13 +157,11 @@ def test_panel_with_markup_inheritance():
             super(HamPanel, self).__init__(id)
             self.add(basic.Label('class', self.__class__.__name__))
             self.find('class').render_body_only = True
-    try:
-        local.app = app
+
+    with application():
         mc = Eggs('a')
         m = mc.load_markup()
         html = mc.render(m.root)
-    finally:
-        local.app = None
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xhtml1')
     eq_(m.doctype, markup.XHTML1_STRICT)
@@ -254,9 +258,6 @@ def test_panel_with_markup_inheritance():
     eq_(p.children[0], 'after panel (Eggs)')
 
 def test_invalid_markup():
-    local = core._local
-    app = core.Ayame(__name__)
-
     # ayame:panel element is not found
     class Toast(core.MarkupContainer):
         def __init__(self, id):
@@ -267,13 +268,10 @@ def test_invalid_markup():
             super(ToastPanel, self).__init__(id)
             self.add(basic.Label('class', self.__class__.__name__))
             self.find('class').render_body_only = True
-    try:
-        local.app = app
+    with application():
         mc = Toast('a')
         m = mc.load_markup()
         assert_raises(RenderingError, mc.render, m.root)
-    finally:
-        local.app = None
 
     # head element is not found
     class Beans(core.MarkupContainer):
@@ -285,13 +283,10 @@ def test_invalid_markup():
             super(BeansPanel, self).__init__(id)
             self.add(basic.Label('class', self.__class__.__name__))
             self.find('class').render_body_only = True
-    try:
-        local.app = app
+    with application():
         mc = Beans('a')
         m = mc.load_markup()
         assert_raises(RenderingError, mc.render, m.root)
-    finally:
-        local.app = None
 
     # unknown ayame element
     class Bacon(core.MarkupContainer):
@@ -303,10 +298,7 @@ def test_invalid_markup():
             super(BaconPanel, self).__init__(id)
             self.add(basic.Label('class', self.__class__.__name__))
             self.find('class').render_body_only = True
-    try:
-        local.app = app
+    with application():
         mc = Bacon('a')
         m = mc.load_markup()
         assert_raises(RenderingError, mc.render, m.root)
-    finally:
-        local.app = None

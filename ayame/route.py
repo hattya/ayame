@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from collections import defaultdict
+import collections
 import os
 import re
 import sys
@@ -231,7 +231,7 @@ class Map(object):
         self.sort_key = sort_key
 
         self._rules = []
-        self._ref = defaultdict(list)
+        self._ref = collections.defaultdict(list)
 
     def add(self, rule):
         rule.bind(self)

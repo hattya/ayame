@@ -25,6 +25,7 @@
 #
 
 from __future__ import unicode_literals
+from contextlib import contextmanager
 import io
 import os
 import wsgiref.util
@@ -34,6 +35,16 @@ from nose.tools import assert_raises, eq_, ok_
 from ayame import basic, core, http, markup, model
 from ayame.exception import AyameError, ComponentError, RenderingError
 
+
+@contextmanager
+def application():
+    local = core._local
+    app = core.Ayame(__name__)
+    try:
+        local.app = app
+        yield
+    finally:
+        local.app = None
 
 def test_simple_app():
     class SimplePage(core.Page):
@@ -486,9 +497,6 @@ def test_render_ayame_enclosure():
     eq_(len(b.children), 0)
 
 def test_markup_inheritance():
-    local = core._local
-    app = core.Ayame(__name__)
-
     class Spam(core.MarkupContainer):
         pass
     class Eggs(Spam):
@@ -506,12 +514,9 @@ def test_markup_inheritance():
         pass
 
     # markup inheritance
-    try:
-        local.app = app
+    with application():
         mc = Ham('a')
         m = mc.load_markup()
-    finally:
-        local.app = None
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xhtml1')
     eq_(m.doctype, markup.XHTML1_STRICT)
@@ -620,12 +625,9 @@ def test_markup_inheritance():
     # submarkup is empty
     class Sausage(Spam):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         m = mc.load_markup()
-    finally:
-        local.app = None
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xhtml1')
     eq_(m.doctype, markup.XHTML1_STRICT)
@@ -707,12 +709,9 @@ def test_markup_inheritance():
     # merge ayame:head into ayame:head in supermarkup
     class Sausage(Bacon):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         m = mc.load_markup()
-    finally:
-        local.app = None
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xhtml1')
     eq_(m.doctype, markup.XHTML1_STRICT)
@@ -794,42 +793,30 @@ def test_markup_inheritance():
     # superclass is not found
     class Sausage(core.MarkupContainer):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
-    finally:
-        local.app = None
 
     # multiple inheritance
     class Sausage(Spam, Toast, Beans, Bacon):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         assert_raises(AyameError, mc.load_markup)
-    finally:
-        local.app = None
 
     # ayame:child element is not found
     class Sausage(Toast):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         assert_raises(RenderingError, mc.load_markup)
-    finally:
-        local.app = None
 
     # head element is not found
     class Sausage(Beans):
         pass
-    try:
-        local.app = app
+    with application():
         mc = Sausage('a')
         assert_raises(RenderingError, mc.load_markup)
-    finally:
-        local.app = None
 
 def test_ayame_head():
     ayame_head = markup.Element(markup.AYAME_HEAD)
@@ -1086,9 +1073,6 @@ def test_request():
     assert_raises(http.RequestTimeout, core.Request, environ, {})
 
 def test_page():
-    local = core._local
-    app = core.Ayame(__name__)
-
     class SpamPage(core.Page):
         def __init__(self, request):
             super(SpamPage, self).__init__(request)
@@ -1104,13 +1088,10 @@ def test_page():
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
     environ = {'REQUEST_METHOD': 'GET'}
-    try:
-        local.app = app
+    with application():
         request = core.Request(environ, {})
         page = SpamPage(request)
         status, headers, body = page.render()
-    finally:
-        local.app = None
     eq_(page.page(), page)
     eq_(page.find('greeting').page(), page)
     eq_(page.path(), '')
