@@ -43,6 +43,27 @@ def test_nested_model():
     outer.object = model.Model('')
     eq_(outer.object, '')
 
+def test_inheritable_model():
+    assert_raises(TypeError, model.InheritableModel)
+
+    class InheritableModel(model.InheritableModel):
+        def wrap(self, component):
+            return super(InheritableModel, self).wrap(component)
+
+    m = InheritableModel(None)
+    eq_(m.wrap(None), None)
+
+def test_wrap_model():
+    assert_raises(TypeError, model.WrapModel)
+
+    class WrapModel(model.WrapModel):
+        @property
+        def object(self):
+            return super(WrapModel, self).object
+
+    m = WrapModel(None)
+    eq_(m.object, None)
+
 def test_compound_model():
     class Object(object):
         attr = 'value'
@@ -103,7 +124,3 @@ def test_compound_model():
     assert_raises(AttributeError, setattr, mc.find('b').model, 'object', '')
     assert_raises(AttributeError, setattr, mc.find('b:c').model, 'object', '')
     eq_(mc.render(''), '')
-
-def test_inheritable_model():
-    m = model.InheritableModel(None)
-    eq_(m.wrap(None), None)
