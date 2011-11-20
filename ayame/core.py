@@ -41,7 +41,7 @@ from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 __all__ = ['Ayame', 'Component', 'MarkupContainer', 'Page', 'Request',
-           'AttributeModifier']
+           'Behavior', 'AttributeModifier']
 
 _local = threading.local()
 _local.app = None
@@ -149,7 +149,7 @@ class Component(object):
         self.escape_model_string = True
         self.render_body_only = False
         self.visible = True
-        self.modifiers = []
+        self.behaviors = []
 
     @property
     def id(self):
@@ -224,8 +224,8 @@ class Component(object):
 
     def add(self, *args):
         for object in args:
-            if isinstance(object, AttributeModifier):
-                self.modifiers.append(object)
+            if isinstance(object, Behavior):
+                self.behaviors.append(object)
                 object.component = self
         return self
 
@@ -269,15 +269,17 @@ class Component(object):
         return element
 
     def on_before_render(self):
-        pass
+        for behavior in self.behaviors:
+            behavior.on_before_render(self)
 
     def on_render(self, element):
-        for modifier in self.modifiers:
-            modifier.on_component(self, element)
+        for behavior in self.behaviors:
+            behavior.on_component(self, element)
         return element
 
     def on_after_render(self):
-        pass
+        for behavior in self.behaviors:
+            behavior.on_after_render(self)
 
 class MarkupContainer(Component):
 
@@ -322,7 +324,7 @@ class MarkupContainer(Component):
         push_children = self._push_children
         join_children = self._join_children
 
-        # apply modifiers
+        # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
 
         self._extra_head = []
@@ -717,12 +719,10 @@ class Request(object):
             body = fs
         return body
 
-class AttributeModifier(object):
+class Behavior(object):
 
-    def __init__(self, attr, model):
+    def __init__(self):
         self.component = None
-        self._attr = attr
-        self._model = model
 
     @property
     def app(self):
@@ -735,6 +735,22 @@ class AttributeModifier(object):
     @property
     def environ(self):
         return self.app.environ
+
+    def on_before_render(self, component):
+        pass
+
+    def on_component(self, component, element):
+        pass
+
+    def on_after_render(self, component):
+        pass
+
+class AttributeModifier(Behavior):
+
+    def __init__(self, attr, model):
+        super(AttributeModifier, self).__init__()
+        self._attr = attr
+        self._model = model
 
     def on_component(self, component, element):
         if isinstance(self._attr, markup.QName):

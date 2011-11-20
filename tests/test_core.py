@@ -298,12 +298,42 @@ def test_render_children():
     eq_(root.children[2], '')
     eq_(root.children[3], 1)
 
-def test_attribute_modifier():
-    am = core.AttributeModifier('a', model.Model(None))
-    assert_raises(AyameError, lambda: am.app)
-    assert_raises(AyameError, lambda: am.config)
-    assert_raises(AyameError, lambda: am.environ)
+def test_behavior():
+    b = core.Behavior()
+    assert_raises(AyameError, lambda: b.app)
+    assert_raises(AyameError, lambda: b.config)
+    assert_raises(AyameError, lambda: b.environ)
 
+    class Behavior(core.Behavior):
+        def on_before_render(self, component):
+            super(Behavior, self).on_before_render(component)
+            component.model_object.append('before-render')
+        def on_component(self, component, element):
+            super(Behavior, self).on_component(component, element)
+            component.model_object.append('component')
+        def on_after_render(self, component):
+            super(Behavior, self).on_after_render(component)
+            component.model_object.append('after-render')
+
+    # component
+    c = core.Component('a', model.Model([]))
+    c.add(Behavior())
+    eq_(len(c.behaviors), 1)
+    eq_(c.behaviors[0].component, c)
+
+    eq_(c.render(None), None)
+    eq_(c.model_object, ['before-render', 'component', 'after-render'])
+
+    # markup container
+    mc = core.MarkupContainer('a', model.Model([]))
+    mc.add(Behavior())
+    eq_(len(c.behaviors), 1)
+    eq_(mc.behaviors[0].component, mc)
+
+    eq_(mc.render(None), None)
+    eq_(mc.model_object, ['before-render', 'component', 'after-render'])
+
+def test_attribute_modifier():
     # component
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.QName('', 'a')] = ''
@@ -311,10 +341,10 @@ def test_attribute_modifier():
     c.add(core.AttributeModifier('a', model.Model(None)))
     c.add(core.AttributeModifier(markup.QName('', 'b'), model.Model(None)))
     c.add(core.AttributeModifier('c', model.Model('')))
-    eq_(len(c.modifiers), 3)
-    eq_(c.modifiers[0].component, c)
-    eq_(c.modifiers[1].component, c)
-    eq_(c.modifiers[2].component, c)
+    eq_(len(c.behaviors), 3)
+    eq_(c.behaviors[0].component, c)
+    eq_(c.behaviors[1].component, c)
+    eq_(c.behaviors[2].component, c)
 
     root = c.render(root)
     eq_(root.qname, markup.QName('', 'root'))
@@ -328,10 +358,10 @@ def test_attribute_modifier():
     mc.add(core.AttributeModifier('a', model.Model(None)))
     mc.add(core.AttributeModifier(markup.QName('', 'b'), model.Model(None)))
     mc.add(core.AttributeModifier('c', model.Model('')))
-    eq_(len(mc.modifiers), 3)
-    eq_(mc.modifiers[0].component, mc)
-    eq_(mc.modifiers[1].component, mc)
-    eq_(mc.modifiers[2].component, mc)
+    eq_(len(mc.behaviors), 3)
+    eq_(mc.behaviors[0].component, mc)
+    eq_(mc.behaviors[1].component, mc)
+    eq_(mc.behaviors[2].component, mc)
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
