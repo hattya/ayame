@@ -1130,3 +1130,81 @@ def test_page():
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', '253')])
     eq_(body, xhtml)
+
+def test_ignition_behavior():
+    class EggsPage(core.Page):
+        def __init__(self, request):
+            super(EggsPage, self).__init__(request)
+            self.model = model.CompoundModel({'clay1': 0,
+                                              'clay2': 0})
+            self.add(Clay('clay1'))
+            self.add(core.MarkupContainer('obstacle'))
+            self.find('obstacle').add(Clay('clay2'))
+
+    class Clay(core.Component):
+        def __init__(self, id, model=None):
+            super(Clay, self).__init__(id, model)
+            self.add(IgnitionBehavior())
+
+    class IgnitionBehavior(core.IgnitionBehavior):
+        def on_component(self, component, element):
+            self.fire()
+        def on_fire(self, component, request):
+            super(IgnitionBehavior, self).on_fire(component, request)
+            component.model_object += 1
+
+    # GET
+    query = '{}=clay1'.format(core.AYAME_PATH)
+    environ = {'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': query.encode('utf-8')}
+    with application():
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        ok_(page.render())
+    eq_(page.model_object, {'clay1': 1,
+                            'clay2': 0})
+
+    # duplicate ayame:path
+    query = '{0}=clay1&{0}=obstacle:clay2'.format(core.AYAME_PATH)
+    environ = {'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': query.encode('utf-8')}
+    with application():
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        assert_raises(RenderingError, page.render)
+
+    # POST
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'obstacle:clay2\r\n'
+            '--ayame.core--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    with application():
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        ok_(page.render())
+    eq_(page.model_object, {'clay1': 0,
+                            'clay2': 1})
+
+    # duplicate ayame:path
+    body = ('--ayame.core\r\n'
+            'Content-Disposition: form-data; name="{0}"\r\n'
+            '\r\n'
+            'clay1\r\n'
+            '--ayame.core\r\n'
+            'Content-Disposition: form-data; name="{0}"\r\n'
+            '\r\n'
+            'obstacle:clay2\r\n'
+            '--ayame.core--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+    with application():
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        assert_raises(RenderingError, page.render)

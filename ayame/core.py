@@ -40,8 +40,11 @@ from ayame import model as _model
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
-__all__ = ['Ayame', 'Component', 'MarkupContainer', 'Page', 'Request',
-           'Behavior', 'AttributeModifier']
+__all__ = ['AYAME_PATH', 'Ayame', 'Component', 'MarkupContainer', 'Page',
+           'Request', 'Behavior', 'AttributeModifier', 'IgnitionBehavior']
+
+# marker for firing component
+AYAME_PATH = 'ayame:path'
 
 _local = threading.local()
 _local.app = None
@@ -767,3 +770,24 @@ class AttributeModifier(Behavior):
 
     def new_value(self, value, new_value):
         return new_value
+
+class IgnitionBehavior(Behavior):
+
+    def fire(self):
+        component = self.component
+        page = component.page()
+        # retrive ayame:path
+        path = None
+        if page.request.method == 'GET':
+            path = page.request.query.get(AYAME_PATH)
+        elif page.request.method == 'POST':
+            path = page.request.body.get(AYAME_PATH)
+        if path:
+            if 1 < len(path):
+                raise RenderingError(page, 'duplicate ayame:path')
+            # fire component
+            if path[0] == component.path():
+                self.on_fire(component, page.request)
+
+    def on_fire(self, component, request):
+        pass
