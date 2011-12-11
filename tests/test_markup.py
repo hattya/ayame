@@ -718,17 +718,20 @@ def test_render_xhtml1():
     m.root.ns['a'] = markup.XML_NS
     m.root.ns['b'] = markup.XHTML_NS
     m.root.ns['ayame'] = markup.AYAME_NS
+
     head = new_element('head')
     meta = new_element('meta')
     meta.attrib[new_qname('name')] = 'keywords'
     meta.attrib[new_qname('content')] = ''
     meta.children.append('a')
     head.children.append(meta)
+
     title = new_element('title')
     title.children.append('title')
     span = new_element('span')
     title.children.append(span)
     head.children.append(title)
+
     style = new_element('style')
     style.attrib[new_qname('type')] = 'text/css'
     style.children.append('\n'
@@ -741,6 +744,7 @@ def test_render_xhtml1():
                           '      }\n'
                           '\n')
     head.children.append(style)
+
     script = new_element('script')
     script.attrib[new_qname('type')] = 'text/javascript'
     script.children.append('\n'
@@ -751,12 +755,14 @@ def test_render_xhtml1():
                            '\n')
     head.children.append(script)
     m.root.children.append(head)
+
     body = new_element('body')
     ayame_remove = new_element('remove', ns=markup.AYAME_NS)
     p = new_element('p')
     p.children.append('Hello World!')
     ayame_remove.children.append(p)
     body.children.append(ayame_remove)
+
     h1 = new_element('h1')
     h1.children.append('\n'
                        '  spam\n')
@@ -768,6 +774,7 @@ def test_render_xhtml1():
     h1.children.append('\n'
                        '  ham  \n')
     body.children.append(h1)
+
     blockquote = new_element('blockquote')
     blockquote.attrib[new_qname('cite')] = 'http://example.com/'
     blockquote.children.append('before')
@@ -776,6 +783,7 @@ def test_render_xhtml1():
     blockquote.children.append(p)
     blockquote.children.append('after')
     body.children.append(blockquote)
+
     div = new_element('div')
     div.attrib[new_qname('class')] = 'text'
     div.children.append(' \n'
@@ -786,12 +794,14 @@ def test_render_xhtml1():
     div.children.append(i)
     div.children.append('  ham')
     body.children.append(div)
+
     div = new_element('div')
     div.attrib[new_qname('class')] = 'ayame'
     ayame_remove = new_element('remove', ns=markup.AYAME_NS)
     ayame_remove.children.append('Hello World!')
     div.children.append(ayame_remove)
     body.children.append(div)
+
     div = new_element('div')
     div.attrib[new_qname('class')] = 'block'
     ul = new_element('ul')
@@ -807,7 +817,9 @@ def test_render_xhtml1():
     li.children.append('Earth')
     ul.children.append(li)
     div.children.append(ul)
+    div.children.append('\n')
     body.children.append(div)
+
     div = new_element('div')
     div.attrib[new_qname('class')] = 'inline-ins-del'
     p = new_element('p')
@@ -819,6 +831,7 @@ def test_render_xhtml1():
     p.children.append(ins)
     div.children.append(p)
     body.children.append(div)
+
     div = new_element('div')
     div.attrib[new_qname('class')] = 'block-ins-del'
     del_ = new_element('del')
@@ -832,6 +845,7 @@ def test_render_xhtml1():
     ins.children.append(pre)
     div.children.append(ins)
     body.children.append(div)
+
     pre = new_element('pre')
     pre.children.append('\n'
                         '  * 1\n'
@@ -841,4 +855,5 @@ def test_render_xhtml1():
                         '  * 5\n')
     body.children.append(pre)
     m.root.children.append(body)
+
     eq_(renderer.render(test, m, pretty=True), xhtml1)

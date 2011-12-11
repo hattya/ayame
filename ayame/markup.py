@@ -800,11 +800,11 @@ class MarkupRenderer(object):
     render_xhtml1_end_tag = render_xml_end_tag
 
     def render_xhtml1_text(self, index, text):
-        if (self._peek().newline and
-            text != ''):
-            # indent
-            self._write('\n',
-                        ' ' * (self._indent * self._count(self._ptr())))
+        if self._peek().newline:
+            if text != '':
+                # indent
+                self._write('\n',
+                            ' ' * (self._indent * self._count(self._ptr())))
         elif text == '':
             # space
             self._write(' ')
