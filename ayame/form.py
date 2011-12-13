@@ -32,7 +32,7 @@ from ayame.exception import ComponentError, ConversionError, RenderingError
 from ayame.exception import ValidationError
 
 
-__all__ = ['Form', 'FormComponent', 'Button', 'TextField']
+__all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField']
 
 # HTML elements
 _FORM = markup.QName(markup.XHTML_NS, 'form')
@@ -216,3 +216,7 @@ class TextField(FormComponent):
         element.attrib[_NAME] = self.relative_path()
         # render text field
         return super(TextField, self).on_render(element)
+
+class PasswordField(TextField):
+
+    input_type = 'password'

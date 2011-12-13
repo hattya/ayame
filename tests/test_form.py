@@ -101,7 +101,7 @@ def test_form_error():
         assert_raises(ComponentError, f.submit, request)
 
 def test_form():
-    content_length = '476'
+    content_length = '523'
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
              '<html xmlns="{xhtml}">\n'
@@ -113,6 +113,7 @@ def test_form():
              '      <div class="ayame-hidden">'
              '<input name="{path}" type="hidden" value="form"/></div>\n'
              '      <input name="text" type="text"/>\n'
+             '      <input name="password" type="password"/>\n'
              '      <input name="button" type="submit"/>\n'
              '    </form>\n'
              '  </body>\n'
@@ -120,6 +121,7 @@ def test_form():
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
     model_object = {'text': 'text',
+                    'password': 'password',
                     'button': 'submitted'}
 
     class Button(form.Button):
@@ -132,11 +134,13 @@ def test_form():
             super(SpamPage, self).__init__(request)
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.TextField('text'))
+            self.find('form').add(form.PasswordField('password'))
             self.find('form').add(Button('button'))
 
     # GET
     query = ('{}=form&'
              'text=text&'
+             'password=password&'
              'button').format(core.AYAME_PATH)
     environ = {'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
@@ -161,6 +165,10 @@ def test_form():
             'Content-Disposition: form-data; name="text"\r\n'
             '\r\n'
             'text\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="password"\r\n'
+            '\r\n'
+            'password\r\n'
             '--ayame.form\r\n'
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
