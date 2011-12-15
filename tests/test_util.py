@@ -164,6 +164,11 @@ def test_to_list():
     eq_(util.to_list((1,)), [1])
     eq_(util.to_list({'a': 1}), ['a'])
 
+def test_new_token():
+    a = util.new_token()
+    b = util.new_token()
+    ok_(a != b)
+
 def test_filter_dict():
     class LowerDict(util.FilterDict):
         def __convert__(self, key):

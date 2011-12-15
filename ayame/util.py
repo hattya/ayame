@@ -24,8 +24,10 @@
 #   SOFTWARE.
 #
 
+import hashlib
 import io
 import os
+import random
 import sys
 import types
 
@@ -92,6 +94,11 @@ def to_list(o):
     elif hasattr(o, '__iter__'):
         return list(o)
     return [o]
+
+def new_token(algorithm='sha1'):
+    m = hashlib.new(algorithm)
+    m.update(str(random.random()))
+    return m.hexdigest()
 
 class FilterDict(dict):
 
