@@ -33,7 +33,7 @@ from ayame.exception import ValidationError
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
-           'HiddenField']
+           'HiddenField', 'CheckBox']
 
 # HTML elements
 _FORM = markup.QName(markup.XHTML_NS, 'form')
@@ -48,6 +48,7 @@ _METHOD = markup.QName(markup.XHTML_NS, 'method')
 _TYPE = markup.QName(markup.XHTML_NS, 'type')
 _NAME = markup.QName(markup.XHTML_NS, 'name')
 _VALUE = markup.QName(markup.XHTML_NS, 'value')
+_CHECKED = markup.QName(markup.XHTML_NS, 'checked')
 
 class Form(core.MarkupContainer):
 
@@ -225,3 +226,27 @@ class PasswordField(TextField):
 class HiddenField(TextField):
 
     input_type = 'hidden'
+
+class CheckBox(FormComponent):
+
+    def __init__(self, id, model=None):
+        super(CheckBox, self).__init__(id, model)
+        self.type = bool
+
+    def on_render(self, element):
+        if element.qname != _INPUT:
+            raise RenderingError(self, "'input' element is expected")
+        elif element.attrib[_TYPE] != 'checkbox':
+            raise RenderingError(self,
+                                 "'input' element with 'type' attribute of "
+                                 "'checkbox' is expected")
+
+        converter = self.converter_for(bool)
+        checked = converter.to_python(self.model_object)
+        # modify attributes
+        element.attrib[_NAME] = self.relative_path()
+        element.attrib[_VALUE] = 'on'
+        if checked:
+            element.attrib[_CHECKED] = 'checked'
+        # render checkbox
+        return super(CheckBox, self).on_render(element)

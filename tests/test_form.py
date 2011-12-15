@@ -101,7 +101,7 @@ def test_form_error():
         assert_raises(ComponentError, f.submit, request)
 
 def test_form():
-    content_length = '566'
+    content_length = '642'
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
              '<html xmlns="{xhtml}">\n'
@@ -115,6 +115,8 @@ def test_form():
              '      <input name="text" type="text"/>\n'
              '      <input name="password" type="password"/>\n'
              '      <input name="hidden" type="hidden"/>\n'
+             '      <input checked="checked" name="checkbox" type="checkbox" '
+             'value="on"/>\n'
              '      <input name="button" type="submit"/>\n'
              '    </form>\n'
              '  </body>\n'
@@ -124,6 +126,7 @@ def test_form():
     model_object = {'text': 'text',
                     'password': 'password',
                     'hidden': 'hidden',
+                    'checkbox': False,
                     'button': 'submitted'}
 
     class Button(form.Button):
@@ -134,10 +137,12 @@ def test_form():
     class SpamPage(core.Page):
         def __init__(self, request):
             super(SpamPage, self).__init__(request)
-            self.add(form.Form('form', model.CompoundModel({})))
+            self.add(form.Form('form',
+                               model.CompoundModel({'checkbox': True})))
             self.find('form').add(form.TextField('text'))
             self.find('form').add(form.PasswordField('password'))
             self.find('form').add(form.HiddenField('hidden'))
+            self.find('form').add(form.CheckBox('checkbox'))
             self.find('form').add(Button('button'))
 
     # GET
@@ -235,9 +240,14 @@ def test_form_component():
 def test_invalid_markup():
     input = markup.Element(form._INPUT)
     input.attrib[form._TYPE] = 'text'
+
     button = form.Button('a')
     assert_raises(RenderingError, button.render, input)
     assert_raises(RenderingError, button.render, markup.Element(markup.DIV))
 
     tf = form.TextField('a')
     assert_raises(RenderingError, tf.render, markup.Element(markup.DIV))
+
+    checkbox = form.CheckBox('a')
+    assert_raises(RenderingError, checkbox.render, input)
+    assert_raises(RenderingError, checkbox.render, markup.Element(markup.DIV))
