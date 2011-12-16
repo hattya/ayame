@@ -694,7 +694,8 @@ class MarkupRenderer(object):
                             node[-1] in ('\r', '\n') and
                             (children and
                              isinstance(children[-1], basestring) and
-                             not children[-1].endswith(' '))):
+                             not (children[-1] == '' or
+                                  children[-1].endswith(' ')))):
                             # newline -> space
                             children.append('')
                         elif (index == last and
