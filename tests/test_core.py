@@ -203,6 +203,7 @@ def test_render_children():
     # component is not found
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.AYAME_ID] = 'c'
+    root.attrib[markup.QName('', 'id')] = 'c'
     mc = core.MarkupContainer('a')
     mc.add(core.Component('b'))
     assert_raises(ComponentError, mc.render, root)

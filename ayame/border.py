@@ -58,7 +58,7 @@ class Border(core.MarkupContainer):
                     yield parent, index, element
                 elif element.qname in (markup.AYAME_BODY, markup.AYAME_HEAD):
                     yield parent, index, element
-                    continue # skip children
+                    continue  # skip children
                 push_children(queue, element)
 
         # load markup for Panel
@@ -81,9 +81,9 @@ class Border(core.MarkupContainer):
                     ayame_head is None):
                     ayame_head = element
         if ayame_border is None:
-            raise RenderingError(self, 'ayame:border element is not found')
+            raise RenderingError(self, "'ayame:border' element is not found")
         elif ayame_body is None:
-            raise RenderingError(self, 'ayame:body element is not found')
+            raise RenderingError(self, "'ayame:body' element is not found")
         # push ayame:head to parent component
         if ayame_head:
             self.push_ayame_head(ayame_head)

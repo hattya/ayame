@@ -229,7 +229,7 @@ class MarkupLoader(object, HTMLParser):
 
     def handle_starttag(self, name, attrs):
         if self._remove:
-            return # children of ayame:remove
+            return  # children of ayame:remove
         # new element
         element = self._impl_of('new_element')(name, attrs)
         if (self._ptr() == 0 and
@@ -249,7 +249,7 @@ class MarkupLoader(object, HTMLParser):
 
     def handle_startendtag(self, name, attrs):
         if self._remove:
-            return # children of ayame:remove
+            return  # children of ayame:remove
         # new element
         element = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
         if element.qname == AYAME_REMOVE:
@@ -270,7 +270,7 @@ class MarkupLoader(object, HTMLParser):
             # end tag of ayame:remove
             self._remove = False
         if self._remove:
-            return # children of ayame:remove
+            return  # children of ayame:remove
         # pop element
         pos, element = self._impl_of('pop')(qname)
 
@@ -292,7 +292,7 @@ class MarkupLoader(object, HTMLParser):
             self._markup.doctype = XHTML1_STRICT
         elif _html_re.match(decl):
             raise MarkupError(self._object, self.getpos(),
-                              'unsupported html version')
+                              'unsupported HTML version')
         else:
             self._markup.doctype = '<!{}>'.format(decl)
 
@@ -301,7 +301,7 @@ class MarkupLoader(object, HTMLParser):
             m = _xml_decl_re.match(data)
             if not m:
                 raise MarkupError(self._object, self.getpos(),
-                                  'malformed xml declaration')
+                                  'malformed XML declaration')
             self._markup.lang = 'xml'
 
             for k, v in m.groupdict().iteritems():
@@ -356,7 +356,7 @@ class MarkupLoader(object, HTMLParser):
 
     def _append_text(self, text):
         if self._remove:
-            return # children of ayame:remove
+            return  # children of ayame:remove
         elif self._text is None:
             self._text = [text]
         else:
@@ -417,14 +417,14 @@ class MarkupLoader(object, HTMLParser):
             qname = new_qname(n, xmlns)
             if qname in element.attrib:
                 raise MarkupError(self._object, self.getpos(),
-                                  'attribute {} already exist'.format(qname))
+                                  "attribute '{}' already exist".format(qname))
             element.attrib[qname] = v
         return element
 
     def xml_push(self, element):
         if not self._markup.xml_decl:
             raise MarkupError(self._object, self.getpos(),
-                              'xml declaration is not found')
+                              'XML declaration is not found')
         self._push(element)
 
     def xml_pop(self, qname):
@@ -466,6 +466,7 @@ class MarkupRenderer(object):
         self._buffer = None
         self._lang = None
         self._indent = 0
+        self._pretty = False
 
     def is_xml(self):
         return (self._lang == 'xml' or
@@ -479,6 +480,7 @@ class MarkupRenderer(object):
         self._buffer = io.StringIO()
         self._lang = markup.lang.lower()
         self._indent = indent
+        self._pretty = pretty
 
         # render XML declaration
         if self.is_xml():
@@ -486,10 +488,6 @@ class MarkupRenderer(object):
         # render DOCTYPE
         self.render_doctype(markup.doctype)
         # render nodes
-        if pretty:
-            compile_element = self._impl_of('compile_element')
-        else:
-            compile_element = lambda element: (element, False)
         queue = deque()
         if isinstance(markup.root, Element):
             queue.append((-1, markup.root))
@@ -499,20 +497,24 @@ class MarkupRenderer(object):
                 self._peek().pending -= 1
             if isinstance(node, Element):
                 # render start or empty tag
-                element, newline = compile_element(node)
-                self._push(element, newline)
+                if pretty:
+                    element, newline = self._impl_of('compile_element')(node)
+                else:
+                    element, newline = node, False
                 if element.children:
                     element.type = Element.OPEN
                 else:
                     element.type = Element.EMPTY
+                self._push(element, newline)
                 self.render_start_tag(index, element)
                 if element.type == Element.EMPTY:
                     self._pop()
-                # push children
-                child_index = len(element.children) - 1
-                while 0 <= child_index:
-                    queue.append((child_index, element.children[child_index]))
-                    child_index -= 1
+                else:
+                    # push children
+                    i = len(element.children) - 1
+                    while 0 <= i:
+                        queue.append((i, element.children[i]))
+                        i -= 1
             elif isinstance(node, basestring):
                 # render text
                 self.render_text(index, node)
@@ -644,9 +646,11 @@ class MarkupRenderer(object):
     def _compile_children(self, parent, element=True, text=True, space=True):
         last = len(parent.children) - 1
         children = []
+        line_count = 0
+        index = 0
+
         shift_width = -1
         marks = []
-        line_count = index = 0
         for node in parent.children:
             if isinstance(node, Element):
                 if element:
@@ -788,8 +792,7 @@ class MarkupRenderer(object):
             element.type = Element.OPEN
         return self.compile_html4_element(element)
 
-    def indent_xhtml1_tag(self, parent, index):
-        return self.indent_xml_tag(parent, index)
+    indent_xhtml1_tag = indent_xml_tag
 
     def render_xhtml1_start_tag(self, index, element):
         for attr in element.attrib:

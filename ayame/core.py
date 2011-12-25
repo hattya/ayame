@@ -471,7 +471,8 @@ class MarkupContainer(Component):
             raise RenderingError(
                     self,
                     "unknown element 'ayame:{}'".format(element.qname.name))
-        raise RenderingError(self, "unknown element {}".format(element.qname))
+        raise RenderingError(self,
+                             "unknown element '{}'".format(element.qname))
 
     def push_ayame_head(self, ayame_head):
         current = self
@@ -490,9 +491,9 @@ class MarkupContainer(Component):
                         self._join_children(node.children, self._extra_head)
                         self._extra_head = None
                 if self._extra_head is not None:
-                    raise RenderingError(self, 'head element is not found')
+                    raise RenderingError(self, "'head' element is not found")
             else:
-                raise RenderingError(self, 'root element is not html')
+                raise RenderingError(self, "root element is not 'html'")
         else:
             self._extra_head = None
 
@@ -539,7 +540,7 @@ class MarkupContainer(Component):
                     yield parent, index, element
                 elif element.qname in (markup.AYAME_CHILD, markup.AYAME_HEAD):
                     yield parent, index, element
-                    continue # skip children
+                    continue  # skip children
                 push_children(queue, element)
 
         klass = self.__class__ if klass is None else klass
@@ -586,9 +587,10 @@ class MarkupContainer(Component):
                         ayame_head is None):
                         ayame_head = element
             if ayame_child is not None:
-                raise RenderingError(klass, 'ayame:child element is not found')
+                raise RenderingError(klass,
+                                     "'ayame:child' element is not found")
             elif ayame_extend is None:
-                break # ayame:extend is not found
+                break  # ayame:extend is not found
             # for ayame:child in supermarkup
             ayame_child = ayame_extend.children
             # merge ayame:head
@@ -609,7 +611,7 @@ class MarkupContainer(Component):
                 join_children(ayame_head.children, extra_head)
                 extra_head = None
             if extra_head is not None:
-                raise RenderingError(klass, 'head element is not found')
+                raise RenderingError(klass, "'head' element is not found")
         return m
 
     def _new_queue(self, root):

@@ -112,11 +112,11 @@ class Rule(object):
                 self._segments.append((False, var))
             elif var in self._variables:
                 raise RouteError(
-                        'variable name {!r} already in use'.format(var))
+                        "variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
-                regex = conv.regex
-                buf.append('(?P<{}>{})'.format(var, regex))
+                pattern = conv.pattern
+                buf.append('(?P<{}>{})'.format(var, pattern))
                 self._segments.append((True, var))
                 self._converters[var] = conv
                 self._variables.add(var)
@@ -148,7 +148,7 @@ class Rule(object):
     def _new_converter(self, name, args):
         converter = self.map.converters.get(name)
         if not converter:
-            raise RouteError('converter {!r} not found'.format(name))
+            raise RouteError("converter '{}' not found".format(name))
         if args:
             args, kwargs = eval('(lambda *a, **kw: (a, kw))({})'.format(args),
                                 {'__builtins__': None})
@@ -318,7 +318,7 @@ class Router(object):
 
 class Converter(object):
 
-    regex = '[^/]+'
+    pattern = '[^/]+'
 
     def __init__(self, map):
         self.map = map
@@ -342,7 +342,7 @@ class _StringConverter(Converter):
             count = int(length)
         else:
             count = '1,'
-        self.regex = '[^/]{{{}}}'.format(count)
+        self.pattern = '[^/]{{{}}}'.format(count)
 
     def to_uri(self, value):
         value = super(_StringConverter, self).to_uri(value)
@@ -358,11 +358,11 @@ class _StringConverter(Converter):
 
 class _PathConverter(Converter):
 
-    regex = '[^/].*?'
+    pattern = '[^/].*?'
 
 class _IntegerConverter(Converter):
 
-    regex = '\d+'
+    pattern = '\d+'
 
     def __init__(self, map, digits=None, min=None, max=None):
         super(_IntegerConverter, self).__init__(map)
@@ -370,7 +370,7 @@ class _IntegerConverter(Converter):
         self.min = min
         self.max = max
         if digits is not None:
-            self.regex = '\d{{{}}}'.format(int(digits))
+            self.pattern = '\d{{{}}}'.format(int(digits))
 
     def to_python(self, value):
         value = int(value)
