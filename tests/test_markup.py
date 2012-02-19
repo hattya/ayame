@@ -1,7 +1,7 @@
 #
 # test_markup
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -640,8 +640,8 @@ def test_render_xhtml1():
     def new_qname(name, ns=markup.XHTML_NS):
         return markup.QName(ns, name)
 
-    def new_element(name, ns=markup.XHTML_NS):
-        return markup.Element(new_qname(name, ns=ns), type=markup.Element.OPEN)
+    def new_element(name, ns=markup.XHTML_NS, type=markup.Element.OPEN):
+        return markup.Element(new_qname(name, ns=ns), type=type)
 
     xhtml = ('<?xml version="1.0" encoding="ISO-8859-1"?>\n'
              '{doctype}\n'
@@ -668,20 +668,36 @@ def test_render_xhtml1():
              '    <ayame:remove>\n'
              '      <p>Hello World!</p>\n'
              '    </ayame:remove>\n'
-             '    <h1>spam <span class="yellow">eggs</span> ham</h1>\n'
+             '    <h1> spam <span class="yellow"> eggs </span> ham </h1>\n'
              '    <blockquote cite="http://example.com/">\n'
              '      <p>citation</p>\n'
              '    </blockquote>\n'
-             '    <div class="text">spam <i>eggs</i> ham</div>\n'
+             '    <div class="text"> spam <i>eggs</i> ham</div>\n'
              '    <div class="ayame">\n'
-             '      <ayame:remove>\n'
-             '        Hello World!\n'
-             '      </ayame:remove>\n'
+             '      <ins>\n'
+             '        <ayame:remove>\n'
+             '          spam<br/>\n'
+             '          eggs\n'
+             '        </ayame:remove>\n'
+             '      </ins>\n'
+             '      <p>\n'
+             '        <ayame:remove>\n'
+             '          ham\n'
+             '        </ayame:remove>\n'
+             '        toast\n'
+             '      </p>\n'
+             '      <ul>\n'
+             '        <ayame:container id="a">\n'
+             '          <li>spam</li>\n'
+             '          <li>eggs</li>\n'
+             '        </ayame:container>\n'
+             '      </ul>\n'
              '    </div>\n'
              '    <div class="block">\n'
+             '      Planets\n'
              '      <ul>\n'
-             '        <li>Mercury</li>\n'
-             '        <li>Venus</li>\n'
+             '        <li> Mercury </li>\n'
+             '        <li> Venus </li>\n'
              '        <li>Earth</li>\n'
              '      </ul>\n'
              '    </div>\n'
@@ -703,6 +719,27 @@ def test_render_xhtml1():
              '    * 4\n'
              '  * 5\n'
              '</pre>\n'
+             '    <div class="br">\n'
+             '      <h2>The Solar System</h2>\n'
+             '      <p>\n'
+             '        <em>Mercury</em> is the first planet.<br/>\n'
+             '        <em>Venus</em> is the second planet.\n'
+             '      </p>\n'
+             '      <p><em>Earth</em> is the third planet.</p>\n'
+             '      <ayame:remove>\n'
+             '        <p>\n'
+             '          <em>Mars</em> is the fourth planet.<br/>\n'
+             '          <em>Jupiter</em> is the fifth planet.\n'
+             '        </p>\n'
+             '      </ayame:remove>\n'
+             '      <ul>\n'
+             '        <li>\n'
+             '          1<br/>\n'
+             '          2<br/>\n'
+             '          3\n'
+             '        </li>\n'
+             '      </ul>\n'
+             '    </div>\n'
              '  </body>\n'
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
@@ -757,11 +794,11 @@ def test_render_xhtml1():
     m.root.children.append(head)
 
     body = new_element('body')
-    ayame_remove = new_element('remove', ns=markup.AYAME_NS)
+    remove = new_element('remove', ns=markup.AYAME_NS)
     p = new_element('p')
     p.children.append('Hello World!')
-    ayame_remove.children.append(p)
-    body.children.append(ayame_remove)
+    remove.children.append(p)
+    body.children.append(remove)
 
     h1 = new_element('h1')
     h1.children.append('\n'
@@ -786,9 +823,9 @@ def test_render_xhtml1():
 
     div = new_element('div')
     div.attrib[new_qname('class')] = 'text'
-    div.children.append(' \n'
-                        '  spam\n'
-                        ' \n')
+    div.children.append('\n'
+                        'spam   \n'
+                        '\n')
     i = new_element('i')
     i.children.append('eggs')
     div.children.append(i)
@@ -797,13 +834,36 @@ def test_render_xhtml1():
 
     div = new_element('div')
     div.attrib[new_qname('class')] = 'ayame'
-    ayame_remove = new_element('remove', ns=markup.AYAME_NS)
-    ayame_remove.children.append('Hello World!')
-    div.children.append(ayame_remove)
+    ins = new_element('ins')
+    remove = new_element('remove', ns=markup.AYAME_NS)
+    remove.children.append('spam')
+    br = new_element('br', type=markup.Element.EMPTY)
+    remove.children.append(br)
+    remove.children.append('eggs')
+    ins.children.append(remove)
+    div.children.append(ins)
+    p = new_element('p')
+    remove = new_element('remove', ns=markup.AYAME_NS)
+    remove.children.append('ham')
+    p.children.append(remove)
+    p.children.append('toast')
+    div.children.append(p)
+    ul = new_element('ul')
+    container = new_element('container', ns=markup.AYAME_NS)
+    container.attrib[markup.AYAME_ID] = 'a'
+    li = new_element('li')
+    li.children.append('spam')
+    container.children.append(li)
+    li = new_element('li')
+    li.children.append('eggs')
+    container.children.append(li)
+    ul.children.append(container)
+    div.children.append(ul)
     body.children.append(div)
 
     div = new_element('div')
     div.attrib[new_qname('class')] = 'block'
+    div.children.append('Planets')
     ul = new_element('ul')
     li = new_element('li')
     li.children.append('\n'
@@ -854,6 +914,60 @@ def test_render_xhtml1():
                         '    * 4\n'
                         '  * 5\n')
     body.children.append(pre)
+
+    div = new_element('div')
+    div.attrib[new_qname('class')] = 'br'
+    h2 = new_element('h2')
+    h2.children.append('The Solar System')
+    div.children.append(h2)
+    p = new_element('p')
+    em = new_element('em')
+    em.children.append('Mercury')
+    p.children.append(em)
+    p.children.append(' is the first planet.')
+    br = new_element('br', type=markup.Element.EMPTY)
+    p.children.append(br)
+    p.children.append('\n')
+    em = new_element('em')
+    em.children.append('Venus')
+    p.children.append(em)
+    p.children.append(' is the second planet.')
+    p.children.append('\n')
+    div.children.append(p)
+    div.children.append('\n')
+    p = new_element('p')
+    em = new_element('em')
+    em.children.append('Earth')
+    p.children.append(em)
+    p.children.append(' is the third planet.')
+    div.children.append(p)
+    remove = new_element('remove', ns=markup.AYAME_NS)
+    p = new_element('p')
+    em = new_element('em')
+    em.children.append('Mars')
+    p.children.append(em)
+    p.children.append(' is the fourth planet.')
+    br = new_element('br', type=markup.Element.EMPTY)
+    p.children.append(br)
+    em = new_element('em')
+    em.children.append('Jupiter')
+    p.children.append(em)
+    p.children.append(' is the fifth planet.')
+    remove.children.append(p)
+    div.children.append(remove)
+    ul = new_element('ul')
+    li = new_element('li')
+    li.children.append('1')
+    br = new_element('br', type=markup.Element.EMPTY)
+    li.children.append(br)
+    li.children.append('2')
+    br = new_element('br', type=markup.Element.EMPTY)
+    li.children.append(br)
+    li.children.append('3')
+    ul.children.append(li)
+    div.children.append(ul)
+    div.children.append('\n')
+    body.children.append(div)
     m.root.children.append(body)
 
     eq_(renderer.render(test, m, pretty=True), xhtml)

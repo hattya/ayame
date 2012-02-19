@@ -1,7 +1,7 @@
 #
 # test_form
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -101,7 +101,7 @@ def test_form_error():
         assert_raises(ComponentError, f.submit, request)
 
 def test_form():
-    content_length = '642'
+    content_length = '737'
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
              '<html xmlns="{xhtml}">\n'
@@ -112,12 +112,15 @@ def test_form():
              '    <form action="/form" method="post">\n'
              '      <div class="ayame-hidden">'
              '<input name="{path}" type="hidden" value="form"/></div>\n'
-             '      <input name="text" type="text"/>\n'
-             '      <input name="password" type="password"/>\n'
-             '      <input name="hidden" type="hidden"/>\n'
-             '      <input checked="checked" name="checkbox" type="checkbox" '
-             'value="on"/>\n'
-             '      <input name="button" type="submit"/>\n'
+             '      <fieldset>\n'
+             '        <legend>form</legend>\n'
+             '        <input name="text" type="text"/><br/>\n'
+             '        <input name="password" type="password"/><br/>\n'
+             '        <input name="hidden" type="hidden"/><br/>\n'
+             '        <input checked="checked" name="checkbox" '
+             'type="checkbox" value="on"/><br/>\n'
+             '        <input name="button" type="submit"/>\n'
+             '      </fieldset>\n'
              '    </form>\n'
              '  </body>\n'
              '</html>\n').format(doctype=markup.XHTML1_STRICT,

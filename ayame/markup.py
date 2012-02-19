@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -95,6 +95,8 @@ _block_ex = _block + ('form', 'noscript', 'ins', 'del', 'script')
 
 # regex: 2+ spaces
 _space_re = re.compile('\s{2,}')
+# regex: 1+ newlines
+_newline_re = re.compile('[\n\r]+')
 
 class QName(namedtuple('QName', 'ns_uri, name')):
 
@@ -453,7 +455,7 @@ class MarkupLoader(object, HTMLParser):
 class MarkupRenderer(object):
 
     _decl = {'compile_element': 'compile_{}_element',
-             'indent_tag': 'indent_{}_tag',
+             'indent': 'indent_{}',
              'render_start_tag': 'render_{}_start_tag',
              'render_end_tag': 'render_{}_end_tag',
              'render_text': 'render_{}_text'}
@@ -467,6 +469,7 @@ class MarkupRenderer(object):
         self._lang = None
         self._indent = 0
         self._pretty = False
+        self._bol = False
 
     def is_xml(self):
         return (self._lang == 'xml' or
@@ -481,6 +484,7 @@ class MarkupRenderer(object):
         self._lang = markup.lang.lower()
         self._indent = indent
         self._pretty = pretty
+        self._bol = False
 
         # render XML declaration
         if self.is_xml():
@@ -500,13 +504,13 @@ class MarkupRenderer(object):
                 if pretty:
                     element, newline = self._impl_of('compile_element')(node)
                 else:
-                    element, newline = node, False
+                    element, newline = node, 0
                 if element.children:
                     element.type = Element.OPEN
                 else:
                     element.type = Element.EMPTY
-                self._push(element, newline)
-                self.render_start_tag(index, element)
+                self._push(index, element, newline)
+                self.render_start_tag()
                 if element.type == Element.EMPTY:
                     self._pop()
                 else:
@@ -524,7 +528,7 @@ class MarkupRenderer(object):
             # render end tag(s)
             while (0 < self._ptr() and
                    self._peek().pending == 0):
-                self.render_end_tag(self._peek().element)
+                self.render_end_tag()
                 self._pop()
         self._writeln()
         try:
@@ -557,25 +561,48 @@ class MarkupRenderer(object):
             else:
                 self._writeln(XHTML1_STRICT)
 
-    def render_start_tag(self, index, element):
-        # stack pointer of parent element
-        sp = self._ptr() - 2
+    def render_start_tag(self):
+        current = self._peek()
         # indent start tag
-        if (0 <= sp and
-            self._at(sp).newline):
-            self._impl_of('indent_tag')(self._at(sp).element, index)
+        if self._pretty:
+            if self._impl_of('indent')('before'):
+                self._bol = True
         # render start tag
-        self._impl_of('render_start_tag')(index, element)
+        self._impl_of('render_start_tag')(current.index, current.element)
+        self._bol = False
+        # indent after empty tag or inside of start tag
+        if self._pretty:
+            if current.element.type == Element.EMPTY:
+                mode = 'after'
+            else:
+                mode = 'inside'
+            if self._impl_of('indent')(mode):
+                self._bol = True
 
-    def render_end_tag(self, element):
+    def render_end_tag(self):
+        current = self._peek()
         # indent end tag
-        if self._peek().newline:
-            self._impl_of('indent_tag')(None, -1)
+        if self._pretty:
+            if self._impl_of('indent')('inside'):
+                self._bol = True
         # render end tag
-        self._impl_of('render_end_tag')(element)
+        self._impl_of('render_end_tag')(current.element)
+        self._bol = False
+        # indent after end tag
+        if self._pretty:
+            if current.element.type == Element.OPEN:
+                if self._impl_of('indent')('after'):
+                    self._bol = True
 
     def render_text(self, index, text):
-        self._impl_of('render_text')(index, text)
+        # indent text
+        if self._pretty:
+            if self._impl_of('indent')('text', index, text):
+                self._bol = True
+        # render text
+        if text:
+            self._impl_of('render_text')(index, text)
+            self._bol = False
 
     def _write(self, *args):
         write = self._buffer.write
@@ -601,8 +628,8 @@ class MarkupRenderer(object):
                 "'{}' for '{}' document is not implemented".format(name,
                                                                    self._lang))
 
-    def _push(self, element, newline=False):
-        self.__stack.append(_ElementState(element, newline))
+    def _push(self, index, element, newline=0):
+        self.__stack.append(_ElementState(index, element, newline))
 
     def _pop(self):
         return self.__stack.pop()
@@ -644,10 +671,8 @@ class MarkupRenderer(object):
                              "unknown namespace URI '{}'".format(ns_uri))
 
     def _compile_children(self, parent, element=True, text=True, space=True):
-        last = len(parent.children) - 1
-        children = []
-        line_count = 0
-        index = 0
+        compiled = parent.copy()
+        compiled.children = children = []
 
         shift_width = -1
         marks = []
@@ -658,79 +683,113 @@ class MarkupRenderer(object):
             elif isinstance(node, basestring):
                 if (text and
                     node):
-                    # strip newlines at the beginning of the 1st node
-                    if index == 0:
-                        node = node.lstrip('\r\n')
-                    # calculate shift width
-                    for l in node.splitlines():
-                        # skip empty line
+                    # normalize newlines
+                    node = _newline_re.sub('\n', node)
+                    lines = node.splitlines(True)
+                    # process 1st line
+                    if 0 < len(lines):
+                        if space:
+                            # 2+ spaces -> space
+                            l = _space_re.sub(' ', lines[0])
+                        else:
+                            l = lines[0]
+
+                        found = (children and
+                                 children[-1] == '')
                         s = l.lstrip()
                         if s:
-                            # number of leading spaces
-                            sp_count = len(l) - len(s)
-                            if space:
-                                # 1+ spaces -> space
-                                s = _space_re.sub(' ', s)
-                                if 0 < sp_count:
-                                    l = ''.join((' ' * sp_count, s))
-                                    # order: element -> text
-                                    if (children and
-                                        isinstance(children[-1], Element)):
-                                        children.append('')
-                                else:
-                                    l = s
-                            # mark text node index
-                            marks.append(len(children))
-                            if (shift_width < 0 or
-                                sp_count < shift_width):
-                                shift_width = sp_count
-                            children.append(l)
-                            line_count += 1
-                        elif (children and
-                              isinstance(children[-1], Element)):
-                            # order: element -> text
-                            if space:
+                            if (not found and
+                                s != l):
                                 children.append('')
-                            # count line if previous node is element
-                            line_count += 1
-                    if space:
-                        if (index < last and
-                            node[-1] in ('\r', '\n') and
-                            (children and
-                             isinstance(children[-1], basestring) and
-                             not (children[-1] == '' or
-                                  children[-1].endswith(' ')))):
-                            # newline -> space
+                            t = s.rstrip()
+                            children.append(t)
+                            if t != s:
+                                children.append('')
+                        elif not found:
                             children.append('')
-                        elif (index == last and
-                              (children and
-                               isinstance(children[-1], basestring) and
-                               children[-1].endswith(' '))):
-                            # strip space at the end of the last node
-                            children[-1] = children[-1][:-1]
+                    # calculate shift width
+                    for l in lines[1:]:
+                        s = l.lstrip()
+                        if not s:
+                            continue  # skip empty line
+                        # number of leading spaces
+                        cnt = len(l) - len(s)
+                        if space:
+                            # 2+ spaces -> space
+                            s = _space_re.sub(' ', s)
+                            if 0 < cnt:
+                                l = ''.join((' ' * cnt, s))
+                            else:
+                                l = s
+                        # mark text node index
+                        marks.append(len(children))
+                        if (shift_width < 0 or
+                            cnt < shift_width):
+                            shift_width = cnt
+                        s = l.rstrip()
+                        children.append(s)
+                        if s != l:
+                            children.append('')
             else:
                 raise RenderingError(self._object,
                                      "invalid type '{}'", type(node))
-            index += 1
         # remove indent
         if 0 < shift_width:
             for i in marks:
                 children[i] = children[i][shift_width:]
-        parent.children = children
-        return parent, line_count
+        return compiled
 
     def compile_xml_element(self, element):
         if element.children:
-            element, line_count = self._compile_children(element, space=False)
-        else:
-            line_count = 0
-        newline = (1 < line_count or
-                   0 < len(element.children) - line_count)
-        return element, newline
+            element = self._compile_children(element, space=False)
+        return element, _ElementState.NEWLINE_ALL
 
-    def indent_xml_tag(self, parent, index):
-        self._write('\n',
-                    ' ' * (self._indent * self._count(self._ptr() - 1)))
+    def indent_xml(self, name, *args):
+        def next_nonblank(children, beg):
+            for node in children[beg:]:
+                if node != '':
+                    return node
+
+        def indent(off):
+            self._write('\n',
+                        ' ' * (self._indent * self._count(self._ptr() + off)))
+            return True
+
+        if self._bol:
+            return  # beginning of line
+
+        current = self._peek()
+        if name == 'before':
+            if current.newline & _ElementState.NEWLINE_BEFORE:
+                if 1 < self._ptr():
+                    return indent(-1)
+        elif name == 'inside':
+            if current.newline & _ElementState.NEWLINE_INSIDE:
+                if 0 < current.pending:
+                    # after start tag
+                    return indent(0)
+                else:
+                    # before end tag
+                    return indent(-1)
+        elif name == 'after':
+            if current.newline & _ElementState.NEWLINE_AFTER:
+                if self._ptr() < 2:
+                    return
+                parent = self._at(self._ptr() - 2)
+                if next_nonblank(parent.element.children, current.index + 1):
+                    return indent(-1)
+        elif name == 'text':
+            index, text = args
+            if text != '':
+                return
+            elif (current.newline & _ElementState.NEWLINE_INSIDE and
+                  not next_nonblank(current.element.children, index + 1)):
+                return
+
+            if current.newline & _ElementState.NEWLINE_TEXT:
+                return indent(0)
+            else:
+                self._write(' ')
 
     def render_xml_start_tag(self, index, element):
         prefix_for = self._prefix_for
@@ -773,10 +832,6 @@ class MarkupRenderer(object):
         self._write(element.qname.name, '>')
 
     def render_xml_text(self, index, text):
-        # indent
-        if self._peek().newline:
-            self._write('\n',
-                        ' ' * (self._indent * self._count(self._ptr())))
         self._write(text)
 
     def compile_xhtml1_element(self, element):
@@ -792,7 +847,7 @@ class MarkupRenderer(object):
             element.type = Element.OPEN
         return self.compile_html4_element(element)
 
-    indent_xhtml1_tag = indent_xml_tag
+    indent_xhtml1 = indent_xml
 
     def render_xhtml1_start_tag(self, index, element):
         for attr in element.attrib:
@@ -802,78 +857,103 @@ class MarkupRenderer(object):
         return self.render_xml_start_tag(index, element)
 
     render_xhtml1_end_tag = render_xml_end_tag
-
-    def render_xhtml1_text(self, index, text):
-        if self._peek().newline:
-            if text != '':
-                # indent
-                self._write('\n',
-                            ' ' * (self._indent * self._count(self._ptr())))
-        elif text == '':
-            # space
-            self._write(' ')
-        self._write(text)
+    render_xhtml1_text = render_xml_text
 
     def compile_html4_element(self, element):
         name = element.qname.name
-        newline = False
+        newline = 0
         if element.qname.ns_uri != XHTML_NS:
-            element = self._compile_children(element)[0]
-            newline = True
+            element = self._compile_children(element)
+            newline = _ElementState.NEWLINE_ALL
         elif name in _empty:
             element.children = []
+            if name == 'br':
+                newline = _ElementState.NEWLINE_AFTER
+            elif name not in ('img', 'input'):
+                newline = _ElementState.NEWLINE_AROUND
         elif name not in _pcdata:
             element.children = [c for c in element.children
                                 if not isinstance(c, basestring)]
-            newline = True
+            newline = (_ElementState.NEWLINE_AROUND |
+                       _ElementState.NEWLINE_INSIDE)
         elif name in ('title', 'style', 'script', 'option', 'textarea'):
-            element, line_count = self._compile_children(element,
-                                                         element=False)
-            newline = (name not in ('title', 'option') and
-                       1 < line_count)
-        elif name in ('div', 'li', 'dd', 'object', 'fieldset', 'button', 'th',
-                      'td', 'ins', 'del'):
-            element = self._compile_children(element)[0]
-            newline = self._has_html4_block_element(element)
+            element = self._compile_children(element, element=False)
+            line_count = element.children.count('')
+            if (name not in ('title', 'option') and
+                1 < line_count):
+                newline = _ElementState.NEWLINE_ALL
+            else:
+                newline = _ElementState.NEWLINE_AROUND
         elif name == 'blockquote':
-            element = self._compile_children(element, text=False)[0]
-            newline = True
+            element = self._compile_children(element, text=False)
+            newline = (_ElementState.NEWLINE_AROUND |
+                       _ElementState.NEWLINE_INSIDE)
         elif name == 'pre':
-            return element, newline
+            return element, _ElementState.NEWLINE_AROUND
         else:
-            element = self._compile_children(element)[0]
-        # remove leading spaces
-        if not newline:
-            i = len(element.children) - 1
-            while 0 <= i:
-                node = element.children[i]
-                if isinstance(node, basestring):
-                    element.children[i] = node.lstrip()
-                i -= 1
+            element = self._compile_children(element)
+            if name in ('div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li',
+                        'dt', 'dd', 'th', 'td'):
+                if self._has_html4_block_element(element):
+                    newline = _ElementState.NEWLINE_ALL
+                elif self._has_html4_br_element(element):
+                    newline = (_ElementState.NEWLINE_AROUND |
+                               _ElementState.NEWLINE_INSIDE)
+                else:
+                    newline = _ElementState.NEWLINE_AROUND
+            elif name in ('ins', 'del', 'button'):
+                if self._has_html4_block_element(element):
+                    newline = _ElementState.NEWLINE_ALL
+            elif name in ('address', 'legend', 'caption'):
+                newline = _ElementState.NEWLINE_AROUND
+            elif name in ('fieldset', 'object'):
+                newline = _ElementState.NEWLINE_ALL
         return element, newline
 
-    def _has_html4_block_element(self, root):
+    def _has_html4_block_element(self, *args, **kwargs):
+        for queue, element in self._walk(*args, **kwargs):
+            if element.qname.ns_uri != XHTML_NS:
+                return True
+            else:
+                name = element.qname.name
+                if name in ('ins', 'del', 'button'):
+                    queue.appendleft(element)
+                elif name in _block_ex:
+                    return True
+
+    def _has_html4_br_element(self, *args, **kwargs):
+        for queue, element in self._walk(*args, **kwargs):
+            if element.qname.ns_uri == XHTML_NS:
+                if element.qname.name == 'br':
+                    return True
+                queue.appendleft(element)
+
+    def _walk(self, root, topdown=False):
         queue = deque()
         if isinstance(root, Element):
+            if topdown:
+                yield queue, root
             queue.append(root)
         while queue:
             element = queue.pop()
             for node in element.children:
-                if not isinstance(node, Element):
-                    continue
-                elif node.qname.ns_uri != XHTML_NS:
-                    return True
-                name = node.qname.name
-                if name in ('ins', 'del'):
-                    queue.appendleft(node)
-                elif name in _block_ex:
-                    return True
+                if isinstance(node, Element):
+                    yield queue, node
 
 class _ElementState(object):
 
-    __slots__ = ('element', 'pending', 'newline')
+    __slots__ = ('index', 'element', 'pending', 'newline')
 
-    def __init__(self, element, newline):
+    NEWLINE_BEFORE = 1 << 0
+    NEWLINE_AFTER = 1 << 1
+    NEWLINE_AROUND = NEWLINE_BEFORE | NEWLINE_AFTER
+    NEWLINE_INSIDE = 1 << 2
+    NEWLINE_TEXT = 1 << 3
+    NEWLINE_ALL = NEWLINE_AROUND | NEWLINE_INSIDE | NEWLINE_TEXT
+
+    def __init__(self, index, element, newline=0):
+        # index in parent element
+        self.index = index
         # element
         self.element = element
         # number of pending children
