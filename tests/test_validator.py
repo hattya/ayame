@@ -1,7 +1,7 @@
 #
 # test_validator
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -98,6 +98,21 @@ def test_range_validator():
     assert_raises(ValidationError, v.validate, None)
     assert_raises(ValidationError, v.validate, '')
     assert_raises(ValidationError, v.validate, 0.0)
+
+    # char
+    v.min = 'a'
+    v.max = None
+    eq_(v.validate('a'), None)
+    assert_raises(ValidationError, v.validate, '0')
+    v.max = 'f'
+    eq_(v.validate('f'), None)
+    assert_raises(ValidationError, v.validate, 'g')
+
+    # float
+    v.min = 0.0
+    v.max = None
+    eq_(v.validate(0.0), None)
+    assert_raises(ValidationError, v.validate, -0.1)
 
 def test_string_validator():
     v = validator.StringValidator()

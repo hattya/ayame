@@ -1,7 +1,7 @@
 #
 # ayame.validator
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -134,13 +134,20 @@ class RangeValidator(Validator):
 
     def validate(self, object):
         if (self.min is not None and
-            not (isinstance(object, type(self.min)) and
+            not (isinstance(object, self.typeof(self.min)) and
                  self.min <= object)):
             raise ValidationError()
         elif (self.max is not None and
-              not (isinstance(object, type(self.max)) and
+              not (isinstance(object, self.typeof(self.max)) and
                    object <= self.max)):
             raise ValidationError()
+
+    def typeof(self, object):
+        if isinstance(object, (long, int)):
+            return (long, int)
+        elif isinstance(object, basestring):
+            return basestring
+        return type(object)
 
 class StringValidator(RangeValidator):
 
