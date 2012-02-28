@@ -1,7 +1,7 @@
 #
 # ayame.form
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -27,20 +27,25 @@
 from __future__ import unicode_literals
 import collections
 
-from ayame import core, markup, uri, validator
+from ayame import core, markup, uri, util, validator
 from ayame.exception import ComponentError, ConversionError, RenderingError
 from ayame.exception import ValidationError
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
-           'HiddenField', 'CheckBox']
+           'HiddenField', 'CheckBox', 'Choice', 'ChoiceRenderer',
+           'RadioChoice']
 
 # HTML elements
+_BR = markup.QName(markup.XHTML_NS, 'br')
+
 _FORM = markup.QName(markup.XHTML_NS, 'form')
 _INPUT = markup.QName(markup.XHTML_NS, 'input')
 _BUTTON = markup.QName(markup.XHTML_NS, 'button')
+_LABEL = markup.QName(markup.XHTML_NS, 'label')
 
 # HTML attributes
+_ID = markup.QName(markup.XHTML_NS, 'id')
 _CLASS = markup.QName(markup.XHTML_NS, 'class')
 
 _ACTION = markup.QName(markup.XHTML_NS, 'action')
@@ -49,6 +54,7 @@ _TYPE = markup.QName(markup.XHTML_NS, 'type')
 _NAME = markup.QName(markup.XHTML_NS, 'name')
 _VALUE = markup.QName(markup.XHTML_NS, 'value')
 _CHECKED = markup.QName(markup.XHTML_NS, 'checked')
+_FOR = markup.QName(markup.XHTML_NS, 'for')
 
 class Form(core.MarkupContainer):
 
@@ -250,3 +256,81 @@ class CheckBox(FormComponent):
             element.attrib[_CHECKED] = 'checked'
         # render checkbox
         return super(CheckBox, self).on_render(element)
+
+class Choice(FormComponent):
+
+    def __init__(self, id, model=None, choices=None, renderer=None):
+        super(Choice, self).__init__(id, model)
+        self.choices = [] if choices is None else choices
+        self.renderer = ChoiceRenderer() if renderer is None else renderer
+        self.prefix = []
+        self.suffix = []
+
+    def validate(self, value):
+        if self.choices:
+            if value is None:
+                return super(Choice, self).validate(value)
+            for index, choice in enumerate(self.choices):
+                if self.renderer.value_of(index, choice) == value:
+                    return super(Choice, self).validate(choice)
+
+        self.on_invalid()
+        raise ValidationError()
+
+    def _id_prefix_for(self, element):
+        id = element.attrib.get(_ID)
+        return id if id else util.new_token()[:7]
+
+    def render_element(self, element, index, choice):
+        return element
+
+class ChoiceRenderer(object):
+
+    def label_for(self, object):
+        label = object
+        return '' if label is None else label
+
+    def value_of(self, index, object):
+        return unicode(index)
+
+class RadioChoice(Choice):
+
+    def __init__(self, id, model=None, choices=None, renderer=None):
+        super(RadioChoice, self).__init__(id, model, choices, renderer)
+        self.suffix = [markup.Element(_BR, type=markup.Element.EMPTY)]
+
+    def on_render(self, element):
+        # clear children
+        element.children = []
+
+        if self.choices:
+            name = self.relative_path()
+            id_prefix = self._id_prefix_for(element)
+            last = len(self.choices) - 1
+            for index, choice in enumerate(self.choices):
+                id = '-'.join((id_prefix, unicode(index)))
+                # append prefix
+                element.children += self.prefix
+                # radio button
+                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
+                input.attrib[_ID] = id
+                input.attrib[_TYPE] = 'radio'
+                input.attrib[_NAME] = name
+                input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                input = self.render_element(input, index, choice)
+                element.children.append(input)
+                # label
+                text = self.renderer.label_for(choice)
+                if not isinstance(text, basestring):
+                    converter = self.converter_for(type(text))
+                    text = converter.to_string(text)
+                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
+                label.attrib[_FOR] = id
+                label.children.append(text)
+                label = self.render_element(label, index, choice)
+                element.children.append(label)
+                # append suffix
+                if index < last:
+                    element.children += self.suffix
+        # render radio choice
+        return super(RadioChoice, self).on_render(element)

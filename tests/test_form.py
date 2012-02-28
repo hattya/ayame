@@ -26,6 +26,7 @@
 
 from __future__ import unicode_literals
 from contextlib import contextmanager
+from datetime import date
 import io
 
 from nose.tools import assert_raises, eq_, ok_
@@ -254,3 +255,128 @@ def test_invalid_markup():
     checkbox = form.CheckBox('a')
     assert_raises(RenderingError, checkbox.render, input)
     assert_raises(RenderingError, checkbox.render, markup.Element(markup.DIV))
+
+def test_radio_choice():
+    class EggsPage(core.Page):
+        def __init__(self, request):
+            super(EggsPage, self).__init__(request)
+            self.add(form.Form('form', model.CompoundModel({})))
+            self.find('form').add(form.RadioChoice('radio', choices=choices))
+
+    choices = [date(2012, 1, 1), date(2012, 1, 2), date(2012, 1, 3)]
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>EggsPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <form action="/form" method="post">\n'
+             '      <div class="ayame-hidden">'
+             '<input name="{path}" type="hidden" value="form"/></div>\n'
+             '      <fieldset>\n'
+             '        <legend>radio</legend>\n'
+             '        <div id="radio">\n'
+             '          <input id="radio-0" name="radio" type="radio" '
+             'value="0"/><label for="radio-0">2012-01-01</label><br/>\n'
+             '          <input id="radio-1" name="radio" type="radio" '
+             'value="1"/><label for="radio-1">2012-01-02</label><br/>\n'
+             '          <input id="radio-2" name="radio" type="radio" '
+             'value="2"/><label for="radio-2">2012-01-03</label>\n'
+             '        </div>\n'
+             '      </fieldset>\n'
+             '    </form>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS,
+                                 path=core.AYAME_PATH)
+
+    # POST
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="radio"\r\n'
+            '\r\n'
+            '2\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'radio': choices[2]})
+
+    # POST
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'radio': None})
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="radio"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        assert_raises(ValidationError, page.render)
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="radio"\r\n'
+            '\r\n'
+            '\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        assert_raises(ValidationError, page.render)
