@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -359,10 +359,8 @@ class MarkupContainer(Component):
                             # replace ayame element (queue)
                             total = len(elements)
                             last = index + total - 1
-                            i = 0
-                            while i < total:
+                            for i in xrange(total):
                                 queue.append((parent, last - i, elements[i]))
-                                i += 1
                         # replace ayame element (parent)
                         children += parent.children[index + 1:]
                         parent.children = children
@@ -622,12 +620,10 @@ class MarkupContainer(Component):
 
     def _push_children(self, queue, node):
         if isinstance(node, markup.Element):
-            index = len(node.children) - 1
-            while 0 <= index:
+            for index in xrange(len(node.children) - 1, -1, -1):
                 child = node.children[index]
                 if isinstance(child, markup.Element):
                     queue.append((node, index, child))
-                index -= 1
 
     def _join_children(self, a, b):
         if ((a and

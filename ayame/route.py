@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -27,8 +27,6 @@
 import collections
 import os
 import re
-import sys
-import urlparse
 import urllib
 
 from ayame import http, uri, util

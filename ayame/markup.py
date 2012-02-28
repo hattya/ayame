@@ -282,11 +282,11 @@ class MarkupLoader(object, HTMLParser):
 
     def handle_charref(self, name):
         if 0 < self._ptr():
-            self._append_text('&#{};'.format(name))
+            self._append_text(''.join(('&#', name, ';')))
 
     def handle_entityref(self, name):
         if 0 < self._ptr():
-            self._append_text('&{};'.format(name))
+            self._append_text(''.join(('&', name, ';')))
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
@@ -296,7 +296,7 @@ class MarkupLoader(object, HTMLParser):
             raise MarkupError(self._object, self.getpos(),
                               'unsupported HTML version')
         else:
-            self._markup.doctype = '<!{}>'.format(decl)
+            self._markup.doctype = ''.join(('<!', decl, '>'))
 
     def handle_pi(self, data):
         if data.startswith('xml '):
@@ -333,13 +333,11 @@ class MarkupLoader(object, HTMLParser):
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(prefix):
-            i = self._ptr() - 1
-            while 0 <= i:
+            for i in xrange(self._ptr() - 1, -1, -1):
                 element = self._at(i)
                 if (element.ns and
                     prefix in element.ns):
                     return element.ns[prefix]
-                i -= 1
 
         ns = ns if ns else {}
         if ':' in name:
@@ -515,10 +513,8 @@ class MarkupRenderer(object):
                     self._pop()
                 else:
                     # push children
-                    i = len(element.children) - 1
-                    while 0 <= i:
+                    for i in xrange(len(element.children) - 1, -1, -1):
                         queue.append((i, element.children[i]))
-                        i -= 1
             elif isinstance(node, basestring):
                 # render text
                 self.render_text(index, node)
@@ -645,17 +641,15 @@ class MarkupRenderer(object):
         return len(self.__stack)
 
     def _count(self, ptr):
-        count = i = 0
-        while i < ptr:
+        count = 0
+        for i in xrange(ptr):
             if self._at(i).element.type == Element.OPEN:
                 count += 1
-            i += 1
         return count
 
     def _prefix_for(self, ns_uri):
-        i = self._ptr() - 1
         known_prefixes = []
-        while 0 <= i:
+        for i in xrange(self._ptr() - 1, -1, -1):
             element = self._at(i).element
             if element.ns:
                 for prefix in element.ns:
@@ -666,7 +660,6 @@ class MarkupRenderer(object):
                     elif element.ns[prefix] == ns_uri:
                         return prefix
                     known_prefixes.append(prefix)
-            i -= 1
         raise RenderingError(self._object,
                              "unknown namespace URI '{}'".format(ns_uri))
 

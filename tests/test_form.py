@@ -16,7 +16,7 @@
 #
 #   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 #   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-#i   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 #   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
 #   BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
 #   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
@@ -29,11 +29,10 @@ from contextlib import contextmanager
 from datetime import date
 import io
 
-from nose.tools import assert_raises, eq_, ok_
+from nose.tools import assert_raises, eq_
 
 from ayame import core, form, http, markup, model, validator
-from ayame.exception import AyameError, ComponentError, RenderingError
-from ayame.exception import ValidationError
+from ayame.exception import ComponentError, RenderingError, ValidationError
 
 
 @contextmanager
@@ -102,7 +101,22 @@ def test_form_error():
         assert_raises(ComponentError, f.submit, request)
 
 def test_form():
-    content_length = '737'
+    class SpamPage(core.Page):
+        def __init__(self, request):
+            super(SpamPage, self).__init__(request)
+            self.add(form.Form('form',
+                               model.CompoundModel({'checkbox': True})))
+            self.find('form').add(form.TextField('text'))
+            self.find('form').add(form.PasswordField('password'))
+            self.find('form').add(form.HiddenField('hidden'))
+            self.find('form').add(form.CheckBox('checkbox'))
+            self.find('form').add(Button('button'))
+
+    class Button(form.Button):
+        def on_submit(self):
+            super(Button, self).on_submit()
+            self.model_object = 'submitted'
+
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
              '<html xmlns="{xhtml}">\n'
@@ -133,22 +147,6 @@ def test_form():
                     'checkbox': False,
                     'button': 'submitted'}
 
-    class Button(form.Button):
-        def on_submit(self):
-            super(Button, self).on_submit()
-            self.model_object = 'submitted'
-
-    class SpamPage(core.Page):
-        def __init__(self, request):
-            super(SpamPage, self).__init__(request)
-            self.add(form.Form('form',
-                               model.CompoundModel({'checkbox': True})))
-            self.find('form').add(form.TextField('text'))
-            self.find('form').add(form.PasswordField('password'))
-            self.find('form').add(form.HiddenField('hidden'))
-            self.find('form').add(form.CheckBox('checkbox'))
-            self.find('form').add(Button('button'))
-
     # GET
     query = ('{}=form&'
              'text=text&'
@@ -165,7 +163,7 @@ def test_form():
         status, headers, body = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', content_length)])
+                  ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
     eq_(page.find('form').model_object, model_object)
 
@@ -202,7 +200,7 @@ def test_form():
         status, headers, body = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', content_length)])
+                  ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
     eq_(page.find('form').model_object, model_object)
 
@@ -213,7 +211,7 @@ def test_form_component():
     f.add(core.MarkupContainer('b2'))
     f.find('b2').add(form.FormComponent('c'))
     eq_(f.find('b1').relative_path(), 'b1')
-    eq_(f.find('b2').find('c').relative_path(), 'b2:c')
+    eq_(f.find('b2:c').relative_path(), 'b2:c')
     assert_raises(ComponentError, form.FormComponent('a').relative_path)
 
     # required error

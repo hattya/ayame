@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -73,7 +73,7 @@ def test_simple_app():
                                                 PATH_INFO='/page')
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '255')])
+                  ('Content-Length', str(len(xhtml)))])
     eq_(exc_info, None)
     eq_(body, xhtml)
 
@@ -1109,6 +1109,7 @@ def test_page():
             super(SpamPage, self).__init__(request)
             self.add(basic.Label('greeting', 'Hello World!'))
             self.headers['Content-Type'] = 'text/plain'
+
     xhtml = ('<?xml version="1.0"?>\n'
              '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
              '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
@@ -1118,6 +1119,7 @@ def test_page():
              '    <p>Hello World!</p>\n'
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
+
     environ = {'REQUEST_METHOD': 'GET'}
     with application():
         request = core.Request(environ, {})
@@ -1129,7 +1131,7 @@ def test_page():
     eq_(page.find('greeting').path(), 'greeting')
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '253')])
+                  ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
 
 def test_ignition_behavior():

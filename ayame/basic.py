@@ -1,7 +1,7 @@
 #
 # ayame.basic
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,9 +26,8 @@
 
 import collections
 
-from ayame import core, markup, uri, util
+from ayame import core, markup, uri
 from ayame import model as _model
-from ayame.exception import ComponentError
 
 
 __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
@@ -56,13 +55,10 @@ class ListView(core.MarkupContainer):
     def on_before_render(self):
         object = self.model_object
         if object is not None:
-            n = len(object)
-            i = 0
-            while i < n:
+            for i in xrange(len(object)):
                 li = self.new_item(i)
                 self.add(li)
                 self.populate_item(li)
-                i += 1
         super(ListView, self).on_before_render()
 
     def on_render(self, element):

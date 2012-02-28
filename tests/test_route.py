@@ -1,7 +1,7 @@
 #
 # test_route
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,7 +26,7 @@
 
 import wsgiref.util
 
-from nose.tools import assert_raises, eq_, ok_
+from nose.tools import assert_raises, eq_
 
 from ayame import http, route
 from ayame.exception import RouteError

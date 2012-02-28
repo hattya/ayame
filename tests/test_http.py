@@ -1,7 +1,7 @@
 #
 # test_http
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from nose.tools import assert_raises, eq_, ok_
+from nose.tools import eq_, ok_
 
 from ayame import exception, http
 

@@ -1,7 +1,7 @@
 #
 # ayame.converter
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -244,10 +244,10 @@ class DateTimeConverter(Converter):
                     m.isdigit()):
                     minutes = int(h) * 60 + int(m)
                     if sign == '-':
-                        if minutes <= 720: # UTC-12:00
+                        if minutes <= 720:  # UTC-12:00
                             offset = minutes
                     else:
-                        if minutes <= 840: # UTC+14:00
+                        if minutes <= 840:  # UTC+14:00
                             offset = minutes
             if not isinstance(offset, int):
                 raise self._new_error(value)

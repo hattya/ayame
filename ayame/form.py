@@ -247,7 +247,7 @@ class CheckBox(FormComponent):
                                  "'input' element with 'type' attribute of "
                                  "'checkbox' is expected")
 
-        converter = self.converter_for(bool)
+        converter = self.converter_for(self.type)
         checked = converter.to_python(self.model_object)
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
