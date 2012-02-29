@@ -34,7 +34,7 @@ from ayame.exception import ValidationError
 
 __all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
            'HiddenField', 'CheckBox', 'Choice', 'ChoiceRenderer',
-           'RadioChoice']
+           'RadioChoice', 'CheckBoxChoice']
 
 # HTML elements
 _BR = markup.QName(markup.XHTML_NS, 'br')
@@ -115,6 +115,13 @@ class Form(core.MarkupContainer):
                     if (name in values and
                         button is None):
                         button = component
+                elif isinstance(component, Choice):
+                    value = values.get(name)
+                    if component.multiple:
+                        value = [] if value is None else value
+                    else:
+                        value = None if value is None else value[0]
+                    component.validate(value)
                 else:
                     value = values.get(name)
                     component.validate(None if value is None else value[0])
@@ -263,16 +270,37 @@ class Choice(FormComponent):
         super(Choice, self).__init__(id, model)
         self.choices = [] if choices is None else choices
         self.renderer = ChoiceRenderer() if renderer is None else renderer
+        self.multiple = False
         self.prefix = []
         self.suffix = []
 
     def validate(self, value):
         if self.choices:
-            if value is None:
-                return super(Choice, self).validate(value)
-            for index, choice in enumerate(self.choices):
-                if self.renderer.value_of(index, choice) == value:
-                    return super(Choice, self).validate(choice)
+            if self.multiple:
+                # convert to object
+                values = set(value)
+                selected = []
+                for index, choice in enumerate(self.choices):
+                    value = self.renderer.value_of(index, choice)
+                    if value in values:
+                        values.remove(value)
+                        selected.append(choice)
+                if not values:
+                    # check required
+                    if (self.required and
+                        not selected):
+                        self.on_invalid()
+                        raise ValidationError()
+
+                    if self.model is not None:
+                        self.model.object = selected
+                    return self.on_valid()
+            else:
+                if value is None:
+                    return super(Choice, self).validate(value)
+                for index, choice in enumerate(self.choices):
+                    if self.renderer.value_of(index, choice) == value:
+                        return super(Choice, self).validate(choice)
 
         self.on_invalid()
         raise ValidationError()
@@ -334,3 +362,45 @@ class RadioChoice(Choice):
                     element.children += self.suffix
         # render radio choice
         return super(RadioChoice, self).on_render(element)
+
+class CheckBoxChoice(Choice):
+
+    def __init__(self, id, model=None, choices=None, renderer=None):
+        super(CheckBoxChoice, self).__init__(id, model, choices, renderer)
+        self.suffix = [markup.Element(_BR, type=markup.Element.EMPTY)]
+
+    def on_render(self, element):
+        # clear children
+        element.children = []
+
+        if self.choices:
+            name = self.relative_path()
+            id_prefix = self._id_prefix_for(element)
+            last = len(self.choices) - 1
+            for index, choice in enumerate(self.choices):
+                id = '-'.join((id_prefix, unicode(index)))
+                # append prefix
+                element.children += self.prefix
+                # checkbox
+                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
+                input.attrib[_ID] = id
+                input.attrib[_TYPE] = 'checkbox'
+                input.attrib[_NAME] = name
+                input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                input = self.render_element(input, index, choice)
+                element.children.append(input)
+                # label
+                text = self.renderer.label_for(choice)
+                if not isinstance(text, basestring):
+                    converter = self.converter_for(type(text))
+                    text = converter.to_string(text)
+                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
+                label.attrib[_FOR] = id
+                label.children.append(text)
+                label = self.render_element(label, index, choice)
+                element.children.append(label)
+                # append suffix
+                if index < last:
+                    element.children += self.suffix
+        # render checkbox choice
+        return super(CheckBoxChoice, self).on_render(element)
