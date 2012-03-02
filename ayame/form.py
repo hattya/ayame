@@ -34,7 +34,7 @@ from ayame.exception import ValidationError
 
 __all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
            'HiddenField', 'CheckBox', 'Choice', 'ChoiceRenderer',
-           'RadioChoice', 'CheckBoxChoice']
+           'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
 
 # HTML elements
 _BR = markup.QName(markup.XHTML_NS, 'br')
@@ -43,6 +43,8 @@ _FORM = markup.QName(markup.XHTML_NS, 'form')
 _INPUT = markup.QName(markup.XHTML_NS, 'input')
 _BUTTON = markup.QName(markup.XHTML_NS, 'button')
 _LABEL = markup.QName(markup.XHTML_NS, 'label')
+_SELECT = markup.QName(markup.XHTML_NS, 'select')
+_OPTION = markup.QName(markup.XHTML_NS, 'option')
 
 # HTML attributes
 _ID = markup.QName(markup.XHTML_NS, 'id')
@@ -404,3 +406,39 @@ class CheckBoxChoice(Choice):
                     element.children += self.suffix
         # render checkbox choice
         return super(CheckBoxChoice, self).on_render(element)
+
+class SelectChoice(Choice):
+
+    def __init__(self, id, model=None, choices=None, renderer=None):
+        super(SelectChoice, self).__init__(id, model, choices, renderer)
+
+    def on_render(self, element):
+        if element.qname != _SELECT:
+            raise RenderingError(self, "'select' element is expected")
+
+        # modify attributes
+        element.attrib[_NAME] = self.relative_path()
+        # clear children
+        element.children = []
+
+        if self.choices:
+            last = len(self.choices) - 1
+            for index, choice in enumerate(self.choices):
+                # append prefix
+                element.children += self.prefix
+                # option
+                option = markup.Element(_OPTION, type=markup.Element.EMPTY)
+                option.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                option = self.render_element(option, index, choice)
+                # label
+                text = self.renderer.label_for(choice)
+                if not isinstance(text, basestring):
+                    converter = self.converter_for(type(text))
+                    text = converter.to_string(text)
+                option.children.append(text)
+                element.children.append(option)
+                # append suffix
+                if index < last:
+                    element.children += self.suffix
+        # render select choice
+        return super(SelectChoice, self).on_render(element)

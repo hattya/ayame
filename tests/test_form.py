@@ -254,6 +254,9 @@ def test_invalid_markup():
     assert_raises(RenderingError, checkbox.render, input)
     assert_raises(RenderingError, checkbox.render, markup.Element(markup.DIV))
 
+    select = form.SelectChoice('a')
+    assert_raises(RenderingError, select.render, markup.Element(markup.DIV))
+
 def test_radio_choice():
     class EggsPage(core.Page):
         def __init__(self, request):
@@ -586,4 +589,208 @@ def test_checkbox_choice():
         request = core.Request(environ, {})
         page = HamPage(request)
         page.find('form:checkbox').required = True
+        assert_raises(ValidationError, page.render)
+
+def test_select_choice():
+    class ToastPage(core.Page):
+        def __init__(self, request):
+            super(ToastPage, self).__init__(request)
+            self.add(form.Form('form', model.CompoundModel({})))
+            self.find('form').add(form.SelectChoice('select',
+                                                    choices=choices))
+            self.find('form:select').multiple = True
+
+    choices = [date(2012, 1, 1), date(2012, 1, 2), date(2012, 1, 3)]
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>ToastPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <form action="/form" method="post">\n'
+             '      <div class="ayame-hidden">'
+             '<input name="{path}" type="hidden" value="form"/></div>\n'
+             '      <fieldset>\n'
+             '        <legend>select</legend>\n'
+             '        <select name="select">\n'
+             '          <option value="0">2012-01-01</option>\n'
+             '          <option value="1">2012-01-02</option>\n'
+             '          <option value="2">2012-01-03</option>\n'
+             '        </select>\n'
+             '      </fieldset>\n'
+             '    </form>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS,
+                                 path=core.AYAME_PATH)
+
+    # POST
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '0\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '0\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '1\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '1\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '2\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        page.find('form:select').multiple = True
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'select': choices})
+
+    # POST
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'select': []})
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '0\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '1\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '2\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        assert_raises(ValidationError, page.render)
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '0\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '3\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        assert_raises(ValidationError, page.render)
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="select"\r\n'
+            '\r\n'
+            '\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        assert_raises(ValidationError, page.render)
+
+    # validation error
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        page.find('form:select').required = True
         assert_raises(ValidationError, page.render)
