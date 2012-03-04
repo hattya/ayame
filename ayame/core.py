@@ -242,7 +242,7 @@ class Component(object):
                 converter = self.converter_for(object)
                 object = converter.to_string(object)
             if self.escape_model_string:
-                return cgi.escape(object)
+                return cgi.escape(object, True)
             return object
         return ''
 
