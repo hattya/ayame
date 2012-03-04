@@ -35,7 +35,7 @@ from ayame.exception import ValidationError
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
-           'HiddenField', 'CheckBox', 'Choice', 'ChoiceRenderer',
+           'HiddenField', 'TextArea', 'CheckBox', 'Choice', 'ChoiceRenderer',
            'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
 
 # HTML elements
@@ -44,6 +44,7 @@ _BR = markup.QName(markup.XHTML_NS, 'br')
 _FORM = markup.QName(markup.XHTML_NS, 'form')
 _INPUT = markup.QName(markup.XHTML_NS, 'input')
 _BUTTON = markup.QName(markup.XHTML_NS, 'button')
+_TEXTAREA = markup.QName(markup.XHTML_NS, 'textarea')
 _LABEL = markup.QName(markup.XHTML_NS, 'label')
 _SELECT = markup.QName(markup.XHTML_NS, 'select')
 _OPTION = markup.QName(markup.XHTML_NS, 'option')
@@ -246,6 +247,19 @@ class PasswordField(TextField):
 class HiddenField(TextField):
 
     input_type = 'hidden'
+
+class TextArea(FormComponent):
+
+    def on_render(self, element):
+        if element.qname != _TEXTAREA:
+            raise RenderingError(self, "'textarea' element is expected")
+
+        # modify attributes
+        element.attrib[_NAME] = self.relative_path()
+        # modify children
+        element.children = [self.model_object_as_string()]
+        # render text area
+        return super(TextArea, self).on_render(element)
 
 class CheckBox(FormComponent):
 

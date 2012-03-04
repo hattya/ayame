@@ -111,6 +111,8 @@ def test_form():
             self.find('form:password').model_object = ''
             self.find('form').add(form.HiddenField('hidden'))
             self.find('form:hidden').model_object = ''
+            self.find('form').add(form.TextArea('area'))
+            self.find('form:area').model_object = 'Hello World!'
             self.find('form').add(form.CheckBox('checkbox'))
             self.find('form:checkbox').model_object = True
             self.find('form').add(Button('button'))
@@ -135,6 +137,7 @@ def test_form():
              '        <input name="text" type="text" value=""/><br/>\n'
              '        <input name="password" type="password" value=""/><br/>\n'
              '        <input name="hidden" type="hidden" value=""/><br/>\n'
+             '        <textarea name="area">Hello World!</textarea>\n'
              '        <input checked="checked" name="checkbox" '
              'type="checkbox" value="on"/><br/>\n'
              '        <input name="button" type="submit"/>\n'
@@ -147,6 +150,7 @@ def test_form():
     model_object = {'text': 'text',
                     'password': 'password',
                     'hidden': 'hidden',
+                    'area': 'area',
                     'checkbox': False,
                     'button': 'submitted'}
 
@@ -155,6 +159,7 @@ def test_form():
              'text=text&'
              'password=password&'
              'hidden=hidden&'
+             'area=area&'
              'button').format(core.AYAME_PATH)
     environ = {'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
@@ -187,6 +192,10 @@ def test_form():
             'Content-Disposition: form-data; name="hidden"\r\n'
             '\r\n'
             'hidden\r\n'
+            '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="area"\r\n'
+            '\r\n'
+            'area\r\n'
             '--ayame.form\r\n'
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
@@ -826,6 +835,9 @@ def test_invalid_markup():
 
     text = form.TextField('a')
     assert_raises(RenderingError, text.render, markup.Element(markup.DIV))
+
+    area = form.TextArea('a')
+    assert_raises(RenderingError, area.render, markup.Element(markup.DIV))
 
     checkbox = form.CheckBox('a')
     assert_raises(RenderingError, checkbox.render, input)
