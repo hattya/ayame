@@ -104,12 +104,15 @@ def test_form():
     class SpamPage(core.Page):
         def __init__(self, request):
             super(SpamPage, self).__init__(request)
-            self.add(form.Form('form',
-                               model.CompoundModel({'checkbox': True})))
+            self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.TextField('text'))
+            self.find('form:text').model_object = ''
             self.find('form').add(form.PasswordField('password'))
+            self.find('form:password').model_object = ''
             self.find('form').add(form.HiddenField('hidden'))
+            self.find('form:hidden').model_object = ''
             self.find('form').add(form.CheckBox('checkbox'))
+            self.find('form:checkbox').model_object = True
             self.find('form').add(Button('button'))
 
     class Button(form.Button):
@@ -129,9 +132,9 @@ def test_form():
              '<input name="{path}" type="hidden" value="form"/></div>\n'
              '      <fieldset>\n'
              '        <legend>form</legend>\n'
-             '        <input name="text" type="text"/><br/>\n'
-             '        <input name="password" type="password"/><br/>\n'
-             '        <input name="hidden" type="hidden"/><br/>\n'
+             '        <input name="text" type="text" value=""/><br/>\n'
+             '        <input name="password" type="password" value=""/><br/>\n'
+             '        <input name="hidden" type="hidden" value=""/><br/>\n'
              '        <input checked="checked" name="checkbox" '
              'type="checkbox" value="on"/><br/>\n'
              '        <input name="button" type="submit"/>\n'
@@ -251,6 +254,7 @@ def test_radio_choice():
             super(EggsPage, self).__init__(request)
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.RadioChoice('radio', choices=choices))
+            self.find('form:radio').model_object = choices[0]
 
     choices = [date(2012, 1, 1), date(2012, 1, 2), date(2012, 1, 3)]
     xhtml = ('<?xml version="1.0"?>\n'
@@ -266,8 +270,9 @@ def test_radio_choice():
              '      <fieldset>\n'
              '        <legend>radio</legend>\n'
              '        <div id="radio">\n'
-             '          <input id="radio-0" name="radio" type="radio" '
-             'value="0"/><label for="radio-0">2012-01-01</label><br/>\n'
+             '          <input checked="checked" id="radio-0" name="radio" '
+             'type="radio" value="0"/>'
+             '<label for="radio-0">2012-01-01</label><br/>\n'
              '          <input id="radio-1" name="radio" type="radio" '
              'value="1"/><label for="radio-1">2012-01-02</label><br/>\n'
              '          <input id="radio-2" name="radio" type="radio" '
@@ -377,6 +382,7 @@ def test_checkbox_choice():
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.CheckBoxChoice('checkbox',
                                                       choices=choices))
+            self.find('form:checkbox').model_object = [choices[1]]
             self.find('form:checkbox').multiple = True
 
     choices = [date(2012, 1, 1), date(2012, 1, 2), date(2012, 1, 3)]
@@ -396,8 +402,8 @@ def test_checkbox_choice():
              '          <input id="checkbox-0" name="checkbox" '
              'type="checkbox" value="0"/>'
              '<label for="checkbox-0">2012-01-01</label><br/>\n'
-             '          <input id="checkbox-1" name="checkbox" '
-             'type="checkbox" value="1"/>'
+             '          <input checked="checked" id="checkbox-1" '
+             'name="checkbox" type="checkbox" value="1"/>'
              '<label for="checkbox-1">2012-01-02</label><br/>\n'
              '          <input id="checkbox-2" name="checkbox" '
              'type="checkbox" value="2"/>'
@@ -586,6 +592,7 @@ def test_select_choice():
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.SelectChoice('select',
                                                     choices=choices))
+            self.find('form:select').model_object = [choices[1]]
             self.find('form:select').multiple = True
 
     choices = [date(2012, 1, 1), date(2012, 1, 2), date(2012, 1, 3)]
@@ -603,7 +610,8 @@ def test_select_choice():
              '        <legend>select</legend>\n'
              '        <select multiple="multiple" name="select">\n'
              '          <option value="0">2012-01-01</option>\n'
-             '          <option value="1">2012-01-02</option>\n'
+             '          <option selected="selected" value="1">2012-01-02'
+             '</option>\n'
              '          <option value="2">2012-01-03</option>\n'
              '        </select>\n'
              '      </fieldset>\n'
@@ -648,7 +656,6 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        page.find('form:select').multiple = True
         status, headers, body = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -694,7 +701,9 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        page.find('form:select').multiple = False
+        select = page.find('form:select')
+        select.model_object = select.model_object[0]
+        select.multiple = False
         status, headers, body = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),

@@ -27,6 +27,7 @@
 from __future__ import unicode_literals
 import cgi
 import collections
+import operator
 
 from ayame import core, markup, uri, util, validator
 from ayame.exception import ComponentError, ConversionError, RenderingError
@@ -59,6 +60,7 @@ _VALUE = markup.QName(markup.XHTML_NS, 'value')
 _CHECKED = markup.QName(markup.XHTML_NS, 'checked')
 _FOR = markup.QName(markup.XHTML_NS, 'for')
 _MULTIPLE = markup.QName(markup.XHTML_NS, 'multiple')
+_SELECTED = markup.QName(markup.XHTML_NS, 'selected')
 
 class Form(core.MarkupContainer):
 
@@ -233,6 +235,7 @@ class TextField(FormComponent):
         # modify attributes
         element.attrib[_TYPE] = self.input_type
         element.attrib[_NAME] = self.relative_path()
+        element.attrib[_VALUE] = self.model_object_as_string()
         # render text field
         return super(TextField, self).on_render(element)
 
@@ -337,6 +340,7 @@ class RadioChoice(Choice):
 
         if self.choices:
             name = self.relative_path()
+            selected = self.model_object
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
@@ -349,6 +353,8 @@ class RadioChoice(Choice):
                 input.attrib[_TYPE] = 'radio'
                 input.attrib[_NAME] = name
                 input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                if choice == selected:
+                    input.attrib[_CHECKED] = 'checked'
                 input = self.render_element(input, index, choice)
                 element.children.append(input)
                 # label
@@ -379,6 +385,8 @@ class CheckBoxChoice(Choice):
 
         if self.choices:
             name = self.relative_path()
+            selected = self.model_object
+            is_selected = operator.contains if self.multiple else operator.eq
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
@@ -391,6 +399,9 @@ class CheckBoxChoice(Choice):
                 input.attrib[_TYPE] = 'checkbox'
                 input.attrib[_NAME] = name
                 input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                if (selected is not None and
+                    is_selected(selected, choice)):
+                    input.attrib[_CHECKED] = 'checked'
                 input = self.render_element(input, index, choice)
                 element.children.append(input)
                 # label
@@ -428,6 +439,8 @@ class SelectChoice(Choice):
         element.children = []
 
         if self.choices:
+            selected = self.model_object
+            is_selected = operator.contains if self.multiple else operator.eq
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
                 # append prefix
@@ -435,6 +448,9 @@ class SelectChoice(Choice):
                 # option
                 option = markup.Element(_OPTION, type=markup.Element.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                if (selected is not None and
+                    is_selected(selected, choice)):
+                    option.attrib[_SELECTED] = 'selected'
                 option = self.render_element(option, index, choice)
                 # label
                 text = self.renderer.label_for(choice)
