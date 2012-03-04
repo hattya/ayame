@@ -25,6 +25,7 @@
 #
 
 from __future__ import unicode_literals
+import cgi
 import collections
 
 from ayame import core, markup, uri, util, validator
@@ -356,7 +357,7 @@ class RadioChoice(Choice):
                     text = converter.to_string(text)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.children.append(text)
+                label.children.append(cgi.escape(text, True))
                 label = self.render_element(label, index, choice)
                 element.children.append(label)
                 # append suffix
@@ -398,7 +399,7 @@ class CheckBoxChoice(Choice):
                     text = converter.to_string(text)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.children.append(text)
+                label.children.append(cgi.escape(text, True))
                 label = self.render_element(label, index, choice)
                 element.children.append(label)
                 # append suffix
@@ -435,7 +436,7 @@ class SelectChoice(Choice):
                 if not isinstance(text, basestring):
                     converter = self.converter_for(type(text))
                     text = converter.to_string(text)
-                option.children.append(text)
+                option.children.append(cgi.escape(text, True))
                 element.children.append(option)
                 # append suffix
                 if index < last:
