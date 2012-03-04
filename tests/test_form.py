@@ -29,7 +29,7 @@ from contextlib import contextmanager
 from datetime import date
 import io
 
-from nose.tools import assert_raises, eq_
+from nose.tools import assert_raises, eq_, ok_
 
 from ayame import core, form, http, markup, model, validator
 from ayame.exception import ComponentError, RenderingError, ValidationError
@@ -381,6 +381,12 @@ def test_radio_choice():
         request = core.Request(environ, {})
         page = EggsPage(request)
         assert_raises(ValidationError, page.render)
+
+def test_choice():
+    c = form.Choice('a')
+    s = c._id_prefix_for(markup.Element(markup.DIV))
+    ok_(s)
+    ok_(not s[0].isdigit())
 
 def test_checkbox_choice():
     class HamPage(core.Page):

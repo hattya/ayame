@@ -309,7 +309,7 @@ class Choice(FormComponent):
 
     def _id_prefix_for(self, element):
         id = element.attrib.get(_ID)
-        return id if id else util.new_token()[:7]
+        return id if id else 'ayame-' + util.new_token()[:7]
 
     def render_element(self, element, index, choice):
         return element
