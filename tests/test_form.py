@@ -239,23 +239,11 @@ def test_form_component():
         eq_(fc.model, None)
         eq_(fc.model_object, None)
 
-def test_invalid_markup():
-    input = markup.Element(form._INPUT)
-    input.attrib[form._TYPE] = 'text'
-
-    button = form.Button('a')
-    assert_raises(RenderingError, button.render, input)
-    assert_raises(RenderingError, button.render, markup.Element(markup.DIV))
-
-    tf = form.TextField('a')
-    assert_raises(RenderingError, tf.render, markup.Element(markup.DIV))
-
-    checkbox = form.CheckBox('a')
-    assert_raises(RenderingError, checkbox.render, input)
-    assert_raises(RenderingError, checkbox.render, markup.Element(markup.DIV))
-
-    select = form.SelectChoice('a')
-    assert_raises(RenderingError, select.render, markup.Element(markup.DIV))
+def test_choice():
+    choice = form.Choice('a')
+    s = choice._id_prefix_for(markup.Element(markup.DIV))
+    ok_(s)
+    ok_(not s[0].isdigit())
 
 def test_radio_choice():
     class EggsPage(core.Page):
@@ -381,12 +369,6 @@ def test_radio_choice():
         request = core.Request(environ, {})
         page = EggsPage(request)
         assert_raises(ValidationError, page.render)
-
-def test_choice():
-    c = form.Choice('a')
-    s = c._id_prefix_for(markup.Element(markup.DIV))
-    ok_(s)
-    ok_(not s[0].isdigit())
 
 def test_checkbox_choice():
     class HamPage(core.Page):
@@ -800,3 +782,21 @@ def test_select_choice():
         page = ToastPage(request)
         page.find('form:select').required = True
         assert_raises(ValidationError, page.render)
+
+def test_invalid_markup():
+    input = markup.Element(form._INPUT)
+    input.attrib[form._TYPE] = 'text'
+
+    button = form.Button('a')
+    assert_raises(RenderingError, button.render, input)
+    assert_raises(RenderingError, button.render, markup.Element(markup.DIV))
+
+    text = form.TextField('a')
+    assert_raises(RenderingError, text.render, markup.Element(markup.DIV))
+
+    checkbox = form.CheckBox('a')
+    assert_raises(RenderingError, checkbox.render, input)
+    assert_raises(RenderingError, checkbox.render, markup.Element(markup.DIV))
+
+    select = form.SelectChoice('a')
+    assert_raises(RenderingError, select.render, markup.Element(markup.DIV))

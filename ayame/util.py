@@ -1,7 +1,7 @@
 #
 # ayame.util
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -41,9 +41,9 @@ def fqon_of(object):
         object = object.__class__
     if hasattr(object, '__module__'):
         if object.__module__ is None:
-            return '<unknown>.' + object.__name__
+            return '.'.join(('<unknown>', object.__name__))
         elif object.__module__ != '__builtin__':
-            return object.__module__ + '.' + object.__name__
+            return '.'.join((object.__module__, object.__name__))
     return object.__name__
 
 def load_data(object, suffix, encoding='utf-8'):
