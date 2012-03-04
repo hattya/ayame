@@ -58,6 +58,7 @@ _NAME = markup.QName(markup.XHTML_NS, 'name')
 _VALUE = markup.QName(markup.XHTML_NS, 'value')
 _CHECKED = markup.QName(markup.XHTML_NS, 'checked')
 _FOR = markup.QName(markup.XHTML_NS, 'for')
+_MULTIPLE = markup.QName(markup.XHTML_NS, 'multiple')
 
 class Form(core.MarkupContainer):
 
@@ -419,6 +420,10 @@ class SelectChoice(Choice):
 
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
+        if self.multiple:
+            element.attrib[_MULTIPLE] = 'multiple'
+        elif _MULTIPLE in element.attrib:
+            del element.attrib[_MULTIPLE]
         # clear children
         element.children = []
 

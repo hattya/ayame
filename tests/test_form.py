@@ -601,7 +601,7 @@ def test_select_choice():
              '<input name="{path}" type="hidden" value="form"/></div>\n'
              '      <fieldset>\n'
              '        <legend>select</legend>\n'
-             '        <select name="select">\n'
+             '        <select multiple="multiple" name="select">\n'
              '          <option value="0">2012-01-01</option>\n'
              '          <option value="1">2012-01-02</option>\n'
              '          <option value="2">2012-01-03</option>\n'
@@ -677,6 +677,30 @@ def test_select_choice():
                   ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
     eq_(page.find('form').model_object, {'select': []})
+
+    # POST (single)
+    xhtml = xhtml.replace(' multiple="multiple"', '')
+    body = ('--ayame.form\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
+            '\r\n'
+            'form\r\n'
+            '--ayame.form--\r\n'
+            '\r\n').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+               'REQUEST_METHOD': 'POST',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        page.find('form:select').multiple = False
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'select': None})
 
     # validation error
     body = ('--ayame.form\r\n'
