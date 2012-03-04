@@ -871,9 +871,7 @@ class MarkupRenderer(object):
                        _ElementState.NEWLINE_INSIDE)
         elif name in ('title', 'style', 'script', 'option', 'textarea'):
             element = self._compile_children(element, element=False)
-            line_count = element.children.count('')
-            if (name not in ('title', 'option') and
-                1 < line_count):
+            if name not in ('title', 'option'):
                 newline = _ElementState.NEWLINE_ALL
             else:
                 newline = _ElementState.NEWLINE_AROUND

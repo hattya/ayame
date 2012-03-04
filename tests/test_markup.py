@@ -740,6 +740,14 @@ def test_render_xhtml1():
              '        </li>\n'
              '      </ul>\n'
              '    </div>\n'
+             '    <form action="/" method="post">\n'
+             '      <fieldset>\n'
+             '        <legend>form</legend>\n'
+             '        <textarea>\n'
+             '          Sun\n'
+             '        </textarea>\n'
+             '      </fieldset>\n'
+             '    </form>\n'
              '  </body>\n'
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
@@ -968,6 +976,19 @@ def test_render_xhtml1():
     div.children.append(ul)
     div.children.append('\n')
     body.children.append(div)
+
+    form = new_element('form')
+    form.attrib[new_qname('action')] = '/'
+    form.attrib[new_qname('method')] = 'post'
+    fieldset = new_element('fieldset')
+    legend = new_element('legend')
+    legend.children.append('form')
+    fieldset.children.append(legend)
+    textarea = new_element('textarea')
+    textarea.children.append('Sun')
+    fieldset.children.append(textarea)
+    form.children.append(fieldset)
+    body.children.append(form)
     m.root.children.append(body)
 
     eq_(renderer.render(test, m, pretty=True), xhtml)
