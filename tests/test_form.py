@@ -115,6 +115,8 @@ def test_form():
             self.find('form:area').model_object = 'Hello World!'
             self.find('form').add(form.CheckBox('checkbox'))
             self.find('form:checkbox').model_object = True
+            self.find('form').add(form.FileUploadField('file'))
+            self.find('form:file').model_object = None
             self.find('form').add(Button('button'))
 
     class Button(form.Button):
@@ -142,6 +144,7 @@ def test_form():
              '        </textarea>\n'
              '        <input checked="checked" name="checkbox" '
              'type="checkbox" value="on"/><br/>\n'
+             '        <input name="file" type="file"/><br/>\n'
              '        <input name="button" type="submit"/>\n'
              '      </fieldset>\n'
              '    </form>\n'
@@ -149,12 +152,6 @@ def test_form():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
-    model_object = {'text': 'text',
-                    'password': 'password',
-                    'hidden': 'hidden',
-                    'area': 'area',
-                    'checkbox': False,
-                    'button': 'submitted'}
 
     # GET
     query = ('{}=form&'
@@ -162,6 +159,7 @@ def test_form():
              'password=password&'
              'hidden=hidden&'
              'area=area&'
+             'file=a.txt&'
              'button').format(core.AYAME_PATH)
     environ = {'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
@@ -175,7 +173,15 @@ def test_form():
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
-    eq_(page.find('form').model_object, model_object)
+
+    f = page.find('form')
+    eq_(f.model_object['text'], 'text')
+    eq_(f.model_object['password'], 'password')
+    eq_(f.model_object['hidden'], 'hidden')
+    eq_(f.model_object['area'], 'area')
+    eq_(f.model_object['checkbox'], False)
+    eq_(f.model_object['file'], 'a.txt')
+    eq_(f.model_object['button'], 'submitted')
 
     # POST
     body = ('--ayame.form\r\n'
@@ -199,6 +205,14 @@ def test_form():
             '\r\n'
             'area\r\n'
             '--ayame.form\r\n'
+            'Content-Disposition: form-data; name="file"; filename="a.txt"\r\n'
+            'Content-Type: text/plain\r\n'
+            '\r\n'
+            'spam\n'
+            'eggs\n'
+            'ham\n'
+            '\r\n'
+            '--ayame.form\r\n'
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
             '--ayame.form--\r\n'
@@ -216,7 +230,20 @@ def test_form():
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
-    eq_(page.find('form').model_object, model_object)
+
+    f = page.find('form')
+    eq_(f.model_object['text'], 'text')
+    eq_(f.model_object['password'], 'password')
+    eq_(f.model_object['hidden'], 'hidden')
+    eq_(f.model_object['area'], 'area')
+    eq_(f.model_object['checkbox'], False)
+    eq_(f.model_object['file'].name, 'file')
+    eq_(f.model_object['file'].filename, 'a.txt')
+    eq_(f.model_object['file'].value, 'spam\neggs\nham\n')
+    ok_(f.model_object['file'].file is not None)
+    eq_(f.model_object['file'].type, 'text/plain')
+    eq_(f.model_object['file'].type_options, {})
+    eq_(f.model_object['button'], 'submitted')
 
 def test_form_component():
     # relative path
@@ -834,6 +861,9 @@ def test_invalid_markup():
     button = form.Button('a')
     assert_raises(RenderingError, button.render, input)
     assert_raises(RenderingError, button.render, markup.Element(markup.DIV))
+
+    upload = form.FileUploadField('a')
+    assert_raises(RenderingError, upload.render, markup.Element(markup.DIV))
 
     text = form.TextField('a')
     assert_raises(RenderingError, text.render, markup.Element(markup.DIV))

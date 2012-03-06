@@ -34,9 +34,9 @@ from ayame.exception import ComponentError, ConversionError, RenderingError
 from ayame.exception import ValidationError
 
 
-__all__ = ['Form', 'FormComponent', 'Button', 'TextField', 'PasswordField',
-           'HiddenField', 'TextArea', 'CheckBox', 'Choice', 'ChoiceRenderer',
-           'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
+__all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
+           'PasswordField', 'HiddenField', 'TextArea', 'CheckBox', 'Choice',
+           'ChoiceRenderer', 'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
 
 # HTML elements
 _BR = markup.QName(markup.XHTML_NS, 'br')
@@ -224,6 +224,18 @@ class Button(FormComponent):
 
     def on_submit(self):
         pass
+
+class FileUploadField(FormComponent):
+
+    def on_render(self, element):
+        if element.qname != _INPUT:
+            raise RenderingError(self, "'input' element is expected")
+
+        # modify attributes
+        element.attrib[_TYPE] = 'file'
+        element.attrib[_NAME] = self.relative_path()
+        # render file upload field
+        return super(FileUploadField, self).on_render(element)
 
 class TextField(FormComponent):
 
