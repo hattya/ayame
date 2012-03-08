@@ -921,7 +921,8 @@ def test_failsafe():
 
 def test_request():
     # QUERY_STRING and CONTENT_TYPE are empty
-    environ = {'REQUEST_METHOD': 'POST'}
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'POST'}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
@@ -1120,7 +1121,8 @@ def test_page():
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
 
-    environ = {'REQUEST_METHOD': 'GET'}
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
     with application():
         request = core.Request(environ, {})
         page = SpamPage(request)
@@ -1158,7 +1160,8 @@ def test_ignition_behavior():
 
     # GET
     query = '{}=clay1'.format(core.AYAME_PATH)
-    environ = {'REQUEST_METHOD': 'GET',
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
                'QUERY_STRING': query.encode('utf-8')}
     with application():
         request = core.Request(environ, {})
@@ -1169,7 +1172,8 @@ def test_ignition_behavior():
 
     # duplicate ayame:path
     query = '{0}=clay1&{0}=obstacle:clay2'.format(core.AYAME_PATH)
-    environ = {'REQUEST_METHOD': 'GET',
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
                'QUERY_STRING': query.encode('utf-8')}
     with application():
         request = core.Request(environ, {})
@@ -1181,8 +1185,7 @@ def test_ignition_behavior():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'obstacle:clay2\r\n'
-            '--ayame.core--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.core--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
@@ -1202,8 +1205,7 @@ def test_ignition_behavior():
             'Content-Disposition: form-data; name="{0}"\r\n'
             '\r\n'
             'obstacle:clay2\r\n'
-            '--ayame.core--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.core--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}

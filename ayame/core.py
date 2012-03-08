@@ -664,7 +664,7 @@ class Page(MarkupContainer):
 
 class Request(object):
 
-    __slots__ = ('environ', 'method', 'uri', 'query', 'post', 'body')
+    __slots__ = ('environ', 'method', 'uri', 'query', 'body')
 
     def __init__(self, environ, values):
         self.environ = environ
@@ -685,12 +685,6 @@ class Request(object):
                     for k, v in qs.iteritems())
 
     def _parse_body(self, environ):
-        content_type = environ.get('CONTENT_TYPE')
-        if not content_type:
-            return {}
-        # strip media type parameters
-        if ';' in content_type:
-            content_type = content_type.split(';', 1)[0]
         # isolate QUERY_STRING
         fs_environ = environ.copy()
         fs_environ['QUERY_STRING'] = ''
@@ -715,7 +709,8 @@ class Request(object):
                 else:
                     body[field.name] = [value]
         elif fs.file:
-            if fs.done == -1:
+            if ('CONTENT_LENGTH' in self.environ and
+                fs.done == -1):
                 raise http.RequestTimeout()
             body = fs
         return body

@@ -66,7 +66,8 @@ def test_form_error():
     f = Form('a')
     f.add(form.FormComponent('b'))
     query = 'b=1'
-    environ = {'REQUEST_METHOD': 'GET',
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
                'QUERY_STRING': query.encode('utf-8')}
@@ -78,7 +79,8 @@ def test_form_error():
     # unknown method
     f = form.Form('a')
     query = 'b=1'
-    environ = {'REQUEST_METHOD': 'PUT',
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'PUT',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
                'QUERY_STRING': query.encode('utf-8')}
@@ -93,8 +95,7 @@ def test_form_error():
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
-               'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'PATH_INFO': '/form'}
     with application(environ):
         request = core.Request(environ, {})
         f._method = 'POST'
@@ -161,7 +162,8 @@ def test_form():
              'area=area&'
              'file=a.txt&'
              'button').format(core.AYAME_PATH)
-    environ = {'REQUEST_METHOD': 'GET',
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
                'QUERY_STRING': query.encode('utf-8')}
@@ -215,8 +217,7 @@ def test_form():
             '--ayame.form\r\n'
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -332,8 +333,7 @@ def test_radio_choice():
             'Content-Disposition: form-data; name="radio"\r\n'
             '\r\n'
             '2\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -354,8 +354,7 @@ def test_radio_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -380,8 +379,7 @@ def test_radio_choice():
             'Content-Disposition: form-data; name="radio"\r\n'
             '\r\n'
             '-1\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -401,8 +399,7 @@ def test_radio_choice():
             'Content-Disposition: form-data; name="radio"\r\n'
             '\r\n'
             '\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -479,8 +476,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="checkbox"\r\n'
             '\r\n'
             '2\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -501,8 +497,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -543,8 +538,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="checkbox"\r\n'
             '\r\n'
             '2\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -572,8 +566,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="checkbox"\r\n'
             '\r\n'
             '3\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -593,8 +586,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="checkbox"\r\n'
             '\r\n'
             '\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -610,8 +602,7 @@ def test_checkbox_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -684,8 +675,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="select"\r\n'
             '\r\n'
             '2\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -706,8 +696,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -729,8 +718,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -774,8 +762,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="select"\r\n'
             '\r\n'
             '2\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -803,8 +790,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="select"\r\n'
             '\r\n'
             '3\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -824,8 +810,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="select"\r\n'
             '\r\n'
             '\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
@@ -841,8 +826,7 @@ def test_select_choice():
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
-            '--ayame.form--\r\n'
-            '\r\n').format(core.AYAME_PATH)
+            '--ayame.form--\r\n').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
