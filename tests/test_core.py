@@ -50,10 +50,20 @@ def wsgi_call(application, **kwargs):
 
 def test_simple_app():
     class SimplePage(core.Page):
-        pass
+        def __init__(self, request):
+            super(SimplePage, self).__init__(request)
+            self.add(SessionLabel('greeting', 'Hello World!'))
+
+    class SessionLabel(basic.Label):
+        def __init__(self, id, default):
+            super(SessionLabel, self).__init__(id,
+                                               self.session.get(id, default))
 
     class RedirectPage(core.Page):
         def on_render(self, element):
+            if 'greeting' in self.request.query:
+                self.session['greeting'] = self.request.query['greeting'][0]
+                raise Redirect(SimplePage)
             raise Redirect(RedirectPage)
 
     app = core.Ayame(__name__)
@@ -116,6 +126,19 @@ def test_simple_app():
     ok_(exc_info)
     eq_(body, [])
 
+    # GET /redir?greeting=Hallo+Welt! -> OK
+    xhtml = xhtml.replace('Hello World!', 'Hallo Welt!')
+    query = 'greeting=Hallo+Welt!'.encode('utf-8')
+    status, headers, exc_info, body = wsgi_call(app.make_app(),
+                                                REQUEST_METHOD='GET',
+                                                PATH_INFO='/redir',
+                                                QUERY_STRING=query)
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(exc_info, None)
+    eq_(body, xhtml)
+
 @contextmanager
 def application():
     local = core._local
@@ -137,6 +160,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(AyameError, lambda: c.session)
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
@@ -162,6 +186,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(AyameError, lambda: c.session)
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
@@ -321,6 +346,7 @@ def test_behavior():
     assert_raises(AyameError, lambda: b.app)
     assert_raises(AyameError, lambda: b.config)
     assert_raises(AyameError, lambda: b.environ)
+    assert_raises(AyameError, lambda: b.session)
 
     class Behavior(core.Behavior):
         def on_before_render(self, component):
@@ -939,24 +965,28 @@ def test_failsafe():
 def test_request():
     # QUERY_STRING and CONTENT_TYPE are empty
     environ = {'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'POST'}
+               'REQUEST_METHOD': 'POST',
+               'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
     eq_(request.query, {})
     eq_(request.body, {})
+    eq_(request.session, {})
 
     # message body is empty
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
     eq_(request.query, {})
     eq_(request.body, {})
+    eq_(request.session, {})
 
     # ASCII
     query = ('a=1&'

@@ -91,6 +91,10 @@ class Ayame(object):
         return _local.environ
 
     @property
+    def session(self):
+        return _local.environ['ayame.session']
+
+    @property
     def _router(self):
         return _local._router
 
@@ -236,6 +240,10 @@ class Component(object):
     @property
     def environ(self):
         return self.app.environ
+
+    @property
+    def session(self):
+        return self.app.session
 
     def add(self, *args):
         for object in args:
@@ -727,6 +735,10 @@ class Request(object):
             body = fs
         return body
 
+    @property
+    def session(self):
+        return self.environ['ayame.session']
+
 class Behavior(object):
 
     def __init__(self):
@@ -743,6 +755,10 @@ class Behavior(object):
     @property
     def environ(self):
         return self.app.environ
+
+    @property
+    def session(self):
+        return self.app.session
 
     def on_before_render(self, component):
         pass
