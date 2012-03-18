@@ -33,22 +33,28 @@ import wsgiref.util
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import basic, core, http, markup, model
-from ayame.exception import AyameError, ComponentError, RenderingError
+from ayame.exception import (AyameError, ComponentError, Redirect,
+                             RenderingError)
 
 
-@contextmanager
-def application():
-    local = core._local
-    app = core.Ayame(__name__)
-    try:
-        local.app = app
-        yield
-    finally:
-        local.app = None
+def wsgi_call(application, **kwargs):
+    wsgi = {}
+
+    def start_response(status, headers, exc_info=None):
+        wsgi.update(status=status, headers=headers, exc_info=exc_info)
+
+    environ = dict(kwargs)
+    wsgiref.util.setup_testing_defaults(environ)
+    data = application(environ, start_response)
+    return wsgi['status'], wsgi['headers'], wsgi['exc_info'], data
 
 def test_simple_app():
     class SimplePage(core.Page):
         pass
+
+    class RedirectPage(core.Page):
+        def on_render(self, element):
+            raise Redirect(RedirectPage)
 
     app = core.Ayame(__name__)
     eq_(app._name, __name__)
@@ -57,6 +63,7 @@ def test_simple_app():
     map = app.config['ayame.route.map']
     map.connect('/page', SimplePage)
     map.connect('/int', 0)
+    map.connect('/redir', RedirectPage)
 
     # GET /page -> OK
     xhtml = ('<?xml version="1.0"?>\n'
@@ -100,16 +107,24 @@ def test_simple_app():
     ok_(exc_info)
     ok_(body)
 
-def wsgi_call(application, **kwargs):
-    wsgi = {}
+    # GET /redir -> InternalServerError
+    status, headers, exc_info, body = wsgi_call(app.make_app(),
+                                                REQUEST_METHOD='GET',
+                                                PATH_INFO='/redir')
+    eq_(status, http.InternalServerError.status)
+    eq_(headers, [])
+    ok_(exc_info)
+    eq_(body, [])
 
-    def start_response(status, headers, exc_info=None):
-        wsgi.update(status=status, headers=headers, exc_info=exc_info)
-
-    environ = dict(kwargs)
-    wsgiref.util.setup_testing_defaults(environ)
-    data = application(environ, start_response)
-    return wsgi['status'], wsgi['headers'], wsgi['exc_info'], data
+@contextmanager
+def application():
+    local = core._local
+    app = core.Ayame(__name__)
+    try:
+        local.app = app
+        yield
+    finally:
+        local.app = None
 
 def test_component():
     assert_raises(ComponentError, core.Component, None)

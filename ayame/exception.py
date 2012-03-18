@@ -1,7 +1,7 @@
 #
 # ayame.exception
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -25,8 +25,8 @@
 #
 
 __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
-           'RenderingError', 'ResourceError', 'RouteError', 'RequestSlash',
-           'ValidationError']
+           'Redirect', 'RenderingError', 'ResourceError', 'RouteError',
+           'RequestSlash', 'ValidationError']
 
 class AyameError(Exception):
     pass
@@ -38,6 +38,9 @@ class ConversionError(AyameError):
     pass
 
 class MarkupError(AyameError):
+    pass
+
+class Redirect(AyameError):
     pass
 
 class RenderingError(AyameError):

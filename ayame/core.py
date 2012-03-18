@@ -37,7 +37,8 @@ from beaker.middleware import SessionMiddleware
 
 from ayame import converter, http, markup, route, uri, util
 from ayame import model as _model
-from ayame.exception import AyameError, ComponentError, RenderingError
+from ayame.exception import (AyameError, ComponentError, Redirect,
+                             RenderingError)
 
 
 __all__ = ['AYAME_PATH', 'Ayame', 'Component', 'MarkupContainer', 'Page',
@@ -73,6 +74,7 @@ class Ayame(object):
                 'ayame.converter.locator': converter.Locator(),
                 'ayame.markup.encoding': 'utf-8',
                 'ayame.markup.pretty': False,
+                'ayame.max.redirect': 7,
                 'ayame.route.map': route.Map(),
                 'ayame.class.MarkupLoader': markup.MarkupLoader,
                 'ayame.class.MarkupRenderer': markup.MarkupRenderer,
@@ -106,7 +108,17 @@ class Ayame(object):
             # dispatch
             object, values = _local._router.match()
             request = self.config['ayame.class.Request'](environ, values)
-            status, headers, body = self.handle_request(object, request)
+            for _ in xrange(self.config['ayame.max.redirect']):
+                try:
+                    status, headers, body = self.handle_request(object,
+                                                                request)
+                except Redirect as r:
+                    object = r.args[0]
+                else:
+                    break
+            else:
+                raise AyameError('reached to the maximum number of internal '
+                                 'redirects')
             exc_info = None
         except Exception as e:
             status, headers, body = self.handle_error(e)
