@@ -30,8 +30,8 @@ import collections
 import operator
 
 from ayame import core, markup, uri, util, validator
-from ayame.exception import ComponentError, ConversionError, RenderingError
-from ayame.exception import ValidationError
+from ayame.exception import (ComponentError, ConversionError, RenderingError,
+                             ValidationError)
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
@@ -110,13 +110,13 @@ class Form(core.MarkupContainer):
         queue.append(self)
         while queue:
             component = queue.pop()
-            # check nested form
             if isinstance(component, Form):
+                # check nested form
                 if form is not None:
                     raise ComponentError(self, "'form' element is nested")
                 form = component
-            # validate
-            if isinstance(component, FormComponent):
+            elif isinstance(component, FormComponent):
+                # validate
                 name = component.relative_path()
                 if isinstance(component, Button):
                     if (name in values and

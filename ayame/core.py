@@ -797,7 +797,7 @@ class IgnitionBehavior(Behavior):
     def fire(self):
         component = self.component
         page = component.page()
-        # retrive ayame:path
+        # retrieve ayame:path
         path = None
         if page.request.method == 'GET':
             path = page.request.query.get(AYAME_PATH)
