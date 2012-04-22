@@ -48,6 +48,15 @@ def application(environ=None):
         local.environ = None
         local.app = None
 
+class Form(form.Form):
+
+    def on_submit(self):
+        super(Form, self).on_submit()
+        raise OK()
+
+class OK(Exception):
+    pass
+
 def test_form_error():
     # not form element
     f = form.Form('a')
@@ -124,6 +133,7 @@ def test_form():
         def on_submit(self):
             super(Button, self).on_submit()
             self.model_object = 'submitted'
+            raise OK()
 
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
@@ -155,6 +165,28 @@ def test_form():
                                  path=core.AYAME_PATH)
 
     # GET
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = SpamPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    f = page.find('form')
+    eq_(f.model_object['text'], '')
+    eq_(f.model_object['password'], '')
+    eq_(f.model_object['hidden'], '')
+    eq_(f.model_object['area'], 'Hello World!')
+    eq_(f.model_object['checkbox'], True)
+    eq_(f.model_object['file'], None)
+    ok_('button' not in f.model_object)
+
+    # GET
     query = ('{}=form&'
              'text=text&'
              'password=password&'
@@ -170,12 +202,7 @@ def test_form():
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
-
+        assert_raises(OK, page.render)
     f = page.find('form')
     eq_(f.model_object['text'], 'text')
     eq_(f.model_object['password'], 'password')
@@ -226,12 +253,7 @@ def test_form():
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
-
+        assert_raises(OK, page.render)
     f = page.find('form')
     eq_(f.model_object['text'], 'text')
     eq_(f.model_object['password'], 'password')
@@ -291,7 +313,7 @@ def test_radio_choice():
     class EggsPage(core.Page):
         def __init__(self, request):
             super(EggsPage, self).__init__(request)
-            self.add(form.Form('form', model.CompoundModel({})))
+            self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.RadioChoice('radio', choices=choices))
             self.find('form:radio').model_object = choices[0]
 
@@ -324,6 +346,21 @@ def test_radio_choice():
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
 
+    # GET
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = EggsPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'radio': choices[0]})
+
     # POST
     body = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
@@ -342,11 +379,7 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'radio': choices[2]})
 
     # POST
@@ -363,11 +396,7 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'radio': None})
 
     # validation error
@@ -414,7 +443,7 @@ def test_checkbox_choice():
     class HamPage(core.Page):
         def __init__(self, request):
             super(HamPage, self).__init__(request)
-            self.add(form.Form('form', model.CompoundModel({})))
+            self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.CheckBoxChoice('checkbox',
                                                       choices=choices))
             self.find('form:checkbox').model_object = [choices[1]]
@@ -451,6 +480,21 @@ def test_checkbox_choice():
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
 
+    # GET
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = HamPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
+
     # POST
     body = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
@@ -485,11 +529,7 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'checkbox': choices})
 
     # POST
@@ -506,11 +546,7 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'checkbox': []})
 
     # validation error
@@ -618,7 +654,7 @@ def test_select_choice():
     class ToastPage(core.Page):
         def __init__(self, request):
             super(ToastPage, self).__init__(request)
-            self.add(form.Form('form', model.CompoundModel({})))
+            self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.SelectChoice('select',
                                                     choices=choices))
             self.find('form:select').model_object = [choices[1]]
@@ -649,6 +685,21 @@ def test_select_choice():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
+
+    # GET
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        status, headers, body = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(body, xhtml)
+    eq_(page.find('form').model_object, {'select': [choices[1]]})
 
     # POST
     body = ('--ayame.form\r\n'
@@ -684,11 +735,7 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'select': choices})
 
     # POST
@@ -705,15 +752,29 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
+        assert_raises(OK, page.render)
+    eq_(page.find('form').model_object, {'select': []})
+
+    # GET (single)
+    xhtml = xhtml.replace(' multiple="multiple"', '')
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form'}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        select = page.find('form:select')
+        select.model_object = select.model_object[0]
+        select.multiple = False
         status, headers, body = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(body, xhtml)
-    eq_(page.find('form').model_object, {'select': []})
+    eq_(page.find('form').model_object, {'select': choices[1]})
 
     # POST (single)
-    xhtml = xhtml.replace(' multiple="multiple"', '')
     body = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
@@ -730,11 +791,7 @@ def test_select_choice():
         select = page.find('form:select')
         select.model_object = select.model_object[0]
         select.multiple = False
-        status, headers, body = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+        assert_raises(OK, page.render)
     eq_(page.find('form').model_object, {'select': None})
 
     # validation error

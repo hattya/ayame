@@ -79,9 +79,8 @@ class Form(core.MarkupContainer):
                     self, "'method' attribute is required for 'form' element")
 
         # modify attributes
-        self._method = element.attrib[_METHOD].upper()
         element.attrib[_ACTION] = unicode(uri.request_path(self.environ))
-        element.attrib[_METHOD] = self._method.lower()
+        element.attrib[_METHOD] = element.attrib[_METHOD].lower()
         # insert hidden field for marking
         div = markup.Element(markup.DIV)
         div.attrib[_CLASS] = 'ayame-hidden'
@@ -147,8 +146,10 @@ class Form(core.MarkupContainer):
 
 class _FormActionBehavior(core.IgnitionBehavior):
 
-    def on_after_render(self, component):
+    def on_component(self, component, element):
+        component._method = element.attrib.get(_METHOD, '').upper()
         self.fire()
+        component._method = None
 
     def on_fire(self, component, request):
         component.submit(request)
