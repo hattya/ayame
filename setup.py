@@ -36,24 +36,34 @@ def runcmd(argv, env):
                             stderr=subprocess.PIPE,
                             env=env,
                             universal_newlines=True)
-    return proc.communicate()
+    out, err = proc.communicate()
+    return '' if err else out
 
-version = None
+version = ''
 
 if os.path.isdir('.git'):
     env = {'LANGUAGE': 'C'}
     if 'SystemRoot' in os.environ:
         env['SystemRoot'] = os.environ['SystemRoot']
-    out, err = runcmd([find_executable('git'), 'describe', '--tags',
-                       '--always', '--dirty=+'],
-                      env)
-    if err:
-        print('warning: could not generate ayame/__version__.py',
-              file=sys.stderr)
-    else:
-        version = out.strip()
-        if version.endswith('+'):
-            version += time.strftime('%Y%m%d')
+    out = runcmd([find_executable('git'), 'describe', '--tags',
+                  '--dirty=+', '--long', '--always'],
+                 env)
+    v = out.strip().rsplit('-', 2)
+    if len(v) == 3:
+        v[0] = v[0][1:]
+        v[2] = v[2][1:]
+        if v[1] == '0':
+            version = v[0]
+            if v[2].endswith('+'):
+                version += '+'
+        else:
+            version = '{}.{}-{}'.format(*v)
+    elif v[0]:
+        out = runcmd([find_executable('git'), 'rev-list', 'HEAD'], env)
+        if out:
+            version = '0.0.{}-{}'.format(str(len(out.splitlines())), v[0])
+    if version.endswith('+'):
+        version += time.strftime('%Y-%m-%d')
 
 if version:
     with open('ayame/__version__.py', 'w') as fp:
