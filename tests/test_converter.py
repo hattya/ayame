@@ -1,7 +1,7 @@
 #
 # test_converter
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -159,7 +159,7 @@ def test_boolean():
 
 def test_float():
     c = converter.FloatConverter()
-    pi = '3.141592653589793'
+    pi = '3.141592653589793'[:sys.float_info.dig + 1]
     inf = float('inf')
     nan = float('nan')
 
@@ -180,12 +180,12 @@ def test_float():
     assert_raises(ConversionError, c.to_python, object())
 
     eq_(c.to_string(-inf), '-inf')
-    eq_(c.to_string(-float(pi)), '-3.14159265359')
+    eq_(c.to_string(-float(pi)), '-' + pi)
     eq_(c.to_string(-3.14), '-3.14')
     eq_(c.to_string(0.0), '0.0')
     eq_(c.to_string(-0.0), '-0.0')
     eq_(c.to_string(3.14), '3.14')
-    eq_(c.to_string(float(pi)), '3.14159265359')
+    eq_(c.to_string(float(pi)), pi)
     eq_(c.to_string(inf), 'inf')
     eq_(c.to_string(nan), 'nan')
     assert_raises(ConversionError, c.to_string, None)

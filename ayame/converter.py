@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 from abc import ABCMeta, abstractproperty, abstractmethod
 import collections
 import datetime
+import sys
 import types
 
 from ayame.exception import ConversionError
@@ -150,6 +151,13 @@ class FloatConverter(Converter):
     @property
     def type(self):
         return float
+
+    if sys.hexversion < 0x03020000:
+        def to_string(self, value):
+            error = self._check_type(value)
+            if error:
+                raise error
+            return repr(value)
 
     def to_python(self, value):
         try:
