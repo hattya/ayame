@@ -1,7 +1,7 @@
 #
 # test_util
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -105,8 +105,8 @@ def test_load_data():
 
     class Loader(object):
         def get_data(self, path):
-            with io.open(path, encoding='utf-8') as fp:
-                return fp.read().strip() + ' from Loader'
+            with io.open(path, 'rb') as fp:
+                return fp.read().strip() + b' from Loader'
     class Module(object):
         __file__ = __file__
         __loader__ = Loader()

@@ -545,7 +545,7 @@ class MarkupContainer(Component):
         for child in self.children:
             child.on_after_render()
 
-    def load_markup(self, klass=None):
+    def load_markup(self, class_=None):
         new_queue = self._new_queue
         push_children = self._push_children
         join_children = self._join_children
@@ -561,14 +561,14 @@ class MarkupContainer(Component):
                     continue  # skip children
                 push_children(queue, element)
 
-        klass = self.__class__ if klass is None else klass
+        class_ = self.__class__ if class_ is None else class_
         loader = self.config['ayame.class.MarkupLoader']()
         ext = self.markup_type.extension
         encoding = self.config['ayame.markup.encoding']
         extra_head = []
         ayame_child = None
         while True:
-            m = loader.load(klass, util.load_data(klass, ext, encoding))
+            m = loader.load(class_, util.load_data(class_, ext, encoding))
             html = 'html' in m.lang
             ayame_extend = ayame_head = None
             for parent, index, element in walk(m.root):
@@ -576,7 +576,7 @@ class MarkupContainer(Component):
                     if ayame_extend is None:
                         # resolve superclass
                         superclass = None
-                        for c in klass.__bases__:
+                        for c in class_.__bases__:
                             if (not issubclass(c, MarkupContainer) or
                                 c is MarkupContainer):
                                 continue
@@ -586,8 +586,8 @@ class MarkupContainer(Component):
                             superclass = c
                         if superclass is None:
                             raise AyameError("superclass of '{}' is not found"
-                                             .format(util.fqon_of(klass)))
-                        klass = superclass
+                                             .format(util.fqon_of(class_)))
+                        class_ = superclass
                         ayame_extend = element
                 elif element.qname == markup.AYAME_CHILD:
                     if ayame_child is not None:
@@ -605,7 +605,7 @@ class MarkupContainer(Component):
                         ayame_head is None):
                         ayame_head = element
             if ayame_child is not None:
-                raise RenderingError(klass,
+                raise RenderingError(class_,
                                      "'ayame:child' element is not found")
             elif ayame_extend is None:
                 break  # ayame:extend is not found
@@ -629,7 +629,7 @@ class MarkupContainer(Component):
                 join_children(ayame_head.children, extra_head)
                 extra_head = None
             if extra_head is not None:
-                raise RenderingError(klass, "'head' element is not found")
+                raise RenderingError(class_, "'head' element is not found")
         return m
 
     def _new_queue(self, root):

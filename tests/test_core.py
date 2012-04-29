@@ -1019,8 +1019,7 @@ def test_request():
             'Content-Disposition: form-data; name="z"\r\n'
             '\r\n'
             '-3\r\n'
-            '--ayame.core--\r\n'
-            '\r\n')
+            '--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': query.encode('utf-8'),
@@ -1067,8 +1066,7 @@ def test_request():
             'Content-Disposition: form-data; name="\u3059"\r\n'
             '\r\n'
             '\u4e07\r\n'
-            '--ayame.core--\r\n'
-            '\r\n')
+            '--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': query.encode('utf-8'),
@@ -1093,8 +1091,7 @@ def test_request():
             'eggs\n'
             'ham\n'
             '\r\n'
-            '--ayame.core--\r\n'
-            '\r\n')
+            '--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',

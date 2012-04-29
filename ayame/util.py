@@ -78,7 +78,7 @@ def load_data(object, suffix, encoding='utf-8'):
         except (AttributeError, IOError):
             raise ResourceError("could not load '{}' from loader {!r}"
                                 .format(path, loader))
-        return io.StringIO(data.decode(encoding))
+        return io.StringIO(unicode(data, encoding))
     return io.open(path, encoding=encoding)
 
 def to_bytes(s, encoding='utf-8', errors='strict'):

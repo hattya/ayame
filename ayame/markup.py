@@ -177,7 +177,7 @@ class _AttributeDict(util.FilterDict):
             return key.lower()
         return key
 
-class MarkupLoader(object, HTMLParser):
+class MarkupLoader(HTMLParser, object):
 
     _decl = {'new_element': 'new_{}_element',
              'push': '{}_push',
@@ -813,7 +813,7 @@ class MarkupRenderer(object):
             elif (default_ns and
                   prefix == element_prefix):
                 raise RenderingError(self._object,
-                                     'cannout combine with default namespace')
+                                     'cannot combine with default namespace')
             self._write(name, '="', value, '"')
         self._write('/>' if element.type == Element.EMPTY else '>')
 

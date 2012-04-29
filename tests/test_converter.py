@@ -24,8 +24,8 @@
 #   SOFTWARE.
 #
 
-import sys
 from datetime import date, time, datetime, timedelta, tzinfo
+import sys
 
 from nose.tools import assert_raises, eq_, ok_
 

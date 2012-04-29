@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 from abc import ABCMeta, abstractproperty, abstractmethod
 import collections
 import datetime
@@ -57,17 +56,17 @@ class Locator(object):
 
     def converter_for(self, value):
         if isinstance(value, (type, types.ClassType)):
-            klass = value
+            class_ = value
         else:
-            klass = value.__class__
+            class_ = value.__class__
 
-        queue = collections.deque((object, klass))
+        queue = collections.deque((object, class_))
         while queue:
-            klass = queue.pop()
-            converter = self.get(klass)
+            class_ = queue.pop()
+            converter = self.get(class_)
             if converter is not None:
                 return converter
-            for c in reversed(klass.__bases__):
+            for c in reversed(class_.__bases__):
                 if c is not object:
                     queue.append(c)
 
@@ -121,8 +120,8 @@ class Converter(object):
     def _new_error(self, value, type=None):
         if type is None:
             type = self.type
-        return ConversionError("could not convert '{}' to '{}'".format(value,
-                                                                       type))
+        return ConversionError(u"could not convert '{}' to '{}'".format(value,
+                                                                        type))
 
 class _ObjectConverter(Converter):
 
@@ -288,4 +287,4 @@ class DateTimeConverter(Converter):
             else:
                 minutes = seconds / 60
                 z = '{:+03.0f}:{:02.0f}'.format(minutes / 60, minutes % 60)
-        return unicode('{:%Y-%m-%d %H:%M:%S{z}}'.format(value, z=z))
+        return u'{:%Y-%m-%d %H:%M:%S}{Z}'.format(value, Z=z)
