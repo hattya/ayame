@@ -973,7 +973,7 @@ def test_request():
     eq_(request.method, 'POST')
     eq_(request.uri, {})
     eq_(request.query, {})
-    eq_(request.body, {})
+    eq_(request.form_data, {})
     eq_(request.session, {})
 
     # message body is empty
@@ -986,7 +986,7 @@ def test_request():
     eq_(request.method, 'POST')
     eq_(request.uri, {})
     eq_(request.query, {})
-    eq_(request.body, {})
+    eq_(request.form_data, {})
     eq_(request.session, {})
 
     # ASCII
@@ -1032,9 +1032,9 @@ def test_request():
     eq_(request.query, {'a': ['1'],
                         'b': ['1', '2'],
                         'c': ['1', '2', '3']})
-    eq_(request.body, {'x': ['-1'],
-                       'y': ['-1', '-2'],
-                       'z': ['-1', '-2', '-3']})
+    eq_(request.form_data, {'x': ['-1'],
+                            'y': ['-1', '-2'],
+                            'z': ['-1', '-2', '-3']})
 
     # UTF-8
     query = ('\u3044=\u58f1&'
@@ -1079,9 +1079,9 @@ def test_request():
     eq_(request.query, {'\u3044': ['\u58f1'],
                         '\u308d': ['\u58f1', '\u5f10'],
                         '\u306f': ['\u58f1', '\u5f10', '\u53c2']})
-    eq_(request.body, {'\u3082': ['\u767e'],
-                       '\u305b': ['\u767e', '\u5343'],
-                       '\u3059': ['\u767e', '\u5343', '\u4e07']})
+    eq_(request.form_data, {'\u3082': ['\u767e'],
+                            '\u305b': ['\u767e', '\u5343'],
+                            '\u3059': ['\u767e', '\u5343', '\u4e07']})
 
     # filename
     body = ('--ayame.core\r\n'
@@ -1102,9 +1102,9 @@ def test_request():
     eq_(request.method, 'POST')
     eq_(request.uri, {})
     eq_(request.query, {})
-    eq_(tuple(request.body), ('a',))
+    eq_(tuple(request.form_data), ('a',))
 
-    fields = request.body['a']
+    fields = request.form_data['a']
     eq_(len(fields), 1)
 
     a = fields[0]
@@ -1128,9 +1128,9 @@ def test_request():
     eq_(request.method, 'PUT')
     eq_(request.uri, {})
     eq_(request.query, {})
-    eq_(request.body.value, ('spam\n'
-                             'eggs\n'
-                             'ham\n'))
+    eq_(request.input.read(), (b'spam\n'
+                               b'eggs\n'
+                               b'ham\n'))
 
     # 408 Request Timeout
     body = ('--ayame.core\r\n'
@@ -1140,13 +1140,6 @@ def test_request():
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
-    assert_raises(http.RequestTimeout, core.Request, environ, {})
-
-    environ = {'wsgi.input': io.BytesIO(b''),
-               'REQUEST_METHOD': 'PUT',
-               'QUERY_STRING': '',
-               'CONTENT_TYPE': 'text/plain',
-               'CONTENT_LENGTH': '-1'}
     assert_raises(http.RequestTimeout, core.Request, environ, {})
 
 def test_page():

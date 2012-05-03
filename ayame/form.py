@@ -100,7 +100,7 @@ class Form(core.MarkupContainer):
         elif request.method == 'GET':
             values = request.query
         elif request.method == 'POST':
-            values = request.body
+            values = request.form_data
         else:
             return  # unknown method
 

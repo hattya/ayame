@@ -684,24 +684,30 @@ class Page(MarkupContainer):
 
 class Request(object):
 
-    __slots__ = ('environ', 'method', 'uri', 'query', 'body')
+    __slots__ = ('environ', 'method', 'uri', 'query', 'form_data')
 
     def __init__(self, environ, values):
         self.environ = environ
         self.method = environ['REQUEST_METHOD']
         self.uri = values
         self.query = self._parse_qs(environ)
-        self.body = self._parse_body(environ)
+        self.form_data = self._parse_form_data(environ)
 
     def _parse_qs(self, environ):
         qs = environ.get('QUERY_STRING')
         if not qs:
             return {}
+
         qs = urlparse.parse_qs(qs, keep_blank_values=True)
         return dict((self._decode(k), [self._decode(s) for s in v])
                     for k, v in qs.iteritems())
 
-    def _parse_body(self, environ):
+    def _parse_form_data(self, environ):
+        ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
+        if ct not in ('application/x-www-form-urlencoded',
+                      'multipart/form-data'):
+            return {}
+
         # isolate QUERY_STRING
         fs_environ = environ.copy()
         fs_environ['QUERY_STRING'] = ''
@@ -709,7 +715,7 @@ class Request(object):
                               environ=fs_environ,
                               keep_blank_values=True)
 
-        body = {}
+        form_data = {}
         if fs.list:
             for field in fs.list:
                 if field.done == -1:
@@ -720,19 +726,18 @@ class Request(object):
                     value = field
                 else:
                     value = self._decode(field.value)
-                if field.name in body:
-                    body[field.name].append(value)
+                if field.name in form_data:
+                    form_data[field.name].append(value)
                 else:
-                    body[field.name] = [value]
-        elif fs.file:
-            if ('CONTENT_LENGTH' in self.environ and
-                fs.done == -1):
-                raise http.RequestTimeout()
-            body = fs
-        return body
+                    form_data[field.name] = [value]
+        return form_data
 
     def _decode(self, s):
         return unicode(s, 'utf-8', 'replace')
+
+    @property
+    def input(self):
+        return self.environ['wsgi.input']
 
     @property
     def session(self):
@@ -801,7 +806,7 @@ class IgnitionBehavior(Behavior):
         if page.request.method == 'GET':
             path = page.request.query.get(AYAME_PATH)
         elif page.request.method == 'POST':
-            path = page.request.body.get(AYAME_PATH)
+            path = page.request.form_data.get(AYAME_PATH)
         if path:
             if 1 < len(path):
                 raise RenderingError(page, 'duplicate ayame:path')
