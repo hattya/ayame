@@ -4,11 +4,16 @@
 #
 
 from __future__ import print_function
-from distutils.core import setup
+from distutils.core import setup, Command
 import os
 import subprocess
 import sys
 import time
+
+try:
+    import nose
+except ImportError:
+    nose = None
 
 
 def find_executable(cmd, path=None):
@@ -84,8 +89,47 @@ try:
 except ImportError:
     version = 'unknown'
 
+class test(Command):
+
+    description = 'run unit tests using nose'
+    user_options = [('build-tests=', 'd', 'directory to "test" (copy) to')]
+
+    def initialize_options(self):
+        self.build_base = None
+        self.build_lib = None
+        self.build_tests = None
+
+    def finalize_options(self):
+        self.set_undefined_options('build',
+                                   ('build_base', 'build_base'),
+                                   ('build_lib', 'build_lib'))
+        if self.build_tests is None:
+            self.build_tests = os.path.join(self.build_base, 'tests')
+
+    def run(self):
+        if not nose:
+            return self.warn('nose is required for unit testing')
+
+        self.run_command('build')
+        # load modules from build-lib
+        sys.path.insert(0, os.path.abspath(self.build_lib))
+        reload(ayame)
+
+        for root, dirs, files in os.walk('tests'):
+            self.mkpath(os.path.join(self.build_base, root))
+            for f in files:
+                ext = os.path.splitext(f)[1].lower()
+                if ext not in ('.py', '.txt', '.html'):
+                    continue
+                path = os.path.join(root, f)
+                self.copy_file(path, os.path.join(self.build_base, path))
+        # run nose
+        nose.run(argv=['test', '-w', self.build_tests])
+
 packages = ['ayame']
 package_data = {'ayame': []}
+
+cmdclass = {'test': test}
 
 setup(name='ayame',
       version=version,
@@ -95,4 +139,5 @@ setup(name='ayame',
       url='https://github.com/hattya/ayame',
       license='MIT',
       packages=packages,
-      package_data=package_data)
+      package_data=package_data,
+      cmdclass=cmdclass)
