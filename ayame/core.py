@@ -697,33 +697,29 @@ class Request(object):
         qs = environ.get('QUERY_STRING')
         if not qs:
             return {}
-        return self._transcode_qs(urlparse.parse_qs(qs,
-                                                    keep_blank_values=True))
-
-    def _transcode_qs(self, qs):
-        return dict((unicode(k, 'utf-8'), [unicode(s, 'utf-8') for s in v])
+        qs = urlparse.parse_qs(qs, keep_blank_values=True)
+        return dict((self._decode(k), [self._decode(s) for s in v])
                     for k, v in qs.iteritems())
 
     def _parse_body(self, environ):
         # isolate QUERY_STRING
         fs_environ = environ.copy()
         fs_environ['QUERY_STRING'] = ''
-        return self._transcode_body(cgi.FieldStorage(fp=environ['wsgi.input'],
-                                                     environ=fs_environ,
-                                                     keep_blank_values=True))
+        fs = cgi.FieldStorage(fp=environ['wsgi.input'],
+                              environ=fs_environ,
+                              keep_blank_values=True)
 
-    def _transcode_body(self, fs):
         body = {}
         if fs.list:
             for field in fs.list:
                 if field.done == -1:
                     raise http.RequestTimeout()
-                field.name = unicode(field.name, 'utf-8')
+                field.name = self._decode(field.name)
                 if field.filename:
-                    field.filename = unicode(field.filename, 'utf-8')
+                    field.filename = self._decode(field.filename)
                     value = field
                 else:
-                    value = unicode(field.value, 'utf-8')
+                    value = self._decode(field.value)
                 if field.name in body:
                     body[field.name].append(value)
                 else:
@@ -734,6 +730,9 @@ class Request(object):
                 raise http.RequestTimeout()
             body = fs
         return body
+
+    def _decode(self, s):
+        return unicode(s, 'utf-8', 'replace')
 
     @property
     def session(self):

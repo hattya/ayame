@@ -32,7 +32,7 @@ import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, http, markup, model
+from ayame import basic, core, http, markup, model, uri
 from ayame.exception import (AyameError, ComponentError, Redirect,
                              RenderingError)
 
@@ -96,16 +96,17 @@ def test_simple_app():
     eq_(exc_info, None)
     eq_(body, xhtml)
 
-    # GET /page?{query in EUC-JP} -> InternalServerError
-    query = '\u3044\u308d\u306f'.encode('euc-jp')
+    # GET /page?{query in EUC-JP} -> OK
+    query = uri.quote('\u3044\u308d\u306f', encoding='euc-jp')
     status, headers, exc_info, body = wsgi_call(app.make_app(),
                                                 REQUEST_METHOD='GET',
                                                 PATH_INFO='/page',
                                                 QUERY_STRING=query)
-    eq_(status, http.InternalServerError.status)
-    eq_(headers, [])
-    ok_(exc_info)
-    eq_(body, [])
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(exc_info, None)
+    eq_(body, xhtml)
 
     # GET /int -> NotFound
     status, headers, exc_info, body = wsgi_call(app.make_app(),
