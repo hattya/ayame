@@ -1,7 +1,7 @@
 #
 # ayame.uri
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -39,7 +39,7 @@ def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
     return urllib.quote(util.to_bytes(s, encoding, errors),
                         util.to_bytes(safe, 'ascii', 'ignore'))
 
-def quote_plus(s, safe='', encoding='utf-8', errors='strict'):
+def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
     return urllib.quote_plus(util.to_bytes(s, encoding, errors),
                              util.to_bytes(safe, 'ascii', 'ignore'))
 

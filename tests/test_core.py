@@ -129,7 +129,7 @@ def test_simple_app():
 
     # GET /redir?greeting=Hallo+Welt! -> OK
     xhtml = xhtml.replace('Hello World!', 'Hallo Welt!')
-    query = 'greeting=Hallo+Welt!'.encode('utf-8')
+    query = uri.quote_plus('greeting=Hallo Welt!')
     status, headers, exc_info, body = wsgi_call(app.make_app(),
                                                 REQUEST_METHOD='GET',
                                                 PATH_INFO='/redir',

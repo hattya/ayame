@@ -1,7 +1,7 @@
 #
 # test_uri
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,8 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
-
 from nose.tools import eq_, ok_
 
 from ayame import uri
@@ -33,47 +31,47 @@ from ayame import uri
 
 def test_quote():
     v = uri.quote('a@example.com')
-    eq_(v, b'a@example.com')
-    ok_(isinstance(v, bytes))
+    eq_(v, 'a@example.com')
+    ok_(isinstance(v, str))
 
     v = uri.quote('/~a/cgi-bin/index.cgi')
-    eq_(v, b'/~a/cgi-bin/index.cgi')
-    ok_(isinstance(v, bytes))
+    eq_(v, '/~a/cgi-bin/index.cgi')
+    ok_(isinstance(v, str))
 
     v = uri.quote('/a/=/1')
-    eq_(v, b'/a/=/1')
-    ok_(isinstance(v, bytes))
+    eq_(v, '/a/=/1')
+    ok_(isinstance(v, str))
 
     # iroha in hiragana
-    v = uri.quote('/\u3044\u308d\u306f')
-    eq_(v, b'/%E3%81%84%E3%82%8D%E3%81%AF')
-    ok_(isinstance(v, bytes))
+    v = uri.quote(u'/\u3044\u308d\u306f')
+    eq_(v, '/%E3%81%84%E3%82%8D%E3%81%AF')
+    ok_(isinstance(v, str))
 
     v = uri.quote(0)
-    eq_(v, b'0')
-    ok_(isinstance(v, bytes))
+    eq_(v, '0')
+    ok_(isinstance(v, str))
 
     v = uri.quote(3.14)
-    eq_(v, b'3.14')
-    ok_(isinstance(v, bytes))
+    eq_(v, '3.14')
+    ok_(isinstance(v, str))
 
 def test_quote_plus():
     v = uri.quote_plus('a b c')
-    eq_(v, b'a+b+c')
-    ok_(isinstance(v, bytes))
+    eq_(v, 'a+b+c')
+    ok_(isinstance(v, str))
 
     v = uri.quote_plus('abc')
-    eq_(v, b'abc')
-    ok_(isinstance(v, bytes))
+    eq_(v, 'abc')
+    ok_(isinstance(v, str))
 
     # iroha in hiragana
-    v = uri.quote_plus('\u3044 \u308d \u306f')
-    eq_(v, b'%E3%81%84+%E3%82%8D+%E3%81%AF')
-    ok_(isinstance(v, bytes))
+    v = uri.quote_plus(u'\u3044 \u308d \u306f')
+    eq_(v, '%E3%81%84+%E3%82%8D+%E3%81%AF')
+    ok_(isinstance(v, str))
 
-    v = uri.quote_plus('\u3044\u308d\u306f')
-    eq_(v, b'%E3%81%84%E3%82%8D%E3%81%AF')
-    ok_(isinstance(v, bytes))
+    v = uri.quote_plus(u'\u3044\u308d\u306f')
+    eq_(v, '%E3%81%84%E3%82%8D%E3%81%AF')
+    ok_(isinstance(v, str))
 
 def test_application_uri():
     # SERVER_NAME and SERVER_PORT
