@@ -85,7 +85,7 @@ def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
         return s
     elif not isinstance(s, basestring):
-        s = str(s)
+        s = unicode(s)
     return s.encode(encoding, errors)
 
 def to_list(o):

@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 import cgi
 import collections
 import operator
@@ -39,29 +38,29 @@ __all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
            'ChoiceRenderer', 'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
 
 # HTML elements
-_BR = markup.QName(markup.XHTML_NS, 'br')
+_BR = markup.QName(markup.XHTML_NS, u'br')
 
-_FORM = markup.QName(markup.XHTML_NS, 'form')
-_INPUT = markup.QName(markup.XHTML_NS, 'input')
-_BUTTON = markup.QName(markup.XHTML_NS, 'button')
-_TEXTAREA = markup.QName(markup.XHTML_NS, 'textarea')
-_LABEL = markup.QName(markup.XHTML_NS, 'label')
-_SELECT = markup.QName(markup.XHTML_NS, 'select')
-_OPTION = markup.QName(markup.XHTML_NS, 'option')
+_FORM = markup.QName(markup.XHTML_NS, u'form')
+_INPUT = markup.QName(markup.XHTML_NS, u'input')
+_BUTTON = markup.QName(markup.XHTML_NS, u'button')
+_TEXTAREA = markup.QName(markup.XHTML_NS, u'textarea')
+_LABEL = markup.QName(markup.XHTML_NS, u'label')
+_SELECT = markup.QName(markup.XHTML_NS, u'select')
+_OPTION = markup.QName(markup.XHTML_NS, u'option')
 
 # HTML attributes
-_ID = markup.QName(markup.XHTML_NS, 'id')
-_CLASS = markup.QName(markup.XHTML_NS, 'class')
+_ID = markup.QName(markup.XHTML_NS, u'id')
+_CLASS = markup.QName(markup.XHTML_NS, u'class')
 
-_ACTION = markup.QName(markup.XHTML_NS, 'action')
-_METHOD = markup.QName(markup.XHTML_NS, 'method')
-_TYPE = markup.QName(markup.XHTML_NS, 'type')
-_NAME = markup.QName(markup.XHTML_NS, 'name')
-_VALUE = markup.QName(markup.XHTML_NS, 'value')
-_CHECKED = markup.QName(markup.XHTML_NS, 'checked')
-_FOR = markup.QName(markup.XHTML_NS, 'for')
-_MULTIPLE = markup.QName(markup.XHTML_NS, 'multiple')
-_SELECTED = markup.QName(markup.XHTML_NS, 'selected')
+_ACTION = markup.QName(markup.XHTML_NS, u'action')
+_METHOD = markup.QName(markup.XHTML_NS, u'method')
+_TYPE = markup.QName(markup.XHTML_NS, u'type')
+_NAME = markup.QName(markup.XHTML_NS, u'name')
+_VALUE = markup.QName(markup.XHTML_NS, u'value')
+_CHECKED = markup.QName(markup.XHTML_NS, u'checked')
+_FOR = markup.QName(markup.XHTML_NS, u'for')
+_MULTIPLE = markup.QName(markup.XHTML_NS, u'multiple')
+_SELECTED = markup.QName(markup.XHTML_NS, u'selected')
 
 class Form(core.MarkupContainer):
 
@@ -79,15 +78,15 @@ class Form(core.MarkupContainer):
                     self, "'method' attribute is required for 'form' element")
 
         # modify attributes
-        element.attrib[_ACTION] = unicode(uri.request_path(self.environ))
+        element.attrib[_ACTION] = uri.request_path(self.environ)
         element.attrib[_METHOD] = element.attrib[_METHOD].lower()
         # insert hidden field for marking
         div = markup.Element(markup.DIV)
-        div.attrib[_CLASS] = 'ayame-hidden'
+        div.attrib[_CLASS] = u'ayame-hidden'
         input = markup.Element(_INPUT, type=markup.Element.EMPTY)
-        input.attrib[_TYPE] = 'hidden'
-        input.attrib[_NAME] = unicode(core.AYAME_PATH)
-        input.attrib[_VALUE] = unicode(self.path())
+        input.attrib[_TYPE] = u'hidden'
+        input.attrib[_NAME] = core.AYAME_PATH
+        input.attrib[_VALUE] = self.path()
         div.children.append(input)
         element.children.insert(0, div)
         # render form
@@ -170,7 +169,7 @@ class FormComponent(core.MarkupContainer):
             current = current.parent
         if not isinstance(current, Form):
             raise ComponentError(self, 'component is not attached to Form')
-        return ':'.join(reversed(buf))
+        return u':'.join(reversed(buf))
 
     def validate(self, value):
         try:
@@ -233,14 +232,14 @@ class FileUploadField(FormComponent):
             raise RenderingError(self, "'input' element is expected")
 
         # modify attributes
-        element.attrib[_TYPE] = 'file'
+        element.attrib[_TYPE] = u'file'
         element.attrib[_NAME] = self.relative_path()
         # render file upload field
         return super(FileUploadField, self).on_render(element)
 
 class TextField(FormComponent):
 
-    input_type = 'text'
+    input_type = u'text'
 
     def on_render(self, element):
         if element.qname != _INPUT:
@@ -255,11 +254,11 @@ class TextField(FormComponent):
 
 class PasswordField(TextField):
 
-    input_type = 'password'
+    input_type = u'password'
 
 class HiddenField(TextField):
 
-    input_type = 'hidden'
+    input_type = u'hidden'
 
 class TextArea(FormComponent):
 
@@ -292,9 +291,9 @@ class CheckBox(FormComponent):
         checked = converter.to_python(self.model_object)
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
-        element.attrib[_VALUE] = 'on'
+        element.attrib[_VALUE] = u'on'
         if checked:
-            element.attrib[_CHECKED] = 'checked'
+            element.attrib[_CHECKED] = u'checked'
         # render checkbox
         return super(CheckBox, self).on_render(element)
 
@@ -341,7 +340,7 @@ class Choice(FormComponent):
 
     def _id_prefix_for(self, element):
         id = element.attrib.get(_ID)
-        return id if id else 'ayame-' + util.new_token()[:7]
+        return id if id else u'ayame-' + util.new_token()[:7]
 
     def render_element(self, element, index, choice):
         return element
@@ -350,7 +349,7 @@ class ChoiceRenderer(object):
 
     def label_for(self, object):
         label = object
-        return '' if label is None else label
+        return u'' if label is None else label
 
     def value_of(self, index, object):
         return unicode(index)
@@ -371,17 +370,17 @@ class RadioChoice(Choice):
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
-                id = '-'.join((id_prefix, unicode(index)))
+                id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
                 element.children += self.prefix
                 # radio button
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
-                input.attrib[_TYPE] = 'radio'
+                input.attrib[_TYPE] = u'radio'
                 input.attrib[_NAME] = name
                 input.attrib[_VALUE] = self.renderer.value_of(index, choice)
                 if choice == selected:
-                    input.attrib[_CHECKED] = 'checked'
+                    input.attrib[_CHECKED] = u'checked'
                 input = self.render_element(input, index, choice)
                 element.children.append(input)
                 # label
@@ -417,18 +416,18 @@ class CheckBoxChoice(Choice):
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
-                id = '-'.join((id_prefix, unicode(index)))
+                id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
                 element.children += self.prefix
                 # checkbox
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
-                input.attrib[_TYPE] = 'checkbox'
+                input.attrib[_TYPE] = u'checkbox'
                 input.attrib[_NAME] = name
                 input.attrib[_VALUE] = self.renderer.value_of(index, choice)
                 if (selected is not None and
                     is_selected(selected, choice)):
-                    input.attrib[_CHECKED] = 'checked'
+                    input.attrib[_CHECKED] = u'checked'
                 input = self.render_element(input, index, choice)
                 element.children.append(input)
                 # label
@@ -459,7 +458,7 @@ class SelectChoice(Choice):
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
         if self.multiple:
-            element.attrib[_MULTIPLE] = 'multiple'
+            element.attrib[_MULTIPLE] = u'multiple'
         elif _MULTIPLE in element.attrib:
             del element.attrib[_MULTIPLE]
         # clear children
@@ -477,7 +476,7 @@ class SelectChoice(Choice):
                 option.attrib[_VALUE] = self.renderer.value_of(index, choice)
                 if (selected is not None and
                     is_selected(selected, choice)):
-                    option.attrib[_SELECTED] = 'selected'
+                    option.attrib[_SELECTED] = u'selected'
                 option = self.render_element(option, index, choice)
                 # label
                 text = self.renderer.label_for(choice)

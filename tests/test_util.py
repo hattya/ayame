@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 import io
 import sys
 
@@ -131,16 +130,16 @@ def test_load_data():
 
 def test_to_bytes():
     # iroha in hiragana
-    v = util.to_bytes('\u3044\u308d\u306f')
+    v = util.to_bytes(u'\u3044\u308d\u306f')
     eq_(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
     ok_(isinstance(v, bytes))
 
-    v = util.to_bytes('\u3044\u308d\u306f', 'ascii', 'ignore')
+    v = util.to_bytes(u'\u3044\u308d\u306f', 'ascii', 'ignore')
     eq_(v, b'')
     ok_(isinstance(v, bytes))
 
     assert_raises(UnicodeEncodeError,
-                  util.to_bytes, '\u3044\u308d\u306f', 'ascii')
+                  util.to_bytes, u'\u3044\u308d\u306f', 'ascii')
 
     v = util.to_bytes(b'abc')
     eq_(v, b'abc')

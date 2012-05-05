@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 from contextlib import contextmanager
 import io
 import os
@@ -52,7 +51,7 @@ def test_simple_app():
     class SimplePage(core.Page):
         def __init__(self, request):
             super(SimplePage, self).__init__(request)
-            self.add(SessionLabel('greeting', 'Hello World!'))
+            self.add(SessionLabel('greeting', u'Hello World!'))
 
     class SessionLabel(basic.Label):
         def __init__(self, id, default):
@@ -87,6 +86,7 @@ def test_simple_app():
              '    <p>Hello World!</p>\n'
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
     status, headers, exc_info, content = wsgi_call(app.make_app(),
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/page')
@@ -128,7 +128,7 @@ def test_simple_app():
     eq_(content, [])
 
     # GET /redir?greeting=Hallo+Welt! -> OK
-    xhtml = xhtml.replace('Hello World!', 'Hallo Welt!')
+    xhtml = xhtml.replace(b'Hello World!', b'Hallo Welt!')
     query = uri.quote_plus('greeting=Hallo Welt!')
     status, headers, exc_info, content = wsgi_call(app.make_app(),
                                                    REQUEST_METHOD='GET',
@@ -1023,7 +1023,7 @@ def test_request():
             '--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': query.encode('utf-8'),
+               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
@@ -1037,62 +1037,62 @@ def test_request():
                             'z': ['-1', '-2', '-3']})
 
     # UTF-8
-    query = ('\u3044=\u58f1&'
-             '\u308d=\u58f1&'
-             '\u308d=\u5f10&'
-             '\u306f=\u58f1&'
-             '\u306f=\u5f10&'
-             '\u306f=\u53c2')
-    data = ('--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u3082"\r\n'
-            '\r\n'
-            '\u767e\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u305b"\r\n'
-            '\r\n'
-            '\u767e\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u305b"\r\n'
-            '\r\n'
-            '\u5343\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u3059"\r\n'
-            '\r\n'
-            '\u767e\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u3059"\r\n'
-            '\r\n'
-            '\u5343\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="\u3059"\r\n'
-            '\r\n'
-            '\u4e07\r\n'
-            '--ayame.core--\r\n')
+    query = (u'\u3044=\u58f1&'
+             u'\u308d=\u58f1&'
+             u'\u308d=\u5f10&'
+             u'\u306f=\u58f1&'
+             u'\u306f=\u5f10&'
+             u'\u306f=\u53c2')
+    data = (u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u3082"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u305b"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u305b"\r\n'
+            u'\r\n'
+            u'\u5343\r\n'
+            u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u5343\r\n'
+            u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u4e07\r\n'
+            u'--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': query.encode('utf-8'),
+               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {'\u3044': ['\u58f1'],
-                        '\u308d': ['\u58f1', '\u5f10'],
-                        '\u306f': ['\u58f1', '\u5f10', '\u53c2']})
-    eq_(request.form_data, {'\u3082': ['\u767e'],
-                            '\u305b': ['\u767e', '\u5343'],
-                            '\u3059': ['\u767e', '\u5343', '\u4e07']})
+    eq_(request.query, {u'\u3044': [u'\u58f1'],
+                        u'\u308d': [u'\u58f1', u'\u5f10'],
+                        u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+    eq_(request.form_data, {u'\u3082': [u'\u767e'],
+                            u'\u305b': [u'\u767e', u'\u5343'],
+                            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
     # filename
-    data = ('--ayame.core\r\n'
-            'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
-            'Content-Type: text/plain\r\n'
-            '\r\n'
-            'spam\n'
-            'eggs\n'
-            'ham\n'
-            '\r\n'
-            '--ayame.core--\r\n')
+    data = (u'--ayame.core\r\n'
+            u'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
+            u'Content-Type: text/plain\r\n'
+            u'\r\n'
+            u'spam\n'
+            u'eggs\n'
+            u'ham\n'
+            u'\r\n'
+            u'--ayame.core--\r\n')
     environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
@@ -1109,10 +1109,10 @@ def test_request():
 
     a = fields[0]
     eq_(a.name, 'a')
-    eq_(a.filename, '\u3044')
-    eq_(a.value, ('spam\n'
-                  'eggs\n'
-                  'ham\n'))
+    eq_(a.filename, u'\u3044')
+    eq_(a.value, (b'spam\n'
+                  b'eggs\n'
+                  b'ham\n'))
 
     # PUT
     data = ('spam\n'
@@ -1146,7 +1146,7 @@ def test_page():
     class SpamPage(core.Page):
         def __init__(self, request):
             super(SpamPage, self).__init__(request)
-            self.add(basic.Label('greeting', 'Hello World!'))
+            self.add(basic.Label('greeting', u'Hello World!'))
             self.headers['Content-Type'] = 'text/plain'
 
     xhtml = ('<?xml version="1.0"?>\n'
@@ -1160,6 +1160,7 @@ def test_page():
              '    <p>Hello World!</p>\n'
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
 
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET'}
@@ -1202,7 +1203,7 @@ def test_ignition_behavior():
     query = '{}=clay1'.format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET',
-               'QUERY_STRING': query.encode('utf-8')}
+               'QUERY_STRING': uri.quote(query)}
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -1211,10 +1212,11 @@ def test_ignition_behavior():
                             'clay2': 0})
 
     # duplicate ayame:path
-    query = '{0}=clay1&{0}=obstacle:clay2'.format(core.AYAME_PATH)
+    query = ('{0}=clay1&'
+             '{0}=obstacle:clay2').format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET',
-               'QUERY_STRING': query.encode('utf-8')}
+               'QUERY_STRING': uri.quote(query)}
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)

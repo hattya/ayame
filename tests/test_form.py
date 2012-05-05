@@ -24,14 +24,13 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 from contextlib import contextmanager
 from datetime import date
 import io
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import core, form, http, markup, model, validator
+from ayame import core, form, http, markup, model, uri, validator
 from ayame.exception import ComponentError, RenderingError, ValidationError
 
 
@@ -64,7 +63,7 @@ def test_form_error():
 
     # method is not found
     root = markup.Element(form._FORM)
-    root.attrib[form._ACTION] = '/'
+    root.attrib[form._ACTION] = u'/'
     f = form.Form('a')
     assert_raises(RenderingError, f.render, root)
 
@@ -79,7 +78,7 @@ def test_form_error():
                'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'QUERY_STRING': query.encode('utf-8')}
+               'QUERY_STRING': uri.quote(query)}
     with application(environ):
         request = core.Request(environ, {})
         f._method = 'POST'
@@ -92,7 +91,7 @@ def test_form_error():
                'REQUEST_METHOD': 'PUT',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'QUERY_STRING': query.encode('utf-8')}
+               'QUERY_STRING': uri.quote(query)}
     with application(environ):
         request = core.Request(environ, {})
         f._method = 'POST'
@@ -116,13 +115,13 @@ def test_form():
             super(SpamPage, self).__init__(request)
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.TextField('text'))
-            self.find('form:text').model_object = ''
+            self.find('form:text').model_object = u''
             self.find('form').add(form.PasswordField('password'))
-            self.find('form:password').model_object = ''
+            self.find('form:password').model_object = u''
             self.find('form').add(form.HiddenField('hidden'))
-            self.find('form:hidden').model_object = ''
+            self.find('form:hidden').model_object = u''
             self.find('form').add(form.TextArea('area'))
-            self.find('form:area').model_object = 'Hello World!'
+            self.find('form:area').model_object = u'Hello World!'
             self.find('form').add(form.CheckBox('checkbox'))
             self.find('form:checkbox').model_object = True
             self.find('form').add(form.FileUploadField('file'))
@@ -163,6 +162,7 @@ def test_form():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
+    xhtml = xhtml.encode('utf-8')
 
     # GET
     environ = {'wsgi.input': io.BytesIO(),
@@ -198,7 +198,7 @@ def test_form():
                'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'QUERY_STRING': query.encode('utf-8')}
+               'QUERY_STRING': uri.quote(query)}
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
@@ -262,7 +262,7 @@ def test_form():
     eq_(f.model_object['checkbox'], False)
     eq_(f.model_object['file'].name, 'file')
     eq_(f.model_object['file'].filename, 'a.txt')
-    eq_(f.model_object['file'].value, 'spam\neggs\nham\n')
+    eq_(f.model_object['file'].value, b'spam\neggs\nham\n')
     ok_(f.model_object['file'].file is not None)
     eq_(f.model_object['file'].type, 'text/plain')
     eq_(f.model_object['file'].type_options, {})
@@ -345,6 +345,7 @@ def test_radio_choice():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
+    xhtml = xhtml.encode('utf-8')
 
     # GET
     environ = {'wsgi.input': io.BytesIO(),
@@ -479,6 +480,7 @@ def test_checkbox_choice():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
+    xhtml = xhtml.encode('utf-8')
 
     # GET
     environ = {'wsgi.input': io.BytesIO(),
@@ -685,6 +687,7 @@ def test_select_choice():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS,
                                  path=core.AYAME_PATH)
+    xhtml = xhtml.encode('utf-8')
 
     # GET
     environ = {'wsgi.input': io.BytesIO(),
@@ -756,7 +759,7 @@ def test_select_choice():
     eq_(page.find('form').model_object, {'select': []})
 
     # GET (single)
-    xhtml = xhtml.replace(' multiple="multiple"', '')
+    xhtml = xhtml.replace(b' multiple="multiple"', b'')
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET',
                'SCRIPT_NAME': '',

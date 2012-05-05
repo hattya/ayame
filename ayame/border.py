@@ -1,7 +1,7 @@
 #
 # ayame.border
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -103,4 +103,4 @@ class Border(core.MarkupContainer):
 class _BorderBody(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        super(_BorderBody, self).__init__(id + '_body', model)
+        super(_BorderBody, self).__init__(id + u'_body', model)

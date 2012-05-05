@@ -212,7 +212,7 @@ class Rule(object):
         if anchor:
             buf.append('#')
             buf.append(uri.quote(anchor, encoding=self.map.encoding))
-        return ''.join(buf)
+        return u''.join(buf)
 
 class Map(object):
 
@@ -389,4 +389,4 @@ class _IntegerConverter(Converter):
             if self.digits < len(value):
                 raise ValidationError()
             return value
-        return str(value)
+        return unicode(value)

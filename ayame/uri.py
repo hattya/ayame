@@ -66,7 +66,7 @@ def application_uri(environ):
     # SCRIPT_NAME
     script_name = environ.get('SCRIPT_NAME')
     uri.append(quote(script_name) if script_name else '/')
-    return ''.join(uri)
+    return u''.join(uri)
 
 def request_uri(environ, query=False):
     uri = [application_uri(environ)]
@@ -81,7 +81,7 @@ def request_uri(environ, query=False):
         environ.get('QUERY_STRING')):
         uri.append('?')
         uri.append(environ['QUERY_STRING'])
-    return ''.join(uri)
+    return u''.join(uri)
 
 def request_path(environ):
     path = []
@@ -94,7 +94,7 @@ def request_path(environ):
         if not script_name:
             path_info = path_info[1:]
         path.append(quote(path_info))
-    return ''.join(path)
+    return u''.join(path)
 
 def is_relative_uri(uri):
     if uri == '':
@@ -118,4 +118,4 @@ def relative_uri(environ, uri):
             up += 1
     relative_uri = ['..'] * up
     relative_uri.append(uri)
-    return '/'.join(relative_uri)
+    return u'/'.join(relative_uri)

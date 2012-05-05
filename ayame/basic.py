@@ -82,7 +82,7 @@ class ListView(core.MarkupContainer):
 class _ListItem(core.MarkupContainer):
 
     def __init__(self, index, model):
-        super(_ListItem, self).__init__(str(index), model)
+        super(_ListItem, self).__init__(unicode(index), model)
         self.__index = index
 
     @property
@@ -125,12 +125,12 @@ class ContextImage(core.Component):
 
     def __init__(self, id, rel_path):
         super(ContextImage, self).__init__(id)
-        self.add(ContextPathGenerator('src', rel_path))
+        self.add(ContextPathGenerator(u'src', rel_path))
 
 class ContextCSS(core.Component):
 
     def __init__(self, id, rel_path):
         super(ContextCSS, self).__init__(id)
-        self.add(core.AttributeModifier('rel', _model.Model('stylesheet')))
-        self.add(core.AttributeModifier('type', _model.Model('text/css')))
-        self.add(ContextPathGenerator('href', rel_path))
+        self.add(core.AttributeModifier(u'rel', _model.Model(u'stylesheet')))
+        self.add(core.AttributeModifier(u'type', _model.Model(u'text/css')))
+        self.add(ContextPathGenerator(u'href', rel_path))

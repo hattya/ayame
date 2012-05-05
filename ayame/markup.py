@@ -24,7 +24,6 @@
 #   SOFTWARE.
 #
 
-from __future__ import unicode_literals
 from HTMLParser import HTMLParser
 from collections import deque, namedtuple
 import io
@@ -41,9 +40,9 @@ __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'MarkupType', 'Markup', 'Element', 'MarkupLoader', 'MarkupRenderer']
 
 # namespace URI
-XML_NS = 'http://www.w3.org/XML/1998/namespace'
-XHTML_NS = 'http://www.w3.org/1999/xhtml'
-AYAME_NS = 'http://hattya.github.com/ayame'
+XML_NS = u'http://www.w3.org/XML/1998/namespace'
+XHTML_NS = u'http://www.w3.org/1999/xhtml'
+AYAME_NS = u'http://hattya.github.com/ayame'
 
 # XML declaration
 _xml_decl_re = re.compile(r"""
@@ -67,8 +66,8 @@ _xml_decl_re = re.compile(r"""
 """, re.VERBOSE)
 
 # DOCTYPE of (X)HTML
-XHTML1_STRICT = ('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
-                 '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
+XHTML1_STRICT = (u'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
+                 u' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
 _xhtml1_strict_re = re.compile(
         'DOCTYPE\s+html\s+'
         'PUBLIC\s+"-//W3C//DTD XHTML 1.0 Strict//EN"\s+'
@@ -103,27 +102,27 @@ class QName(namedtuple('QName', 'ns_uri, name')):
     __slots__ = ()
 
     def __repr__(self):
-        return '{{{}}}{}'.format(*self)
+        return u'{{{}}}{}'.format(*self)
 
 # HTML elements
-HTML = QName(XHTML_NS, 'html')
-HEAD = QName(XHTML_NS, 'head')
-DIV = QName(XHTML_NS, 'div')
+HTML = QName(XHTML_NS, u'html')
+HEAD = QName(XHTML_NS, u'head')
+DIV = QName(XHTML_NS, u'div')
 
 # ayame elements
-AYAME_CONTAINER = QName(AYAME_NS, 'container')
-AYAME_ENCLOSURE = QName(AYAME_NS, 'enclosure')
-AYAME_EXTEND = QName(AYAME_NS, 'extend')
-AYAME_CHILD = QName(AYAME_NS, 'child')
-AYAME_PANEL = QName(AYAME_NS, 'panel')
-AYAME_BORDER = QName(AYAME_NS, 'border')
-AYAME_BODY = QName(AYAME_NS, 'body')
-AYAME_HEAD = QName(AYAME_NS, 'head')
-AYAME_REMOVE = QName(AYAME_NS, 'remove')
+AYAME_CONTAINER = QName(AYAME_NS, u'container')
+AYAME_ENCLOSURE = QName(AYAME_NS, u'enclosure')
+AYAME_EXTEND = QName(AYAME_NS, u'extend')
+AYAME_CHILD = QName(AYAME_NS, u'child')
+AYAME_PANEL = QName(AYAME_NS, u'panel')
+AYAME_BORDER = QName(AYAME_NS, u'border')
+AYAME_BODY = QName(AYAME_NS, u'body')
+AYAME_HEAD = QName(AYAME_NS, u'head')
+AYAME_REMOVE = QName(AYAME_NS, u'remove')
 
 # ayame attributes
-AYAME_ID = QName(AYAME_NS, 'id')
-#AYAME_CHILD = QName(AYAME_NS, 'child')
+AYAME_ID = QName(AYAME_NS, u'id')
+#AYAME_CHILD = QName(AYAME_NS, u'child')
 
 MarkupType = namedtuple('MarkupType', 'extension, mime_type')
 
@@ -194,7 +193,7 @@ class MarkupLoader(HTMLParser, object):
         self._text = None
         self._remove = False
 
-    def load(self, object, src, encoding='utf-8', lang='xhtml1'):
+    def load(self, object, src, encoding='utf-8', lang=u'xhtml1'):
         if isinstance(src, basestring):
             try:
                 fp = io.open(src, encoding=encoding)
@@ -282,21 +281,21 @@ class MarkupLoader(HTMLParser, object):
 
     def handle_charref(self, name):
         if 0 < self._ptr():
-            self._append_text(''.join(('&#', name, ';')))
+            self._append_text(u''.join(('&#', name, ';')))
 
     def handle_entityref(self, name):
         if 0 < self._ptr():
-            self._append_text(''.join(('&', name, ';')))
+            self._append_text(u''.join(('&', name, ';')))
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
-            self._markup.lang = 'xhtml1'
+            self._markup.lang = u'xhtml1'
             self._markup.doctype = XHTML1_STRICT
         elif _html_re.match(decl):
             raise MarkupError(self._object, self.getpos(),
                               'unsupported HTML version')
         else:
-            self._markup.doctype = ''.join(('<!', decl, '>'))
+            self._markup.doctype = u''.join(('<!', decl, '>'))
 
     def handle_pi(self, data):
         if data.startswith('xml '):
@@ -304,7 +303,7 @@ class MarkupLoader(HTMLParser, object):
             if not m:
                 raise MarkupError(self._object, self.getpos(),
                                   'malformed XML declaration')
-            self._markup.lang = 'xml'
+            self._markup.lang = u'xml'
 
             for k, v in m.groupdict().iteritems():
                 if v is None:
@@ -328,7 +327,7 @@ class MarkupLoader(HTMLParser, object):
             if impl is not None:
                 return self._cache.setdefault(name, impl)
         raise MarkupError(self._object, self.getpos(),
-                          "'{}' for '{}' document is not implemented"
+                          u"'{}' for '{}' document is not implemented"
                           .format(name, self._markup.lang))
 
     def _new_qname(self, name, ns=None):
@@ -346,7 +345,7 @@ class MarkupLoader(HTMLParser, object):
             if uri is None:
                 raise MarkupError(
                         self._object, self.getpos(),
-                        "unknown namespace prefix '{}'".format(prefix))
+                        u"unknown namespace prefix '{}'".format(prefix))
         else:
             uri = ns.get('', ns_uri_of(''))
             if uri is None:
@@ -374,7 +373,7 @@ class MarkupLoader(HTMLParser, object):
 
     def _flush_text(self):
         if self._text is not None:
-            self._peek().children.append(''.join(self._text))
+            self._peek().children.append(u''.join(self._text))
             self._text = None
 
     def _peek(self):
@@ -387,14 +386,14 @@ class MarkupLoader(HTMLParser, object):
     def _ptr(self):
         return len(self.__stack)
 
-    def new_xml_element(self, name, attrs, type=None, default_ns=''):
+    def new_xml_element(self, name, attrs, type=None, default_ns=u''):
         if type is None:
             type = Element.OPEN
         # gather xmlns
         xmlns = {}
         for n, v in tuple(attrs):
             if n == 'xmlns':
-                xmlns[''] = v
+                xmlns[u''] = v
             elif n.startswith('xmlns:'):
                 xmlns[n[6:]] = v
             else:
@@ -402,22 +401,23 @@ class MarkupLoader(HTMLParser, object):
             attrs.remove((n, v))
         if self._ptr() == 0:
             # declare xml ns
-            xmlns['xml'] = XML_NS
+            xmlns[u'xml'] = XML_NS
             # declare default ns
             if '' not in xmlns:
-                xmlns[''] = default_ns
+                xmlns[u''] = default_ns
 
         new_qname = self._new_qname
         element = Element(qname=new_qname(name, xmlns),
                           type=type,
                           ns=xmlns.copy())
         # convert attr name to qname
-        xmlns[''] = element.qname.ns_uri
+        xmlns[u''] = element.qname.ns_uri
         for n, v in attrs:
             qname = new_qname(n, xmlns)
             if qname in element.attrib:
-                raise MarkupError(self._object, self.getpos(),
-                                  "attribute '{}' already exist".format(qname))
+                raise MarkupError(
+                        self._object, self.getpos(),
+                        u"attribute '{}' already exist".format(qname))
             element.attrib[qname] = v
         return element
 
@@ -430,15 +430,15 @@ class MarkupLoader(HTMLParser, object):
     def xml_pop(self, qname):
         if (self._ptr() == 0 or
             self._peek().qname != qname):
-            raise MarkupError(
-                    self._object, self.getpos(),
-                    "end tag for element '{}' which is not open".format(qname))
+            raise MarkupError(self._object, self.getpos(),
+                              u"end tag for element '{}' which is not open"
+                              .format(qname))
         return self._pop()
 
     def xml_finish(self):
         if 0 < self._ptr():
             raise MarkupError(self._object, self.getpos(),
-                              "end tag for element '{}' omitted"
+                              u"end tag for element '{}' omitted"
                               .format(self._peek().qname))
 
     def new_xhtml1_element(self, name, attrs, type=None):
@@ -520,7 +520,7 @@ class MarkupRenderer(object):
                 self.render_text(index, node)
             else:
                 raise RenderingError(self._object,
-                                     "invalid type '{}'", type(node))
+                                     u"invalid type '{}'", type(node))
             # render end tag(s)
             while (0 < self._ptr() and
                    self._peek().pending == 0):
@@ -533,19 +533,19 @@ class MarkupRenderer(object):
             self._buffer.close()
 
     def render_xml_decl(self, xml_decl, encoding):
-        self._write('<?xml',
+        self._write(u'<?xml',
                     # VersionInfo
-                    ' version="', xml_decl.get('version', '1.0'), '"')
+                    u' version="', xml_decl.get('version', u'1.0'), u'"')
         # EncodingDecl
         encoding = xml_decl.get('encoding', encoding).upper()
         if (encoding != 'UTF-8' and
             'UTF-16' not in encoding):
-            self._write(' encoding="', encoding, '"')
+            self._write(u' encoding="', encoding, u'"')
         # SDDecl
         standalone = xml_decl.get('standalone')
         if standalone:
-            self._write(' standalone="', standalone, '"')
-        self._writeln('?>')
+            self._write(u' standalone="', standalone, u'"')
+        self._writeln(u'?>')
 
     def render_doctype(self, doctype):
         if self._lang == 'xml':
@@ -603,10 +603,10 @@ class MarkupRenderer(object):
     def _write(self, *args):
         write = self._buffer.write
         for s in args:
-            write(s)
+            write(s if isinstance(s, unicode) else unicode(s))
 
     def _writeln(self, *args):
-        self._write(*args + ('\n',))
+        self._write(*args + (u'\n',))
 
     def _impl_of(self, name):
         # from method cache
@@ -619,10 +619,9 @@ class MarkupRenderer(object):
             impl = getattr(self, decl.format(self._lang), None)
             if impl is not None:
                 return self._cache.setdefault(name, impl)
-        raise RenderingError(
-                self._object,
-                "'{}' for '{}' document is not implemented".format(name,
-                                                                   self._lang))
+        raise RenderingError(self._object,
+                             u"'{}' for '{}' document is not implemented"
+                             .format(name, self._lang))
 
     def _push(self, index, element, newline=0):
         self.__stack.append(_ElementState(index, element, newline))
@@ -655,13 +654,13 @@ class MarkupRenderer(object):
                 for prefix in element.ns:
                     if prefix in known_prefixes:
                         raise RenderingError(self._object,
-                                             "namespace URI for '{}' was "
-                                             "overwritten".format(prefix))
+                                             u"namespace URI for '{}' was "
+                                             u"overwritten".format(prefix))
                     elif element.ns[prefix] == ns_uri:
                         return prefix
                     known_prefixes.append(prefix)
         raise RenderingError(self._object,
-                             "unknown namespace URI '{}'".format(ns_uri))
+                             u"unknown namespace URI '{}'".format(ns_uri))
 
     def _compile_children(self, parent, element=True, text=True, space=True):
         compiled = parent.copy()
@@ -693,13 +692,13 @@ class MarkupRenderer(object):
                         if s:
                             if (not found and
                                 s != l):
-                                children.append('')
+                                children.append(u'')
                             t = s.rstrip()
                             children.append(t)
                             if t != s:
-                                children.append('')
+                                children.append(u'')
                         elif not found:
-                            children.append('')
+                            children.append(u'')
                     # calculate shift width
                     for l in lines[1:]:
                         s = l.lstrip()
@@ -711,7 +710,7 @@ class MarkupRenderer(object):
                             # 2+ spaces -> space
                             s = _space_re.sub(' ', s)
                             if 0 < cnt:
-                                l = ''.join((' ' * cnt, s))
+                                l = u''.join((' ' * cnt, s))
                             else:
                                 l = s
                         # mark text node index
@@ -722,7 +721,7 @@ class MarkupRenderer(object):
                         s = l.rstrip()
                         children.append(s)
                         if s != l:
-                            children.append('')
+                            children.append(u'')
             else:
                 raise RenderingError(self._object,
                                      "invalid type '{}'", type(node))
@@ -744,8 +743,8 @@ class MarkupRenderer(object):
                     return node
 
         def indent(off):
-            self._write('\n',
-                        ' ' * (self._indent * self._count(self._ptr() + off)))
+            self._write(u'\n',
+                        u' ' * (self._indent * self._count(self._ptr() + off)))
             return True
 
         if self._bol:
@@ -782,47 +781,47 @@ class MarkupRenderer(object):
             if current.newline & _ElementState.NEWLINE_TEXT:
                 return indent(0)
             else:
-                self._write(' ')
+                self._write(u' ')
 
     def render_xml_start_tag(self, index, element):
         prefix_for = self._prefix_for
 
         element_prefix = prefix_for(element.qname.ns_uri)
-        self._write('<')
+        self._write(u'<')
         if element_prefix != '':
-            self._write(element_prefix, ':')
+            self._write(element_prefix, u':')
         self._write(element.qname.name)
         # xmlns attributes
         for prefix in sorted(element.ns):
             ns_uri = element.ns[prefix]
             if ns_uri != XML_NS:
-                self._write(' xmlns')
+                self._write(u' xmlns')
                 if prefix != '':
-                    self._write(':', prefix)
-                self._write('="', ns_uri, '"')
+                    self._write(u':', prefix)
+                self._write(u'="', ns_uri, u'"')
         # attributes
         attrib = [(prefix_for(a.ns_uri), a.name, v)
                   for a, v in element.attrib.iteritems()]
         default_ns = False
         for prefix, name, value in sorted(attrib):
-            self._write(' ')
+            self._write(u' ')
             if prefix == '':
                 default_ns = True
             elif prefix != element_prefix:
-                self._write(prefix, ':')
+                self._write(prefix, u':')
             elif (default_ns and
                   prefix == element_prefix):
                 raise RenderingError(self._object,
                                      'cannot combine with default namespace')
-            self._write(name, '="', value, '"')
-        self._write('/>' if element.type == Element.EMPTY else '>')
+            self._write(name, u'="', value, u'"')
+        self._write(u'/>' if element.type == Element.EMPTY else u'>')
 
     def render_xml_end_tag(self, element):
         prefix = self._prefix_for(element.qname.ns_uri)
-        self._write('</')
+        self._write(u'</')
         if prefix != '':
-            self._write(prefix, ':')
-        self._write(element.qname.name, '>')
+            self._write(prefix, u':')
+        self._write(element.qname.name, u'>')
 
     def render_xml_text(self, index, text):
         self._write(text)
@@ -833,8 +832,8 @@ class MarkupRenderer(object):
             for prefix in tuple(element.ns):
                 if element.ns[prefix] in (XML_NS, XHTML_NS):
                     del element.ns[prefix]
-            element.ns['xml'] = XML_NS
-            element.ns[''] = XHTML_NS
+            element.ns[u'xml'] = XML_NS
+            element.ns[u''] = XHTML_NS
         # force element type as OPEN
         if element.type != Element.EMPTY:
             element.type = Element.OPEN
@@ -846,7 +845,7 @@ class MarkupRenderer(object):
         for attr in element.attrib:
             if element.attrib[attr] is None:
                 raise RenderingError(self._object,
-                                     "'{}' attribute is None".format(attr))
+                                     u"'{}' attribute is None".format(attr))
         return self.render_xml_start_tag(index, element)
 
     render_xhtml1_end_tag = render_xml_end_tag
