@@ -46,7 +46,7 @@ XHTML_NS = 'http://www.w3.org/1999/xhtml'
 AYAME_NS = 'http://hattya.github.com/ayame'
 
 # XML declaration
-_xml_decl_re = re.compile(r'''
+_xml_decl_re = re.compile(r"""
     xml
     # VersionInfo
     \s*
@@ -64,7 +64,7 @@ _xml_decl_re = re.compile(r'''
     \s*
     \?
     \Z
-''', re.VERBOSE)
+""", re.VERBOSE)
 
 # DOCTYPE of (X)HTML
 XHTML1_STRICT = ('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '

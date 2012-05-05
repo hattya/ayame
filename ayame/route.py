@@ -35,7 +35,7 @@ from ayame.exception import RouteError, RequestSlash, ValidationError
 
 __all__ = ['Rule', 'Map', 'Router', 'Converter']
 
-_rule_re = re.compile(r'''
+_rule_re = re.compile(r"""
     (?P<static>[^<]*)
     <
         (?:
@@ -45,7 +45,7 @@ _rule_re = re.compile(r'''
         )?
         (?P<variable>[a-zA-Z][a-zA-Z0-9_-]*)
     >
-''', re.VERBOSE)
+""", re.VERBOSE)
 _simple_rule_re = re.compile(r'<([^>]+)>')
 
 class Rule(object):

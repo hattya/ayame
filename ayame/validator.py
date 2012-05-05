@@ -37,14 +37,14 @@ __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
 # from RFC 1035 and RFC 2822
 _atext = "[A-Z0-9!#$%&'*+\-/=?^_`{|}~]"
 _label = '(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
-_email = r'''
+_email = r"""
     # local part
     {atext}+(?:\.{atext}+)*
     @
     # domain
     {label}(?:\.{label})*
     \Z
-'''.format(atext=_atext,
+""".format(atext=_atext,
            label=_label)
 
 # from RFC 3986
@@ -53,7 +53,7 @@ _unreserved = '[A-Z0-9\-._~]'
 _sub_delims = "[!$&'()*+,;=]"
 _pchar = '(?:{}|{}|{}|[:@])'.format(_unreserved, _pct_encoded, _sub_delims)
 _ipv4 = '(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-_url = r'''
+_url = r"""
     # scheme
     (?:https?|ftp) : //
     # authority
@@ -84,7 +84,7 @@ _url = r'''
         \# (?:{pchar}|[/?])*
     )?
     \Z
-'''.format(unreserved=_unreserved,
+""".format(unreserved=_unreserved,
            pct_encoded=_pct_encoded,
            sub_delims=_sub_delims,
            label=_label,

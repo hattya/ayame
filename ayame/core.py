@@ -114,8 +114,8 @@ class Ayame(object):
             request = self.config['ayame.class.Request'](environ, values)
             for _ in xrange(self.config['ayame.max.redirect']):
                 try:
-                    status, headers, body = self.handle_request(object,
-                                                                request)
+                    status, headers, content = self.handle_request(object,
+                                                                   request)
                 except Redirect as r:
                     object = r.args[0]
                 else:
@@ -125,7 +125,7 @@ class Ayame(object):
                                  'redirects')
             exc_info = None
         except Exception as e:
-            status, headers, body = self.handle_error(e)
+            status, headers, content = self.handle_error(e)
             exc_info = sys.exc_info()
         finally:
             _local._router = None
@@ -133,7 +133,7 @@ class Ayame(object):
             _local.app = None
 
         start_response(status, headers, exc_info)
-        return body
+        return content
 
     def handle_request(self, object, request):
         if isinstance(object, type):
@@ -145,15 +145,15 @@ class Ayame(object):
     def handle_error(self, e):
         if isinstance(e, http.HTTPError):
             status = e.status
-            body = e.html()
+            content = e.html()
             headers = list(e.headers)
             headers.append(('Content-Type', 'text/html; charset=UTF-8'))
-            headers.append(('Content-Length', str(len(body))))
+            headers.append(('Content-Length', str(len(content))))
         else:
             status = http.InternalServerError.status
             headers = []
-            body = []
-        return status, headers, body
+            content = []
+        return status, headers, content
 
 class Component(object):
 
@@ -192,7 +192,7 @@ class Component(object):
                 not isinstance(model, _model.Model)):
                 self.__model = None
                 raise ComponentError(
-                        self, '{!r} is not an instance of Model'.format(model))
+                        self, '{!r} is not instance of Model'.format(model))
             # update model
             prev = self.__model
             self.__model = model
@@ -674,13 +674,13 @@ class Page(MarkupContainer):
                 del m.root.ns[prefix]
         # render markup
         renderer = self.config['ayame.class.MarkupRenderer']()
-        body = renderer.render(self, m,
-                               pretty=self.config['ayame.markup.pretty'])
+        content = renderer.render(self, m,
+                                  pretty=self.config['ayame.markup.pretty'])
         # HTTP headers
         mime_type = self.markup_type.mime_type
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
-        self.headers['Content-Length'] = str(len(body))
-        return http.OK.status, self.__headers, body
+        self.headers['Content-Length'] = str(len(content))
+        return http.OK.status, self.__headers, content
 
 class Request(object):
 

@@ -172,11 +172,11 @@ def test_form():
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
     f = page.find('form')
     eq_(f.model_object['text'], '')
     eq_(f.model_object['password'], '')
@@ -213,7 +213,7 @@ def test_form():
     eq_(f.model_object['button'], 'submitted')
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -245,7 +245,7 @@ def test_form():
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -354,15 +354,15 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
     eq_(page.find('form').model_object, {'radio': choices[0]})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -371,7 +371,7 @@ def test_radio_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -383,12 +383,12 @@ def test_radio_choice():
     eq_(page.find('form').model_object, {'radio': choices[2]})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -400,7 +400,7 @@ def test_radio_choice():
     eq_(page.find('form').model_object, {'radio': None})
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -409,7 +409,7 @@ def test_radio_choice():
             '\r\n'
             '-1\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -420,7 +420,7 @@ def test_radio_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -429,7 +429,7 @@ def test_radio_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -488,15 +488,15 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -521,7 +521,7 @@ def test_checkbox_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -533,12 +533,12 @@ def test_checkbox_choice():
     eq_(page.find('form').model_object, {'checkbox': choices})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -550,7 +550,7 @@ def test_checkbox_choice():
     eq_(page.find('form').model_object, {'checkbox': []})
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -575,7 +575,7 @@ def test_checkbox_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -586,7 +586,7 @@ def test_checkbox_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -603,7 +603,7 @@ def test_checkbox_choice():
             '\r\n'
             '3\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -614,7 +614,7 @@ def test_checkbox_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -623,7 +623,7 @@ def test_checkbox_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -634,12 +634,12 @@ def test_checkbox_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -694,15 +694,15 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
     eq_(page.find('form').model_object, {'select': [choices[1]]})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -727,7 +727,7 @@ def test_select_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -739,12 +739,12 @@ def test_select_choice():
     eq_(page.find('form').model_object, {'select': choices})
 
     # POST
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -767,20 +767,20 @@ def test_select_choice():
         select = page.find('form:select')
         select.model_object = select.model_object[0]
         select.multiple = False
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
     eq_(page.find('form').model_object, {'select': choices[1]})
 
     # POST (single)
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -795,7 +795,7 @@ def test_select_choice():
     eq_(page.find('form').model_object, {'select': None})
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -820,7 +820,7 @@ def test_select_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -831,7 +831,7 @@ def test_select_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -848,7 +848,7 @@ def test_select_choice():
             '\r\n'
             '3\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -859,7 +859,7 @@ def test_select_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
@@ -868,7 +868,7 @@ def test_select_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
@@ -879,12 +879,12 @@ def test_select_choice():
         assert_raises(ValidationError, page.render)
 
     # validation error
-    body = ('--ayame.form\r\n'
+    data = ('--ayame.form\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',

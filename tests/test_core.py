@@ -45,8 +45,8 @@ def wsgi_call(application, **kwargs):
 
     environ = dict(kwargs)
     wsgiref.util.setup_testing_defaults(environ)
-    data = application(environ, start_response)
-    return wsgi['status'], wsgi['headers'], wsgi['exc_info'], data
+    content = application(environ, start_response)
+    return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
 
 def test_simple_app():
     class SimplePage(core.Page):
@@ -87,58 +87,58 @@ def test_simple_app():
              '    <p>Hello World!</p>\n'
              '  </body>\n'
              '</html>\n').format(xhtml=markup.XHTML_NS)
-    status, headers, exc_info, body = wsgi_call(app.make_app(),
-                                                REQUEST_METHOD='GET',
-                                                PATH_INFO='/page')
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/page')
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(exc_info, None)
-    eq_(body, xhtml)
+    eq_(content, xhtml)
 
     # GET /page?{query in EUC-JP} -> OK
     query = uri.quote('\u3044\u308d\u306f', encoding='euc-jp')
-    status, headers, exc_info, body = wsgi_call(app.make_app(),
-                                                REQUEST_METHOD='GET',
-                                                PATH_INFO='/page',
-                                                QUERY_STRING=query)
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/page',
+                                                   QUERY_STRING=query)
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(exc_info, None)
-    eq_(body, xhtml)
+    eq_(content, xhtml)
 
     # GET /int -> NotFound
-    status, headers, exc_info, body = wsgi_call(app.make_app(),
-                                                REQUEST_METHOD='GET',
-                                                PATH_INFO='/int')
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/int')
     eq_(status, http.NotFound.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', '263')])
     ok_(exc_info)
-    ok_(body)
+    ok_(content)
 
     # GET /redir -> InternalServerError
-    status, headers, exc_info, body = wsgi_call(app.make_app(),
-                                                REQUEST_METHOD='GET',
-                                                PATH_INFO='/redir')
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/redir')
     eq_(status, http.InternalServerError.status)
     eq_(headers, [])
     ok_(exc_info)
-    eq_(body, [])
+    eq_(content, [])
 
     # GET /redir?greeting=Hallo+Welt! -> OK
     xhtml = xhtml.replace('Hello World!', 'Hallo Welt!')
     query = uri.quote_plus('greeting=Hallo Welt!')
-    status, headers, exc_info, body = wsgi_call(app.make_app(),
-                                                REQUEST_METHOD='GET',
-                                                PATH_INFO='/redir',
-                                                QUERY_STRING=query)
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/redir',
+                                                   QUERY_STRING=query)
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(exc_info, None)
-    eq_(body, xhtml)
+    eq_(content, xhtml)
 
 @contextmanager
 def application():
@@ -976,7 +976,7 @@ def test_request():
     eq_(request.form_data, {})
     eq_(request.session, {})
 
-    # message body is empty
+    # form data is empty
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
@@ -996,7 +996,7 @@ def test_request():
              'c=1&'
              'c=2&'
              'c=3')
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="x"\r\n'
             '\r\n'
             '-1\r\n'
@@ -1021,7 +1021,7 @@ def test_request():
             '\r\n'
             '-3\r\n'
             '--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': query.encode('utf-8'),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
@@ -1043,7 +1043,7 @@ def test_request():
              '\u306f=\u58f1&'
              '\u306f=\u5f10&'
              '\u306f=\u53c2')
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="\u3082"\r\n'
             '\r\n'
             '\u767e\r\n'
@@ -1068,7 +1068,7 @@ def test_request():
             '\r\n'
             '\u4e07\r\n'
             '--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': query.encode('utf-8'),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
@@ -1084,7 +1084,7 @@ def test_request():
                             '\u3059': ['\u767e', '\u5343', '\u4e07']})
 
     # filename
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
             'Content-Type: text/plain\r\n'
             '\r\n'
@@ -1093,7 +1093,7 @@ def test_request():
             'ham\n'
             '\r\n'
             '--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
@@ -1115,14 +1115,14 @@ def test_request():
                   'ham\n'))
 
     # PUT
-    body = ('spam\n'
+    data = ('spam\n'
             'eggs\n'
             'ham\n')
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'PUT',
                'QUERY_STRING': '',
                'CONTENT_TYPE': 'text/plain',
-               'CONTENT_LENGTH': str(len(body))}
+               'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'PUT')
@@ -1133,10 +1133,10 @@ def test_request():
                                b'ham\n'))
 
     # 408 Request Timeout
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="a"\r\n'
             'Content-Type: text/plain\r\n')
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
@@ -1166,7 +1166,7 @@ def test_page():
     with application():
         request = core.Request(environ, {})
         page = SpamPage(request)
-        status, headers, body = page.render()
+        status, headers, content = page.render()
     eq_(page.page(), page)
     eq_(page.find('greeting').page(), page)
     eq_(page.path(), '')
@@ -1174,7 +1174,7 @@ def test_page():
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
-    eq_(body, xhtml)
+    eq_(content, xhtml)
 
 def test_ignition_behavior():
     class EggsPage(core.Page):
@@ -1221,12 +1221,12 @@ def test_ignition_behavior():
         assert_raises(RenderingError, page.render)
 
     # POST
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
             'obstacle:clay2\r\n'
             '--ayame.core--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
     with application():
@@ -1237,7 +1237,7 @@ def test_ignition_behavior():
                             'clay2': 1})
 
     # duplicate ayame:path
-    body = ('--ayame.core\r\n'
+    data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="{0}"\r\n'
             '\r\n'
             'clay1\r\n'
@@ -1246,7 +1246,7 @@ def test_ignition_behavior():
             '\r\n'
             'obstacle:clay2\r\n'
             '--ayame.core--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(body.encode('utf-8')),
+    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
     with application():
