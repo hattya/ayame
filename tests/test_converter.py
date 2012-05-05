@@ -195,7 +195,10 @@ def test_float():
 def test_int():
     c = converter.IntegerConverter()
 
-    eq_(c.type, (long, int))
+    if sys.hexversion < 0x03000000:
+        eq_(c.type, (long, int))
+    else:
+        eq_(c.type, int)
     ok_(isinstance(int(0), c.type))
     ok_(isinstance(long(0), c.type))
 

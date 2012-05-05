@@ -4,7 +4,23 @@
 #
 
 from __future__ import print_function
+try:
+    from distutils.command.build_py import build_py_2to3 as build_py
+except ImportError:
+    from distutils.command.build_py import build_py
+from distutils.command.clean import clean as _clean
 from distutils.core import setup, Command
+from distutils.dir_util import remove_tree
+try:
+    from distutils.util import Mixin2to3
+except ImportError:
+    class Mixin2to3:
+        def run_2to3(self, files):
+            pass
+try:
+    from imp import reload
+except ImportError:
+    pass
 import os
 import subprocess
 import sys
@@ -89,7 +105,22 @@ try:
 except ImportError:
     version = 'unknown'
 
-class test(Command):
+class clean(_clean):
+
+    def initialize_options(self):
+        _clean.initialize_options(self)
+        self.build_tests = None
+
+    def finalize_options(self):
+        _clean.finalize_options(self)
+        self.set_undefined_options('test', ('build_tests', 'build_tests'))
+
+    def run(self):
+        if os.path.exists(self.build_tests):
+            remove_tree(self.build_tests)
+        _clean.run(self)
+
+class test(Command, Mixin2to3):
 
     description = 'run unit tests using nose'
     user_options = [('build-tests=', 'd', 'directory to "test" (copy) to')]
@@ -114,22 +145,31 @@ class test(Command):
         # load modules from build-lib
         sys.path.insert(0, os.path.abspath(self.build_lib))
         reload(ayame)
-
+        # 2to3
+        test_files = []
         for root, dirs, files in os.walk('tests'):
+            if '__pycache__' in dirs:
+                dirs.remove('__pycache__')
             self.mkpath(os.path.join(self.build_base, root))
             for f in files:
                 ext = os.path.splitext(f)[1].lower()
                 if ext not in ('.py', '.txt', '.html'):
                     continue
                 path = os.path.join(root, f)
-                self.copy_file(path, os.path.join(self.build_base, path))
+                rv = self.copy_file(path, os.path.join(self.build_base, path))
+                if (rv[1] and
+                    ext == '.py'):
+                    test_files.append(rv[0])
+        self.run_2to3(test_files)
         # run nose
         nose.run(argv=['test', '-w', self.build_tests])
 
 packages = ['ayame']
 package_data = {'ayame': []}
 
-cmdclass = {'test': test}
+cmdclass = {'build_py': build_py,
+            'clean': clean,
+            'test': test}
 
 setup(name='ayame',
       version=version,

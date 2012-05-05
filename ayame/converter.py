@@ -168,9 +168,14 @@ class FloatConverter(Converter):
 
 class IntegerConverter(Converter):
 
-    @property
-    def type(self):
-        return (long, int)
+    if sys.hexversion < 0x03000000:
+        @property
+        def type(self):
+            return (long, int)
+    else:
+        @property
+        def type(self):
+            return int
 
     def to_python(self, value):
         try:

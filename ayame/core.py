@@ -700,8 +700,11 @@ class Request(object):
             return {}
 
         qs = urlparse.parse_qs(qs, keep_blank_values=True)
-        return dict((self._decode(k), [self._decode(s) for s in v])
-                    for k, v in qs.iteritems())
+        if sys.hexversion < 0x03000000:
+            return dict((self._decode(k), [self._decode(s) for s in v])
+                        for k, v in qs.iteritems())
+        else:
+            return qs
 
     def _parse_form_data(self, environ):
         ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
@@ -733,8 +736,12 @@ class Request(object):
                     form_data[field.name] = [value]
         return form_data
 
-    def _decode(self, s):
-        return unicode(s, 'utf-8', 'replace')
+    if sys.hexversion < 0x03000000:
+        def _decode(self, s):
+            return unicode(s, 'utf-8', 'replace')
+    else:
+        def _decode(self, s):
+            return s
 
     @property
     def input(self):

@@ -91,7 +91,8 @@ def test_form_error():
                'REQUEST_METHOD': 'PUT',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'QUERY_STRING': uri.quote(query)}
+               'QUERY_STRING': uri.quote(query),
+               'CONTENT_LENGTH': '0'}
     with application(environ):
         request = core.Request(environ, {})
         f._method = 'POST'
@@ -103,7 +104,8 @@ def test_form_error():
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
-               'PATH_INFO': '/form'}
+               'PATH_INFO': '/form',
+               'CONTENT_LENGTH': '0'}
     with application(environ):
         request = core.Request(environ, {})
         f._method = 'POST'
@@ -245,11 +247,13 @@ def test_form():
             'Content-Disposition: form-data; name="button"\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
@@ -372,11 +376,13 @@ def test_radio_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -389,11 +395,13 @@ def test_radio_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -410,11 +418,13 @@ def test_radio_choice():
             '\r\n'
             '-1\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -430,11 +440,13 @@ def test_radio_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -523,11 +535,13 @@ def test_checkbox_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -540,11 +554,13 @@ def test_checkbox_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -577,11 +593,13 @@ def test_checkbox_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -605,11 +623,13 @@ def test_checkbox_choice():
             '\r\n'
             '3\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -625,11 +645,13 @@ def test_checkbox_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -641,11 +663,13 @@ def test_checkbox_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
@@ -730,11 +754,13 @@ def test_select_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -747,11 +773,13 @@ def test_select_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -783,11 +811,13 @@ def test_select_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -823,11 +853,13 @@ def test_select_choice():
             '\r\n'
             '2\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -851,11 +883,13 @@ def test_select_choice():
             '\r\n'
             '3\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -871,11 +905,13 @@ def test_select_choice():
             '\r\n'
             '\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
@@ -887,11 +923,13 @@ def test_select_choice():
             '\r\n'
             'form\r\n'
             '--ayame.form--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
+               'CONTENT_LENGTH': str(len(data))}
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)

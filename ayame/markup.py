@@ -28,6 +28,7 @@ from HTMLParser import HTMLParser
 from collections import deque, namedtuple
 import io
 import re
+import sys
 
 from ayame import util
 from ayame.exception import MarkupError, RenderingError
@@ -600,10 +601,16 @@ class MarkupRenderer(object):
             self._impl_of('render_text')(index, text)
             self._bol = False
 
-    def _write(self, *args):
-        write = self._buffer.write
-        for s in args:
-            write(s if isinstance(s, unicode) else unicode(s))
+    if sys.hexversion < 0x03000000:
+        def _write(self, *args):
+            write = self._buffer.write
+            for s in args:
+                write(s if isinstance(s, unicode) else unicode(s))
+    else:
+        def _write(self, *args):
+            write = self._buffer.write
+            for s in args:
+                write(s)
 
     def _writeln(self, *args):
         self._write(*args + (u'\n',))

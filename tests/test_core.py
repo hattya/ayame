@@ -967,6 +967,7 @@ def test_request():
     # QUERY_STRING and CONTENT_TYPE are empty
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
+               'CONTENT_LENGTH': '0',
                'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
@@ -980,6 +981,7 @@ def test_request():
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': '0',
                'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
@@ -1021,10 +1023,12 @@ def test_request():
             '\r\n'
             '-3\r\n'
             '--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': uri.quote(query),
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
@@ -1068,10 +1072,12 @@ def test_request():
             u'\r\n'
             u'\u4e07\r\n'
             u'--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': uri.quote(query),
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
@@ -1093,10 +1099,12 @@ def test_request():
             u'ham\n'
             u'\r\n'
             u'--ayame.core--\r\n')
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
@@ -1118,7 +1126,8 @@ def test_request():
     data = ('spam\n'
             'eggs\n'
             'ham\n')
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'PUT',
                'QUERY_STRING': '',
                'CONTENT_TYPE': 'text/plain',
@@ -1136,10 +1145,12 @@ def test_request():
     data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="a"\r\n'
             'Content-Type: text/plain\r\n')
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
                'QUERY_STRING': '',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data) + 1)}
     assert_raises(http.RequestTimeout, core.Request, environ, {})
 
 def test_page():
@@ -1228,9 +1239,11 @@ def test_ignition_behavior():
             '\r\n'
             'obstacle:clay2\r\n'
             '--ayame.core--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data))}
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
@@ -1248,9 +1261,11 @@ def test_ignition_behavior():
             '\r\n'
             'obstacle:clay2\r\n'
             '--ayame.core--\r\n').format(core.AYAME_PATH)
-    environ = {'wsgi.input': io.BytesIO(data.encode('utf-8')),
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core'}
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
+               'CONTENT_LENGTH': str(len(data))}
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)

@@ -26,6 +26,7 @@
 
 from abc import ABCMeta, abstractmethod
 import re
+import sys
 
 from ayame import core, markup
 from ayame.exception import ValidationError
@@ -142,12 +143,16 @@ class RangeValidator(Validator):
                    object <= self.max)):
             raise ValidationError()
 
-    def typeof(self, object):
-        if isinstance(object, (long, int)):
-            return (long, int)
-        elif isinstance(object, basestring):
-            return basestring
-        return type(object)
+    if sys.hexversion < 0x03000000:
+        def typeof(self, object):
+            if isinstance(object, (long, int)):
+                return (long, int)
+            elif isinstance(object, basestring):
+                return basestring
+            return type(object)
+    else:
+        def typeof(self, object):
+            return type(object)
 
 class StringValidator(RangeValidator):
 

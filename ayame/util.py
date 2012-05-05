@@ -36,13 +36,18 @@ from ayame.exception import ResourceError
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list' 'FilterDict']
 
+if sys.hexversion < 0x03000000:
+    builtins = '__builtin__'
+else:
+    builtins = 'builtins'
+
 def fqon_of(object):
     if not hasattr(object, '__name__'):
         object = object.__class__
     if hasattr(object, '__module__'):
         if object.__module__ is None:
             return '.'.join(('<unknown>', object.__name__))
-        elif object.__module__ != '__builtin__':
+        elif object.__module__ != builtins:
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
 
@@ -91,13 +96,14 @@ def to_bytes(s, encoding='utf-8', errors='strict'):
 def to_list(o):
     if o is None:
         return []
-    elif hasattr(o, '__iter__'):
+    elif (not isinstance(o, basestring) and
+          hasattr(o, '__iter__')):
         return list(o)
     return [o]
 
 def new_token(algorithm='sha1'):
     m = hashlib.new(algorithm)
-    m.update(str(random.random()))
+    m.update(str(random.random()).encode())
     return m.hexdigest()
 
 class FilterDict(dict):
@@ -135,8 +141,9 @@ class FilterDict(dict):
     def get(self, key, *args):
         return super(FilterDict, self).get(self.__convert__(key), *args)
 
-    def has_key(self, key):
-        return self.__contains__(key)
+    if sys.hexversion < 0x03000000:
+        def has_key(self, key):
+            return self.__contains__(key)
 
     def pop(self, key, *args):
         return super(FilterDict, self).pop(self.__convert__(key), *args)
