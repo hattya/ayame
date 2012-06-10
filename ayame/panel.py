@@ -1,7 +1,7 @@
 #
 # ayame.panel
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -37,22 +37,14 @@ class Panel(core.MarkupContainer):
         self.render_body_only = True
 
     def on_render(self, element):
-        push_children = self._push_children
-
-        def walk(root):
-            queue = self._new_queue(root)
-            while queue:
-                parent, index, element = queue.pop()
-                if element.qname in (markup.AYAME_PANEL, markup.AYAME_HEAD):
-                    yield parent, index, element
-                else:
-                    push_children(queue, element)
+        def step(element, depth):
+            return element.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
         html = 'html' in m.lang
         ayame_panel = ayame_head = None
-        for parent, index, element in walk(m.root):
+        for element, depth in m.root.walk(step=step):
             if element.qname == markup.AYAME_PANEL:
                 if ayame_panel is None:
                     ayame_panel = element

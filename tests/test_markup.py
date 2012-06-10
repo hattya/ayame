@@ -57,6 +57,52 @@ def test_element():
     eq_(eggs.ns, {'': 'spam'})
     eq_(repr(eggs.qname), '{spam}eggs')
 
+    # walk
+    root = markup.Element(markup.QName('', 'root'),
+                          attrib={markup.AYAME_ID: 'root'})
+    it = root.walk()
+    eq_(next(it), (root, 0))
+    assert_raises(StopIteration, next, it)
+
+    a1 = markup.Element(markup.QName('', 'a1'))
+    root.children.append(a1)
+    a2 = markup.Element(markup.QName('', 'a2'),
+                        attrib={markup.AYAME_ID: 'a2'})
+    root.children.append(a2)
+    it = root.walk()
+    eq_(next(it), (root, 0))
+    eq_(next(it), (a1, 1))
+    eq_(next(it), (a2, 1))
+    assert_raises(StopIteration, next, it)
+
+    a1_b1 = markup.Element(markup.QName('', 'b1'))
+    a1.children.append(a1_b1)
+    a1_b2 = markup.Element(markup.QName('', 'b2'),
+                           attrib={markup.AYAME_ID: 'b2'})
+    a1.children.append(a1_b2)
+    a2_b1 = markup.Element(markup.QName('', 'b1'))
+    a2.children.append(a2_b1)
+    a2_b2 = markup.Element(markup.QName('', 'b2'),
+                           attrib={markup.AYAME_ID: 'b2'})
+    a2.children.append(a2_b2)
+    it = root.walk()
+    eq_(next(it), (root, 0))
+    eq_(next(it), (a1, 1))
+    eq_(next(it), (a1_b1, 2))
+    eq_(next(it), (a1_b2, 2))
+    eq_(next(it), (a2, 1))
+    eq_(next(it), (a2_b1, 2))
+    eq_(next(it), (a2_b2, 2))
+    assert_raises(StopIteration, next, it)
+
+    it = root.walk(step=lambda element, *args: element != a1)
+    eq_(next(it), (root, 0))
+    eq_(next(it), (a1, 1))
+    eq_(next(it), (a2, 1))
+    eq_(next(it), (a2_b1, 2))
+    eq_(next(it), (a2_b2, 2))
+    assert_raises(StopIteration, next, it)
+
 def test_load_error():
     test = test_load_error
 

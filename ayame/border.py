@@ -48,24 +48,15 @@ class Border(core.MarkupContainer):
 
     def on_render(self, element):
         body = element
-        push_children = self._push_children
 
-        def walk(root):
-            queue = self._new_queue(root)
-            while queue:
-                parent, index, element = queue.pop()
-                if element.qname == markup.AYAME_BORDER:
-                    yield parent, index, element
-                elif element.qname in (markup.AYAME_BODY, markup.AYAME_HEAD):
-                    yield parent, index, element
-                    continue  # skip children
-                push_children(queue, element)
+        def step(element, depth):
+            return element.qname not in (markup.AYAME_BODY, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
         html = 'html' in m.lang
         ayame_border = ayame_body = ayame_head = None
-        for parent, index, element in walk(m.root):
+        for element, depth in m.root.walk(step=step):
             if element.qname == markup.AYAME_BORDER:
                 if ayame_border is None:
                     ayame_border = element

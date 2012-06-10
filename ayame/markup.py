@@ -166,6 +166,20 @@ class Element(object):
 
     copy = __copy__
 
+    def walk(self, step=None):
+        step = step if callable(step) else lambda *args: True
+
+        queue = deque()
+        queue.append((self, 0))
+        while queue:
+            element, depth = queue.pop()
+            yield element, depth
+            # push child elements
+            if step(element, depth):
+                queue.extend((node, depth + 1)
+                             for node in reversed(element.children)
+                             if (isinstance(node, Element)))
+
 class _AttributeDict(util.FilterDict):
 
     __slots__ = ()
@@ -907,35 +921,28 @@ class MarkupRenderer(object):
                 newline = _ElementState.NEWLINE_ALL
         return element, newline
 
-    def _has_html4_block_element(self, *args, **kwargs):
-        for queue, element in self._walk(*args, **kwargs):
-            if element.qname.ns_uri != XHTML_NS:
-                return True
-            else:
-                name = element.qname.name
-                if name in ('ins', 'del', 'button'):
-                    queue.appendleft(element)
-                elif name in _block_ex:
+    def _has_html4_block_element(self, root):
+        def step(element, depth):
+            return (depth == 0 or
+                    (element.qname.ns_uri == XHTML_NS and
+                     element.qname.name in ('ins', 'del', 'button')))
+
+        for element, depth in root.walk(step=step):
+            if 0 < depth:
+                if element.qname.ns_uri != XHTML_NS:
+                    return True
+                elif (element.qname.name not in ('ins', 'del', 'button') and
+                      element.qname.name in _block_ex):
                     return True
 
-    def _has_html4_br_element(self, *args, **kwargs):
-        for queue, element in self._walk(*args, **kwargs):
-            if element.qname.ns_uri == XHTML_NS:
+    def _has_html4_br_element(self, root):
+        def step(element, depth):
+            return element.qname.ns_uri == XHTML_NS
+
+        for element, depth in root.walk(step=step):
+            if 0 < depth:
                 if element.qname.name == 'br':
                     return True
-                queue.appendleft(element)
-
-    def _walk(self, root, topdown=False):
-        queue = deque()
-        if isinstance(root, Element):
-            if topdown:
-                yield queue, root
-            queue.append(root)
-        while queue:
-            element = queue.pop()
-            for node in element.children:
-                if isinstance(node, Element):
-                    yield queue, node
 
 class _ElementState(object):
 

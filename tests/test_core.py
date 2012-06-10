@@ -893,6 +893,15 @@ def test_markup_inheritance():
         mc = Sausage('a')
         assert_raises(RenderingError, mc.load_markup)
 
+    # ayame:child element is root element
+    class Tomato(core.MarkupContainer):
+        pass
+    class Sausage(Tomato):
+        pass
+    with application():
+        mc = Sausage('a')
+        assert_raises(RenderingError, mc.load_markup)
+
 def test_ayame_head():
     ayame_head = markup.Element(markup.AYAME_HEAD)
     h = markup.Element(markup.QName('', 'h'))

@@ -344,14 +344,22 @@ class MarkupContainer(Component):
 
     def on_render(self, element):
         root = element
-        push_children = self._push_children
         join_children = self._join_children
+
+        def push_children(queue, node):
+            if isinstance(node, markup.Element):
+                for index in xrange(len(node.children) - 1, -1, -1):
+                    child = node.children[index]
+                    if isinstance(child, markup.Element):
+                        queue.append((node, index, child))
 
         # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
 
         self._extra_head = []
-        queue = self._new_queue(root)
+        queue = collections.deque()
+        if isinstance(root, markup.Element):
+            queue.append((None, -1, root))
         while queue:
             parent, index, element = queue.pop()
             if element.qname.ns_uri == markup.AYAME_NS:
@@ -547,20 +555,10 @@ class MarkupContainer(Component):
             child.on_after_render()
 
     def load_markup(self, class_=None):
-        new_queue = self._new_queue
-        push_children = self._push_children
         join_children = self._join_children
 
-        def walk(root):
-            queue = new_queue(root)
-            while queue:
-                parent, index, element = queue.pop()
-                if element.qname == markup.AYAME_EXTEND:
-                    yield parent, index, element
-                elif element.qname in (markup.AYAME_CHILD, markup.AYAME_HEAD):
-                    yield parent, index, element
-                    continue  # skip children
-                push_children(queue, element)
+        def step(element, depth):
+            return element.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
 
         class_ = self.__class__ if class_ is None else class_
         loader = self.config['ayame.class.MarkupLoader']()
@@ -572,7 +570,9 @@ class MarkupContainer(Component):
             m = loader.load(class_, util.load_data(class_, ext, encoding))
             html = 'html' in m.lang
             ayame_extend = ayame_head = None
-            for parent, index, element in walk(m.root):
+            stack = []
+            for element, depth in m.root.walk(step=step):
+                stack[depth:] = [element]
                 if element.qname == markup.AYAME_EXTEND:
                     if ayame_extend is None:
                         # resolve superclass
@@ -593,6 +593,12 @@ class MarkupContainer(Component):
                 elif element.qname == markup.AYAME_CHILD:
                     if ayame_child is not None:
                         # merge submarkup into supermarkup
+                        if len(stack) < 2:
+                            raise RenderingError(self,
+                                                 "'ayame:child' element "
+                                                 "cannot be the root element")
+                        parent = stack[-2]
+                        index = parent.children.index(element)
                         children = parent.children[:index]
                         if ayame_child:
                             join_children(children, ayame_child)
@@ -632,19 +638,6 @@ class MarkupContainer(Component):
             if extra_head is not None:
                 raise RenderingError(class_, "'head' element is not found")
         return m
-
-    def _new_queue(self, root):
-        queue = collections.deque()
-        if isinstance(root, markup.Element):
-            queue.append((None, -1, root))
-        return queue
-
-    def _push_children(self, queue, node):
-        if isinstance(node, markup.Element):
-            for index in xrange(len(node.children) - 1, -1, -1):
-                child = node.children[index]
-                if isinstance(child, markup.Element):
-                    queue.append((node, index, child))
 
     def _join_children(self, a, b):
         if ((a and
