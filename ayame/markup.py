@@ -38,7 +38,8 @@ __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'HTML', 'HEAD', 'DIV', 'AYAME_CONTAINER', 'AYAME_ENCLOSURE',
            'AYAME_EXTEND', 'AYAME_CHILD', 'AYAME_PANEL', 'AYAME_BORDER',
            'AYAME_BODY', 'AYAME_HEAD', 'AYAME_REMOVE', 'AYAME_ID',
-           'MarkupType', 'Markup', 'Element', 'MarkupLoader', 'MarkupRenderer']
+           'MarkupType', 'Markup', 'Element', 'Fragment', 'MarkupLoader',
+           'MarkupRenderer']
 
 # namespace URI
 XML_NS = u'http://www.w3.org/XML/1998/namespace'
@@ -190,6 +191,16 @@ class _AttributeDict(util.FilterDict):
         elif isinstance(key, basestring):
             return key.lower()
         return key
+
+class Fragment(list):
+
+    __slots__ = ()
+
+    def __copy__(self):
+        return self.__class__(n.copy() if isinstance(n, Element) else n
+                              for n in self)
+
+    copy = __copy__
 
 class MarkupLoader(HTMLParser, object):
 

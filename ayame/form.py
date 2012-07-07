@@ -304,8 +304,8 @@ class Choice(FormComponent):
         self.choices = [] if choices is None else choices
         self.renderer = ChoiceRenderer() if renderer is None else renderer
         self.multiple = False
-        self.prefix = []
-        self.suffix = []
+        self.prefix = markup.Fragment()
+        self.suffix = markup.Fragment()
 
     def validate(self, value):
         if self.choices:
@@ -358,7 +358,7 @@ class RadioChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(RadioChoice, self).__init__(id, model, choices, renderer)
-        self.suffix = [markup.Element(_BR, type=markup.Element.EMPTY)]
+        self.suffix[:] = [markup.Element(_BR, type=markup.Element.EMPTY)]
 
     def on_render(self, element):
         # clear children
@@ -372,7 +372,7 @@ class RadioChoice(Choice):
             for index, choice in enumerate(self.choices):
                 id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
-                element.children += self.prefix
+                element.children += self.prefix.copy()
                 # radio button
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
@@ -395,7 +395,7 @@ class RadioChoice(Choice):
                 element.children.append(label)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix
+                    element.children += self.suffix.copy()
         # render radio choice
         return super(RadioChoice, self).on_render(element)
 
@@ -403,7 +403,7 @@ class CheckBoxChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(CheckBoxChoice, self).__init__(id, model, choices, renderer)
-        self.suffix = [markup.Element(_BR, type=markup.Element.EMPTY)]
+        self.suffix[:] = [markup.Element(_BR, type=markup.Element.EMPTY)]
 
     def on_render(self, element):
         # clear children
@@ -418,7 +418,7 @@ class CheckBoxChoice(Choice):
             for index, choice in enumerate(self.choices):
                 id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
-                element.children += self.prefix
+                element.children += self.prefix.copy()
                 # checkbox
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
@@ -442,7 +442,7 @@ class CheckBoxChoice(Choice):
                 element.children.append(label)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix
+                    element.children += self.suffix.copy()
         # render checkbox choice
         return super(CheckBoxChoice, self).on_render(element)
 
@@ -470,7 +470,7 @@ class SelectChoice(Choice):
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
                 # append prefix
-                element.children += self.prefix
+                element.children += self.prefix.copy()
                 # option
                 option = markup.Element(_OPTION, type=markup.Element.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(index, choice)
@@ -487,6 +487,6 @@ class SelectChoice(Choice):
                 element.children.append(option)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix
+                    element.children += self.suffix.copy()
         # render select choice
         return super(SelectChoice, self).on_render(element)

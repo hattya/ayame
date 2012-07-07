@@ -103,6 +103,20 @@ def test_element():
     eq_(next(it), (a2_b2, 2))
     assert_raises(StopIteration, next, it)
 
+def test_fragment():
+    spam = markup.Element(markup.QName('spam', 'spam'),
+                          type=markup.Element.EMPTY,
+                          ns={'': 'spam'})
+    f1 = markup.Fragment(['before', spam, 'after'])
+    eq_(len(f1), 3)
+
+    f2 = f1.copy()
+    ok_(isinstance(f2, markup.Fragment))
+    eq_(len(f2), 3)
+    eq_(f1[0], f2[0])
+    ok_(f1[1] != f2[1])
+    eq_(f1[2], f2[2])
+
 def test_load_error():
     test = test_load_error
 
