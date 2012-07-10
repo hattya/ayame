@@ -344,12 +344,11 @@ class MarkupContainer(Component):
 
     def on_render(self, element):
         root = element
-        join_children = self._join_children
 
-        def push_children(queue, node):
+        def push(queue, node):
             if isinstance(node, markup.Element):
-                for index in xrange(len(node.children) - 1, -1, -1):
-                    child = node.children[index]
+                for index in xrange(len(node) - 1, -1, -1):
+                    child = node[index]
                     if isinstance(child, markup.Element):
                         queue.append((node, index, child))
 
@@ -368,10 +367,9 @@ class MarkupContainer(Component):
                 if value is not None:
                     if isinstance(value, markup.Element):
                         queue.append((parent, index, value))
-                    elif hasattr(value, '__iter__'):
-                        children = parent.children[:index]
-                        elements = []
+                    elif isinstance(value, collections.Sequence):
                         # save same parent elements
+                        elements = []
                         while queue:
                             q = queue.pop()
                             if q[0] != parent:
@@ -379,10 +377,8 @@ class MarkupContainer(Component):
                                 break
                             elements.append(q[2])
                         # append rendered children
-                        for v in value:
-                            if isinstance(v, markup.Element):
-                                elements.append(v)
-                            children.append(v)
+                        elements.extend(v for v in value
+                                        if isinstance(v, markup.Element))
                         if elements:
                             # replace ayame element (queue)
                             total = len(elements)
@@ -390,80 +386,35 @@ class MarkupContainer(Component):
                             for i in xrange(total):
                                 queue.append((parent, last - i, elements[i]))
                         # replace ayame element (parent)
-                        children += parent.children[index + 1:]
-                        parent.children = children
+                        parent[index:index + 1] = value
                     continue
             elif markup.AYAME_ID in element.attrib:
                 # render component
                 ayame_id, value = self.render_component(element)
             else:
                 # there is no associated component
-                push_children(queue, element)
+                push(queue, element)
                 continue
 
             if parent is None:
                 # replace root element
-                root = u'' if value is None else value
-                push_children(queue, root)
-            elif hasattr(value, '__iter__'):
-                # replace element
-                children = parent.children[:index]
-                # check consecutive strings
-                text = None
-                for v in value:
-                    if isinstance(v, basestring):
-                        if (text is None and
-                            (children and
-                             isinstance(children[-1], basestring))):
-                            # current and previous children are strings
-                            text = [children[-1], v]
-                            children = children[:-1]
-                        elif text is not None:
-                            # text buffer exists
-                            text.append(v)
-                        else:
-                            children.append(v)
-                    else:
-                        if text is not None:
-                            # flush text buffer
-                            children.append(u''.join(text))
-                            text = None
-                        children.append(v)
-                        push_children(queue, v)
-                if text is not None:
-                    # flush text buffer
-                    children.append(u''.join(text))
-                    text = None
-                join_children(children, parent.children[index + 1:])
-                parent.children = children
-            else:
-                children = parent.children
                 if value is None:
-                    # remove element
-                    del children[index]
+                    root = u''
                 else:
-                    # replace element
-                    children[index] = value
-                    push_children(queue, value)
-                # check consecutive strings
-                if (0 <= index < len(children) and
-                    isinstance(children[index], basestring)):
-                    beg = end = index
-                    if (0 < index and
-                        isinstance(children[index - 1], basestring)):
-                        # current and previous children are strings
-                        beg = index - 1
-                        end = index + 1
-                    if (index + 1 < len(children) and
-                        isinstance(children[index + 1], basestring)):
-                        # current and next children are strings
-                        end = index + 2
-                    if (beg != index or
-                        index != end):
-                        # join consecutive strings
-                        parent.children = children[:beg]
-                        parent.children.append(u''.join(children[beg:end]))
-                        parent.children += children[end:]
+                    root = value
+                    push(queue, root)
+            elif isinstance(value, collections.Sequence):
+                # replace element
+                parent[index:index + 1] = value
+                for v in value:
+                    push(queue, v)
+            elif value is None:
+                # remove element
+                del parent[index]
+            else:
+                # replace element
+                parent[index] = value
+                push(queue, value)
         # merge ayame:head
         self.merge_ayame_head(root)
         return root
@@ -504,17 +455,17 @@ class MarkupContainer(Component):
         current = self
         while current.parent is not None:
             current = current.parent
-        self._join_children(current._extra_head, ayame_head.children)
+        current._extra_head += ayame_head.children
 
     def merge_ayame_head(self, root):
         if self._extra_head:
             if (isinstance(root, markup.Element) and
                 root.qname == markup.HTML):
-                for node in root.children:
+                for node in root:
                     if (isinstance(node, markup.Element) and
                         node.qname == markup.HEAD):
                         node.type = markup.Element.OPEN
-                        self._join_children(node.children, self._extra_head)
+                        node.extend(self._extra_head)
                         self._extra_head = None
                 if self._extra_head is not None:
                     raise RenderingError(self, "'head' element is not found")
@@ -555,8 +506,6 @@ class MarkupContainer(Component):
             child.on_after_render()
 
     def load_markup(self, class_=None):
-        join_children = self._join_children
-
         def step(element, depth):
             return element.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
 
@@ -599,13 +548,7 @@ class MarkupContainer(Component):
                                                  "cannot be the root element")
                         parent = stack[-2]
                         index = parent.children.index(element)
-                        children = parent.children[:index]
-                        if ayame_child:
-                            join_children(children, ayame_child)
-                        if index + 1 < len(parent.children):
-                            join_children(children,
-                                          parent.children[index + 1:])
-                        parent.children = children
+                        parent[index:index + 1] = ayame_child
                         ayame_child = None
                 elif element.qname == markup.AYAME_HEAD:
                     if (html and
@@ -620,35 +563,23 @@ class MarkupContainer(Component):
             ayame_child = ayame_extend.children
             # merge ayame:head
             if ayame_head is not None:
-                extra_head = join_children(list(ayame_head.children),
-                                           extra_head)
+                extra_head = ayame_head.children + extra_head
         # merge ayame:head into supermarkup
         if extra_head:
             if ayame_head is None:
                 # merge to head
-                for node in m.root.children:
+                for node in m.root:
                     if (isinstance(node, markup.Element) and
                         node.qname == markup.HEAD):
-                        join_children(node.children, extra_head)
+                        node.extend(extra_head)
                         extra_head = None
             else:
                 # merge to ayame:head
-                join_children(ayame_head.children, extra_head)
+                ayame_head.extend(extra_head)
                 extra_head = None
             if extra_head is not None:
                 raise RenderingError(class_, "'head' element is not found")
         return m
-
-    def _join_children(self, a, b):
-        if ((a and
-             isinstance(a[-1], basestring)) and
-            (b and
-             isinstance(b[0], basestring))):
-            a[-1] = u''.join((a[-1], b[0]))
-            a += b[1:]
-        else:
-            a += b
-        return a
 
 class Page(MarkupContainer):
 

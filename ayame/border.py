@@ -66,7 +66,7 @@ class Border(core.MarkupContainer):
                     # replace ayame:body
                     ayame_body = element
                     ayame_body.type = markup.Element.OPEN
-                    ayame_body.children = body.children
+                    ayame_body[:] = body.children
             elif element.qname == markup.AYAME_HEAD:
                 if (html and
                     ayame_head is None):

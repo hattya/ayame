@@ -161,11 +161,43 @@ class Element(object):
         element.attrib = self.attrib.copy()
         element.type = self.type
         element.ns = self.ns.copy()
-        element.children = [c.copy() if isinstance(c, self.__class__) else c
-                            for c in self.children]
+        element.children = [n.copy() if isinstance(n, self.__class__) else n
+                            for n in self.children]
         return element
 
+    def __repr__(self):
+        return '<{}.{} {} at 0x{:x}>'.format(self.__class__.__module__,
+                                             self.__class__.__name__,
+                                             repr(self.qname), id(self))
+
+    def __nonzero__(self):
+        return True
+
+    def __len__(self):
+        return self.children.__len__()
+
+    def __getitem__(self, key):
+        return self.children.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        return self.children.__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self.children.__delitem__(key)
+
     copy = __copy__
+
+    def append(self, node):
+        self.children.append(node)
+
+    def extend(self, nl):
+        self.children.extend(nl)
+
+    def insert(self, i, node):
+        self.children.insert(i, node)
+
+    def remove(self, node):
+        self.children.remove(node)
 
     def walk(self, step=None):
         step = step if callable(step) else lambda *args: True
@@ -177,9 +209,23 @@ class Element(object):
             yield element, depth
             # push child elements
             if step(element, depth):
-                queue.extend((node, depth + 1)
-                             for node in reversed(element.children)
+                queue.extend((node, depth + 1) for node in reversed(element)
                              if (isinstance(node, Element)))
+
+    def normalize(self):
+        beg = end = 0
+        children = []
+        for i, node in enumerate(self):
+            if isinstance(node, basestring):
+                end = i + 1
+            else:
+                if beg < end:
+                    children.append(u''.join(self[beg:end]))
+                children.append(node)
+                beg = i + 1
+        if beg < end:
+            children.append(u''.join(self[beg:end]))
+        self[:] = children
 
 class _AttributeDict(util.FilterDict):
 
@@ -270,7 +316,7 @@ class MarkupLoader(HTMLParser, object):
             self._remove = True
             if 1 < self._ptr():
                 # remove from parent element
-                del self._at(-2).children[-1]
+                del self._at(-2)[-1]
         elif self._markup.root is None:
             self._markup.root = element
 
@@ -390,7 +436,7 @@ class MarkupLoader(HTMLParser, object):
     def _push(self, element):
         if 0 < self._ptr():
             self._flush_text()
-            self._peek().children.append(element)
+            self._peek().append(element)
         self.__stack.append((self.getpos(), element))
 
     def _pop(self):
@@ -399,7 +445,7 @@ class MarkupLoader(HTMLParser, object):
 
     def _flush_text(self):
         if self._text is not None:
-            self._peek().children.append(u''.join(self._text))
+            self._peek().append(u''.join(self._text))
             self._text = None
 
     def _peek(self):
@@ -539,8 +585,8 @@ class MarkupRenderer(object):
                     self._pop()
                 else:
                     # push children
-                    for i in xrange(len(element.children) - 1, -1, -1):
-                        queue.append((i, element.children[i]))
+                    for i in xrange(len(element) - 1, -1, -1):
+                        queue.append((i, element[i]))
             elif isinstance(node, basestring):
                 # render text
                 self.render_text(index, node)
@@ -695,12 +741,10 @@ class MarkupRenderer(object):
                              u"unknown namespace URI '{}'".format(ns_uri))
 
     def _compile_children(self, parent, element=True, text=True, space=True):
-        compiled = parent.copy()
-        compiled.children = children = []
-
+        children = []
         shift_width = -1
         marks = []
-        for node in parent.children:
+        for node in parent:
             if isinstance(node, Element):
                 if element:
                     children.append(node)
@@ -761,16 +805,16 @@ class MarkupRenderer(object):
         if 0 < shift_width:
             for i in marks:
                 children[i] = children[i][shift_width:]
-        return compiled
+        parent[:] = children
 
     def compile_xml_element(self, element):
         if element.children:
-            element = self._compile_children(element, space=False)
+            self._compile_children(element, space=False)
         return element, _ElementState.NEWLINE_ALL
 
     def indent_xml(self, name, *args):
-        def next_nonblank(children, beg):
-            for node in children[beg:]:
+        def next_nonblank(element, beg):
+            for node in element[beg:]:
                 if node != '':
                     return node
 
@@ -800,14 +844,14 @@ class MarkupRenderer(object):
                 if self._ptr() < 2:
                     return
                 parent = self._at(self._ptr() - 2)
-                if next_nonblank(parent.element.children, current.index + 1):
+                if next_nonblank(parent.element, current.index + 1):
                     return indent(-1)
         elif name == 'text':
             index, text = args
             if text != '':
                 return
             elif (current.newline & _ElementState.NEWLINE_INSIDE and
-                  not next_nonblank(current.element.children, index + 1)):
+                  not next_nonblank(current.element, index + 1)):
                 return
 
             if current.newline & _ElementState.NEWLINE_TEXT:
@@ -887,33 +931,32 @@ class MarkupRenderer(object):
         name = element.qname.name
         newline = 0
         if element.qname.ns_uri != XHTML_NS:
-            element = self._compile_children(element)
+            self._compile_children(element)
             newline = _ElementState.NEWLINE_ALL
         elif name in _empty:
-            element.children = []
+            del element[:]
             if name == 'br':
                 newline = _ElementState.NEWLINE_AFTER
             elif name not in ('img', 'input'):
                 newline = _ElementState.NEWLINE_AROUND
         elif name not in _pcdata:
-            element.children = [c for c in element.children
-                                if not isinstance(c, basestring)]
+            element[:] = [n for n in element if not isinstance(n, basestring)]
             newline = (_ElementState.NEWLINE_AROUND |
                        _ElementState.NEWLINE_INSIDE)
         elif name in ('title', 'style', 'script', 'option', 'textarea'):
-            element = self._compile_children(element, element=False)
+            self._compile_children(element, element=False)
             if name not in ('title', 'option'):
                 newline = _ElementState.NEWLINE_ALL
             else:
                 newline = _ElementState.NEWLINE_AROUND
         elif name == 'blockquote':
-            element = self._compile_children(element, text=False)
+            self._compile_children(element, text=False)
             newline = (_ElementState.NEWLINE_AROUND |
                        _ElementState.NEWLINE_INSIDE)
         elif name == 'pre':
             return element, _ElementState.NEWLINE_AROUND
         else:
-            element = self._compile_children(element)
+            self._compile_children(element)
             if name in ('div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li',
                         'dt', 'dd', 'th', 'td'):
                 if self._has_html4_block_element(element):
@@ -972,6 +1015,6 @@ class _ElementState(object):
         # element
         self.element = element
         # number of pending children
-        self.pending = len(element.children)
+        self.pending = len(element)
         # newline flag for children
         self.newline = newline

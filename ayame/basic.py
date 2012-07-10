@@ -41,7 +41,7 @@ class Label(core.Component):
         super(Label, self).__init__(id, model)
 
     def on_render(self, element):
-        element.children = [self.model_object_as_string()]
+        element[:] = [self.model_object_as_string()]
         return element
 
 class ListView(core.MarkupContainer):
@@ -64,9 +64,9 @@ class ListView(core.MarkupContainer):
     def on_render(self, element):
         skel = element.copy()
         skel.qname = markup.DIV
-        element.children = []
+        del element[:]
         for component in self.children:
-            element.children += component.on_render(skel.copy()).children
+            element.extend(component.on_render(skel.copy()).children)
         return element
 
     def populate_item(self, item):

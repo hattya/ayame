@@ -150,6 +150,10 @@ def application():
     finally:
         local.app = None
 
+def assert_ws(element, i):
+    ok_(isinstance(element[i], basestring))
+    eq_(element[i].strip(), '')
+
 def test_component():
     assert_raises(ComponentError, core.Component, None)
 
@@ -207,7 +211,7 @@ def test_markup_container():
     mc = core.MarkupContainer('a')
     assert_raises(ComponentError, mc.page)
     eq_(mc.path(), 'a')
-    eq_(len(mc.children), 0)
+    eq_(mc.children, [])
     eq_(mc.find(None), mc)
     eq_(mc.find(''), mc)
 
@@ -266,81 +270,54 @@ def test_render_children():
         def on_render(self, element):
             return None
     root = markup.Element(markup.QName('', 'root'))
-    root.children.append('')
+    root.append('>')
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
-    root.children.append('')
+    root.append(a)
+    root.append('<')
     mc = core.MarkupContainer('a')
     mc.add(Component('b'))
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 1)
-    eq_(root.children[0], '')
+    eq_(root.children, ['>', '<'])
 
     # replace element by string
     class Component(core.Component):
         def on_render(self, element):
             return ''
     root = markup.Element(markup.QName('', 'root'))
-    root.children.append('')
+    root.append('>')
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
-    root.children.append('')
+    root.append(a)
+    root.append('<')
     mc = core.MarkupContainer('a')
     mc.add(Component('b'))
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 1)
-    eq_(root.children[0], '')
+    eq_(root.children, ['>', '<'])
 
     # replace element by list
     class Component(core.Component):
         def on_render(self, element):
-            return ['', '', 0, '', '']
+            return ['>>', '!', '<<']
     root = markup.Element(markup.QName('', 'root'))
-    root.children.append('')
+    root.append('>')
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
-    root.children.append('')
+    root.append(a)
+    root.append('<')
     mc = core.MarkupContainer('a')
     mc.add(Component('b'))
 
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 3)
-    eq_(root.children[0], '')
-    eq_(root.children[1], 0)
-    eq_(root.children[2], '')
-
-    # replace element by list
-    class Component(core.Component):
-        def on_render(self, element):
-            return ['', '', 0, '', '']
-    root = markup.Element(markup.QName('', 'root'))
-    root.children.append('')
-    a = markup.Element(markup.QName('', 'a'))
-    a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
-    root.children.append(1)
-    mc = core.MarkupContainer('a')
-    mc.add(Component('b'))
-
-    root = mc.render(root)
-    eq_(root.qname, markup.QName('', 'root'))
-    eq_(root.attrib, {})
-    eq_(len(root.children), 4)
-    eq_(root.children[0], '')
-    eq_(root.children[1], 0)
-    eq_(root.children[2], '')
-    eq_(root.children[3], 1)
+    eq_(root.children, ['>', '>>', '!', '<<', '<'])
 
 def test_behavior():
     b = core.Behavior()
@@ -394,7 +371,7 @@ def test_attribute_modifier():
     root = c.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {markup.QName('', 'c'): ''})
-    eq_(len(root.children), 0)
+    eq_(root.children, [])
 
     # markup container
     root = markup.Element(markup.QName('', 'root'))
@@ -411,7 +388,7 @@ def test_attribute_modifier():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {markup.QName('', 'c'): ''})
-    eq_(len(root.children), 0)
+    eq_(root.children, [])
 
 def test_render_unknown_ayame_element():
     root = markup.Element(markup.QName(markup.AYAME_NS, 'spam'))
@@ -422,7 +399,7 @@ def test_render_ayame_container():
     # ayame:id is not found
     root = markup.Element(markup.QName('', 'root'))
     container = markup.Element(markup.AYAME_CONTAINER)
-    root.children.append(container)
+    root.append(container)
     mc = core.MarkupContainer('a')
     assert_raises(RenderingError, mc.render, root)
 
@@ -430,7 +407,7 @@ def test_render_ayame_container():
     root = markup.Element(markup.QName('', 'root'))
     container = markup.Element(markup.AYAME_CONTAINER)
     container.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(container)
+    root.append(container)
     mc = core.MarkupContainer('a')
     assert_raises(ComponentError, mc.render, root)
 
@@ -438,10 +415,10 @@ def test_render_ayame_container():
     root = markup.Element(markup.QName('', 'root'))
     container = markup.Element(markup.AYAME_CONTAINER)
     container.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(container)
+    root.append(container)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'c'
-    container.children.append(a)
+    container.append(a)
     mc = core.MarkupContainer('a')
     def populate_item(li):
         li.add(basic.Label('c', li.model_object))
@@ -450,31 +427,28 @@ def test_render_ayame_container():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 3)
+    eq_(len(root), 3)
 
-    a = root.children[0]
+    a = root[0]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 1)
-    eq_(a.children[0], '0')
+    eq_(a.children, ['0'])
 
-    a = root.children[1]
+    a = root[1]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 1)
-    eq_(a.children[0], '1')
+    eq_(a.children, ['1'])
 
-    a = root.children[2]
+    a = root[2]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 1)
-    eq_(a.children[0], '2')
+    eq_(a.children, ['2'])
 
 def test_render_ayame_enclosure():
     # ayame:child is not found
     root = markup.Element(markup.QName('', 'root'))
     enclosure = markup.Element(markup.AYAME_ENCLOSURE)
-    root.children.append(enclosure)
+    root.append(enclosure)
     mc = core.MarkupContainer('a')
     assert_raises(RenderingError, mc.render, root)
 
@@ -482,28 +456,28 @@ def test_render_ayame_enclosure():
     root = markup.Element(markup.QName('', 'root'))
     enclosure = markup.Element(markup.AYAME_ENCLOSURE)
     enclosure.attrib[markup.AYAME_CHILD] = 'b'
-    root.children.append(enclosure)
+    root.append(enclosure)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    enclosure.children.append(a)
+    enclosure.append(a)
     mc = core.MarkupContainer('a')
     assert_raises(ComponentError, mc.render, root)
 
     # ayame:enclosure with visible component
     root = markup.Element(markup.QName('', 'root'))
     a = markup.Element(markup.QName('', 'a'))
-    root.children.append(a)
+    root.append(a)
     enclosure = markup.Element(markup.AYAME_ENCLOSURE)
     enclosure.attrib[markup.AYAME_CHILD] = 'b1'
-    a.children.append(enclosure)
+    a.append(enclosure)
     b = markup.Element(markup.QName('', 'b'))
     b.attrib[markup.AYAME_ID] = 'b1'
-    enclosure.children.append(b)
+    enclosure.append(b)
     b = markup.Element(markup.QName('', 'b'))
-    a.children.append(b)
+    a.append(b)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b2'
-    root.children.append(a)
+    root.append(a)
     mc = core.MarkupContainer('a')
     mc.add(basic.Label('b1', 'spam'))
     mc.add(basic.Label('b2', 'eggs'))
@@ -511,45 +485,43 @@ def test_render_ayame_enclosure():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 2)
+    eq_(len(root), 2)
 
-    a = root.children[0]
+    a = root[0]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 2)
+    eq_(len(a), 2)
 
-    b = a.children[0]
+    b = a[0]
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
-    eq_(len(b.children), 1)
-    eq_(b.children[0], 'spam')
+    eq_(b.children, ['spam'])
 
-    b = a.children[1]
+    b = a[1]
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
-    eq_(len(b.children), 0)
+    eq_(b.children, [])
 
-    a = root.children[1]
+    a = root[1]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 1)
-    eq_(a.children[0], 'eggs')
+    eq_(a.children, ['eggs'])
 
     # ayame:enclosure with invisible component
     root = markup.Element(markup.QName('', 'root'))
     a = markup.Element(markup.QName('', 'a'))
-    root.children.append(a)
+    root.append(a)
     enclosure = markup.Element(markup.AYAME_ENCLOSURE)
     enclosure.attrib[markup.AYAME_CHILD] = 'b1'
-    a.children.append(enclosure)
+    a.append(enclosure)
     b = markup.Element(markup.QName('', 'b'))
     b.attrib[markup.AYAME_ID] = 'b1'
-    enclosure.children.append(b)
+    enclosure.append(b)
     b = markup.Element(markup.QName('', 'b'))
-    a.children.append(b)
+    a.append(b)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b2'
-    root.children.append(a)
+    root.append(a)
     mc = core.MarkupContainer('a')
     mc.add(basic.Label('b1', 'spam'))
     mc.add(basic.Label('b2', 'eggs'))
@@ -559,17 +531,17 @@ def test_render_ayame_enclosure():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 1)
+    eq_(len(root), 1)
 
-    a = root.children[0]
+    a = root[0]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 1)
+    eq_(len(a), 1)
 
-    b = a.children[0]
+    b = a[0]
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
-    eq_(len(b.children), 0)
+    eq_(b.children, [])
 
 def test_markup_inheritance():
     class Spam(core.MarkupContainer):
@@ -604,98 +576,100 @@ def test_markup_inheritance():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 5)
-    ok_(isinstance(html.children[0], basestring))
-    ok_(isinstance(html.children[2], basestring))
-    ok_(isinstance(html.children[4], basestring))
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
 
-    head = html.children[1]
+    head = html[1]
     eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
     eq_(head.ns, {})
-    eq_(len(head.children), 9)
-    ok_(isinstance(head.children[0], basestring))
-    ok_(isinstance(head.children[2], basestring))
-    ok_(isinstance(head.children[4], basestring))
-    ok_(isinstance(head.children[6], basestring))
-    ok_(isinstance(head.children[8], basestring))
+    eq_(len(head), 11)
+    assert_ws(head, 0)
+    assert_ws(head, 2)
+    assert_ws(head, 4)
+    assert_ws(head, 5)
+    assert_ws(head, 7)
+    assert_ws(head, 8)
+    assert_ws(head, 10)
 
-    title = head.children[1]
+    title = head[1]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'Spam')
+    eq_(len(title), 1)
+    eq_(title.children, ['Spam'])
 
-    meta = head.children[3]
+    meta = head[3]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[5]
+    meta = head[6]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Eggs'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[7]
+    meta = head[9]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Ham'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    body = html.children[3]
+    body = html[3]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 9)
-    ok_(isinstance(body.children[0], basestring))
-    ok_(isinstance(body.children[2], basestring))
-    ok_(isinstance(body.children[4], basestring))
-    ok_(isinstance(body.children[6], basestring))
-    ok_(isinstance(body.children[8], basestring))
+    eq_(len(body), 13)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
+    assert_ws(body, 6)
+    assert_ws(body, 8)
+    assert_ws(body, 9)
+    assert_ws(body, 10)
+    assert_ws(body, 12)
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before ayame:child (Spam)')
+    eq_(p.children, ['before ayame:child (Spam)'])
 
-    p = body.children[3]
+    p = body[4]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'inside ayame:extend (Eggs)')
+    eq_(p.children, ['inside ayame:extend (Eggs)'])
 
-    p = body.children[5]
+    p = body[7]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'inside ayame:extend (Ham)')
+    eq_(p.children, ['inside ayame:extend (Ham)'])
 
-    p = body.children[7]
+    p = body[11]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after ayame:child (Spam)')
+    eq_(p.children, ['after ayame:child (Spam)'])
 
     # submarkup is empty
     class Sausage(Spam):
@@ -715,71 +689,70 @@ def test_markup_inheritance():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 5)
-    ok_(isinstance(html.children[0], basestring))
-    ok_(isinstance(html.children[2], basestring))
-    ok_(isinstance(html.children[4], basestring))
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
 
-    head = html.children[1]
+    head = html[1]
     eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
     eq_(head.ns, {})
-    eq_(len(head.children), 7)
-    ok_(isinstance(head.children[0], basestring))
-    ok_(isinstance(head.children[2], basestring))
-    ok_(isinstance(head.children[4], basestring))
-    ok_(isinstance(head.children[6], basestring))
+    eq_(len(head), 8)
+    assert_ws(head, 0)
+    assert_ws(head, 2)
+    assert_ws(head, 4)
+    assert_ws(head, 5)
+    assert_ws(head, 7)
 
-    title = head.children[1]
+    title = head[1]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'Spam')
+    eq_(title.children, ['Spam'])
 
-    meta = head.children[3]
+    meta = head[3]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[5]
+    meta = head[6]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    body = html.children[3]
+    body = html[3]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 5)
-    ok_(isinstance(body.children[0], basestring))
-    ok_(isinstance(body.children[2], basestring))
-    ok_(isinstance(body.children[4], basestring))
+    eq_(len(body), 6)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before ayame:child (Spam)')
+    eq_(p.children, ['before ayame:child (Spam)'])
 
-    p = body.children[3]
+    p = body[4]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after ayame:child (Spam)')
+    eq_(p.children, ['after ayame:child (Spam)'])
 
     # merge ayame:head into ayame:head in supermarkup
     class Sausage(Bacon):
@@ -799,71 +772,70 @@ def test_markup_inheritance():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 5)
-    ok_(isinstance(html.children[0], basestring))
-    ok_(isinstance(html.children[2], basestring))
-    ok_(isinstance(html.children[4], basestring))
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
 
-    ayame_head = html.children[1]
+    ayame_head = html[1]
     eq_(ayame_head.qname, markup.QName(markup.AYAME_NS, 'head'))
     eq_(ayame_head.attrib, {})
     eq_(ayame_head.type, markup.Element.OPEN)
     eq_(ayame_head.ns, {})
-    eq_(len(ayame_head.children), 7)
-    ok_(isinstance(ayame_head.children[0], basestring))
-    ok_(isinstance(ayame_head.children[2], basestring))
-    ok_(isinstance(ayame_head.children[4], basestring))
-    ok_(isinstance(ayame_head.children[6], basestring))
+    eq_(len(ayame_head), 8)
+    assert_ws(ayame_head, 0)
+    assert_ws(ayame_head, 2)
+    assert_ws(ayame_head, 4)
+    assert_ws(ayame_head, 5)
+    assert_ws(ayame_head, 7)
 
-    title = ayame_head.children[1]
+    title = ayame_head[1]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'Bacon')
+    eq_(title.children, ['Bacon'])
 
-    meta = ayame_head.children[3]
+    meta = ayame_head[3]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Bacon'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = ayame_head.children[5]
+    meta = ayame_head[6]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    body = html.children[3]
+    body = html[3]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 5)
-    ok_(isinstance(body.children[0], basestring))
-    ok_(isinstance(body.children[2], basestring))
-    ok_(isinstance(body.children[4], basestring))
+    eq_(len(body), 6)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before ayame:child (Bacon)')
+    eq_(p.children, ['before ayame:child (Bacon)'])
 
-    p = body.children[3]
+    p = body[4]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after ayame:child (Bacon)')
+    eq_(p.children, ['after ayame:child (Bacon)'])
 
     # superclass is not found
     class Sausage(core.MarkupContainer):
@@ -905,7 +877,7 @@ def test_markup_inheritance():
 def test_ayame_head():
     ayame_head = markup.Element(markup.AYAME_HEAD)
     h = markup.Element(markup.QName('', 'h'))
-    ayame_head.children.append(h)
+    ayame_head.append(h)
 
     class MarkupContainer(core.MarkupContainer):
         def on_render(self, element):
@@ -916,7 +888,7 @@ def test_ayame_head():
     root = markup.Element(markup.QName('', 'root'))
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
+    root.append(a)
     mc = core.MarkupContainer('a')
     mc.add(MarkupContainer('b'))
     assert_raises(RenderingError, mc.render, root)
@@ -925,7 +897,7 @@ def test_ayame_head():
     root = markup.Element(markup.HTML)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
+    root.append(a)
     mc = core.MarkupContainer('a')
     mc.add(MarkupContainer('b'))
     assert_raises(RenderingError, mc.render, root)
@@ -933,33 +905,33 @@ def test_ayame_head():
     # push ayame:head
     root = markup.Element(markup.HTML)
     head = markup.Element(markup.HEAD)
-    root.children.append(head)
+    root.append(head)
     a = markup.Element(markup.QName('', 'a'))
     a.attrib[markup.AYAME_ID] = 'b'
-    root.children.append(a)
+    root.append(a)
     mc = core.MarkupContainer('a')
     mc.add(MarkupContainer('b'))
 
     root = mc.render(root)
     eq_(root.qname, markup.HTML)
     eq_(root.attrib, {})
-    eq_(len(root.children), 2)
+    eq_(len(root), 2)
 
-    head = root.children[0]
+    head = root[0]
     eq_(head.qname, markup.HEAD)
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
-    eq_(len(head.children), 1)
+    eq_(len(head), 1)
 
-    h = head.children[0]
+    h = head[0]
     eq_(h.qname, markup.QName('', 'h'))
     eq_(h.attrib, {})
-    eq_(len(h.children), 0)
+    eq_(h.children, [])
 
-    a = root.children[1]
+    a = root[1]
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
-    eq_(len(a.children), 0)
+    eq_(a.children, [])
 
 def test_failsafe():
     # Ayame

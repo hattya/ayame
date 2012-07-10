@@ -43,8 +43,13 @@ def test_element():
     eq_(spam.attrib, {'id': 'a'})
     eq_(spam.type, markup.Element.EMPTY)
     eq_(spam.ns, {'': 'spam'})
+    eq_(spam.children, [])
     eq_(repr(spam.qname), '{spam}spam')
+    ok_(repr(spam))
+    eq_(len(spam), 0)
+    eq_(bool(spam), True)
 
+    # copy
     eggs = spam.copy()
     eggs.qname = markup.QName('spam', 'eggs')
     spam.attrib[0] = 'a'
@@ -55,7 +60,11 @@ def test_element():
     eq_(eggs.attrib, {'id': 'a'})
     eq_(eggs.type, markup.Element.EMPTY)
     eq_(eggs.ns, {'': 'spam'})
+    eq_(eggs.children, [])
     eq_(repr(eggs.qname), '{spam}eggs')
+    ok_(repr(eggs))
+    eq_(len(eggs), 0)
+    eq_(bool(eggs), True)
 
     # walk
     root = markup.Element(markup.QName('', 'root'),
@@ -102,6 +111,81 @@ def test_element():
     eq_(next(it), (a2_b1, 2))
     eq_(next(it), (a2_b2, 2))
     assert_raises(StopIteration, next, it)
+
+    # __getitem__, __setitem__ and __delitem__
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    spam[:1] = ['a', 'b', 'c']
+    spam[3:] = [eggs]
+    spam[4:] = ['d', 'e', 'f']
+    eq_(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    eq_(eggs.children, [])
+    eq_(spam[:3], ['a', 'b', 'c'])
+    eq_(spam[3], eggs)
+    eq_(spam[4:], ['d', 'e', 'f'])
+    del spam[:]
+    eq_(spam.children, [])
+
+    # append
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    spam.append('a')
+    spam.append('b')
+    spam.append('c')
+    spam.append(eggs)
+    spam.append('d')
+    spam.append('e')
+    spam.append('f')
+    eq_(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    eq_(eggs.children, [])
+
+    # extend
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    spam.extend(['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    eq_(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    eq_(eggs.children, [])
+
+    # insert
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    spam.insert(0, 'f')
+    spam.insert(0, 'c')
+    spam.insert(0, 'b')
+    spam.insert(-1, 'd')
+    spam.insert(-1, 'e')
+    spam.insert(0, 'a')
+    spam.insert(3, eggs)
+    eq_(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    eq_(eggs.children, [])
+
+    # remove
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    spam.extend(['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+    spam.remove('a')
+    spam.remove('b')
+    spam.remove('c')
+    spam.remove(eggs)
+    spam.remove('d')
+    spam.remove('e')
+    spam.remove('f')
+    eq_(spam.children, [])
+    eq_(eggs.children, [])
+
+#    # normalize
+    spam = markup.Element(markup.QName('', 'spam'),
+                          attrib={markup.AYAME_ID: 'spam'})
+    eggs = markup.Element(markup.QName('', 'eggs'))
+    ham = markup.Element(markup.QName('', 'ham'))
+    spam.extend(['a', eggs, 'b', 'c', ham, 'd', 'e', 'f'])
+    spam.normalize()
+    eq_(spam.children, ['a', eggs, 'bc', ham, 'def'])
 
 def test_fragment():
     spam = markup.Element(markup.QName('spam', 'spam'),
@@ -278,16 +362,16 @@ def test_load_xml():
     eq_(spam.attrib, {markup.QName('spam', 'id'): 'a'})
     eq_(spam.type, markup.Element.OPEN)
     eq_(spam.ns, {'': 'spam', 'xml': markup.XML_NS})
-    eq_(len(spam.children), 3)
-    eq_(spam.children[0], '&amp;')
-    eq_(spam.children[2], '&#38;x')
+    eq_(len(spam), 3)
+    eq_(spam[0], '&amp;')
+    eq_(spam[2], '&#38;x')
 
-    eggs = spam.children[1]
+    eggs = spam[1]
     eq_(eggs.qname, markup.QName('spam', 'eggs'))
     eq_(eggs.attrib, {})
     eq_(eggs.type, markup.Element.EMPTY)
     eq_(eggs.ns, {})
-    eq_(len(eggs.children), 0)
+    eq_(eggs.children, [])
 
 def test_load_xml_with_prefix():
     test = test_load_xml_with_prefix
@@ -309,14 +393,14 @@ def test_load_xml_with_prefix():
     eq_(spam.attrib, {})
     eq_(spam.type, markup.Element.OPEN)
     eq_(spam.ns, {'': 'spam', 'eggs': 'eggs', 'xml': markup.XML_NS})
-    eq_(len(spam.children), 1)
+    eq_(len(spam), 1)
 
-    eggs = spam.children[0]
+    eggs = spam[0]
     eq_(eggs.qname, markup.QName('eggs', 'eggs'))
     eq_(eggs.attrib, {})
     eq_(eggs.type, markup.Element.EMPTY)
     eq_(eggs.ns, {})
-    eq_(len(eggs.children), 0)
+    eq_(eggs.children, [])
 
     # no default namespace
     class Loader(markup.MarkupLoader):
@@ -380,53 +464,51 @@ def test_load_xhtml1():
     eq_(html.attrib, {})
     eq_(html.type, markup.Element.OPEN)
     eq_(html.ns, {'': markup.XHTML_NS, 'xml': markup.XML_NS})
-    eq_(len(html.children), 2)
+    eq_(len(html), 2)
 
-    head = html.children[0]
+    head = html[0]
     eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
     eq_(head.ns, {})
-    eq_(len(head.children), 1)
+    eq_(len(head), 1)
 
-    title = head.children[0]
+    title = head[0]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'title')
+    eq_(title.children, ['title'])
 
-    body = html.children[1]
+    body = html[1]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 2)
+    eq_(len(body), 2)
 
-    h1 = body.children[0]
+    h1 = body[0]
     eq_(h1.qname, markup.QName(markup.XHTML_NS, 'h1'))
     eq_(h1.attrib, {})
     eq_(h1.type, markup.Element.OPEN)
     eq_(h1.ns, {})
-    eq_(len(h1.children), 1)
-    eq_(h1.children[0], 'text')
+    eq_(h1.children, ['text'])
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 3)
-    eq_(p.children[0], 'line1')
-    eq_(p.children[2], 'line2')
+    eq_(len(p), 3)
+    eq_(p[0], 'line1')
+    eq_(p[2], 'line2')
 
-    br = p.children[1]
+    br = p[1]
     eq_(br.qname, markup.QName(markup.XHTML_NS, 'br'))
     eq_(br.attrib, {})
     eq_(br.type, markup.Element.EMPTY)
     eq_(br.ns, {})
-    eq_(len(br.children), 0)
+    eq_(br.children, [])
 
 def test_invalid_xhtml1():
     test = test_invalid_xhtml1
@@ -496,7 +578,7 @@ def test_ayame_remove():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 0)
+    eq_(html.children, [])
 
     # multiple root element
     xhtml = (u'<?xml version="1.0"?>'
@@ -534,7 +616,7 @@ def test_ayame_remove():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 0)
+    eq_(html.children, [])
 
 def test_render_error():
     test = test_render_error
@@ -548,8 +630,8 @@ def test_render_error():
     m.root.ns[u''] = u'spam'
     eggs = markup.Element(markup.QName(u'spam', u'eggs'))
     eggs.type = markup.Element.OPEN
-    eggs.children.append(0)
-    m.root.children.append(eggs)
+    eggs.append(0)
+    m.root.append(eggs)
     renderer = markup.MarkupRenderer()
 
     # invalid type
@@ -565,7 +647,7 @@ def test_render_error():
     # unknown namespace URI
     m.lang = 'xml'
     m.root.ns.clear()
-    eggs.children = []
+    del eggs[:]
     assert_raises(RenderingError, renderer.render, test, m, pretty=False)
     assert_raises(RenderingError, renderer.render, test, m, pretty=True)
 
@@ -575,7 +657,7 @@ def test_render_error():
     eggs.ns[u''] = u'eggs'
     ham = markup.Element(markup.QName(u'spam', u'ham'))
     ham.type = markup.Element.EMPTY
-    eggs.children = [ham]
+    eggs[:] = [ham]
     assert_raises(RenderingError, renderer.render, test, m, pretty=False)
     assert_raises(RenderingError, renderer.render, test, m, pretty=True)
 
@@ -586,7 +668,7 @@ def test_render_error():
     eggs.attrib[markup.QName(u'spam', u'a')] = u'2'
     eggs.type = markup.Element.OPEN
     eggs.ns[u'eggs'] = u'eggs'
-    m.root.children = [eggs]
+    m.root[:] = [eggs]
     assert_raises(RenderingError, renderer.render, test, m, pretty=False)
     assert_raises(RenderingError, renderer.render, test, m, pretty=True)
 
@@ -631,15 +713,15 @@ def test_render_xml():
     m.root.attrib[markup.QName(u'spam', u'a')] = u'a'
     m.root.type = markup.Element.OPEN
     m.root.ns[u''] = u'spam'
-    m.root.children.append(u'\n'
-                           u'    a\n'
-                           u'    \n')
+    m.root.append(u'\n'
+                  u'    a\n'
+                  u'    \n')
     eggs = markup.Element(markup.QName(u'spam', u'eggs'))
     eggs.type = markup.Element.EMPTY
-    m.root.children.append(eggs)
-    m.root.children.append(u'\n'
-                           u'    b\n'
-                           u'    c\n')
+    m.root.append(eggs)
+    m.root.append(u'\n'
+                  u'    b\n'
+                  u'    c\n')
     eggs = markup.Element(markup.QName(u'eggs', u'eggs'))
     eggs.attrib[markup.QName(u'eggs', u'a')] = u'1'
     eggs.attrib[markup.QName(u'ham', u'a')] = u'2'
@@ -648,11 +730,11 @@ def test_render_xml():
     eggs.ns[u'ham'] = u'ham'
     ham = markup.Element(markup.QName(u'spam', u'ham'))
     ham.type = markup.Element.OPEN
-    ham.children.append(u'\n'
-                        u'    1\n'
-                        u'    2\n')
-    eggs.children.append(ham)
-    m.root.children.append(eggs)
+    ham.append(u'\n'
+               u'    1\n'
+               u'    2\n')
+    eggs.append(ham)
+    m.root.append(eggs)
     eq_(renderer.render(test, m, pretty=True), xml)
 
     # raw output
@@ -665,35 +747,35 @@ def test_render_xml():
     m.root.attrib[markup.QName(u'spam', u'a')] = u'a'
     m.root.type = markup.Element.OPEN
     m.root.ns[u''] = u'spam'
-    m.root.children.append(u'\n'
-                           u'  a\n'
-                           u'  ')
+    m.root.append(u'\n'
+                  u'  a\n'
+                  u'  ')
     eggs = markup.Element(markup.QName(u'spam', u'eggs'))
     eggs.type = markup.Element.EMPTY
-    m.root.children.append(eggs)
-    m.root.children.append(u'\n'
-                           u'  b\n'
-                           u'  c\n'
-                           u'  ')
+    m.root.append(eggs)
+    m.root.append(u'\n'
+                  u'  b\n'
+                  u'  c\n'
+                  u'  ')
     eggs = markup.Element(markup.QName(u'eggs', u'eggs'))
     eggs.attrib[markup.QName(u'eggs', u'a')] = u'1'
     eggs.attrib[markup.QName(u'ham', u'a')] = u'2'
     eggs.type = markup.Element.OPEN
     eggs.ns[u'eggs'] = u'eggs'
     eggs.ns[u'ham'] = u'ham'
-    eggs.children.append(u'\n'
-                         u'    ')
+    eggs.append(u'\n'
+                u'    ')
     ham = markup.Element(markup.QName(u'spam', u'ham'))
     ham.type = markup.Element.OPEN
-    ham.children.append(u'\n'
-                        u'      1\n'
-                        u'      2\n'
-                        u'    ')
-    eggs.children.append(ham)
-    eggs.children.append(u'\n'
-                         u'  ')
-    m.root.children.append(eggs)
-    m.root.children.append(u'\n')
+    ham.append(u'\n'
+               u'      1\n'
+               u'      2\n'
+               u'    ')
+    eggs.append(ham)
+    eggs.append(u'\n'
+                u'  ')
+    m.root.append(eggs)
+    m.root.append(u'\n')
     eq_(renderer.render(test, m, pretty=False), xml)
 
 def test_render_xhtml1():
@@ -832,227 +914,227 @@ def test_render_xhtml1():
     meta = new_element(u'meta')
     meta.attrib[new_qname(u'name')] = u'keywords'
     meta.attrib[new_qname(u'content')] = u''
-    meta.children.append(u'a')
-    head.children.append(meta)
+    meta.append(u'a')
+    head.append(meta)
 
     title = new_element(u'title')
-    title.children.append(u'title')
+    title.append(u'title')
     span = new_element(u'span')
-    title.children.append(span)
-    head.children.append(title)
+    title.append(span)
+    head.append(title)
 
     style = new_element(u'style')
     style.attrib[new_qname(u'type')] = u'text/css'
-    style.children.append(u'\n'
-                          u'      h1 {\n'
-                          u'        font-size: 120%;\n'
-                          u'      }\n'
-                          u'\n'
-                          u'      p {\n'
-                          u'        font-size: 90%;\n'
-                          u'      }\n'
-                          u'\n')
-    head.children.append(style)
+    style.append(u'\n'
+                 u'      h1 {\n'
+                 u'        font-size: 120%;\n'
+                 u'      }\n'
+                 u'\n'
+                 u'      p {\n'
+                 u'        font-size: 90%;\n'
+                 u'      }\n'
+                 u'\n')
+    head.append(style)
 
     script = new_element(u'script')
     script.attrib[new_qname(u'type')] = u'text/javascript'
-    script.children.append(u'\n'
-                           u'     <!--\n'
-                           u'     var x = 0;\n'
-                           u'     var y = 0;\n'
-                           u'     // -->\n'
-                           u'\n')
-    head.children.append(script)
-    m.root.children.append(head)
+    script.append(u'\n'
+                  u'     <!--\n'
+                  u'     var x = 0;\n'
+                  u'     var y = 0;\n'
+                  u'     // -->\n'
+                  u'\n')
+    head.append(script)
+    m.root.append(head)
 
     body = new_element(u'body')
     remove = new_element(u'remove', ns=markup.AYAME_NS)
     p = new_element(u'p')
-    p.children.append(u'Hello World!')
-    remove.children.append(p)
-    body.children.append(remove)
+    p.append(u'Hello World!')
+    remove.append(p)
+    body.append(remove)
 
     h1 = new_element(u'h1')
-    h1.children.append(u'\n'
-                       u'  spam\n')
+    h1.append(u'\n'
+              u'  spam\n')
     span = new_element(u'span')
     span.attrib[new_qname(u'class')] = u'yellow'
-    span.children.append(u'\n'
-                         u'  eggs  \n')
-    h1.children.append(span)
-    h1.children.append(u'\n'
-                       u'  ham  \n')
-    body.children.append(h1)
+    span.append(u'\n'
+                u'  eggs  \n')
+    h1.append(span)
+    h1.append(u'\n'
+              u'  ham  \n')
+    body.append(h1)
 
     blockquote = new_element(u'blockquote')
     blockquote.attrib[new_qname(u'cite')] = u'http://example.com/'
-    blockquote.children.append(u'before')
+    blockquote.append(u'before')
     p = new_element(u'p')
-    p.children.append(u'citation')
-    blockquote.children.append(p)
-    blockquote.children.append(u'after')
-    body.children.append(blockquote)
+    p.append(u'citation')
+    blockquote.append(p)
+    blockquote.append(u'after')
+    body.append(blockquote)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'text'
-    div.children.append(u'\n'
-                        u'spam   \n'
-                        u'\n')
+    div.append(u'\n'
+               u'spam   \n'
+               u'\n')
     i = new_element(u'i')
-    i.children.append(u'eggs')
-    div.children.append(i)
-    div.children.append(u'  ham')
-    body.children.append(div)
+    i.append(u'eggs')
+    div.append(i)
+    div.append(u'  ham')
+    body.append(div)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'ayame'
     ins = new_element(u'ins')
     remove = new_element(u'remove', ns=markup.AYAME_NS)
-    remove.children.append(u'spam')
+    remove.append(u'spam')
     br = new_element(u'br', type=markup.Element.EMPTY)
-    remove.children.append(br)
-    remove.children.append(u'eggs')
-    ins.children.append(remove)
-    div.children.append(ins)
+    remove.append(br)
+    remove.append(u'eggs')
+    ins.append(remove)
+    div.append(ins)
     p = new_element(u'p')
     remove = new_element(u'remove', ns=markup.AYAME_NS)
-    remove.children.append(u'ham')
-    p.children.append(remove)
-    p.children.append(u'toast')
-    div.children.append(p)
+    remove.append(u'ham')
+    p.append(remove)
+    p.append(u'toast')
+    div.append(p)
     ul = new_element(u'ul')
     container = new_element(u'container', ns=markup.AYAME_NS)
     container.attrib[markup.AYAME_ID] = u'a'
     li = new_element(u'li')
-    li.children.append(u'spam')
-    container.children.append(li)
+    li.append(u'spam')
+    container.append(li)
     li = new_element(u'li')
-    li.children.append(u'eggs')
-    container.children.append(li)
-    ul.children.append(container)
-    div.children.append(ul)
-    body.children.append(div)
+    li.append(u'eggs')
+    container.append(li)
+    ul.append(container)
+    div.append(ul)
+    body.append(div)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'block'
-    div.children.append(u'Planets')
+    div.append(u'Planets')
     ul = new_element(u'ul')
     li = new_element(u'li')
-    li.children.append(u'\n'
-                       u' Mercury '
-                       u'\n')
-    ul.children.append(li)
+    li.append(u'\n'
+              u' Mercury '
+              u'\n')
+    ul.append(li)
     li = new_element(u'li')
-    li.children.append(u'  Venus  ')
-    ul.children.append(li)
+    li.append(u'  Venus  ')
+    ul.append(li)
     li = new_element(u'li')
-    li.children.append(u'Earth')
-    ul.children.append(li)
-    div.children.append(ul)
-    div.children.append(u'\n')
-    body.children.append(div)
+    li.append(u'Earth')
+    ul.append(li)
+    div.append(ul)
+    div.append(u'\n')
+    body.append(div)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'inline-ins-del'
     p = new_element(u'p')
     del_ = new_element(u'del')
-    del_.children.append(u'old')
-    p.children.append(del_)
+    del_.append(u'old')
+    p.append(del_)
     ins = new_element(u'ins')
-    ins.children.append(u'new')
-    p.children.append(ins)
-    div.children.append(p)
-    body.children.append(div)
+    ins.append(u'new')
+    p.append(ins)
+    div.append(p)
+    body.append(div)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'block-ins-del'
     del_ = new_element(u'del')
     pre = new_element(u'pre')
-    pre.children.append(u'old')
-    del_.children.append(pre)
-    div.children.append(del_)
+    pre.append(u'old')
+    del_.append(pre)
+    div.append(del_)
     ins = new_element(u'ins')
     pre = new_element(u'pre')
-    pre.children.append(u'new')
-    ins.children.append(pre)
-    div.children.append(ins)
-    body.children.append(div)
+    pre.append(u'new')
+    ins.append(pre)
+    div.append(ins)
+    body.append(div)
 
     pre = new_element(u'pre')
-    pre.children.append(u'\n'
-                        u'  * 1\n'
-                        u'    * 2\n'
-                        u'      * 3\n'
-                        u'    * 4\n'
-                        u'  * 5\n')
-    body.children.append(pre)
+    pre.append(u'\n'
+               u'  * 1\n'
+               u'    * 2\n'
+               u'      * 3\n'
+               u'    * 4\n'
+               u'  * 5\n')
+    body.append(pre)
 
     div = new_element(u'div')
     div.attrib[new_qname(u'class')] = u'br'
     h2 = new_element(u'h2')
-    h2.children.append(u'The Solar System')
-    div.children.append(h2)
+    h2.append(u'The Solar System')
+    div.append(h2)
     p = new_element(u'p')
     em = new_element(u'em')
-    em.children.append(u'Mercury')
-    p.children.append(em)
-    p.children.append(u' is the first planet.')
+    em.append(u'Mercury')
+    p.append(em)
+    p.append(u' is the first planet.')
     br = new_element(u'br', type=markup.Element.EMPTY)
-    p.children.append(br)
-    p.children.append(u'\n')
+    p.append(br)
+    p.append(u'\n')
     em = new_element(u'em')
-    em.children.append(u'Venus')
-    p.children.append(em)
-    p.children.append(u' is the second planet.')
-    p.children.append(u'\n')
-    div.children.append(p)
-    div.children.append(u'\n')
+    em.append(u'Venus')
+    p.append(em)
+    p.append(u' is the second planet.')
+    p.append(u'\n')
+    div.append(p)
+    div.append(u'\n')
     p = new_element(u'p')
     em = new_element(u'em')
-    em.children.append(u'Earth')
-    p.children.append(em)
-    p.children.append(u' is the third planet.')
-    div.children.append(p)
+    em.append(u'Earth')
+    p.append(em)
+    p.append(u' is the third planet.')
+    div.append(p)
     remove = new_element(u'remove', ns=markup.AYAME_NS)
     p = new_element(u'p')
     em = new_element(u'em')
-    em.children.append(u'Mars')
-    p.children.append(em)
-    p.children.append(u' is the fourth planet.')
+    em.append(u'Mars')
+    p.append(em)
+    p.append(u' is the fourth planet.')
     br = new_element(u'br', type=markup.Element.EMPTY)
-    p.children.append(br)
+    p.append(br)
     em = new_element(u'em')
-    em.children.append(u'Jupiter')
-    p.children.append(em)
-    p.children.append(u' is the fifth planet.')
-    remove.children.append(p)
-    div.children.append(remove)
+    em.append(u'Jupiter')
+    p.append(em)
+    p.append(u' is the fifth planet.')
+    remove.append(p)
+    div.append(remove)
     ul = new_element(u'ul')
     li = new_element(u'li')
-    li.children.append(u'1')
+    li.append(u'1')
     br = new_element(u'br', type=markup.Element.EMPTY)
-    li.children.append(br)
-    li.children.append(u'2')
+    li.append(br)
+    li.append(u'2')
     br = new_element(u'br', type=markup.Element.EMPTY)
-    li.children.append(br)
-    li.children.append(u'3')
-    ul.children.append(li)
-    div.children.append(ul)
-    div.children.append(u'\n')
-    body.children.append(div)
+    li.append(br)
+    li.append(u'3')
+    ul.append(li)
+    div.append(ul)
+    div.append(u'\n')
+    body.append(div)
 
     form = new_element(u'form')
     form.attrib[new_qname(u'action')] = u'/'
     form.attrib[new_qname(u'method')] = u'post'
     fieldset = new_element(u'fieldset')
     legend = new_element(u'legend')
-    legend.children.append(u'form')
-    fieldset.children.append(legend)
+    legend.append(u'form')
+    fieldset.append(legend)
     textarea = new_element(u'textarea')
-    textarea.children.append(u'Sun')
-    fieldset.children.append(textarea)
-    form.children.append(fieldset)
-    body.children.append(form)
-    m.root.children.append(body)
+    textarea.append(u'Sun')
+    fieldset.append(textarea)
+    form.append(fieldset)
+    body.append(form)
+    m.root.append(body)
 
     eq_(renderer.render(test, m, pretty=True), xhtml)

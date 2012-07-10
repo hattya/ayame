@@ -79,7 +79,7 @@ def test_list_view():
     root.attrib[markup.AYAME_ID] = 'b'
     label = markup.Element(markup.QName('', 'label'))
     label.attrib[markup.AYAME_ID] = 'c'
-    root.children.append(label)
+    root.append(label)
     mc = core.MarkupContainer('a')
     def populate_item(li):
         li.add(basic.Label('c', li.model.object))
@@ -88,25 +88,22 @@ def test_list_view():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 3)
+    eq_(len(root), 3)
 
-    label = root.children[0]
+    label = root[0]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '0')
+    eq_(label.children, ['0'])
 
-    label = root.children[1]
+    label = root[1]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '1')
+    eq_(label.children, ['1'])
 
-    label = root.children[2]
+    label = root[2]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '2')
+    eq_(label.children, ['2'])
 
     eq_(len(mc.children), 1)
     lv = mc.children[0]
@@ -125,12 +122,32 @@ def test_list_view():
     eq_(lv.children[1].model.object, 11)
     eq_(lv.children[2].model.object, 12)
 
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'b'
+    root.append('[')
+    label = markup.Element(markup.QName('', 'label'))
+    label.attrib[markup.AYAME_ID] = 'c'
+    root.append(label)
+    root.append(']')
+    mc = core.MarkupContainer('a')
+    def populate_item(li):
+        li.add(basic.Label('c', li.model.object))
+        li.find('c').render_body_only = True
+    mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root), 9)
+    root.normalize()
+    eq_(root.children, ['[0][1][2]'])
+
 def test_property_list_view():
     root = markup.Element(markup.QName('', 'root'))
     root.attrib[markup.AYAME_ID] = 'b'
     label = markup.Element(markup.QName('', 'label'))
     label.attrib[markup.AYAME_ID] = 'c'
-    root.children.append(label)
+    root.append(label)
     m = model.CompoundModel({'b': [str(i) for i in range(3)]})
     mc = core.MarkupContainer('a', m)
     def populate_item(li):
@@ -140,25 +157,22 @@ def test_property_list_view():
     root = mc.render(root)
     eq_(root.qname, markup.QName('', 'root'))
     eq_(root.attrib, {})
-    eq_(len(root.children), 3)
+    eq_(len(root), 3)
 
-    label = root.children[0]
+    label = root[0]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '0')
+    eq_(label.children, ['0'])
 
-    label = root.children[1]
+    label = root[1]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '1')
+    eq_(label.children, ['1'])
 
-    label = root.children[2]
+    label = root[2]
     eq_(label.qname, markup.QName('', 'label'))
     eq_(label.attrib, {})
-    eq_(len(label.children), 1)
-    eq_(label.children[0], '2')
+    eq_(label.children, ['2'])
 
     eq_(len(mc.children), 1)
     lv = mc.children[0]
@@ -177,6 +191,27 @@ def test_property_list_view():
     eq_(lv.children[1].model.object, 11)
     eq_(lv.children[2].model.object, 12)
 
+    root = markup.Element(markup.QName('', 'root'))
+    root.attrib[markup.AYAME_ID] = 'b'
+    root.append('[')
+    label = markup.Element(markup.QName('', 'label'))
+    label.attrib[markup.AYAME_ID] = 'c'
+    root.append(label)
+    root.append(']')
+    m = model.CompoundModel({'b': [str(i) for i in range(3)]})
+    mc = core.MarkupContainer('a', m)
+    def populate_item(li):
+        li.add(basic.Label('c', li.model.object))
+        li.find('c').render_body_only = True
+    mc.add(basic.PropertyListView('b', None, populate_item))
+
+    root = mc.render(root)
+    eq_(root.qname, markup.QName('', 'root'))
+    eq_(root.attrib, {})
+    eq_(len(root), 9)
+    root.normalize()
+    eq_(root.children, ['[0][1][2]'])
+
 def test_context_path_generator():
     def assert_attr(environ, value):
         element = markup.Element(markup.QName(markup.XHTML_NS, 'a'))
@@ -184,7 +219,7 @@ def test_context_path_generator():
         with application(environ):
             am = basic.ContextPathGenerator(href, 'eggs.html')
             am.on_component(None, element)
-        eq_(element.attrib[href], value)
+        eq_(element.attrib, {href: value})
 
     environ = {'PATH_INFO': '/spam'}
     assert_attr(environ, 'eggs.html')
@@ -199,7 +234,7 @@ def test_context_image():
         with application(environ):
             c = basic.ContextImage(src, 'eggs.gif')
             img = c.render(img)
-        eq_(img.attrib[src], value)
+        eq_(img.attrib, {src: value})
 
     environ = {'PATH_INFO': '/spam'}
     assert_img(environ, 'eggs.gif')
@@ -214,9 +249,9 @@ def test_context_css():
         with application(environ):
             c = basic.ContextCSS(href, 'eggs.css')
             meta = c.render(meta)
-        eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'rel')], 'stylesheet')
-        eq_(meta.attrib[markup.QName(markup.XHTML_NS, 'type')], 'text/css')
-        eq_(meta.attrib[href], value)
+        eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'rel'): 'stylesheet',
+                          markup.QName(markup.XHTML_NS, 'type'): 'text/css',
+                          href: value})
 
     environ = {'PATH_INFO': '/spam'}
     assert_meta(environ, 'eggs.css')

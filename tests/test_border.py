@@ -1,7 +1,7 @@
 #
 # test_border
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -42,6 +42,10 @@ def application():
     finally:
         local.app = None
 
+def assert_ws(element, i):
+    ok_(isinstance(element[i], basestring))
+    eq_(element[i].strip(), '')
+
 def test_border():
     class Spam(core.MarkupContainer):
         def __init__(self, id):
@@ -69,98 +73,99 @@ def test_border():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 5)
-    ok_(isinstance(html.children[0], basestring))
-    ok_(isinstance(html.children[2], basestring))
-    ok_(isinstance(html.children[4], basestring))
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
 
-    head = html.children[1]
+    head = html[1]
     eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
     eq_(head.ns, {})
-    eq_(len(head.children), 7)
-    ok_(isinstance(head.children[0], basestring))
-    ok_(isinstance(head.children[2], basestring))
-    ok_(isinstance(head.children[4], basestring))
-    ok_(isinstance(head.children[6], basestring))
+    eq_(len(head), 8)
+    assert_ws(head, 0)
+    assert_ws(head, 2)
+    assert_ws(head, 4)
+    assert_ws(head, 5)
+    assert_ws(head, 7)
 
-    title = head.children[1]
+    title = head[1]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'Spam')
+    eq_(title.children, ['Spam'])
 
-    meta = head.children[3]
+    meta = head[3]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[5]
+    meta = head[6]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'SpamBorder'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    body = html.children[3]
+    body = html[3]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 11)
-    ok_(isinstance(body.children[0], basestring))
-    ok_(isinstance(body.children[2], basestring))
-    ok_(isinstance(body.children[4], basestring))
-    ok_(isinstance(body.children[6], basestring))
-    ok_(isinstance(body.children[8], basestring))
-    ok_(isinstance(body.children[10], basestring))
+    eq_(len(body), 15)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
+    assert_ws(body, 6)
+    assert_ws(body, 8)
+    assert_ws(body, 9)
+    assert_ws(body, 11)
+    assert_ws(body, 12)
+    assert_ws(body, 14)
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before border (Spam)')
+    eq_(p.children, ['before border (Spam)'])
 
-    p = body.children[3]
+    p = body[4]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before ayame:body (SpamBorder)')
+    eq_(p.children, ['before ayame:body (SpamBorder)'])
 
-    p = body.children[5]
+    p = body[7]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'inside border (SpamBorder)')
+    eq_(len(p), 3)
+    p.normalize()
+    eq_(p.children, ['inside border (SpamBorder)'])
 
-    p = body.children[7]
+    p = body[10]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after ayame:body (SpamBorder)')
+    eq_(p.children, ['after ayame:body (SpamBorder)'])
 
-    p = body.children[9]
+    p = body[13]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after border (Spam)')
+    eq_(p.children, ['after border (Spam)'])
 
 def test_border_with_markup_inheritance():
     class Eggs(core.MarkupContainer):
@@ -191,107 +196,110 @@ def test_border_with_markup_inheritance():
     eq_(html.ns, {'': markup.XHTML_NS,
                   'xml': markup.XML_NS,
                   'ayame': markup.AYAME_NS})
-    eq_(len(html.children), 5)
-    ok_(isinstance(html.children[0], basestring))
-    ok_(isinstance(html.children[2], basestring))
-    ok_(isinstance(html.children[4], basestring))
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
 
-    head = html.children[1]
+    head = html[1]
     eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
     eq_(head.attrib, {})
     eq_(head.type, markup.Element.OPEN)
     eq_(head.ns, {})
-    eq_(len(head.children), 9)
-    ok_(isinstance(head.children[0], basestring))
-    ok_(isinstance(head.children[2], basestring))
-    ok_(isinstance(head.children[4], basestring))
-    ok_(isinstance(head.children[6], basestring))
-    ok_(isinstance(head.children[8], basestring))
+    eq_(len(head), 11)
+    assert_ws(head, 0)
+    assert_ws(head, 2)
+    assert_ws(head, 4)
+    assert_ws(head, 5)
+    assert_ws(head, 7)
+    assert_ws(head, 8)
+    assert_ws(head, 10)
 
-    title = head.children[1]
+    title = head[1]
     eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
     eq_(title.attrib, {})
     eq_(title.type, markup.Element.OPEN)
     eq_(title.ns, {})
-    eq_(len(title.children), 1)
-    eq_(title.children[0], 'Eggs')
+    eq_(title.children, ['Eggs'])
 
-    meta = head.children[3]
+    meta = head[3]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'Eggs'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[5]
+    meta = head[6]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'EggsBorder'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    meta = head.children[7]
+    meta = head[9]
     eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
     eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
                       markup.QName(markup.XHTML_NS, 'content'): 'HamBorder'})
     eq_(meta.type, markup.Element.EMPTY)
     eq_(meta.ns, {})
-    eq_(len(meta.children), 0)
+    eq_(meta.children, [])
 
-    body = html.children[3]
+    body = html[3]
     eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
     eq_(body.attrib, {})
     eq_(body.type, markup.Element.OPEN)
     eq_(body.ns, {})
-    eq_(len(body.children), 11)
-    ok_(isinstance(body.children[0], basestring))
-    ok_(isinstance(body.children[2], basestring))
-    ok_(isinstance(body.children[4], basestring))
-    ok_(isinstance(body.children[6], basestring))
-    ok_(isinstance(body.children[8], basestring))
-    ok_(isinstance(body.children[10], basestring))
+    eq_(len(body), 15)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
+    assert_ws(body, 6)
+    assert_ws(body, 8)
+    assert_ws(body, 9)
+    assert_ws(body, 11)
+    assert_ws(body, 12)
+    assert_ws(body, 14)
 
-    p = body.children[1]
+    p = body[1]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before border (Eggs)')
+    eq_(p.children, ['before border (Eggs)'])
 
-    p = body.children[3]
+    p = body[4]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'before ayame:body (HamBorder)')
+    eq_(p.children, ['before ayame:body (HamBorder)'])
 
-    p = body.children[5]
+    p = body[7]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'inside border (HamBorder)')
+    eq_(len(p), 3)
+    p.normalize()
+    eq_(len(p), 1)
+    eq_(p.children, ['inside border (HamBorder)'])
 
-    p = body.children[7]
+    p = body[10]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after ayame:body (HamBorder)')
+    eq_(p.children, ['after ayame:body (HamBorder)'])
 
-    p = body.children[9]
+    p = body[13]
     eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
     eq_(p.attrib, {})
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
-    eq_(len(p.children), 1)
-    eq_(p.children[0], 'after border (Eggs)')
+    eq_(p.children, ['after border (Eggs)'])
 
 def test_invalid_markup():
     # ayame:border element is not found

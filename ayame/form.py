@@ -87,8 +87,8 @@ class Form(core.MarkupContainer):
         input.attrib[_TYPE] = u'hidden'
         input.attrib[_NAME] = core.AYAME_PATH
         input.attrib[_VALUE] = self.path()
-        div.children.append(input)
-        element.children.insert(0, div)
+        div.append(input)
+        element.insert(0, div)
         # render form
         return super(Form, self).on_render(element)
 
@@ -269,7 +269,7 @@ class TextArea(FormComponent):
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
         # modify children
-        element.children = [self.model_object_as_string()]
+        element[:] = [self.model_object_as_string()]
         # render text area
         return super(TextArea, self).on_render(element)
 
@@ -362,7 +362,7 @@ class RadioChoice(Choice):
 
     def on_render(self, element):
         # clear children
-        element.children = []
+        del element[:]
 
         if self.choices:
             name = self.relative_path()
@@ -372,7 +372,7 @@ class RadioChoice(Choice):
             for index, choice in enumerate(self.choices):
                 id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
-                element.children += self.prefix.copy()
+                element.extend(self.prefix.copy())
                 # radio button
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
@@ -382,7 +382,7 @@ class RadioChoice(Choice):
                 if choice == selected:
                     input.attrib[_CHECKED] = u'checked'
                 input = self.render_element(input, index, choice)
-                element.children.append(input)
+                element.append(input)
                 # label
                 text = self.renderer.label_for(choice)
                 if not isinstance(text, basestring):
@@ -390,12 +390,12 @@ class RadioChoice(Choice):
                     text = converter.to_string(text)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.children.append(cgi.escape(text, True))
+                label.append(cgi.escape(text, True))
                 label = self.render_element(label, index, choice)
-                element.children.append(label)
+                element.append(label)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix.copy()
+                    element.extend(self.suffix.copy())
         # render radio choice
         return super(RadioChoice, self).on_render(element)
 
@@ -407,7 +407,7 @@ class CheckBoxChoice(Choice):
 
     def on_render(self, element):
         # clear children
-        element.children = []
+        del element[:]
 
         if self.choices:
             name = self.relative_path()
@@ -418,7 +418,7 @@ class CheckBoxChoice(Choice):
             for index, choice in enumerate(self.choices):
                 id = u'-'.join((id_prefix, unicode(index)))
                 # append prefix
-                element.children += self.prefix.copy()
+                element.extend(self.prefix.copy())
                 # checkbox
                 input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
@@ -429,7 +429,7 @@ class CheckBoxChoice(Choice):
                     is_selected(selected, choice)):
                     input.attrib[_CHECKED] = u'checked'
                 input = self.render_element(input, index, choice)
-                element.children.append(input)
+                element.append(input)
                 # label
                 text = self.renderer.label_for(choice)
                 if not isinstance(text, basestring):
@@ -437,12 +437,12 @@ class CheckBoxChoice(Choice):
                     text = converter.to_string(text)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.children.append(cgi.escape(text, True))
+                label.append(cgi.escape(text, True))
                 label = self.render_element(label, index, choice)
-                element.children.append(label)
+                element.append(label)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix.copy()
+                    element.extend(self.suffix.copy())
         # render checkbox choice
         return super(CheckBoxChoice, self).on_render(element)
 
@@ -462,7 +462,7 @@ class SelectChoice(Choice):
         elif _MULTIPLE in element.attrib:
             del element.attrib[_MULTIPLE]
         # clear children
-        element.children = []
+        del element[:]
 
         if self.choices:
             selected = self.model_object
@@ -470,7 +470,7 @@ class SelectChoice(Choice):
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
                 # append prefix
-                element.children += self.prefix.copy()
+                element.extend(self.prefix.copy())
                 # option
                 option = markup.Element(_OPTION, type=markup.Element.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(index, choice)
@@ -483,10 +483,10 @@ class SelectChoice(Choice):
                 if not isinstance(text, basestring):
                     converter = self.converter_for(type(text))
                     text = converter.to_string(text)
-                option.children.append(cgi.escape(text, True))
-                element.children.append(option)
+                option.append(cgi.escape(text, True))
+                element.append(option)
                 # append suffix
                 if index < last:
-                    element.children += self.suffix.copy()
+                    element.extend(self.suffix.copy())
         # render select choice
         return super(SelectChoice, self).on_render(element)
