@@ -337,6 +337,20 @@ class MarkupContainer(Component):
             return child.find(tail)
         return child
 
+    def walk(self, step=None):
+        step = step if callable(step) else lambda *args: True
+
+        queue = collections.deque()
+        queue.append((self, 0))
+        while queue:
+            component, depth = queue.pop()
+            yield component, depth
+            # push child components
+            if (isinstance(component, MarkupContainer) and
+                step(component, depth)):
+                queue.extend((c, depth + 1)
+                             for c in reversed(component.children))
+
     def on_before_render(self):
         super(MarkupContainer, self).on_before_render()
         for child in self.children:

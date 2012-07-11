@@ -103,7 +103,6 @@ def test_element():
     eq_(next(it), (a2_b1, 2))
     eq_(next(it), (a2_b2, 2))
     assert_raises(StopIteration, next, it)
-
     it = root.walk(step=lambda element, *args: element != a1)
     eq_(next(it), (root, 0))
     eq_(next(it), (a1, 1))
