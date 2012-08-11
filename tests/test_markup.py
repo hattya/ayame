@@ -245,8 +245,8 @@ def test_load():
     m = loader.load(test, src, lang='xml')
     eq_(m.xml_decl, {})
     eq_(m.lang, 'xml')
-    ok_(m.doctype is None)
-    ok_(m.root is None)
+    eq_(m.doctype, None)
+    eq_(m.root, None)
     os.close(fd)
     os.remove(src)
 
@@ -257,8 +257,8 @@ def test_load():
     m = loader.load(test, src, lang='xml')
     eq_(m.xml_decl, {})
     eq_(m.lang, 'xml')
-    ok_(m.doctype is None)
-    ok_(m.root is None)
+    eq_(m.doctype, None)
+    eq_(m.root, None)
 
     # xhtml1 frameset
     xhtml = (u'<?xml version="1.0"?>'
@@ -334,8 +334,8 @@ def test_load_empty_xml():
     m = loader.load(test, src, lang='xml')
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xml')
-    ok_(m.doctype is None)
-    ok_(m.root is None)
+    eq_(m.doctype, None)
+    eq_(m.root, None)
 
 def test_load_xml():
     test = test_load_xml
@@ -384,7 +384,7 @@ def test_load_xml_with_prefix():
     m = loader.load(test, src, lang='xml')
     eq_(m.xml_decl, {'version': '1.0'})
     eq_(m.lang, 'xml')
-    ok_(m.doctype is None)
+    eq_(m.doctype, None)
     ok_(m.root)
 
     spam = m.root

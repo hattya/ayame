@@ -225,7 +225,7 @@ def test_date():
     c = converter.DateConverter()
 
     eq_(c.type, date)
-    ok_(date.today(), c.type)
+    ok_(isinstance(date.today(), c.type))
 
     eq_(c.to_python('2011-01-01'), date(2011, 1, 1))
     assert_raises(ConversionError, c.to_python, '1-1-1')
@@ -243,7 +243,7 @@ def test_time():
     c = converter.TimeConverter()
 
     eq_(c.type, time)
-    ok_(datetime.now().time(), c.type)
+    ok_(isinstance(datetime.now().time(), c.type))
 
     eq_(c.to_python('00:00:00'), time(0, 0, 0))
     assert_raises(ConversionError, c.to_python, '24:00:00')
@@ -260,7 +260,7 @@ def test_datetime():
     c = converter.DateTimeConverter()
 
     eq_(c.type, datetime)
-    ok_(datetime.now(), c.type)
+    ok_(isinstance(datetime.now(), c.type))
 
     eq_(c.to_python('2011-01-01T00:00:00-05:00'),
         datetime(2011, 1, 1, 0, 0, 0))
