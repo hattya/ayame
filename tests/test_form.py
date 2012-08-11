@@ -51,9 +51,16 @@ class Form(form.Form):
 
     def on_submit(self):
         super(Form, self).on_submit()
-        raise OK()
+        raise Valid()
 
-class OK(Exception):
+    def on_error(self):
+        super(Form, self).on_error()
+        raise Invalid()
+
+class Valid(Exception):
+    pass
+
+class Invalid(Exception):
     pass
 
 def test_form_error():
@@ -134,7 +141,10 @@ def test_form():
         def on_submit(self):
             super(Button, self).on_submit()
             self.model_object = 'submitted'
-            raise OK()
+            raise Valid()
+        def on_error(self):
+            super(Button, self).on_error()
+            raise Invalid()
 
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
@@ -204,15 +214,15 @@ def test_form():
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
-        assert_raises(OK, page.render)
-    f = page.find('form')
-    eq_(f.model_object['text'], 'text')
-    eq_(f.model_object['password'], 'password')
-    eq_(f.model_object['hidden'], 'hidden')
-    eq_(f.model_object['area'], 'area')
-    eq_(f.model_object['checkbox'], False)
-    eq_(f.model_object['file'], 'a.txt')
-    eq_(f.model_object['button'], 'submitted')
+        assert_raises(Valid, page.render)
+    eq_(page.find('form').model_object, {'text': 'text',
+                                         'password': 'password',
+                                         'hidden': 'hidden',
+                                         'area': 'area',
+                                         'checkbox': False,
+                                         'file': 'a.txt',
+                                         'button': 'submitted'})
+    ok_(not page.find('form').has_error())
 
     # POST
     data = ('--ayame.form\r\n'
@@ -257,7 +267,7 @@ def test_form():
     with application(environ):
         request = core.Request(environ, {})
         page = SpamPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     f = page.find('form')
     eq_(f.model_object['text'], 'text')
     eq_(f.model_object['password'], 'password')
@@ -271,6 +281,35 @@ def test_form():
     eq_(f.model_object['file'].type, 'text/plain')
     eq_(f.model_object['file'].type_options, {})
     eq_(f.model_object['button'], 'submitted')
+    ok_(not f.has_error())
+
+    # required error
+    query = ('{}=form&'
+             'area=area&'
+             'file=a.txt&'
+             'button').format(core.AYAME_PATH)
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET',
+               'SCRIPT_NAME': '',
+               'PATH_INFO': '/form',
+               'QUERY_STRING': uri.quote(query)}
+    with application(environ):
+        request = core.Request(environ, {})
+        page = SpamPage(request)
+        page.find('form:text').required = True
+        page.find('form:password').required = True
+        page.find('form:hidden').required = True
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'text': '',
+                                         'password': '',
+                                         'hidden': '',
+                                         'area': 'area',
+                                         'checkbox': False,
+                                         'file': 'a.txt'})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:text').error, ValidationError))
+    ok_(isinstance(page.find('form:password').error, ValidationError))
+    ok_(isinstance(page.find('form:hidden').error, ValidationError))
 
 def test_form_component():
     # relative path
@@ -285,20 +324,24 @@ def test_form_component():
     # required error
     fc = form.FormComponent('a')
     fc.required = True
-    assert_raises(ValidationError, fc.validate, None)
-    assert_raises(ValidationError, fc.validate, '')
+    fc.validate(None)
+    ok_(isinstance(fc.error, ValidationError))
+    fc.validate('')
+    ok_(isinstance(fc.error, ValidationError))
 
     # conversion error
     with application():
         fc = form.FormComponent('a')
         fc.type = int
-        assert_raises(ValidationError, fc.validate, 'a')
+        fc.validate('a')
+        ok_(isinstance(fc.error, ValidationError))
 
     # validation error
     with application():
         fc = form.FormComponent('a')
         fc.add(validator.StringValidator(max=4))
-        assert_raises(ValidationError, fc.validate, '.info')
+        fc.validate('.info')
+        ok_(isinstance(fc.error, ValidationError))
 
     # no model
     with application():
@@ -386,8 +429,9 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'radio': choices[2]})
+    ok_(not page.find('form').has_error())
 
     # POST
     data = ('--ayame.form\r\n'
@@ -405,8 +449,9 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'radio': None})
+    ok_(not page.find('form').has_error())
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -428,7 +473,10 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'radio': choices[0]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:radio').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -450,7 +498,10 @@ def test_radio_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'radio': choices[0]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:radio').error, ValidationError))
 
 def test_checkbox_choice():
     class HamPage(core.Page):
@@ -545,8 +596,9 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'checkbox': choices})
+    ok_(not page.find('form').has_error())
 
     # POST
     data = ('--ayame.form\r\n'
@@ -564,8 +616,9 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'checkbox': []})
+    ok_(not page.find('form').has_error())
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -603,7 +656,10 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:checkbox').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -633,7 +689,10 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:checkbox').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -655,7 +714,10 @@ def test_checkbox_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = HamPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:checkbox').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -674,7 +736,10 @@ def test_checkbox_choice():
         request = core.Request(environ, {})
         page = HamPage(request)
         page.find('form:checkbox').required = True
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:checkbox').error, ValidationError))
 
 def test_select_choice():
     class ToastPage(core.Page):
@@ -764,8 +829,9 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'select': choices})
+    ok_(not page.find('form').has_error())
 
     # POST
     data = ('--ayame.form\r\n'
@@ -783,8 +849,9 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'select': []})
+    ok_(not page.find('form').has_error())
 
     # GET (single)
     xhtml = xhtml.replace(b' multiple="multiple"', b'')
@@ -824,8 +891,9 @@ def test_select_choice():
         select = page.find('form:select')
         select.model_object = select.model_object[0]
         select.multiple = False
-        assert_raises(OK, page.render)
+        assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'select': None})
+    ok_(not page.find('form').has_error())
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -863,7 +931,10 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'select': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:select').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -893,7 +964,10 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'select': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:select').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -915,7 +989,10 @@ def test_select_choice():
     with application(environ):
         request = core.Request(environ, {})
         page = ToastPage(request)
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'select': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:select').error, ValidationError))
 
     # validation error
     data = ('--ayame.form\r\n'
@@ -934,7 +1011,10 @@ def test_select_choice():
         request = core.Request(environ, {})
         page = ToastPage(request)
         page.find('form:select').required = True
-        assert_raises(ValidationError, page.render)
+        assert_raises(Invalid, page.render)
+    eq_(page.find('form').model_object, {'select': [choices[1]]})
+    ok_(page.find('form').has_error())
+    ok_(isinstance(page.find('form:select').error, ValidationError))
 
 def test_invalid_markup():
     input = markup.Element(form._INPUT)

@@ -104,6 +104,7 @@ class Form(core.MarkupContainer):
             return  # unknown method
 
         form = button = None
+        valid = True
         queue = collections.deque()
         queue.append(self)
         while queue:
@@ -130,18 +131,35 @@ class Form(core.MarkupContainer):
                 else:
                     value = values.get(name)
                     component.validate(None if value is None else value[0])
+                if valid:
+                    valid = component.error is None
             # push children
             if isinstance(component, core.MarkupContainer):
                 queue.extend(reversed(component.children))
-        if button is not None:
-            button.on_submit()
-        self.on_submit()
+        if not valid:
+            if button is not None:
+                button.on_error()
+            self.on_error()
+        else:
+            if button is not None:
+                button.on_submit()
+            self.on_submit()
 
     def on_method_mismatch(self):
         return True  # continue
 
+    def on_error(self):
+        pass
+
     def on_submit(self):
         pass
+
+    def has_error(self):
+        for component, depth in self.walk():
+            if (isinstance(component, FormComponent) and
+                component.error):
+                return True
+        return False
 
 class _FormActionBehavior(core.IgnitionBehavior):
 
@@ -159,6 +177,7 @@ class FormComponent(core.MarkupContainer):
         super(FormComponent, self).__init__(id, model)
         self.required = False
         self.type = None
+        self.error = None
 
     def relative_path(self):
         current = self
@@ -190,13 +209,13 @@ class FormComponent(core.MarkupContainer):
             for behavior in self.behaviors:
                 if isinstance(behavior, validator.Validator):
                     behavior.validate(object)
-        except ValidationError:
+        except ValidationError as e:
+            self.error = e
             self.on_invalid()
-            raise
-
-        if self.model is not None:
-            self.model.object = object
-        self.on_valid()
+        else:
+            if self.model is not None:
+                self.model.object = object
+            self.on_valid()
 
     def on_valid(self):
         pass
@@ -221,6 +240,9 @@ class Button(FormComponent):
         element.attrib[_NAME] = self.relative_path()
         # render button
         return super(Button, self).on_render(element)
+
+    def on_error(self):
+        pass
 
     def on_submit(self):
         pass
@@ -308,35 +330,37 @@ class Choice(FormComponent):
         self.suffix = markup.Fragment()
 
     def validate(self, value):
-        if self.choices:
-            if self.multiple:
-                # convert to object
-                values = set(value)
-                selected = []
-                for index, choice in enumerate(self.choices):
-                    value = self.renderer.value_of(index, choice)
-                    if value in values:
-                        values.remove(value)
-                        selected.append(choice)
-                if not values:
-                    # check required
-                    if (self.required and
-                        not selected):
-                        self.on_invalid()
-                        raise ValidationError()
+        try:
+            if self.choices:
+                if self.multiple:
+                    # convert to object
+                    values = set(value)
+                    selected = []
+                    for index, choice in enumerate(self.choices):
+                        value = self.renderer.value_of(index, choice)
+                        if value in values:
+                            values.remove(value)
+                            selected.append(choice)
+                    if not values:
+                        # check required
+                        if (self.required and
+                            not selected):
+                            raise ValidationError()
 
-                    if self.model is not None:
-                        self.model.object = selected
-                    return self.on_valid()
-            else:
-                if value is None:
-                    return super(Choice, self).validate(value)
-                for index, choice in enumerate(self.choices):
-                    if self.renderer.value_of(index, choice) == value:
-                        return super(Choice, self).validate(choice)
-
+                        if self.model is not None:
+                            self.model.object = selected
+                        return self.on_valid()
+                else:
+                    if value is None:
+                        return super(Choice, self).validate(value)
+                    for index, choice in enumerate(self.choices):
+                        if self.renderer.value_of(index, choice) == value:
+                            return super(Choice, self).validate(choice)
+        except ValidationError as e:
+            self.error = e
+        else:
+            self.error = ValidationError()
         self.on_invalid()
-        raise ValidationError()
 
     def _id_prefix_for(self, element):
         id = element.attrib.get(_ID)
