@@ -908,6 +908,32 @@ def test_markup_inheritance():
         mc = Sausage('a')
         assert_raises(RenderingError, mc.load_markup)
 
+    # empty markup
+    class Lobster(core.MarkupContainer):
+        pass
+    class Sausage(Lobster):
+        pass
+    with application():
+        mc = Sausage('a')
+        m = mc.load_markup()
+    eq_(m.xml_decl, {})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, None)
+    eq_(m.root, None)
+
+    class Lobster(core.Page):
+        pass
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
+    with application():
+        request = core.Request(environ, {})
+        page = Lobster(request)
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', '0')])
+    eq_(content, b'')
+
 def test_ayame_head():
     ayame_head = markup.Element(markup.AYAME_HEAD)
     h = markup.Element(markup.QName('', 'h'))

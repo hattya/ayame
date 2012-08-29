@@ -54,6 +54,9 @@ class Border(core.MarkupContainer):
 
         # load markup for Panel
         m = self.load_markup()
+        if m.root is None:
+            # markup is empty
+            return element
         html = 'html' in m.lang
         ayame_border = ayame_body = ayame_head = None
         for element, depth in m.root.walk(step=step):

@@ -284,7 +284,6 @@ def test_border_with_markup_inheritance():
     eq_(p.ns, {})
     eq_(len(p), 3)
     p.normalize()
-    eq_(len(p), 1)
     eq_(p.children, ['inside border (HamBorder)'])
 
     p = body[10]
@@ -346,3 +345,91 @@ def test_invalid_markup():
         mc = Bacon('a')
         m = mc.load_markup()
         assert_raises(RenderingError, mc.render, m.root)
+
+def test_empty_markup():
+    class Sausage(core.MarkupContainer):
+        def __init__(self, id):
+            super(Sausage, self).__init__(id)
+            self.add(SausageBorder('border'))
+
+    class SausageBorder(border.Border):
+        pass
+
+    with application():
+        mc = Sausage('a')
+        m = mc.load_markup()
+        html = mc.render(m.root)
+    eq_(m.xml_decl, {'version': '1.0'})
+    eq_(m.lang, 'xhtml1')
+    eq_(m.doctype, markup.XHTML1_STRICT)
+    ok_(m.root)
+
+    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
+    eq_(html.attrib, {})
+    eq_(html.type, markup.Element.OPEN)
+    eq_(html.ns, {'': markup.XHTML_NS,
+                  'xml': markup.XML_NS,
+                  'ayame': markup.AYAME_NS})
+    eq_(len(html), 5)
+    assert_ws(html, 0)
+    assert_ws(html, 2)
+    assert_ws(html, 4)
+
+    head = html[1]
+    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
+    eq_(head.attrib, {})
+    eq_(head.type, markup.Element.OPEN)
+    eq_(head.ns, {})
+    eq_(len(head), 5)
+    assert_ws(head, 0)
+    assert_ws(head, 2)
+    assert_ws(head, 4)
+
+    title = head[1]
+    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
+    eq_(title.attrib, {})
+    eq_(title.type, markup.Element.OPEN)
+    eq_(title.ns, {})
+    eq_(title.children, ['Sausage'])
+
+    meta = head[3]
+    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
+    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
+                      markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
+    eq_(meta.type, markup.Element.EMPTY)
+    eq_(meta.ns, {})
+    eq_(meta.children, [])
+
+    body = html[3]
+    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
+    eq_(body.attrib, {})
+    eq_(body.type, markup.Element.OPEN)
+    eq_(body.ns, {})
+    eq_(len(body), 9)
+    assert_ws(body, 0)
+    assert_ws(body, 2)
+    assert_ws(body, 3)
+    assert_ws(body, 5)
+    assert_ws(body, 6)
+    assert_ws(body, 8)
+
+    p = body[1]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(p.children, ['before border (Sausage)'])
+
+    p = body[4]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(p.children, ['inside border (Sausage)'])
+
+    p = body[7]
+    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
+    eq_(p.attrib, {})
+    eq_(p.type, markup.Element.OPEN)
+    eq_(p.ns, {})
+    eq_(p.children, ['after border (Sausage)'])

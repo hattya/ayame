@@ -531,6 +531,9 @@ class MarkupContainer(Component):
         ayame_child = None
         while True:
             m = loader.load(class_, util.load_data(class_, ext, encoding))
+            if m.root is None:
+                # markup is empty
+                break
             html = 'html' in m.lang
             ayame_extend = ayame_head = None
             stack = []
@@ -606,15 +609,19 @@ class Page(MarkupContainer):
     def render(self):
         # load markup and render components
         m = self.load_markup()
-        m.root = super(Page, self).render(m.root)
-        # remove ayame namespace from root element
-        for prefix in tuple(m.root.ns):
-            if m.root.ns[prefix] == markup.AYAME_NS:
-                del m.root.ns[prefix]
-        # render markup
-        renderer = self.config['ayame.class.MarkupRenderer']()
-        content = renderer.render(self, m,
-                                  pretty=self.config['ayame.markup.pretty'])
+        if m.root is None:
+            # markup is empty
+            content = b''
+        else:
+            m.root = super(Page, self).render(m.root)
+            # remove ayame namespace from root element
+            for prefix in tuple(m.root.ns):
+                if m.root.ns[prefix] == markup.AYAME_NS:
+                    del m.root.ns[prefix]
+            # render markup
+            renderer = self.config['ayame.class.MarkupRenderer']()
+            pretty = self.config['ayame.markup.pretty']
+            content = renderer.render(self, m, pretty=pretty)
         # HTTP headers
         mime_type = self.markup_type.mime_type
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
