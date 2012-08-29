@@ -115,7 +115,7 @@ def test_simple_app():
     eq_(status, http.NotFound.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', '263')])
-    ok_(exc_info)
+    eq_(exc_info, None)
     ok_(content)
 
     # GET /redir -> InternalServerError

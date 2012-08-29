@@ -125,8 +125,7 @@ class Ayame(object):
                                  'redirects')
             exc_info = None
         except Exception as e:
-            status, headers, content = self.handle_error(e)
-            exc_info = sys.exc_info()
+            status, headers, content, exc_info = self.handle_error(e)
         finally:
             _local._router = None
             _local.environ = None
@@ -149,11 +148,13 @@ class Ayame(object):
             headers = list(e.headers)
             headers.append(('Content-Type', 'text/html; charset=UTF-8'))
             headers.append(('Content-Length', str(len(content))))
+            exc_info = None
         else:
             status = http.InternalServerError.status
             headers = []
             content = []
-        return status, headers, content
+            exc_info = sys.exc_info()
+        return status, headers, content, exc_info
 
 class Component(object):
 
