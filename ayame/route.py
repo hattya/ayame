@@ -309,9 +309,9 @@ class Router(object):
         if not values:
             values = {}
         for rule in self.map._ref.get(object, ()):
-            uri = rule.build(values, anchor, method, append_query)
-            if uri is not None:
-                return uri
+            path = rule.build(values, anchor, method, append_query)
+            if path is not None:
+                return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')
 
 class Converter(object):
