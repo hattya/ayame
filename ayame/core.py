@@ -631,7 +631,7 @@ class Page(MarkupContainer):
 
 class Request(object):
 
-    __slots__ = ('environ', 'method', 'uri', 'query', 'form_data')
+    __slots__ = ('environ', 'method', 'uri', 'query', 'form_data', 'path')
 
     def __init__(self, environ, values):
         self.environ = environ
@@ -639,6 +639,15 @@ class Request(object):
         self.uri = values
         self.query = self._parse_qs(environ)
         self.form_data = self._parse_form_data(environ)
+        # retrieve ayame:path
+        if self.method == 'GET':
+            self.path = self.query.get(AYAME_PATH)
+        elif self.method == 'POST':
+            self.path = self.form_data.get(AYAME_PATH)
+        else:
+            self.path = None
+        if self.path:
+            self.path = self.path[0]
 
     def _parse_qs(self, environ):
         qs = environ.get('QUERY_STRING')
@@ -754,19 +763,10 @@ class IgnitionBehavior(Behavior):
 
     def fire(self):
         component = self.component
-        page = component.page()
-        # retrieve ayame:path
-        path = None
-        if page.request.method == 'GET':
-            path = page.request.query.get(AYAME_PATH)
-        elif page.request.method == 'POST':
-            path = page.request.form_data.get(AYAME_PATH)
-        if path:
-            if 1 < len(path):
-                raise RenderingError(page, 'duplicate ayame:path')
-            # fire component
-            if path[0] == component.path():
-                self.on_fire(component, page.request)
+        request = component.page().request
+        # fire component
+        if component.path() == request.path:
+            self.on_fire(component, request)
 
     def on_fire(self, component, request):
         pass

@@ -76,8 +76,7 @@ def test_simple_app():
 
     # GET /page -> OK
     xhtml = ('<?xml version="1.0"?>\n'
-             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
-             '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+             '{doctype}\n'
              '<html xmlns="{xhtml}">\n'
              '  <head>\n'
              '    <title>SimplePage</title>\n'
@@ -85,7 +84,8 @@ def test_simple_app():
              '  <body>\n'
              '    <p>Hello World!</p>\n'
              '  </body>\n'
-             '</html>\n').format(xhtml=markup.XHTML_NS)
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
     xhtml = xhtml.encode('utf-8')
     status, headers, exc_info, content = wsgi_call(app.make_app(),
                                                    REQUEST_METHOD='GET',
@@ -1251,6 +1251,22 @@ def test_ignition_behavior():
             super(IgnitionBehavior, self).on_fire(component, request)
             component.model_object += 1
 
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>EggsPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <p>clay1</p>\n'
+             '    <div>\n'
+             '      <p>clay2</p>\n'
+             '    </div>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+
     # GET
     query = '{}=clay1'.format(core.AYAME_PATH)
     environ = {'wsgi.input': io.BytesIO(),
@@ -1259,7 +1275,11 @@ def test_ignition_behavior():
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
-        ok_(page.render())
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
     eq_(page.model_object, {'clay1': 1,
                             'clay2': 0})
 
@@ -1272,7 +1292,13 @@ def test_ignition_behavior():
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(RenderingError, page.render)
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+    eq_(page.model_object, {'clay1': 1,
+                            'clay2': 0})
 
     # POST
     data = ('--ayame.core\r\n'
@@ -1288,7 +1314,11 @@ def test_ignition_behavior():
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
-        ok_(page.render())
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
     eq_(page.model_object, {'clay1': 0,
                             'clay2': 1})
 
@@ -1296,11 +1326,11 @@ def test_ignition_behavior():
     data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="{0}"\r\n'
             '\r\n'
-            'clay1\r\n'
+            'obstacle:clay2\r\n'
             '--ayame.core\r\n'
             'Content-Disposition: form-data; name="{0}"\r\n'
             '\r\n'
-            'obstacle:clay2\r\n'
+            'clay1\r\n'
             '--ayame.core--\r\n').format(core.AYAME_PATH)
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
@@ -1310,4 +1340,10 @@ def test_ignition_behavior():
     with application():
         request = core.Request(environ, {})
         page = EggsPage(request)
-        assert_raises(RenderingError, page.render)
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+    eq_(page.model_object, {'clay1': 0,
+                            'clay2': 1})
