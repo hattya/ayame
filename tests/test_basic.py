@@ -242,16 +242,14 @@ def test_context_image():
     environ = {'PATH_INFO': '/spam/'}
     assert_img(environ, '../eggs.gif')
 
-def test_context_css():
+def test_context_link():
     def assert_meta(environ, value):
         meta = markup.Element(markup.QName(markup.XHTML_NS, 'meta'))
         href = markup.QName(markup.XHTML_NS, 'href')
         with application(environ):
-            c = basic.ContextCSS(href, 'eggs.css')
+            c = basic.ContextLink(href, 'eggs.css')
             meta = c.render(meta)
-        eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'rel'): 'stylesheet',
-                          markup.QName(markup.XHTML_NS, 'type'): 'text/css',
-                          href: value})
+        eq_(meta.attrib, {href: value})
 
     environ = {'PATH_INFO': '/spam'}
     assert_meta(environ, 'eggs.css')

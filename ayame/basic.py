@@ -31,7 +31,7 @@ from ayame import model as _model
 
 
 __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
-           'ContextImage', 'ContextCSS']
+           'ContextImage', 'ContextLink']
 
 class Label(core.Component):
 
@@ -127,10 +127,8 @@ class ContextImage(core.Component):
         super(ContextImage, self).__init__(id)
         self.add(ContextPathGenerator(u'src', rel_path))
 
-class ContextCSS(core.Component):
+class ContextLink(core.Component):
 
     def __init__(self, id, rel_path):
-        super(ContextCSS, self).__init__(id)
-        self.add(core.AttributeModifier(u'rel', _model.Model(u'stylesheet')))
-        self.add(core.AttributeModifier(u'type', _model.Model(u'text/css')))
+        super(ContextLink, self).__init__(id)
         self.add(ContextPathGenerator(u'href', rel_path))
