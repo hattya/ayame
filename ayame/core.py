@@ -677,7 +677,8 @@ class Request(object):
         form_data = {}
         if fs.list:
             for field in fs.list:
-                if field.done == -1:
+                if (isinstance(field, cgi.FieldStorage) and
+                    field.done == -1):
                     raise http.RequestTimeout()
                 field.name = self._decode(field.name)
                 if field.filename:
