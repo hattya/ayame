@@ -166,6 +166,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
@@ -192,6 +193,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
@@ -359,6 +361,7 @@ def test_behavior():
     assert_raises(AyameError, lambda: b.config)
     assert_raises(AyameError, lambda: b.environ)
     assert_raises(AyameError, lambda: b.session)
+    assert_raises(AyameError, lambda: b.uri_for(b))
 
     class Behavior(core.Behavior):
         def on_before_render(self, component):

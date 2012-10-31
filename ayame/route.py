@@ -310,7 +310,9 @@ class Router(object):
             values = {}
         for rule in self.map._ref.get(object, ()):
             path = rule.build(values, anchor, method, append_query)
-            if path is not None:
+            if path is None:
+                continue
+            else:
                 return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')
 

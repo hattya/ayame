@@ -114,4 +114,4 @@ class PageLink(Link):
         self._anchor = anchor
 
     def new_uri(self, uri):
-        return self.app._router.build(self._page, self._values, self._anchor)
+        return self.uri_for(self._page, self._values, self._anchor)

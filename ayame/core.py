@@ -156,6 +156,9 @@ class Ayame(object):
             exc_info = sys.exc_info()
         return status, headers, content, exc_info
 
+    def uri_for(self, *args, **kwargs):
+        return self._router.build(*args, **kwargs)
+
 class Component(object):
 
     def __init__(self, id, model=None):
@@ -245,6 +248,9 @@ class Component(object):
     @property
     def session(self):
         return self.app.session
+
+    def uri_for(self, *args, **kwargs):
+        return self.app.uri_for(*args, **kwargs)
 
     def add(self, *args):
         for object in args:
@@ -727,6 +733,9 @@ class Behavior(object):
     @property
     def session(self):
         return self.app.session
+
+    def uri_for(self, *args, **kwargs):
+        return self.app.uri_for(*args, **kwargs)
 
     def on_before_render(self, component):
         pass
