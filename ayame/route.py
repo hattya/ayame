@@ -305,13 +305,15 @@ class Router(object):
         raise http.NotFound(uri.request_path(self.environ))
 
     def build(self, object, values=None, anchor=None, method=None,
-              append_query=True):
+              append_query=True, relative=False):
         if not values:
             values = {}
         for rule in self.map._ref.get(object, ()):
             path = rule.build(values, anchor, method, append_query)
             if path is None:
                 continue
+            elif relative:
+                return path
             else:
                 return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')

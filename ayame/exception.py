@@ -41,7 +41,13 @@ class MarkupError(AyameError):
     pass
 
 class Redirect(AyameError):
-    pass
+
+    INTERNAL = -1
+    PERMANENT = 1
+    TEMPORARY = 2
+
+    def __init__(self, object, values=None, anchor=None, type=None):
+        super(Redirect, self).__init__(object, values, anchor, type)
 
 class RenderingError(AyameError):
     pass

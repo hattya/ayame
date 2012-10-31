@@ -62,8 +62,12 @@ def test_simple_app():
         def on_render(self, element):
             if 'greeting' in self.request.query:
                 self.session['greeting'] = self.request.query['greeting'][0]
-                raise Redirect(SimplePage)
-            raise Redirect(RedirectPage)
+                self.redirect(SimplePage, type=Redirect.INTERNAL)
+            elif 'permanent' in self.request.query.get('type', []):
+                self.redirect(RedirectPage, {'p': 1}, type=Redirect.PERMANENT)
+            elif 'temporary' in self.request.query.get('type', []):
+                self.redirect(RedirectPage, {'t': 1}, type=Redirect.TEMPORARY)
+            self.redirect(RedirectPage, type=Redirect.INTERNAL)
 
     app = core.Ayame(__name__)
     eq_(app._name, __name__)
@@ -127,6 +131,28 @@ def test_simple_app():
     ok_(exc_info)
     eq_(content, [])
 
+    # GET /redir?type=permanent -> MovedPermanently
+    query = uri.quote_plus('type=permanent')
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/redir',
+                                                   QUERY_STRING=query)
+    eq_(status, http.MovedPermanently.status)
+    ok_(('Location', 'http://127.0.0.1/redir?p=1') in headers)
+    eq_(exc_info, None)
+    ok_(content)
+
+    # GET /redir?type=temporary -> Found
+    query = uri.quote_plus('type=temporary')
+    status, headers, exc_info, content = wsgi_call(app.make_app(),
+                                                   REQUEST_METHOD='GET',
+                                                   PATH_INFO='/redir',
+                                                   QUERY_STRING=query)
+    eq_(status, http.Found.status)
+    ok_(('Location', 'http://127.0.0.1/redir?t=1') in headers)
+    eq_(exc_info, None)
+    ok_(content)
+
     # GET /redir?greeting=Hallo+Welt! -> OK
     xhtml = xhtml.replace(b'Hello World!', b'Hallo Welt!')
     query = uri.quote_plus('greeting=Hallo Welt!')
@@ -166,6 +192,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.redirect(c))
     assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
@@ -193,6 +220,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.redirect(c))
     assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
@@ -361,6 +389,7 @@ def test_behavior():
     assert_raises(AyameError, lambda: b.config)
     assert_raises(AyameError, lambda: b.environ)
     assert_raises(AyameError, lambda: b.session)
+    assert_raises(AyameError, lambda: b.redirect(b))
     assert_raises(AyameError, lambda: b.uri_for(b))
 
     class Behavior(core.Behavior):

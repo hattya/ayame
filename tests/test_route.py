@@ -113,6 +113,12 @@ def test_static_rules():
     map.sort_key = key
     eq_(router.build(0, {'a': [3, 2, 1]}), '/?a=3&a=2&a=1')
 
+    # build URI (without SCRIPT_NAME)
+    router = map.bind(new_environ('/'))
+    router.environ['SCRIPT_NAME'] = '/ayame'
+    eq_(router.build(0), '/ayame/')
+    eq_(router.build(0, relative=True), '/')
+
 def test_duplicate_variable():
     map = route.Map()
     assert_raises(RouteError, map.connect, '/<a>/<b>/<a>/<c>', 0)

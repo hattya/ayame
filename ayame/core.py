@@ -117,6 +117,14 @@ class Ayame(object):
                     status, headers, content = self.handle_request(object,
                                                                    request)
                 except Redirect as r:
+                    if r.args[3] == Redirect.PERMANENT:
+                        raise http.MovedPermanently(
+                                uri.application_uri(self.environ) +
+                                self.uri_for(*r.args[:3], relative=True)[1:])
+                    elif r.args[3] != Redirect.INTERNAL:
+                        raise http.Found(
+                                uri.application_uri(self.environ) +
+                                self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
                 else:
                     break
@@ -155,6 +163,9 @@ class Ayame(object):
             content = []
             exc_info = sys.exc_info()
         return status, headers, content, exc_info
+
+    def redirect(self, *args, **kwargs):
+        raise Redirect(*args, **kwargs)
 
     def uri_for(self, *args, **kwargs):
         return self._router.build(*args, **kwargs)
@@ -248,6 +259,9 @@ class Component(object):
     @property
     def session(self):
         return self.app.session
+
+    def redirect(self, *args, **kwargs):
+        return self.app.redirect(*args, **kwargs)
 
     def uri_for(self, *args, **kwargs):
         return self.app.uri_for(*args, **kwargs)
@@ -733,6 +747,9 @@ class Behavior(object):
     @property
     def session(self):
         return self.app.session
+
+    def redirect(self, *args, **kwargs):
+        return self.app.redirect(*args, **kwargs)
 
     def uri_for(self, *args, **kwargs):
         return self.app.uri_for(*args, **kwargs)
