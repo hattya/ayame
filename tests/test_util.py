@@ -68,25 +68,34 @@ def test_load_data():
     def spam():
         pass
 
+    with util.load_data(Spam, 'Spam.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt')
     with util.load_data(Spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt')
+    with util.load_data(Spam(), 'Spam.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Spam.txt')
     with util.load_data(Spam(), '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Spam.txt')
+    with util.load_data(spam, 'spam.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/spam.txt')
     with util.load_data(spam, '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/spam.txt')
     with util.load_data(sys.modules[__name__], '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util.txt')
+        eq_(fp.read().strip(), 'test_util/.txt')
 
     def eggs():
         pass
     del eggs.__module__
+    assert_raises(ResourceError, util.load_data, eggs, 'eggs.txt')
     assert_raises(ResourceError, util.load_data, eggs, '.txt')
 
     class Module(object):
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
+    assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
     assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
     assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
@@ -97,7 +106,9 @@ def test_load_data():
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
+    assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
     assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
     assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
     sys.modules[__name__] = module
@@ -112,16 +123,22 @@ def test_load_data():
         __name__ = __name__
     module = sys.modules[__name__]
     sys.modules[__name__] = Module()
+    with util.load_data(Spam, 'Spam.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
     with util.load_data(Spam, '.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
+    with util.load_data(Spam(), 'Spam.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
     with util.load_data(Spam(), '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
+    with util.load_data(spam, 'spam.txt') as fp:
+        eq_(fp.read().strip(), 'test_util/spam.txt from Loader')
     with util.load_data(spam, '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/spam.txt from Loader')
     loader = getattr(module, '__loader__', None)
     module.__loader__ = Loader()
     with util.load_data(module, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util.txt from Loader')
+        eq_(fp.read().strip(), 'test_util/.txt from Loader')
     if loader:
         module.__loader__ = loader
     else:

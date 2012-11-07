@@ -51,7 +51,7 @@ def fqon_of(object):
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
 
-def load_data(object, suffix, encoding='utf-8'):
+def load_data(object, path, encoding='utf-8'):
     if not hasattr(object, '__name__'):
         object = object.__class__
     if isinstance(object, types.ModuleType):
@@ -71,13 +71,13 @@ def load_data(object, suffix, encoding='utf-8'):
     name = os.path.splitext(name)[0]
     if name.lower() != '__init__':
         parent = os.path.join(parent, name)
-    if is_module:
-        path = parent + suffix
+    if (is_module or
+        not path.startswith('.')):
+        path = os.path.join(parent, path)
     else:
-        path = os.path.join(parent, object.__name__ + suffix)
+        path = os.path.join(parent, object.__name__ + path)
     loader = getattr(module, '__loader__', None)
     if loader:
-        # load data from loader
         try:
             data = loader.get_data(path)
         except (AttributeError, IOError):
