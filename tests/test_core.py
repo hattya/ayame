@@ -1450,3 +1450,58 @@ def test_ignition_behavior():
     eq_(content, xhtml)
     eq_(page.model_object, {'clay1': 0,
                             'clay2': 1})
+
+def test_nested_class_markup():
+    class HamPage(core.Page):
+        pass
+    class ToastPage(HamPage):
+        markup_type = markup.MarkupType('.htm', 'text/html', ())
+        @core.nested
+        class NestedPage(HamPage):
+            pass
+
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>HamPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <p>ToastPage</p>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
+    with application():
+        request = core.Request(environ, {})
+        page = ToastPage(request)
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>HamPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <p>ToastPage.NestedPage</p>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
+    with application():
+        request = core.Request(environ, {})
+        page = ToastPage.NestedPage(request)
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)

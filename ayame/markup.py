@@ -126,7 +126,7 @@ AYAME_REMOVE = QName(AYAME_NS, u'remove')
 AYAME_ID = QName(AYAME_NS, u'id')
 #AYAME_CHILD = QName(AYAME_NS, u'child')
 
-MarkupType = namedtuple('MarkupType', 'extension, mime_type')
+MarkupType = namedtuple('MarkupType', 'extension, mime_type, scope')
 
 class Markup(object):
 

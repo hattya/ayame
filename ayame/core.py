@@ -42,7 +42,8 @@ from ayame.exception import (AyameError, ComponentError, Redirect,
 
 
 __all__ = ['AYAME_PATH', 'Ayame', 'Component', 'MarkupContainer', 'Page',
-           'Request', 'Behavior', 'AttributeModifier', 'IgnitionBehavior']
+           'Request', 'Behavior', 'AttributeModifier', 'IgnitionBehavior',
+           'nested']
 
 # marker for firing component
 AYAME_PATH = u'ayame:path'
@@ -73,6 +74,7 @@ class Ayame(object):
         self.config = {
                 'ayame.converter.locator': converter.Locator(),
                 'ayame.markup.encoding': 'utf-8',
+                'ayame.markup.separator': '.',
                 'ayame.markup.pretty': False,
                 'ayame.max.redirect': 7,
                 'ayame.route.map': route.Map(),
@@ -327,9 +329,10 @@ class Component(object):
 
 class MarkupContainer(Component):
 
+    markup_type = markup.MarkupType('.html', 'text/html', ())
+
     def __init__(self, id, model=None):
         super(MarkupContainer, self).__init__(id, model)
-        self.markup_type = markup.MarkupType('.html', 'text/html')
         self.children = []
         self._ref = {}
         self._extra_head = None
@@ -544,14 +547,26 @@ class MarkupContainer(Component):
         def step(element, depth):
             return element.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
 
+        def path_of(class_):
+            if self.__class__ == class_:
+                markup_type = self.markup_type
+            else:
+                markup_type = super(class_, self).markup_type
+            if markup_type.scope:
+                return (sep.join(c.__name__
+                                 for c in markup_type.scope + (class_,)) +
+                        markup_type.extension)
+            return markup_type.extension
+
         class_ = self.__class__ if class_ is None else class_
         loader = self.config['ayame.class.MarkupLoader']()
-        ext = self.markup_type.extension
         encoding = self.config['ayame.markup.encoding']
+        sep = self.config['ayame.markup.separator']
         extra_head = []
         ayame_child = None
         while True:
-            m = loader.load(class_, util.load_data(class_, ext, encoding))
+            m = loader.load(class_, util.load_data(class_, path_of(class_),
+                                                   encoding))
             if m.root is None:
                 # markup is empty
                 break
@@ -797,3 +812,15 @@ class IgnitionBehavior(Behavior):
 
     def on_fire(self, component, request):
         pass
+
+class nested(object):
+
+    def __init__(self, cls):
+        self.__cls = cls
+
+    def __get__(self, instance, owner):
+        cls = self.__cls
+        cls.markup_type = markup.MarkupType(cls.markup_type.extension,
+                                            cls.markup_type.mime_type,
+                                            owner.markup_type.scope + (owner,))
+        return cls
