@@ -29,7 +29,7 @@ import io
 import os
 import urllib
 
-from nose.tools import assert_raises, eq_, ok_
+from nose.tools import assert_raises, eq_
 
 from ayame import core, http, link, markup, uri
 from ayame.exception import ComponentError

@@ -94,9 +94,8 @@ _block = ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'ul', 'ol', 'dl',
           'pre', 'hr', 'blockquote', 'address', 'fieldset', 'table')
 _block_ex = _block + ('form', 'noscript', 'ins', 'del', 'script')
 
-# regex: 2+ spaces
+# regex for pretty-print
 _space_re = re.compile('\s{2,}')
-# regex: 1+ newlines
 _newline_re = re.compile('[\n\r]+')
 
 class QName(namedtuple('QName', 'ns_uri, name')):

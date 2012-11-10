@@ -34,7 +34,8 @@ import types
 from ayame.exception import ResourceError
 
 
-__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list' 'FilterDict']
+__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
+           'FilterDict']
 
 if sys.hexversion < 0x03000000:
     builtins = '__builtin__'
@@ -103,7 +104,7 @@ def to_list(o):
 
 def new_token(algorithm='sha1'):
     m = hashlib.new(algorithm)
-    m.update(str(random.random()).encode())
+    m.update(to_bytes(random.random()))
     return m.hexdigest()
 
 class FilterDict(dict):

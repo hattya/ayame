@@ -33,7 +33,7 @@ import threading
 import urlparse
 import wsgiref.headers
 
-from beaker.middleware import SessionMiddleware
+import beaker.middleware
 
 from ayame import converter, http, markup, route, uri, util
 from ayame import model as _model
@@ -101,9 +101,8 @@ class Ayame(object):
         return _local._router
 
     def new(self):
-        beaker = dict((k, self.config[k]) for k in self.config
-                      if k.startswith('beaker.'))
-        app = SessionMiddleware(self, beaker, 'ayame.session')
+        app = beaker.middleware.SessionMiddleware(self, self.config,
+                                                  'ayame.session')
         return app
 
     def __call__(self, environ, start_response):
