@@ -78,6 +78,8 @@ def test_simple_app():
     map.connect('/int', 0)
     map.connect('/redir', RedirectPage)
 
+    app = app.new()
+
     # GET /page -> OK
     xhtml = ('<?xml version="1.0"?>\n'
              '{doctype}\n'
@@ -91,7 +93,7 @@ def test_simple_app():
              '</html>\n').format(doctype=markup.XHTML1_STRICT,
                                  xhtml=markup.XHTML_NS)
     xhtml = xhtml.encode('utf-8')
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/page')
     eq_(status, http.OK.status)
@@ -102,7 +104,7 @@ def test_simple_app():
 
     # GET /page?{query in EUC-JP} -> OK
     query = uri.quote('\u3044\u308d\u306f', encoding='euc-jp')
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/page',
                                                    QUERY_STRING=query)
@@ -113,7 +115,7 @@ def test_simple_app():
     eq_(content, xhtml)
 
     # GET /int -> NotFound
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/int')
     eq_(status, http.NotFound.status)
@@ -123,7 +125,7 @@ def test_simple_app():
     ok_(content)
 
     # GET /redir -> InternalServerError
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/redir')
     eq_(status, http.InternalServerError.status)
@@ -133,7 +135,7 @@ def test_simple_app():
 
     # GET /redir?type=permanent -> MovedPermanently
     query = uri.quote_plus('type=permanent')
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/redir',
                                                    QUERY_STRING=query)
@@ -144,7 +146,7 @@ def test_simple_app():
 
     # GET /redir?type=temporary -> Found
     query = uri.quote_plus('type=temporary')
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/redir',
                                                    QUERY_STRING=query)
@@ -156,7 +158,7 @@ def test_simple_app():
     # GET /redir?greeting=Hallo+Welt! -> OK
     xhtml = xhtml.replace(b'Hello World!', b'Hallo Welt!')
     query = uri.quote_plus('greeting=Hallo Welt!')
-    status, headers, exc_info, content = wsgi_call(app.make_app(),
+    status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/redir',
                                                    QUERY_STRING=query)

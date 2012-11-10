@@ -100,7 +100,7 @@ class Ayame(object):
     def _router(self):
         return _local._router
 
-    def make_app(self):
+    def new(self):
         beaker = dict((k, self.config[k]) for k in self.config
                       if k.startswith('beaker.'))
         app = SessionMiddleware(self, beaker, 'ayame.session')
