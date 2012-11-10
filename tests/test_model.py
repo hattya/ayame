@@ -1,7 +1,7 @@
 #
 # test_model
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -119,8 +119,8 @@ def test_compound_model():
     eq_(len(mc.find('b').children), 1)
     eq_(mc.find('b:c').model.object, 'c')
     mc.model = model.CompoundModel(object())
-    assert_raises(AttributeError, lambda: mc.find('b').model.object)
-    assert_raises(AttributeError, lambda: mc.find('b:c').model.object)
+    eq_(mc.find('b').model.object, None)
+    eq_(mc.find('b:c').model.object, None)
     assert_raises(AttributeError, setattr, mc.find('b').model, 'object', '')
     assert_raises(AttributeError, setattr, mc.find('b:c').model, 'object', '')
     eq_(mc.render(''), '')

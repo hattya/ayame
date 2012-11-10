@@ -1,7 +1,7 @@
 #
 # ayame.model
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -101,8 +101,6 @@ class CompoundModel(InheritableModel):
                         return wrapped_object.__getitem__(name)
                     except (AttributeError, LookupError):
                         pass
-
-                    raise AttributeError(name)
 
                 def fset(self, object):
                     wrapped_object = self.wrapped_model.object
