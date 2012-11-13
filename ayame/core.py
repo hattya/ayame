@@ -127,6 +127,7 @@ class Ayame(object):
                                 uri.application_uri(self.environ) +
                                 self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
+                    request.path = None
                 else:
                     break
             else:
