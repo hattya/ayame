@@ -820,7 +820,9 @@ class nested(object):
 
     def __get__(self, instance, owner):
         cls = self.__cls
-        cls.markup_type = markup.MarkupType(cls.markup_type.extension,
-                                            cls.markup_type.mime_type,
-                                            owner.markup_type.scope + (owner,))
+        if (issubclass(cls, MarkupContainer) and
+            issubclass(owner, MarkupContainer)):
+            cls.markup_type = markup.MarkupType(
+                    cls.markup_type.extension, cls.markup_type.mime_type,
+                    owner.markup_type.scope + (owner,))
         return cls
