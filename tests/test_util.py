@@ -83,6 +83,13 @@ def test_load_data():
     with util.load_data(sys.modules[__name__], '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/.txt')
 
+    class Eggs(object):
+        pass
+    assert_raises(ResourceError, util.load_data, Eggs, 'Eggs.txt')
+    assert_raises(ResourceError, util.load_data, Eggs, '.txt')
+    assert_raises(ResourceError, util.load_data, Eggs(), 'Eggs.txt')
+    assert_raises(ResourceError, util.load_data, Eggs(), '.txt')
+
     def eggs():
         pass
     del eggs.__module__
@@ -95,6 +102,8 @@ def test_load_data():
     sys.modules[__name__] = Module()
     assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
     assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, Spam(), 'Spam.txt')
+    assert_raises(ResourceError, util.load_data, Spam(), '.txt')
     assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
     assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
@@ -108,6 +117,8 @@ def test_load_data():
     sys.modules[__name__] = Module()
     assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
     assert_raises(ResourceError, util.load_data, Spam, '.txt')
+    assert_raises(ResourceError, util.load_data, Spam(), 'Spam.txt')
+    assert_raises(ResourceError, util.load_data, Spam(), '.txt')
     assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
     assert_raises(ResourceError, util.load_data, spam, '.txt')
     assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
