@@ -24,14 +24,14 @@
 #   SOFTWARE.
 #
 
-from HTMLParser import HTMLParser
-from collections import deque, namedtuple
+import HTMLParser
+import collections
 import io
 import re
 import sys
 
-from ayame import util
 from ayame.exception import MarkupError, RenderingError
+import ayame.util
 
 
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
@@ -98,7 +98,7 @@ _block_ex = _block + ('form', 'noscript', 'ins', 'del', 'script')
 _space_re = re.compile('\s{2,}')
 _newline_re = re.compile('[\n\r]+')
 
-class QName(namedtuple('QName', 'ns_uri, name')):
+class QName(collections.namedtuple('QName', 'ns_uri, name')):
 
     __slots__ = ()
 
@@ -125,7 +125,8 @@ AYAME_REMOVE = QName(AYAME_NS, u'remove')
 AYAME_ID = QName(AYAME_NS, u'id')
 #AYAME_CHILD = QName(AYAME_NS, u'child')
 
-MarkupType = namedtuple('MarkupType', 'extension, mime_type, scope')
+MarkupType = collections.namedtuple('MarkupType',
+                                    'extension, mime_type, scope')
 
 class Markup(object):
 
@@ -201,7 +202,7 @@ class Element(object):
     def walk(self, step=None):
         step = step if callable(step) else lambda *args: True
 
-        queue = deque()
+        queue = collections.deque()
         queue.append((self, 0))
         while queue:
             element, depth = queue.pop()
@@ -226,7 +227,7 @@ class Element(object):
             children.append(u''.join(self[beg:end]))
         self[:] = children
 
-class _AttributeDict(util.FilterDict):
+class _AttributeDict(ayame.util.FilterDict):
 
     __slots__ = ()
 
@@ -247,7 +248,7 @@ class Fragment(list):
 
     copy = __copy__
 
-class MarkupLoader(HTMLParser, object):
+class MarkupLoader(HTMLParser.HTMLParser, object):
 
     _decl = {'new_element': 'new_{}_element',
              'push': '{}_push',
@@ -255,8 +256,8 @@ class MarkupLoader(HTMLParser, object):
              'finish': '{}_finish'}
 
     def __init__(self):
-        HTMLParser.__init__(self)
-        self.__stack = deque()
+        HTMLParser.HTMLParser.__init__(self)
+        self.__stack = collections.deque()
         self._cache = {}
 
         self._object = None
@@ -296,7 +297,7 @@ class MarkupLoader(HTMLParser, object):
         return self._markup
 
     def close(self):
-        HTMLParser.close(self)
+        HTMLParser.HTMLParser.close(self)
         self._impl_of('finish')()
 
     def handle_starttag(self, name, attrs):
@@ -530,7 +531,7 @@ class MarkupRenderer(object):
              'render_text': 'render_{}_text'}
 
     def __init__(self):
-        self.__stack = deque()
+        self.__stack = collections.deque()
         self._cache = {}
 
         self._object = None
@@ -561,7 +562,7 @@ class MarkupRenderer(object):
         # render DOCTYPE
         self.render_doctype(markup.doctype)
         # render nodes
-        queue = deque()
+        queue = collections.deque()
         if isinstance(markup.root, Element):
             queue.append((-1, markup.root))
         while queue:

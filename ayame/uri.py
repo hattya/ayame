@@ -27,7 +27,7 @@
 import urllib
 import urlparse
 
-from ayame import util
+import ayame.util
 
 
 __all__ = ['quote', 'quote_plus', 'application_uri', 'request_uri',
@@ -36,12 +36,12 @@ __all__ = ['quote', 'quote_plus', 'application_uri', 'request_uri',
 _safe = "/-._~!$&'()*+,;=:@"
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return urllib.quote(util.to_bytes(s, encoding, errors),
-                        util.to_bytes(safe, 'ascii', 'ignore'))
+    return urllib.quote(ayame.util.to_bytes(s, encoding, errors),
+                        ayame.util.to_bytes(safe, 'ascii', 'ignore'))
 
 def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return urllib.quote_plus(util.to_bytes(s, encoding, errors),
-                             util.to_bytes(safe, 'ascii', 'ignore'))
+    return urllib.quote_plus(ayame.util.to_bytes(s, encoding, errors),
+                             ayame.util.to_bytes(safe, 'ascii', 'ignore'))
 
 def application_uri(environ):
     scheme = environ['wsgi.url_scheme']

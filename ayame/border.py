@@ -24,13 +24,14 @@
 #   SOFTWARE.
 #
 
-from ayame import core, markup
+import ayame.core
 from ayame.exception import RenderingError
+import ayame.markup
 
 
 __all__ = ['Border']
 
-class Border(core.MarkupContainer):
+class Border(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Border, self).__init__(id, model)
@@ -50,7 +51,8 @@ class Border(core.MarkupContainer):
         body = element
 
         def step(element, depth):
-            return element.qname not in (markup.AYAME_BODY, markup.AYAME_HEAD)
+            return element.qname not in (ayame.markup.AYAME_BODY,
+                                         ayame.markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -60,17 +62,17 @@ class Border(core.MarkupContainer):
         html = 'html' in m.lang
         ayame_border = ayame_body = ayame_head = None
         for element, depth in m.root.walk(step=step):
-            if element.qname == markup.AYAME_BORDER:
+            if element.qname == ayame.markup.AYAME_BORDER:
                 if ayame_border is None:
                     ayame_border = element
-            elif element.qname == markup.AYAME_BODY:
+            elif element.qname == ayame.markup.AYAME_BODY:
                 if (ayame_border is not None and
                     ayame_body is None):
                     # replace ayame:body
                     ayame_body = element
-                    ayame_body.type = markup.Element.OPEN
+                    ayame_body.type = ayame.markup.Element.OPEN
                     ayame_body[:] = body.children
-            elif element.qname == markup.AYAME_HEAD:
+            elif element.qname == ayame.markup.AYAME_HEAD:
                 if (html and
                     ayame_head is None):
                     ayame_head = element
@@ -85,16 +87,16 @@ class Border(core.MarkupContainer):
         return super(Border, self).on_render(ayame_border)
 
     def render_ayame_element(self, element):
-        if element.qname == markup.AYAME_BORDER:
-            element.qname = markup.DIV
+        if element.qname == ayame.markup.AYAME_BORDER:
+            element.qname = ayame.markup.DIV
             return element
-        elif element.qname == markup.AYAME_BODY:
-            element.qname = markup.DIV
-            element.attrib[markup.AYAME_ID] = self.body.id
+        elif element.qname == ayame.markup.AYAME_BODY:
+            element.qname = ayame.markup.DIV
+            element.attrib[ayame.markup.AYAME_ID] = self.body.id
             return element
         return super(Border, self).render_ayame_element(element)
 
-class _BorderBody(core.MarkupContainer):
+class _BorderBody(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(_BorderBody, self).__init__(id + u'_body', model)

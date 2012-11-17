@@ -24,12 +24,13 @@
 #   SOFTWARE.
 #
 
-from abc import ABCMeta, abstractmethod
+import abc
 import re
 import sys
 
-from ayame import core, markup
+import ayame.core
 from ayame.exception import ValidationError
+import ayame.markup
 
 
 __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
@@ -93,16 +94,16 @@ _url = r"""
            pchar=_pchar)
 
 # HTML elements
-_INPUT = markup.QName(markup.XHTML_NS, 'input')
+_INPUT = ayame.markup.QName(ayame.markup.XHTML_NS, 'input')
 # HTML attributes
-_TYPE = markup.QName(markup.XHTML_NS, 'type')
-_MAXLENGTH = markup.QName(markup.XHTML_NS, 'maxlength')
+_TYPE = ayame.markup.QName(ayame.markup.XHTML_NS, 'type')
+_MAXLENGTH = ayame.markup.QName(ayame.markup.XHTML_NS, 'maxlength')
 
-class Validator(core.Behavior):
+class Validator(ayame.core.Behavior):
 
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-    @abstractmethod
+    @abc.abstractmethod
     def validate(self, object):
         pass
 

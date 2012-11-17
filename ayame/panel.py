@@ -24,13 +24,14 @@
 #   SOFTWARE.
 #
 
-from ayame import core, markup
+import ayame.core
 from ayame.exception import RenderingError
+import ayame.markup
 
 
 __all__ = ['Panel']
 
-class Panel(core.MarkupContainer):
+class Panel(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Panel, self).__init__(id, model)
@@ -38,7 +39,8 @@ class Panel(core.MarkupContainer):
 
     def on_render(self, element):
         def step(element, depth):
-            return element.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
+            return element.qname not in (ayame.markup.AYAME_PANEL,
+                                         ayame.markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -48,10 +50,10 @@ class Panel(core.MarkupContainer):
         html = 'html' in m.lang
         ayame_panel = ayame_head = None
         for element, depth in m.root.walk(step=step):
-            if element.qname == markup.AYAME_PANEL:
+            if element.qname == ayame.markup.AYAME_PANEL:
                 if ayame_panel is None:
                     ayame_panel = element
-            elif element.qname == markup.AYAME_HEAD:
+            elif element.qname == ayame.markup.AYAME_HEAD:
                 if (html and
                     ayame_head is None):
                     ayame_head = element
@@ -64,7 +66,7 @@ class Panel(core.MarkupContainer):
         return super(Panel, self).on_render(ayame_panel)
 
     def render_ayame_element(self, element):
-        if element.qname == markup.AYAME_PANEL:
-            element.qname = markup.DIV
+        if element.qname == ayame.markup.AYAME_PANEL:
+            element.qname = ayame.markup.DIV
             return element
         return super(Panel, self).render_ayame_element(element)

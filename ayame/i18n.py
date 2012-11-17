@@ -28,8 +28,9 @@ import collections
 import re
 import sys
 
-from ayame import core, util
+import ayame.core
 from ayame.exception import ResourceError
+import ayame.util
 
 
 __all__ = ['Localizer']
@@ -71,7 +72,7 @@ class Localizer(object):
         def load(module, *args):
             name = '_'.join(args)
             try:
-                with util.load_data(module, name + self.extension) as fp:
+                with ayame.util.load_data(module, name + self.extension) as fp:
                     return self._load(fp)
             except (IOError, ResourceError):
                 pass
@@ -87,7 +88,8 @@ class Localizer(object):
                 yield load(module, class_.__name__), prefix
 
     def _iter_class(self, component):
-        queue = collections.deque([(core.Ayame.instance().__class__, '')])
+        queue = collections.deque([(ayame.core.Ayame.instance().__class__,
+                                    '')])
         path = component.path().split(':')
         index = len(path)
         join = '.'.join
@@ -106,11 +108,11 @@ class Localizer(object):
                              if self.is_target_class(c))
 
     def is_target_class(self, class_):
-        return issubclass(class_, (core.Component, core.Ayame))
+        return issubclass(class_, (ayame.core.Component, ayame.core.Ayame))
 
     def is_base_class(self, class_):
-        return class_ in (core.Page, core.MarkupContainer, core.Component,
-                          core.Ayame)
+        return class_ in (ayame.core.Page, ayame.core.MarkupContainer,
+                          ayame.core.Component, ayame.core.Ayame)
 
     def _load(self, fp):
         bundle = {}

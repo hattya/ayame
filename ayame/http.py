@@ -1,7 +1,7 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,7 +26,7 @@
 
 import cgi
 
-from ayame import exception
+from ayame.exception import AyameError
 
 
 __all__ = ['HTTPStatus', 'HTTPSuccessful', 'OK', 'Created', 'Accepted',
@@ -75,7 +75,7 @@ class _HTTPStatusMetaclass(type):
                 dict['status'] = ''
         return type.__new__(cls, name, bases, dict)
 
-class HTTPStatus(exception.AyameError):
+class HTTPStatus(AyameError):
 
     __metaclass__ = _HTTPStatusMetaclass
 

@@ -26,29 +26,31 @@
 
 import urllib
 
-from ayame import core, markup, uri
-from ayame import model as _model
+import ayame.core
 from ayame.exception import ComponentError
+import ayame.markup
+import ayame.model
+import ayame.uri
 
 
 __all__ = ['Link', 'ActionLink', 'PageLink']
 
 # HTML elements
-_A = markup.QName(markup.XHTML_NS, u'a')
-_LINK = markup.QName(markup.XHTML_NS, u'link')
-_AREA = markup.QName(markup.XHTML_NS, u'area')
-_SCRIPT = markup.QName(markup.XHTML_NS, u'script')
-_STYLE = markup.QName(markup.XHTML_NS, u'style')
+_A = ayame.markup.QName(ayame.markup.XHTML_NS, u'a')
+_LINK = ayame.markup.QName(ayame.markup.XHTML_NS, u'link')
+_AREA = ayame.markup.QName(ayame.markup.XHTML_NS, u'area')
+_SCRIPT = ayame.markup.QName(ayame.markup.XHTML_NS, u'script')
+_STYLE = ayame.markup.QName(ayame.markup.XHTML_NS, u'style')
 
 # HTML attributes
-_HREF = markup.QName(markup.XHTML_NS, u'href')
-_SRC = markup.QName(markup.XHTML_NS, u'src')
+_HREF = ayame.markup.QName(ayame.markup.XHTML_NS, u'href')
+_SRC = ayame.markup.QName(ayame.markup.XHTML_NS, u'src')
 
-class Link(core.MarkupContainer):
+class Link(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
         if isinstance(model, basestring):
-            model = _model.Model(model)
+            model = ayame.model.Model(model)
         super(Link, self).__init__(id, model)
 
     def on_render(self, element):
@@ -85,15 +87,15 @@ class ActionLink(Link):
     def new_uri(self, _):
         request = self.page().request
         query = request.query.copy()
-        query[core.AYAME_PATH] = [self.path()]
+        query[ayame.core.AYAME_PATH] = [self.path()]
         environ = request.environ.copy()
         environ['QUERY_STRING'] = urllib.urlencode(query, doseq=True)
-        return uri.request_uri(environ, True)
+        return ayame.uri.request_uri(environ, True)
 
     def on_click(self, request):
         pass
 
-class _ActionLinkBehavior(core.IgnitionBehavior):
+class _ActionLinkBehavior(ayame.core.IgnitionBehavior):
 
     def on_component(self, component, element):
         self.fire()
@@ -105,8 +107,8 @@ class PageLink(Link):
 
     def __init__(self, id, page, values=None, anchor=''):
         super(PageLink, self).__init__(id, None)
-        if (not issubclass(page, core.Page) or
-            page is core.Page):
+        if (not issubclass(page, ayame.core.Page) or
+            page is ayame.core.Page):
             raise ComponentError(self,
                                  u'{!r} is not subclass of Page'.format(page))
         self._page = page

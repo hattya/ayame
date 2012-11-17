@@ -24,9 +24,9 @@
 #   SOFTWARE.
 #
 
-import datetime
 import cgi
 import collections
+import datetime
 import os
 import sys
 import threading
@@ -35,10 +35,15 @@ import wsgiref.headers
 
 import beaker.middleware
 
-from ayame import converter, http, markup, route, uri, util
-from ayame import model as _model
+import ayame.converter
 from ayame.exception import (AyameError, ComponentError, Redirect,
                              RenderingError)
+import ayame.http
+import ayame.markup
+import ayame.model
+import ayame.route
+import ayame.uri
+import ayame.util
 
 
 __all__ = ['AYAME_PATH', 'Ayame', 'Component', 'MarkupContainer', 'Page',
@@ -72,14 +77,14 @@ class Ayame(object):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
         self.config = {
-                'ayame.converter.locator': converter.Locator(),
+                'ayame.converter.locator': ayame.converter.Locator(),
                 'ayame.markup.encoding': 'utf-8',
                 'ayame.markup.separator': '.',
                 'ayame.markup.pretty': False,
                 'ayame.max.redirect': 7,
-                'ayame.route.map': route.Map(),
-                'ayame.class.MarkupLoader': markup.MarkupLoader,
-                'ayame.class.MarkupRenderer': markup.MarkupRenderer,
+                'ayame.route.map': ayame.route.Map(),
+                'ayame.class.MarkupLoader': ayame.markup.MarkupLoader,
+                'ayame.class.MarkupRenderer': ayame.markup.MarkupRenderer,
                 'ayame.class.Request': Request,
                 'beaker.session.type': 'file',
                 'beaker.session.data_dir': os.path.join(session_dir, 'data'),
@@ -119,12 +124,12 @@ class Ayame(object):
                                                                    request)
                 except Redirect as r:
                     if r.args[3] == Redirect.PERMANENT:
-                        raise http.MovedPermanently(
-                                uri.application_uri(self.environ) +
+                        raise ayame.http.MovedPermanently(
+                                ayame.uri.application_uri(self.environ) +
                                 self.uri_for(*r.args[:3], relative=True)[1:])
                     elif r.args[3] != Redirect.INTERNAL:
-                        raise http.Found(
-                                uri.application_uri(self.environ) +
+                        raise ayame.http.Found(
+                                ayame.uri.application_uri(self.environ) +
                                 self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
                     request.path = None
@@ -149,10 +154,10 @@ class Ayame(object):
             if issubclass(object, Page):
                 page = object(request)
                 return page.render()
-        raise http.NotFound(uri.request_path(request.environ))
+        raise ayame.http.NotFound(ayame.uri.request_path(request.environ))
 
     def handle_error(self, e):
-        if isinstance(e, http.HTTPError):
+        if isinstance(e, ayame.http.HTTPError):
             status = e.status
             content = e.html().encode('utf-8')
             headers = list(e.headers)
@@ -160,7 +165,7 @@ class Ayame(object):
             headers.append(('Content-Length', str(len(content))))
             exc_info = None
         else:
-            status = http.InternalServerError.status
+            status = ayame.http.InternalServerError.status
             headers = []
             content = []
             exc_info = sys.exc_info()
@@ -199,14 +204,14 @@ class Component(object):
                 current = self.parent
                 while current:
                     model = current.model
-                    if isinstance(model, _model.InheritableModel):
+                    if isinstance(model, ayame.model.InheritableModel):
                         self.__model = model.wrap(self)
                         return self.__model
                     current = current.parent
 
         def fset(self, model):
             if (model is not None and
-                not isinstance(model, _model.Model)):
+                not isinstance(model, ayame.model.Model)):
                 self.__model = None
                 raise ComponentError(
                         self, '{!r} is not instance of Model'.format(model))
@@ -216,13 +221,13 @@ class Component(object):
             # propagate to child models
             if (isinstance(self, MarkupContainer) and
                 (prev and
-                 isinstance(prev, _model.InheritableModel))):
+                 isinstance(prev, ayame.model.InheritableModel))):
                 queue = collections.deque()
                 queue.append(self)
                 while queue:
                     component = queue.pop()
                     # reset model
-                    if (isinstance(component.model, _model.WrapModel) and
+                    if (isinstance(component.model, ayame.model.WrapModel) and
                         component.model.wrapped_model == prev):
                         component.model = None
                     # push children
@@ -329,7 +334,7 @@ class Component(object):
 
 class MarkupContainer(Component):
 
-    markup_type = markup.MarkupType('.html', 'text/html', ())
+    markup_type = ayame.markup.MarkupType('.html', 'text/html', ())
 
     def __init__(self, id, model=None):
         super(MarkupContainer, self).__init__(id, model)
@@ -384,10 +389,10 @@ class MarkupContainer(Component):
         root = element
 
         def push(queue, node):
-            if isinstance(node, markup.Element):
+            if isinstance(node, ayame.markup.Element):
                 for index in xrange(len(node) - 1, -1, -1):
                     child = node[index]
-                    if isinstance(child, markup.Element):
+                    if isinstance(child, ayame.markup.Element):
                         queue.append((node, index, child))
 
         # notify behaviors
@@ -395,15 +400,15 @@ class MarkupContainer(Component):
 
         self._extra_head = []
         queue = collections.deque()
-        if isinstance(root, markup.Element):
+        if isinstance(root, ayame.markup.Element):
             queue.append((None, -1, root))
         while queue:
             parent, index, element = queue.pop()
-            if element.qname.ns_uri == markup.AYAME_NS:
+            if element.qname.ns_uri == ayame.markup.AYAME_NS:
                 # render ayame element
                 value = self.render_ayame_element(element)
                 if value is not None:
-                    if isinstance(value, markup.Element):
+                    if isinstance(value, ayame.markup.Element):
                         queue.append((parent, index, value))
                     elif isinstance(value, collections.Sequence):
                         # save same parent elements
@@ -416,7 +421,7 @@ class MarkupContainer(Component):
                             elements.append(q[2])
                         # append rendered children
                         elements.extend(v for v in value
-                                        if isinstance(v, markup.Element))
+                                        if isinstance(v, ayame.markup.Element))
                         if elements:
                             # replace ayame element (queue)
                             total = len(elements)
@@ -426,7 +431,7 @@ class MarkupContainer(Component):
                         # replace ayame element (parent)
                         parent[index:index + 1] = value
                     continue
-            elif markup.AYAME_ID in element.attrib:
+            elif ayame.markup.AYAME_ID in element.attrib:
                 # render component
                 ayame_id, value = self.render_component(element)
             else:
@@ -474,15 +479,15 @@ class MarkupContainer(Component):
                         self, u"component for '{}' is not found".format(p))
             return c
 
-        if element.qname == markup.AYAME_CONTAINER:
-            find(get(element, markup.AYAME_ID)).render_body_only = True
-            element.qname = markup.DIV
+        if element.qname == ayame.markup.AYAME_CONTAINER:
+            find(get(element, ayame.markup.AYAME_ID)).render_body_only = True
+            element.qname = ayame.markup.DIV
             return element
-        elif element.qname == markup.AYAME_ENCLOSURE:
-            component = find(get(element, markup.AYAME_CHILD))
+        elif element.qname == ayame.markup.AYAME_ENCLOSURE:
+            component = find(get(element, ayame.markup.AYAME_CHILD))
             return element.children if component.visible else None
 
-        if element.qname.ns_uri == markup.AYAME_NS:
+        if element.qname.ns_uri == ayame.markup.AYAME_NS:
             raise RenderingError(
                     self,
                     u"unknown element 'ayame:{}'".format(element.qname.name))
@@ -497,12 +502,12 @@ class MarkupContainer(Component):
 
     def merge_ayame_head(self, root):
         if self._extra_head:
-            if (isinstance(root, markup.Element) and
-                root.qname == markup.HTML):
+            if (isinstance(root, ayame.markup.Element) and
+                root.qname == ayame.markup.HTML):
                 for node in root:
-                    if (isinstance(node, markup.Element) and
-                        node.qname == markup.HEAD):
-                        node.type = markup.Element.OPEN
+                    if (isinstance(node, ayame.markup.Element) and
+                        node.qname == ayame.markup.HEAD):
+                        node.type = ayame.markup.Element.OPEN
                         node.extend(self._extra_head)
                         self._extra_head = None
                 if self._extra_head is not None:
@@ -516,7 +521,7 @@ class MarkupContainer(Component):
         # retrieve ayame:id
         ayame_id = None
         for attr in tuple(element.attrib):
-            if attr.ns_uri != markup.AYAME_NS:
+            if attr.ns_uri != ayame.markup.AYAME_NS:
                 continue
             elif attr.name == 'id':
                 ayame_id = element.attrib.pop(attr)
@@ -545,7 +550,8 @@ class MarkupContainer(Component):
 
     def load_markup(self, class_=None):
         def step(element, depth):
-            return element.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
+            return element.qname not in (ayame.markup.AYAME_CHILD,
+                                         ayame.markup.AYAME_HEAD)
 
         def path_of(class_):
             if self.__class__ == class_:
@@ -565,8 +571,9 @@ class MarkupContainer(Component):
         extra_head = []
         ayame_child = None
         while True:
-            m = loader.load(class_, util.load_data(class_, path_of(class_),
-                                                   encoding))
+            m = loader.load(class_, ayame.util.load_data(class_,
+                                                         path_of(class_),
+                                                         encoding))
             if m.root is None:
                 # markup is empty
                 break
@@ -575,7 +582,7 @@ class MarkupContainer(Component):
             stack = []
             for element, depth in m.root.walk(step=step):
                 stack[depth:] = [element]
-                if element.qname == markup.AYAME_EXTEND:
+                if element.qname == ayame.markup.AYAME_EXTEND:
                     if ayame_extend is None:
                         # resolve superclass
                         superclass = None
@@ -588,11 +595,12 @@ class MarkupContainer(Component):
                                                  'multiple inheritance')
                             superclass = c
                         if superclass is None:
-                            raise AyameError(u"superclass of '{}' is not found"
-                                             .format(util.fqon_of(class_)))
+                            raise AyameError(
+                                    u"superclass of '{}' is not found".format(
+                                            ayame.util.fqon_of(class_)))
                         class_ = superclass
                         ayame_extend = element
-                elif element.qname == markup.AYAME_CHILD:
+                elif element.qname == ayame.markup.AYAME_CHILD:
                     if ayame_child is not None:
                         # merge submarkup into supermarkup
                         if len(stack) < 2:
@@ -603,7 +611,7 @@ class MarkupContainer(Component):
                         index = parent.children.index(element)
                         parent[index:index + 1] = ayame_child
                         ayame_child = None
-                elif element.qname == markup.AYAME_HEAD:
+                elif element.qname == ayame.markup.AYAME_HEAD:
                     if (html and
                         ayame_head is None):
                         ayame_head = element
@@ -622,8 +630,8 @@ class MarkupContainer(Component):
             if ayame_head is None:
                 # merge to head
                 for node in m.root:
-                    if (isinstance(node, markup.Element) and
-                        node.qname == markup.HEAD):
+                    if (isinstance(node, ayame.markup.Element) and
+                        node.qname == ayame.markup.HEAD):
                         node.extend(extra_head)
                         extra_head = None
             else:
@@ -652,7 +660,7 @@ class Page(MarkupContainer):
             m.root = super(Page, self).render(m.root)
             # remove ayame namespace from root element
             for prefix in tuple(m.root.ns):
-                if m.root.ns[prefix] == markup.AYAME_NS:
+                if m.root.ns[prefix] == ayame.markup.AYAME_NS:
                     del m.root.ns[prefix]
             # render markup
             renderer = self.config['ayame.class.MarkupRenderer']()
@@ -662,7 +670,7 @@ class Page(MarkupContainer):
         mime_type = self.markup_type.mime_type
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
         self.headers['Content-Length'] = str(len(content))
-        return http.OK.status, self.__headers, content
+        return ayame.http.OK.status, self.__headers, content
 
 class Request(object):
 
@@ -714,7 +722,7 @@ class Request(object):
             for field in fs.list:
                 if (isinstance(field, cgi.FieldStorage) and
                     field.done == -1):
-                    raise http.RequestTimeout()
+                    raise ayame.http.RequestTimeout()
                 field.name = self._decode(field.name)
                 if field.filename:
                     field.filename = self._decode(field.filename)
@@ -786,10 +794,10 @@ class AttributeModifier(Behavior):
         self._model = model
 
     def on_component(self, component, element):
-        if isinstance(self._attr, markup.QName):
+        if isinstance(self._attr, ayame.markup.QName):
             attr = self._attr
         else:
-            attr = markup.QName(element.qname.ns_uri, self._attr)
+            attr = ayame.markup.QName(element.qname.ns_uri, self._attr)
         value = self._model.object if self._model else None
         new_value = self.new_value(element.attrib.get(attr), value)
         if new_value is None:
@@ -822,7 +830,7 @@ class nested(object):
         cls = self.__cls
         if (issubclass(cls, MarkupContainer) and
             issubclass(owner, MarkupContainer)):
-            cls.markup_type = markup.MarkupType(
+            cls.markup_type = ayame.markup.MarkupType(
                     cls.markup_type.extension, cls.markup_type.mime_type,
                     owner.markup_type.scope + (owner,))
         return cls

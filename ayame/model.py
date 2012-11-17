@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+import abc
 
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
@@ -49,15 +49,15 @@ class Model(object):
 
 class InheritableModel(Model):
 
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-    @abstractmethod
+    @abc.abstractmethod
     def wrap(self, component):
         pass
 
 class WrapModel(Model):
 
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, model):
         super(WrapModel, self).__init__(None)
@@ -67,7 +67,7 @@ class WrapModel(Model):
     def wrapped_model(self):
         return self.__wrapped_model
 
-    @abstractproperty
+    @abc.abstractproperty
     def object(self):
         pass
 

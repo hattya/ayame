@@ -29,8 +29,10 @@ import os
 import re
 import urllib
 
-from ayame import http, uri, util
-from ayame.exception import RouteError, RequestSlash, ValidationError
+from ayame.exception import RequestSlash, RouteError,ValidationError
+import ayame.http
+import ayame.uri
+import ayame.util
 
 
 __all__ = ['Rule', 'Map', 'Router', 'Converter']
@@ -187,7 +189,7 @@ class Rule(object):
         cache = {}
         for dyn, var in self._segments:
             if dyn:
-                cache[var] = util.to_list(values[var])
+                cache[var] = ayame.util.to_list(values[var])
                 if not cache[var]:
                     return
                 data = cache[var].pop(0)
@@ -201,8 +203,8 @@ class Rule(object):
         if append_query:
             query = []
             for var in values:
-                data = cache.get(var, util.to_list(values[var]))
-                var = util.to_bytes(var, self.map.encoding)
+                data = cache.get(var, ayame.util.to_list(values[var]))
+                var = ayame.util.to_bytes(var, self.map.encoding)
                 query.extend((var, x) for x in data)
             if query:
                 query = sorted(query, key=self.map.sort_key)
@@ -211,7 +213,7 @@ class Rule(object):
         # anchor
         if anchor:
             buf.append('#')
-            buf.append(uri.quote(anchor, encoding=self.map.encoding))
+            buf.append(ayame.uri.quote(anchor, encoding=self.map.encoding))
         return u''.join(buf)
 
 class Map(object):
@@ -280,7 +282,8 @@ class Router(object):
             except RequestSlash:
                 environ = self.environ.copy()
                 environ['PATH_INFO'] += '/'
-                raise http.MovedPermanently(uri.request_uri(environ, True))
+                raise ayame.http.MovedPermanently(
+                        ayame.uri.request_uri(environ, True))
             if values is None:
                 continue
             elif method not in rule.methods:
@@ -297,12 +300,14 @@ class Router(object):
                     location = rule.object(**values)
                 environ = self.environ.copy()
                 environ['PATH_INFO'] = location
-                raise http.MovedPermanently(uri.request_uri(environ, True))
+                raise ayame.http.MovedPermanently(
+                        ayame.uri.request_uri(environ, True))
             return rule if as_rule else rule.object, values
         if allow:
-            raise http.NotImplemented(method, uri.request_path(self.environ),
-                                      sorted(allow))
-        raise http.NotFound(uri.request_path(self.environ))
+            raise ayame.http.NotImplemented(
+                    method, ayame.uri.request_path(self.environ),
+                    sorted(allow))
+        raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
     def build(self, object, values=None, anchor=None, method=None,
               append_query=True, relative=False):
@@ -314,8 +319,7 @@ class Router(object):
                 continue
             elif relative:
                 return path
-            else:
-                return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
+            return ayame.uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')
 
 class Converter(object):
@@ -329,7 +333,7 @@ class Converter(object):
         return value
 
     def to_uri(self, value):
-        return uri.quote(value, encoding=self.map.encoding)
+        return ayame.uri.quote(value, encoding=self.map.encoding)
 
 class _StringConverter(Converter):
 

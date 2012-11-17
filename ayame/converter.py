@@ -24,7 +24,7 @@
 #   SOFTWARE.
 #
 
-from abc import ABCMeta, abstractproperty, abstractmethod
+import abc
 import collections
 import datetime
 import sys
@@ -83,13 +83,13 @@ class Locator(object):
 
 class Converter(object):
 
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-    @abstractproperty
+    @abc.abstractproperty
     def type(self):
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def to_python(self, value):
         return value
 
