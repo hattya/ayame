@@ -153,7 +153,8 @@ class test(Command, Mixin2to3):
             self.mkpath(os.path.join(self.build_base, root))
             for f in files:
                 ext = os.path.splitext(f)[1].lower()
-                if ext not in ('.py', '.txt', '.html', '.htm', ''):
+                if ext not in ('.py', '.html', '.properties', '.txt', '.htm',
+                               ''):
                     continue
                 path = os.path.join(root, f)
                 rv = self.copy_file(path, os.path.join(self.build_base, path))
