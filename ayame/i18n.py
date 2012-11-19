@@ -36,6 +36,7 @@ import ayame.util
 __all__ = ['Localizer']
 
 _kv_re = re.compile(r"""
+    \A
     # key
     (.*? (?<!\\)(?:\\\\)*)
     (?:
@@ -88,8 +89,8 @@ class Localizer(object):
                 yield load(module, class_.__name__), prefix
 
     def _iter_class(self, component):
-        queue = collections.deque([(ayame.core.Ayame.instance().__class__,
-                                    '')])
+        queue = collections.deque(((ayame.core.Ayame.instance().__class__,
+                                    ''),))
         path = component.path().split(':')
         index = len(path)
         join = '.'.join
@@ -99,6 +100,7 @@ class Localizer(object):
             if 0 < index:
                 index -= 1
         queue.append((component.__class__, join(path)))
+
         while queue:
             class_, prefix = queue.pop()
             yield class_, prefix
@@ -115,17 +117,16 @@ class Localizer(object):
                           ayame.core.Component, ayame.core.Ayame)
 
     def _load(self, fp):
+        def repl(m):
+            ch = m.group(1)
+            return ctrl_get(ch, ch)
+
         bundle = {}
         ll = []
         match = _kv_re.match
         sub = _backslash_re.sub
         has_lcont = _lcont_re.search
         ctrl_get = _ctrl_chr.get
-
-        def repl(m):
-            ch = m.group(1)
-            return ctrl_get(ch, ch)
-
         for l in fp:
             l = l.lstrip().rstrip('\n\r')
             if (not l or

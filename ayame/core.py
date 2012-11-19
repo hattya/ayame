@@ -64,8 +64,8 @@ class Ayame(object):
     def instance():
         app = _local.app
         if not isinstance(app, Ayame):
-            raise AyameError(u"there is no application attached to '{}'"
-                             .format(threading.current_thread().name))
+            raise AyameError(u"there is no application attached to "
+                             u"'{}'".format(threading.current_thread().name))
         return app
 
     def __init__(self, name):
@@ -77,21 +77,21 @@ class Ayame(object):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
         self.config = {
-                'ayame.converter.locator': ayame.converter.Locator(),
-                'ayame.markup.encoding': 'utf-8',
-                'ayame.markup.separator': '.',
-                'ayame.markup.pretty': False,
-                'ayame.max.redirect': 7,
-                'ayame.route.map': ayame.route.Map(),
-                'ayame.class.MarkupLoader': ayame.markup.MarkupLoader,
-                'ayame.class.MarkupRenderer': ayame.markup.MarkupRenderer,
-                'ayame.class.Request': Request,
-                'beaker.session.type': 'file',
-                'beaker.session.data_dir': os.path.join(session_dir, 'data'),
-                'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
-                'beaker.session.cookie_expires': datetime.timedelta(31),
-                'beaker.session.key': None,
-                'beaker.session.secret': None}
+            'ayame.converter.locator': ayame.converter.Locator(),
+            'ayame.markup.encoding': 'utf-8',
+            'ayame.markup.separator': '.',
+            'ayame.markup.pretty': False,
+            'ayame.max.redirect': 7,
+            'ayame.route.map': ayame.route.Map(),
+            'ayame.class.MarkupLoader': ayame.markup.MarkupLoader,
+            'ayame.class.MarkupRenderer': ayame.markup.MarkupRenderer,
+            'ayame.class.Request': Request,
+            'beaker.session.type': 'file',
+            'beaker.session.data_dir': os.path.join(session_dir, 'data'),
+            'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
+            'beaker.session.cookie_expires': datetime.timedelta(31),
+            'beaker.session.key': None,
+            'beaker.session.secret': None}
 
     @property
     def environ(self):
@@ -125,12 +125,12 @@ class Ayame(object):
                 except Redirect as r:
                     if r.args[3] == Redirect.PERMANENT:
                         raise ayame.http.MovedPermanently(
-                                ayame.uri.application_uri(self.environ) +
-                                self.uri_for(*r.args[:3], relative=True)[1:])
+                            ayame.uri.application_uri(self.environ) +
+                            self.uri_for(*r.args[:3], relative=True)[1:])
                     elif r.args[3] != Redirect.INTERNAL:
                         raise ayame.http.Found(
-                                ayame.uri.application_uri(self.environ) +
-                                self.uri_for(*r.args[:3], relative=True)[1:])
+                            ayame.uri.application_uri(self.environ) +
+                            self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
                     request.path = None
                 else:
@@ -198,7 +198,7 @@ class Component(object):
 
     def model():
         def fget(self):
-            if self.__model:
+            if self.__model is not None:
                 return self.__model
             else:
                 current = self.parent
@@ -214,7 +214,7 @@ class Component(object):
                 not isinstance(model, ayame.model.Model)):
                 self.__model = None
                 raise ComponentError(
-                        self, '{!r} is not instance of Model'.format(model))
+                    self, '{!r} is not instance of Model'.format(model))
             # update model
             prev = self.__model
             self.__model = model
@@ -222,8 +222,7 @@ class Component(object):
             if (isinstance(self, MarkupContainer) and
                 (prev and
                  isinstance(prev, ayame.model.InheritableModel))):
-                queue = collections.deque()
-                queue.append(self)
+                queue = collections.deque((self,))
                 while queue:
                     component = queue.pop()
                     # reset model
@@ -240,7 +239,7 @@ class Component(object):
 
     def model_object():
         def fget(self):
-            return self.model.object if self.model else None
+            return self.model.object if self.model is not None else None
 
         def fset(self, object):
             if self.model is None:
@@ -266,12 +265,6 @@ class Component(object):
     @property
     def session(self):
         return self.app.session
-
-    def redirect(self, *args, **kwargs):
-        return self.app.redirect(*args, **kwargs)
-
-    def uri_for(self, *args, **kwargs):
-        return self.app.uri_for(*args, **kwargs)
 
     def add(self, *args):
         for object in args:
@@ -313,6 +306,9 @@ class Component(object):
             buf = buf[:-1]
         return u':'.join(reversed(buf))
 
+    def redirect(self, *args, **kwargs):
+        return self.app.redirect(*args, **kwargs)
+
     def render(self, element):
         self.on_before_render()
         element = self.on_render(element)
@@ -332,6 +328,9 @@ class Component(object):
         for behavior in self.behaviors:
             behavior.on_after_render(self)
 
+    def uri_for(self, *args, **kwargs):
+        return self.app.uri_for(*args, **kwargs)
+
 class MarkupContainer(Component):
 
     markup_type = ayame.markup.MarkupType('.html', 'text/html', ())
@@ -346,9 +345,9 @@ class MarkupContainer(Component):
         for object in args:
             if isinstance(object, Component):
                 if object.id in self._ref:
-                    raise ComponentError(self,
-                                         u"component for '{}' already exist"
-                                         .format(object.id))
+                    raise ComponentError(
+                        self,
+                        u"component for '{}' already exist".format(object.id))
                 self.children.append(object)
                 self._ref[object.id] = object
                 object.parent = self
@@ -369,8 +368,7 @@ class MarkupContainer(Component):
     def walk(self, step=None):
         step = step if callable(step) else lambda *args: True
 
-        queue = collections.deque()
-        queue.append((self, 0))
+        queue = collections.deque(((self, 0),))
         while queue:
             component, depth = queue.pop()
             yield component, depth
@@ -386,8 +384,6 @@ class MarkupContainer(Component):
             child.on_before_render()
 
     def on_render(self, element):
-        root = element
-
         def push(queue, node):
             if isinstance(node, ayame.markup.Element):
                 for index in xrange(len(node) - 1, -1, -1):
@@ -395,6 +391,7 @@ class MarkupContainer(Component):
                     if isinstance(child, ayame.markup.Element):
                         queue.append((node, index, child))
 
+        root = element
         # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
 
@@ -467,16 +464,16 @@ class MarkupContainer(Component):
             v = e.attrib.get(a)
             if v is None:
                 raise RenderingError(
-                        self,
-                        u"'ayame:{}' attribute is required for "
-                        u"'ayame:{}' element".format(a.name, e.qname.name))
+                    self,
+                    u"'ayame:{}' attribute is required for "
+                    u"'ayame:{}' element".format(a.name, e.qname.name))
             return v
 
         def find(p):
             c = self.find(p)
             if c is None:
                 raise ComponentError(
-                        self, u"component for '{}' is not found".format(p))
+                    self, u"component for '{}' is not found".format(p))
             return c
 
         if element.qname == ayame.markup.AYAME_CONTAINER:
@@ -489,8 +486,7 @@ class MarkupContainer(Component):
 
         if element.qname.ns_uri == ayame.markup.AYAME_NS:
             raise RenderingError(
-                    self,
-                    u"unknown element 'ayame:{}'".format(element.qname.name))
+                self, u"unknown element 'ayame:{}'".format(element.qname.name))
         raise RenderingError(self,
                              u"unknown element '{}'".format(element.qname))
 
@@ -526,16 +522,15 @@ class MarkupContainer(Component):
             elif attr.name == 'id':
                 ayame_id = element.attrib.pop(attr)
             else:
-                raise RenderingError(self,
-                                     u"unknown attribute 'ayame:{}'"
-                                     .format(attr.name))
+                raise RenderingError(
+                    self, u"unknown attribute 'ayame:{}'".format(attr.name))
         if ayame_id is None:
             return None, element
         # find component
         component = self.find(ayame_id)
         if component is None:
             raise ComponentError(
-                    self, u"component for '{}' is not found".format(ayame_id))
+                self, u"component for '{}' is not found".format(ayame_id))
         elif not component.visible:
             return ayame_id, None
         # render component
@@ -564,7 +559,7 @@ class MarkupContainer(Component):
                         markup_type.extension)
             return markup_type.extension
 
-        class_ = self.__class__ if class_ is None else class_
+        class_ = class_ if class_ is not None else self.__class__
         loader = self.config['ayame.class.MarkupLoader']()
         encoding = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
@@ -577,6 +572,7 @@ class MarkupContainer(Component):
             if m.root is None:
                 # markup is empty
                 break
+
             html = 'html' in m.lang
             ayame_extend = ayame_head = None
             stack = []
@@ -591,13 +587,13 @@ class MarkupContainer(Component):
                                 c is MarkupContainer):
                                 continue
                             elif superclass is not None:
-                                raise AyameError('does not support '
-                                                 'multiple inheritance')
+                                raise AyameError(
+                                    'does not support multiple inheritance')
                             superclass = c
                         if superclass is None:
                             raise AyameError(
-                                    u"superclass of '{}' is not found".format(
-                                            ayame.util.fqon_of(class_)))
+                                u"superclass of '{}' is not found".format(
+                                    ayame.util.fqon_of(class_)))
                         class_ = superclass
                         ayame_extend = element
                 elif element.qname == ayame.markup.AYAME_CHILD:
@@ -619,7 +615,8 @@ class MarkupContainer(Component):
                 raise RenderingError(class_,
                                      "'ayame:child' element is not found")
             elif ayame_extend is None:
-                break  # ayame:extend is not found
+                # ayame:extend is not found
+                break
             # for ayame:child in supermarkup
             ayame_child = ayame_extend.children
             # merge ayame:head
@@ -771,12 +768,6 @@ class Behavior(object):
     def session(self):
         return self.app.session
 
-    def redirect(self, *args, **kwargs):
-        return self.app.redirect(*args, **kwargs)
-
-    def uri_for(self, *args, **kwargs):
-        return self.app.uri_for(*args, **kwargs)
-
     def on_before_render(self, component):
         pass
 
@@ -785,6 +776,12 @@ class Behavior(object):
 
     def on_after_render(self, component):
         pass
+
+    def redirect(self, *args, **kwargs):
+        return self.app.redirect(*args, **kwargs)
+
+    def uri_for(self, *args, **kwargs):
+        return self.app.uri_for(*args, **kwargs)
 
 class AttributeModifier(Behavior):
 
@@ -798,7 +795,7 @@ class AttributeModifier(Behavior):
             attr = self._attr
         else:
             attr = ayame.markup.QName(element.qname.ns_uri, self._attr)
-        value = self._model.object if self._model else None
+        value = self._model.object if self._model is not None else None
         new_value = self.new_value(element.attrib.get(attr), value)
         if new_value is None:
             if attr in element.attrib:
@@ -823,14 +820,14 @@ class IgnitionBehavior(Behavior):
 
 class nested(object):
 
-    def __init__(self, cls):
-        self.__cls = cls
+    def __init__(self, class_):
+        self.__class = class_
 
     def __get__(self, instance, owner):
-        cls = self.__cls
-        if (issubclass(cls, MarkupContainer) and
+        class_ = self.__class
+        if (issubclass(class_, MarkupContainer) and
             issubclass(owner, MarkupContainer)):
-            cls.markup_type = ayame.markup.MarkupType(
-                    cls.markup_type.extension, cls.markup_type.mime_type,
-                    owner.markup_type.scope + (owner,))
-        return cls
+            class_.markup_type = ayame.markup.MarkupType(
+                class_.markup_type.extension, class_.markup_type.mime_type,
+                owner.markup_type.scope + (owner,))
+        return class_

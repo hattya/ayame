@@ -48,8 +48,6 @@ class Border(ayame.core.MarkupContainer):
         return self.body.add(*args)
 
     def on_render(self, element):
-        body = element
-
         def step(element, depth):
             return element.qname not in (ayame.markup.AYAME_BODY,
                                          ayame.markup.AYAME_HEAD)
@@ -59,6 +57,8 @@ class Border(ayame.core.MarkupContainer):
         if m.root is None:
             # markup is empty
             return element
+
+        body = element
         html = 'html' in m.lang
         ayame_border = ayame_body = ayame_head = None
         for element, depth in m.root.walk(step=step):
@@ -81,7 +81,7 @@ class Border(ayame.core.MarkupContainer):
         elif ayame_body is None:
             raise RenderingError(self, "'ayame:body' element is not found")
         # push ayame:head to parent component
-        if ayame_head:
+        if ayame_head is not None:
             self.push_ayame_head(ayame_head)
         # render ayame:border
         return super(Border, self).on_render(ayame_border)

@@ -29,7 +29,7 @@ import os
 import re
 import urllib
 
-from ayame.exception import RequestSlash, RouteError,ValidationError
+from ayame.exception import RequestSlash, RouteError, ValidationError
 import ayame.http
 import ayame.uri
 import ayame.util
@@ -57,10 +57,10 @@ class Rule(object):
         self.__path = path
         self.__leaf = not path.endswith('/')
         self.__object = object
-        if methods is None:
-            self.__methods = ('GET', 'POST')
-        else:
+        if methods:
             self.__methods = tuple(set(m.upper() for m in methods))
+        else:
+            self.__methods = ('GET', 'POST')
         self.__redirection = redirection
 
         self._regex = None
@@ -92,8 +92,8 @@ class Rule(object):
 
     def bind(self, map):
         if self.map is not None:
-            raise RouteError('rule {!r} already bound to map {!r}'
-                             .format(self, self.map))
+            raise RouteError(
+                'rule {!r} already bound to map {!r}'.format(self, self.map))
         self.__map = map
         self._compile()
 
@@ -112,7 +112,7 @@ class Rule(object):
                 self._segments.append((False, var))
             elif var in self._variables:
                 raise RouteError(
-                        "variable name '{}' already in use".format(var))
+                    "variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
                 pattern = conv.pattern
@@ -133,21 +133,21 @@ class Rule(object):
         match = _rule_re.match
         while pos < end:
             m = match(path, pos)
-            if m is None:
+            if not m:
                 break
-            grp = m.groupdict()
-            if grp['static']:
-                yield None, None, grp['static']
-            conv = grp['converter'] or 'default'
-            args = grp['args'] or None
-            yield conv, args, grp['variable']
+            g = m.groupdict()
+            if g['static']:
+                yield None, None, g['static']
+            yield (g['converter'] if g['converter'] else 'default',
+                   g['args'] if g['args'] else None,
+                   g['variable'])
             pos = m.end()
         if pos < end:
             yield None, None, path[pos:]
 
     def _new_converter(self, name, args):
         converter = self.map.converters.get(name)
-        if not converter:
+        if converter is None:
             raise RouteError("converter '{}' not found".format(name))
         if args:
             args, kwargs = eval('(lambda *a, **kw: (a, kw))({})'.format(args),
@@ -161,17 +161,17 @@ class Rule(object):
         m = self._regex.search(path)
         if not m:
             return
-        grp = m.groupdict()
-        slash = grp.pop('__slash__')
+        g = m.groupdict()
+        slash = g.pop('__slash__')
         if (self.map.slash and
             not self.is_leaf() and
             not slash):
             raise RequestSlash()
 
         values = {}
-        for var in grp:
+        for var in g:
             try:
-                values[var] = self._converters[var].to_python(grp[var])
+                values[var] = self._converters[var].to_python(g[var])
             except ValidationError:
                 return
         return values
@@ -283,7 +283,7 @@ class Router(object):
                 environ = self.environ.copy()
                 environ['PATH_INFO'] += '/'
                 raise ayame.http.MovedPermanently(
-                        ayame.uri.request_uri(environ, True))
+                    ayame.uri.request_uri(environ, True))
             if values is None:
                 continue
             elif method not in rule.methods:
@@ -295,18 +295,18 @@ class Router(object):
                         var = m.group(1)
                         converter = rule._converters[var]
                         return converter.to_uri(values[var])
+
                     location = _simple_rule_re.sub(repl, rule.object)
                 else:
                     location = rule.object(**values)
                 environ = self.environ.copy()
                 environ['PATH_INFO'] = location
                 raise ayame.http.MovedPermanently(
-                        ayame.uri.request_uri(environ, True))
+                    ayame.uri.request_uri(environ, True))
             return rule if as_rule else rule.object, values
         if allow:
             raise ayame.http.NotImplemented(
-                    method, ayame.uri.request_path(self.environ),
-                    sorted(allow))
+                method, ayame.uri.request_path(self.environ), sorted(allow))
         raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
     def build(self, object, values=None, anchor=None, method=None,

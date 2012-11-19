@@ -40,6 +40,7 @@ __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
 _atext = "[A-Z0-9!#$%&'*+\-/=?^_`{|}~]"
 _label = '(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
 _email = r"""
+    \A
     # local part
     {atext}+(?:\.{atext}+)*
     @
@@ -56,6 +57,7 @@ _sub_delims = "[!$&'()*+,;=]"
 _pchar = '(?:{}|{}|{}|[:@])'.format(_unreserved, _pct_encoded, _sub_delims)
 _ipv4 = '(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 _url = r"""
+    \A
     # scheme
     (?:https?|ftp) : //
     # authority

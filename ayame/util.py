@@ -24,6 +24,7 @@
 #   SOFTWARE.
 #
 
+import collections
 import hashlib
 import io
 import os
@@ -67,8 +68,8 @@ def load_data(object, path, encoding='utf-8'):
     try:
         parent, name = os.path.split(module.__file__)
     except AttributeError:
-        raise ResourceError("could not determine '{}' module location"
-                            .format(module.__name__))
+        raise ResourceError(
+            "could not determine '{}' module location".format(module.__name__))
     name = os.path.splitext(name)[0]
     if name.lower() != '__init__':
         parent = os.path.join(parent, name)
@@ -82,8 +83,8 @@ def load_data(object, path, encoding='utf-8'):
         try:
             data = loader.get_data(path)
         except (AttributeError, IOError):
-            raise ResourceError("could not load '{}' from loader {!r}"
-                                .format(path, loader))
+            raise ResourceError(
+                "could not load '{}' from loader {!r}".format(path, loader))
         return io.StringIO(unicode(data, encoding))
     try:
         return io.open(path, encoding=encoding)
@@ -101,7 +102,7 @@ def to_list(o):
     if o is None:
         return []
     elif (not isinstance(o, basestring) and
-          hasattr(o, '__iter__')):
+          isinstance(o, collections.Iterable)):
         return list(o)
     return [o]
 
@@ -156,12 +157,12 @@ class FilterDict(dict):
         return super(FilterDict, self).setdefault(self.__convert__(key), *args)
 
     def update(self, *args, **kwargs):
-        prev_keys = tuple(self)
+        keys = tuple(self)
         super(FilterDict, self).update(*args, **kwargs)
         convert = self.__convert__
         pop = super(FilterDict, self).pop
         for key in self:
-            if key not in prev_keys:
+            if key not in keys:
                 new_key = convert(key)
                 if new_key != key:
                     self[new_key] = pop(key)

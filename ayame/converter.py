@@ -66,14 +66,13 @@ class Locator(object):
             converter = self.get(class_)
             if converter is not None:
                 return converter
-            for c in reversed(class_.__bases__):
-                if c is not object:
-                    queue.append(c)
+            queue.extend(c for c in reversed(class_.__bases__)
+                         if c is not object)
 
     def add(self, converter):
-        if isinstance(converter.type, tuple):
-            for type in converter.type:
-                self.__registry[type] = converter
+        if isinstance(converter.type, collections.Iterable):
+            self.__registry.update((t, converter) for t in converter.type
+                                   if t is not None)
         elif converter.type is not None:
             self.__registry[converter.type] = converter
 
@@ -95,7 +94,7 @@ class Converter(object):
 
     def to_string(self, value):
         error = self._check_type(value)
-        if error:
+        if error is not None:
             raise error
         return unicode(value)
 
@@ -103,7 +102,7 @@ class Converter(object):
         if not (self.type is None or
                 isinstance(value, self.type)):
             q = "'{}'".format
-            if isinstance(self.type, tuple):
+            if isinstance(self.type, collections.Iterable):
                 et = []
                 for t in self.type:
                     if et:
@@ -115,11 +114,10 @@ class Converter(object):
             else:
                 et = q(self.type)
             return ConversionError(
-                    "expected {} but got '{}'".format(et, type(value)))
+                "expected {} but got '{}'".format(et, type(value)))
 
     def _new_error(self, value, type=None):
-        if type is None:
-            type = self.type
+        type = type if type is not None else self.type
         return ConversionError(u"could not convert '{}' to '{}'".format(value,
                                                                         type))
 
@@ -154,15 +152,13 @@ class FloatConverter(Converter):
     if sys.hexversion < 0x03020000:
         def to_string(self, value):
             error = self._check_type(value)
-            if error:
+            if error is not None:
                 raise error
             return repr(value)
 
     def to_python(self, value):
         try:
-            if value is None:
-                return float()
-            return float(value)
+            return float(value) if value is not None else float()
         except (TypeError, ValueError):
             raise self._new_error(value)
 
@@ -179,9 +175,7 @@ class IntegerConverter(Converter):
 
     def to_python(self, value):
         try:
-            if value is None:
-                return long()
-            return long(value)
+            return long(value) if value is not None else long()
         except (TypeError, ValueError):
             raise self._new_error(value, type=long)
 
@@ -201,7 +195,7 @@ class DateConverter(Converter):
 
     def to_string(self, value):
         error = self._check_type(value)
-        if error:
+        if error is not None:
             raise error
         try:
             return unicode(value.strftime(self._format))
@@ -224,7 +218,7 @@ class TimeConverter(Converter):
 
     def to_string(self, value):
         error = self._check_type(value)
-        if error:
+        if error is not None:
             raise error
         return unicode(value.strftime(self._format))
 
@@ -258,7 +252,7 @@ class DateTimeConverter(Converter):
                     if sign == '-':
                         if minutes <= 720:  # UTC-12:00
                             offset = minutes
-                    else:
+                    elif sign == '+':
                         if minutes <= 840:  # UTC+14:00
                             offset = minutes
             if not isinstance(offset, int):
@@ -277,7 +271,7 @@ class DateTimeConverter(Converter):
 
     def to_string(self, value):
         error = self._check_type(value)
-        if error:
+        if error is not None:
             raise error
         try:
             utcoffset = value.utcoffset()

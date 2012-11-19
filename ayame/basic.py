@@ -43,7 +43,7 @@ class Label(ayame.core.Component):
         super(Label, self).__init__(id, model)
 
     def on_render(self, element):
-        element[:] = [self.model_object_as_string()]
+        element[:] = (self.model_object_as_string(),)
         return element
 
 class ListView(ayame.core.MarkupContainer):
@@ -112,7 +112,7 @@ class PropertyListView(ListView):
 
     def new_model(self, index):
         return ayame.model.CompoundModel(
-                super(PropertyListView, self).new_model(index))
+            super(PropertyListView, self).new_model(index))
 
 class ContextPathGenerator(ayame.core.AttributeModifier):
 

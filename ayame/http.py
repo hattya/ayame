@@ -36,17 +36,17 @@ __all__ = ['HTTPStatus', 'HTTPSuccessful', 'OK', 'Created', 'Accepted',
            'RequestTimeout' 'ServerError', 'InternalServerError',
            'NotImplemented']
 
-HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
-        '"http://www.w3.org/TR/html4/strict.dtd">\n'
-        '<html>\n'
-        '  <head>\n'
-        '    <title>{status}</title>\n'
-        '  <head>\n'
-        '  <body>\n'
-        '    <h1>{reason}</h1>\n'
-        '    <p>{description}</p>\n'
-        '  </body>\n'
-        '</html>\n')
+_HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
+         '"http://www.w3.org/TR/html4/strict.dtd">\n'
+         '<html>\n'
+         '  <head>\n'
+         '    <title>{status}</title>\n'
+         '  <head>\n'
+         '  <body>\n'
+         '    <h1>{reason}</h1>\n'
+         '    <p>{description}</p>\n'
+         '  </body>\n'
+         '</html>\n')
 
 class _HTTPStatusMetaclass(type):
 
@@ -85,9 +85,9 @@ class HTTPStatus(AyameError):
         self.headers = list(headers) if headers else []
 
     def html(self):
-        return HTML.format(reason=self.reason,
-                           status=self.status,
-                           description=self.description)
+        return _HTML.format(reason=self.reason,
+                            status=self.status,
+                            description=self.description)
 
 def _location_init(superclass, s):
     def __init__(self, location):
@@ -144,25 +144,22 @@ class MovedPermanently(Redirection):
     code = 301
 
     __init__ = _location_init(
-            Redirection,
-            'The document has moved <a href="{location}">here</a>.')
+        Redirection, 'The document has moved <a href="{location}">here</a>.')
 
 class Found(Redirection):
 
     code = 302
 
     __init__ = _location_init(
-            Redirection,
-            'The document has moved <a href="{location}">here</a>.')
+        Redirection, 'The document has moved <a href="{location}">here</a>.')
 
 class SeeOther(Redirection):
 
     code = 303
 
     __init__ = _location_init(
-            Redirection,
-            'The answer to your request is located '
-            '<a href="{location}">here</a>.')
+        Redirection,
+        'The answer to your request is located <a href="{location}">here</a>.')
 
 class NotModified(Redirection):
 
@@ -184,35 +181,34 @@ class Unauthrized(ClientError):
 
     def __init__(self, headers=None):
         super(Unauthrized, self).__init__(
-                'This server could not verify that you are authorized to '
-                'access the document requested. Either you supplied the wrong '
-                'credentials (e.g. bad password), or your browser does not '
-                'understand how to supply the credentials required.',
-                headers)
+            'This server could not verify that you are authorized to access '
+            'the document requested. Either you supplied the wrong '
+            'credentials (e.g. bad password), or your browser does not '
+            'understand how to supply the credentials required.',
+            headers)
 
 class Forbidden(ClientError):
 
     code = 403
 
     __init__ = _uri_init(
-            ClientError,
-            'You do not have permission to access {uri} on this server.')
+        ClientError,
+        'You do not have permission to access {uri} on this server.')
 
 class NotFound(ClientError):
 
     code = 404
 
     __init__ = _uri_init(
-            ClientError,
-            'The requested URL {uri} was not found on this server.')
+        ClientError, 'The requested URL {uri} was not found on this server.')
 
 class MethodNotAllowed(ClientError):
 
     code = 405
 
     __init__ = _method_init(
-            ClientError,
-            'The requested method {method} is not allowd for the URL {uri}.')
+        ClientError,
+        'The requested method {method} is not allowd for the URL {uri}.')
 
 class RequestTimeout(ClientError):
 
@@ -220,9 +216,9 @@ class RequestTimeout(ClientError):
 
     def __init__(self, headers=None):
         super(RequestTimeout, self).__init__(
-                'This server timed out while waiting for the request from the '
-                'client.',
-                headers)
+            'This server timed out while waiting for the request from the '
+            'client.',
+            headers)
 
 class ServerError(HTTPError):
     pass

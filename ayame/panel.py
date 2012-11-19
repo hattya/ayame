@@ -47,6 +47,7 @@ class Panel(ayame.core.MarkupContainer):
         if m.root is None:
             # markup is empty
             return element
+
         html = 'html' in m.lang
         ayame_panel = ayame_head = None
         for element, depth in m.root.walk(step=step):
@@ -60,7 +61,7 @@ class Panel(ayame.core.MarkupContainer):
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
         # push ayame:head to parent component
-        if ayame_head:
+        if ayame_head is not None:
             self.push_ayame_head(ayame_head)
         # render ayame:panel
         return super(Panel, self).on_render(ayame_panel)

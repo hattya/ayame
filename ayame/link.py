@@ -60,7 +60,7 @@ class Link(ayame.core.MarkupContainer):
             attr = _HREF
         elif element.qname in (_SCRIPT, _STYLE):
             attr = _SRC
-        if attr:
+        if attr is not None:
             uri = self.new_uri(element.attrib.get(attr))
             if uri is None:
                 if attr in element.attrib:
@@ -70,7 +70,7 @@ class Link(ayame.core.MarkupContainer):
         # replace children by model object
         body = self.model_object_as_string()
         if body:
-            element[:] = [body]
+            element[:] = (body,)
         # render link
         return super(Link, self).on_render(element)
 

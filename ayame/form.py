@@ -79,7 +79,7 @@ class Form(ayame.core.MarkupContainer):
             raise RenderingError(self, "'form' element is expected")
         elif _METHOD not in element.attrib:
             raise RenderingError(
-                    self, "'method' attribute is required for 'form' element")
+                self, "'method' attribute is required for 'form' element")
 
         # modify attributes
         element.attrib[_ACTION] = ayame.uri.request_path(self.environ)
@@ -99,18 +99,19 @@ class Form(ayame.core.MarkupContainer):
     def submit(self, request):
         if (request.method != self._method and
             not self.on_method_mismatch()):
-            return  # abort
+            # abort
+            return
         elif request.method == 'GET':
             values = request.query
         elif request.method == 'POST':
             values = request.form_data
         else:
-            return  # unknown method
+            # unknown method
+            return
 
+        queue = collections.deque((self,))
         form = button = None
         valid = True
-        queue = collections.deque()
-        queue.append(self)
         while queue:
             component = queue.pop()
             if isinstance(component, Form):
@@ -128,13 +129,13 @@ class Form(ayame.core.MarkupContainer):
                 elif isinstance(component, Choice):
                     value = values.get(name)
                     if component.multiple:
-                        value = [] if value is None else value
+                        value = value if value is not None else []
                     else:
-                        value = None if value is None else value[0]
+                        value = value[0] if value is not None else None
                     component.validate(value)
                 else:
                     value = values.get(name)
-                    component.validate(None if value is None else value[0])
+                    component.validate(value[0] if value is not None else None)
                 if valid:
                     valid = component.error is None
             # push children
@@ -233,9 +234,9 @@ class Button(FormComponent):
         if element.qname == _INPUT:
             if element.attrib[_TYPE] not in ('submit', 'button', 'image'):
                 raise RenderingError(
-                        self,
-                        "'input' element with 'type' attribute of 'submit', "
-                        "'button' or 'image' is expected")
+                    self,
+                    "'input' element with 'type' attribute of 'submit', "
+                    "'button' or 'image' is expected")
         elif element.qname != _BUTTON:
             raise RenderingError(self,
                                  "'input' or 'button' element is expected")
@@ -295,7 +296,7 @@ class TextArea(FormComponent):
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
         # modify children
-        element[:] = [self.model_object_as_string()]
+        element[:] = (self.model_object_as_string(),)
         # render text area
         return super(TextArea, self).on_render(element)
 
@@ -327,8 +328,8 @@ class Choice(FormComponent):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(Choice, self).__init__(id, model)
-        self.choices = [] if choices is None else choices
-        self.renderer = ChoiceRenderer() if renderer is None else renderer
+        self.choices = choices if choices is not None else []
+        self.renderer = renderer if renderer is not None else ChoiceRenderer()
         self.multiple = False
         self.prefix = ayame.markup.Fragment()
         self.suffix = ayame.markup.Fragment()
@@ -377,7 +378,7 @@ class ChoiceRenderer(object):
 
     def label_for(self, object):
         label = object
-        return u'' if label is None else label
+        return label if label is not None else u''
 
     def value_of(self, index, object):
         return unicode(index)
@@ -386,8 +387,8 @@ class RadioChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(RadioChoice, self).__init__(id, model, choices, renderer)
-        self.suffix[:] = [
-                ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY)]
+        self.suffix[:] = (
+            ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY),)
 
     def on_render(self, element):
         # clear children
@@ -434,8 +435,8 @@ class CheckBoxChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(CheckBoxChoice, self).__init__(id, model, choices, renderer)
-        self.suffix[:] = [
-                ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY)]
+        self.suffix[:] = (
+            ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY),)
 
     def on_render(self, element):
         # clear children
