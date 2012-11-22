@@ -1050,6 +1050,7 @@ def test_request():
     eq_(request.uri, {})
     eq_(request.query, {})
     eq_(request.form_data, {})
+    eq_(request.path, None)
     eq_(request.session, {})
 
     # form data is empty
@@ -1064,6 +1065,7 @@ def test_request():
     eq_(request.uri, {})
     eq_(request.query, {})
     eq_(request.form_data, {})
+    eq_(request.path, None)
     eq_(request.session, {})
 
     environ = {'wsgi.input': io.BytesIO(),
@@ -1077,15 +1079,10 @@ def test_request():
     eq_(request.uri, {})
     eq_(request.query, {})
     eq_(request.form_data, {})
+    eq_(request.path, None)
     eq_(request.session, {})
 
     # ASCII
-    query = ('a=1&'
-             'b=1&'
-             'b=2&'
-             'c=1&'
-             'c=2&'
-             'c=3')
     data = ('x=-1&'
             'y=-1&'
             'y=-2&'
@@ -1095,26 +1092,17 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'application/x-www-form-urlencoded',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {'a': ['1'],
-                        'b': ['1', '2'],
-                        'c': ['1', '2', '3']})
+    eq_(request.query, {})
     eq_(request.form_data, {'x': ['-1'],
                             'y': ['-1', '-2'],
                             'z': ['-1', '-2', '-3']})
 
-    query = ('a=1&'
-             'b=1&'
-             'b=2&'
-             'c=1&'
-             'c=2&'
-             'c=3')
     data = ('--ayame.core\r\n'
             'Content-Disposition: form-data; name="x"\r\n'
             '\r\n'
@@ -1143,27 +1131,18 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {'a': ['1'],
-                        'b': ['1', '2'],
-                        'c': ['1', '2', '3']})
+    eq_(request.query, {})
     eq_(request.form_data, {'x': ['-1'],
                             'y': ['-1', '-2'],
                             'z': ['-1', '-2', '-3']})
 
     # UTF-8
-    query = (u'\u3044=\u58f1&'
-             u'\u308d=\u58f1&'
-             u'\u308d=\u5f10&'
-             u'\u306f=\u58f1&'
-             u'\u306f=\u5f10&'
-             u'\u306f=\u53c2')
     data = (u'\u3082=\u767e&'
             u'\u305b=\u767e&'
             u'\u305b=\u5343&'
@@ -1173,26 +1152,17 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'application/x-www-form-urlencoded',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {u'\u3044': [u'\u58f1'],
-                        u'\u308d': [u'\u58f1', u'\u5f10'],
-                        u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+    eq_(request.query, {})
     eq_(request.form_data, {u'\u3082': [u'\u767e'],
                             u'\u305b': [u'\u767e', u'\u5343'],
                             u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
-    query = (u'\u3044=\u58f1&'
-             u'\u308d=\u58f1&'
-             u'\u308d=\u5f10&'
-             u'\u306f=\u58f1&'
-             u'\u306f=\u5f10&'
-             u'\u306f=\u53c2')
     data = (u'--ayame.core\r\n'
             u'Content-Disposition: form-data; name="\u3082"\r\n'
             u'\r\n'
@@ -1221,16 +1191,13 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {u'\u3044': [u'\u58f1'],
-                        u'\u308d': [u'\u58f1', u'\u5f10'],
-                        u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+    eq_(request.query, {})
     eq_(request.form_data, {u'\u3082': [u'\u767e'],
                             u'\u305b': [u'\u767e', u'\u5343'],
                             u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
@@ -1248,7 +1215,6 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': '',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
@@ -1275,7 +1241,6 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'PUT',
-               'QUERY_STRING': '',
                'CONTENT_TYPE': 'text/plain',
                'CONTENT_LENGTH': str(len(data))}
     request = core.Request(environ, {})
@@ -1294,7 +1259,6 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
-               'QUERY_STRING': '',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data) + 1)}
     assert_raises(http.RequestTimeout, core.Request, environ, {})

@@ -24,16 +24,33 @@
 #   SOFTWARE.
 #
 
+import sys
 import urllib
 import urlparse
 
 import ayame.util
 
 
-__all__ = ['quote', 'quote_plus', 'application_uri', 'request_uri',
+__all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
            'request_path', 'is_relative_uri', 'relative_uri']
 
 _safe = "/-._~!$&'()*+,;=:@"
+
+if sys.hexversion < 0x03000000:
+    _decode = lambda s: unicode(s, 'utf-8', 'replace')
+else:
+    _decode = None
+
+def parse_qs(environ):
+    qs = environ.get('QUERY_STRING')
+    if not qs:
+        return {}
+
+    qs = urlparse.parse_qs(qs, keep_blank_values=True)
+    if _decode is not None:
+        return dict((_decode(k), [_decode(s) for s in v])
+                    for k, v in qs.iteritems())
+    return qs
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
     return urllib.quote(ayame.util.to_bytes(s, encoding, errors),

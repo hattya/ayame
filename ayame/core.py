@@ -30,7 +30,6 @@ import datetime
 import os
 import sys
 import threading
-import urlparse
 import wsgiref.headers
 
 import beaker.middleware
@@ -677,7 +676,7 @@ class Request(object):
         self.environ = environ
         self.method = environ['REQUEST_METHOD']
         self.uri = values
-        self.query = self._parse_qs(environ)
+        self.query = ayame.uri.parse_qs(environ)
         self.form_data = self._parse_form_data(environ)
         # retrieve ayame:path
         if self.method == 'GET':
@@ -688,18 +687,6 @@ class Request(object):
             self.path = None
         if self.path:
             self.path = self.path[0]
-
-    def _parse_qs(self, environ):
-        qs = environ.get('QUERY_STRING')
-        if not qs:
-            return {}
-
-        qs = urlparse.parse_qs(qs, keep_blank_values=True)
-        if sys.hexversion < 0x03000000:
-            return dict((self._decode(k), [self._decode(s) for s in v])
-                        for k, v in qs.iteritems())
-        else:
-            return qs
 
     def _parse_form_data(self, environ):
         ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]

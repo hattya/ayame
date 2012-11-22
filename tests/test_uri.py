@@ -73,6 +73,57 @@ def test_quote_plus():
     eq_(v, '%E3%81%84%E3%82%8D%E3%81%AF')
     ok_(isinstance(v, str))
 
+def test_parse_qs():
+    # empty
+    environ = {}
+    eq_(uri.parse_qs(environ), {})
+
+    # ASCII
+    query = ('a=1&'
+             'b=1&'
+             'b=2&'
+             'c=1&'
+             'c=2&'
+             'c=3')
+    environ = {'QUERY_STRING': uri.quote(query)}
+    eq_(uri.parse_qs(environ), {'a': ['1'],
+                                'b': ['1', '2'],
+                                'c': ['1', '2', '3']})
+
+    query = ('a=1&'
+             'b=1&'
+             'b=2&'
+             'c=1&'
+             'c=2&'
+             'c=3')
+    environ = {'QUERY_STRING': uri.quote(query)}
+    eq_(uri.parse_qs(environ), {'a': ['1'],
+                                'b': ['1', '2'],
+                                'c': ['1', '2', '3']})
+
+    # UTF-8
+    query = (u'\u3044=\u58f1&'
+             u'\u308d=\u58f1&'
+             u'\u308d=\u5f10&'
+             u'\u306f=\u58f1&'
+             u'\u306f=\u5f10&'
+             u'\u306f=\u53c2')
+    environ = {'QUERY_STRING': uri.quote(query)}
+    eq_(uri.parse_qs(environ), {u'\u3044': [u'\u58f1'],
+                                u'\u308d': [u'\u58f1', u'\u5f10'],
+                                u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+
+    query = (u'\u3044=\u58f1&'
+             u'\u308d=\u58f1&'
+             u'\u308d=\u5f10&'
+             u'\u306f=\u58f1&'
+             u'\u306f=\u5f10&'
+             u'\u306f=\u53c2')
+    environ = {'QUERY_STRING': uri.quote(query)}
+    eq_(uri.parse_qs(environ), {u'\u3044': [u'\u58f1'],
+                                u'\u308d': [u'\u58f1', u'\u5f10'],
+                                u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+
 def test_application_uri():
     # SERVER_NAME and SERVER_PORT
     environ = {'wsgi.url_scheme': 'http',
