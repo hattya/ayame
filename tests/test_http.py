@@ -24,10 +24,183 @@
 #   SOFTWARE.
 #
 
-from nose.tools import eq_, ok_
+import io
+
+from nose.tools import assert_raises, eq_, ok_
 
 from ayame import exception, http
 
+
+def test_parse_form_data():
+    # empty
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_LENGTH': '0'}
+    eq_(http.parse_form_data(environ), {})
+
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+               'CONTENT_LENGTH': '0'}
+    eq_(http.parse_form_data(environ), {})
+
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
+               'CONTENT_LENGTH': '0'}
+    eq_(http.parse_form_data(environ), {})
+
+    # ASCII
+    data = ('x=-1&'
+            'y=-1&'
+            'y=-2&'
+            'z=-1&'
+            'z=-2&'
+            'z=-3')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+               'CONTENT_LENGTH': str(len(data))}
+    eq_(http.parse_form_data(environ), {'x': ['-1'],
+                                        'y': ['-1', '-2'],
+                                        'z': ['-1', '-2', '-3']})
+
+    data = ('--ayame.http\r\n'
+            'Content-Disposition: form-data; name="x"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.http\r\n'
+            'Content-Disposition: form-data; name="y"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.http\r\n'
+            'Content-Disposition: form-data; name="y"\r\n'
+            '\r\n'
+            '-2\r\n'
+            '--ayame.http\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-1\r\n'
+            '--ayame.http\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-2\r\n'
+            '--ayame.http\r\n'
+            'Content-Disposition: form-data; name="z"\r\n'
+            '\r\n'
+            '-3\r\n'
+            '--ayame.http--\r\n')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
+               'CONTENT_LENGTH': str(len(data))}
+    eq_(http.parse_form_data(environ), {'x': ['-1'],
+                                        'y': ['-1', '-2'],
+                                        'z': ['-1', '-2', '-3']})
+
+    # UTF-8
+    data = (u'\u3082=\u767e&'
+            u'\u305b=\u767e&'
+            u'\u305b=\u5343&'
+            u'\u3059=\u767e&'
+            u'\u3059=\u5343&'
+            u'\u3059=\u4e07')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+               'CONTENT_LENGTH': str(len(data))}
+    eq_(http.parse_form_data(environ),
+        {u'\u3082': [u'\u767e'],
+         u'\u305b': [u'\u767e', u'\u5343'],
+         u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+
+    data = (u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u3082"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u305b"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u305b"\r\n'
+            u'\r\n'
+            u'\u5343\r\n'
+            u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u767e\r\n'
+            u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u5343\r\n'
+            u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="\u3059"\r\n'
+            u'\r\n'
+            u'\u4e07\r\n'
+            u'--ayame.http--\r\n')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
+               'CONTENT_LENGTH': str(len(data))}
+    eq_(http.parse_form_data(environ),
+        {u'\u3082': [u'\u767e'],
+         u'\u305b': [u'\u767e', u'\u5343'],
+         u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+
+    # filename
+    data = (u'--ayame.http\r\n'
+            u'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
+            u'Content-Type: text/plain\r\n'
+            u'\r\n'
+            u'spam\n'
+            u'eggs\n'
+            u'ham\n'
+            u'\r\n'
+            u'--ayame.http--\r\n')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
+               'CONTENT_LENGTH': str(len(data))}
+    form_data = http.parse_form_data(environ)
+    eq_(tuple(form_data), ('a',))
+
+    fields = form_data['a']
+    eq_(len(fields), 1)
+
+    a = fields[0]
+    eq_(a.name, 'a')
+    eq_(a.filename, u'\u3044')
+    eq_(a.value, (b'spam\n'
+                  b'eggs\n'
+                  b'ham\n'))
+
+    # PUT
+    data = ('spam\n'
+            'eggs\n'
+            'ham\n')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'PUT',
+               'CONTENT_TYPE': 'text/plain',
+               'CONTENT_LENGTH': str(len(data))}
+    eq_(http.parse_form_data(environ), {})
+
+    # 408 Request Timeout
+    data = ('--ayame.http\r\n'
+            'Content-Disposition: form-data; name="a"\r\n'
+            'Content-Type: text/plain\r\n')
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'POST',
+               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
+               'CONTENT_LENGTH': str(len(data) + 1)}
+    assert_raises(http.RequestTimeout, http.parse_form_data, environ)
 
 def test_http_status():
     e = http.HTTPStatus()

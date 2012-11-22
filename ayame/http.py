@@ -25,16 +25,17 @@
 #
 
 import cgi
+import sys
 
 from ayame.exception import AyameError
 
 
-__all__ = ['HTTPStatus', 'HTTPSuccessful', 'OK', 'Created', 'Accepted',
-           'NoContent', 'HTTPError', 'Redirection', 'MovedPermanently',
-           'Found', 'SeeOther', 'NotModified', 'ClientError', 'BadRequest',
-           'Unauthrized', 'Forbidden', 'NotFound', 'MethodNotAllowed',
-           'RequestTimeout' 'ServerError', 'InternalServerError',
-           'NotImplemented']
+__all__ = ['parse_form_data', 'HTTPStatus', 'HTTPSuccessful', 'OK', 'Created',
+           'Accepted', 'NoContent', 'HTTPError', 'Redirection',
+           'MovedPermanently', 'Found', 'SeeOther', 'NotModified',
+           'ClientError', 'BadRequest', 'Unauthrized', 'Forbidden', 'NotFound',
+           'MethodNotAllowed', 'RequestTimeout' 'ServerError',
+           'InternalServerError', 'NotImplemented']
 
 _HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
          '"http://www.w3.org/TR/html4/strict.dtd">\n'
@@ -47,6 +48,47 @@ _HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
          '    <p>{description}</p>\n'
          '  </body>\n'
          '</html>\n')
+
+if sys.hexversion < 0x03000000:
+    _decode = lambda s: unicode(s, 'utf-8', 'replace')
+else:
+    _decode = None
+
+def parse_form_data(environ):
+    ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
+    if ct not in ('application/x-www-form-urlencoded',
+                  'multipart/form-data'):
+        return {}
+
+    # isolate QUERY_STRING
+    fs_environ = environ.copy()
+    fs_environ['QUERY_STRING'] = ''
+    fs = cgi.FieldStorage(fp=environ['wsgi.input'],
+                          environ=fs_environ,
+                          keep_blank_values=True)
+
+    form_data = {}
+    if fs.list:
+        for field in fs.list:
+            if (isinstance(field, cgi.FieldStorage) and
+                field.done == -1):
+                raise RequestTimeout()
+            if _decode is not None:
+                field.name = _decode(field.name)
+            if field.filename:
+                if _decode is not None:
+                    field.filename = _decode(field.filename)
+                value = field
+            else:
+                if _decode is not None:
+                    value = _decode(field.value)
+                else:
+                    value = field.value
+            if field.name in form_data:
+                form_data[field.name].append(value)
+            else:
+                form_data[field.name] = [value]
+    return form_data
 
 class _HTTPStatusMetaclass(type):
 

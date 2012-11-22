@@ -1082,157 +1082,65 @@ def test_request():
     eq_(request.path, None)
     eq_(request.session, {})
 
-    # ASCII
-    data = ('x=-1&'
-            'y=-1&'
-            'y=-2&'
-            'z=-1&'
-            'z=-2&'
-            'z=-3')
+    # GET
+    query = '{}=spam'.format(core.AYAME_PATH)
+    data = '{}=eggs'.format(core.AYAME_PATH)
+    data = data.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(data),
+               'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': uri.quote(query),
+               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+               'CONTENT_LENGTH': str(len(data)),
+               'ayame.session': {}}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'GET')
+    eq_(request.uri, {})
+    eq_(request.query, {core.AYAME_PATH: ['spam']})
+    eq_(request.form_data, {})
+    eq_(request.path, 'spam')
+    eq_(request.session, {})
+
+    # POST
+    query = '{}=spam'.format(core.AYAME_PATH)
+    data = '{}=eggs'.format(core.AYAME_PATH)
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-               'CONTENT_LENGTH': str(len(data))}
+               'CONTENT_LENGTH': str(len(data)),
+               'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {})
-    eq_(request.form_data, {'x': ['-1'],
-                            'y': ['-1', '-2'],
-                            'z': ['-1', '-2', '-3']})
+    eq_(request.query, {core.AYAME_PATH: ['spam']})
+    eq_(request.form_data, {core.AYAME_PATH: ['eggs']})
+    eq_(request.path, 'eggs')
+    eq_(request.session, {})
 
+    query = '{}=spam'.format(core.AYAME_PATH)
     data = ('--ayame.core\r\n'
-            'Content-Disposition: form-data; name="x"\r\n'
+            'Content-Disposition: form-data; name="{}"\r\n'
             '\r\n'
-            '-1\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="y"\r\n'
-            '\r\n'
-            '-1\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="y"\r\n'
-            '\r\n'
-            '-2\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-1\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-2\r\n'
-            '--ayame.core\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-3\r\n'
-            '--ayame.core--\r\n')
+            'eggs\r\n'
+            '--ayame.core--\r\n').format(core.AYAME_PATH)
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'POST',
+               'QUERY_STRING': uri.quote(query),
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
-               'CONTENT_LENGTH': str(len(data))}
+               'CONTENT_LENGTH': str(len(data)),
+               'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'POST')
     eq_(request.uri, {})
-    eq_(request.query, {})
-    eq_(request.form_data, {'x': ['-1'],
-                            'y': ['-1', '-2'],
-                            'z': ['-1', '-2', '-3']})
-
-    # UTF-8
-    data = (u'\u3082=\u767e&'
-            u'\u305b=\u767e&'
-            u'\u305b=\u5343&'
-            u'\u3059=\u767e&'
-            u'\u3059=\u5343&'
-            u'\u3059=\u4e07')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-               'CONTENT_LENGTH': str(len(data))}
-    request = core.Request(environ, {})
-    eq_(request.environ, environ)
-    eq_(request.method, 'POST')
-    eq_(request.uri, {})
-    eq_(request.query, {})
-    eq_(request.form_data, {u'\u3082': [u'\u767e'],
-                            u'\u305b': [u'\u767e', u'\u5343'],
-                            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
-
-    data = (u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u3082"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u305b"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u305b"\r\n'
-            u'\r\n'
-            u'\u5343\r\n'
-            u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u5343\r\n'
-            u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u4e07\r\n'
-            u'--ayame.core--\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
-               'CONTENT_LENGTH': str(len(data))}
-    request = core.Request(environ, {})
-    eq_(request.environ, environ)
-    eq_(request.method, 'POST')
-    eq_(request.uri, {})
-    eq_(request.query, {})
-    eq_(request.form_data, {u'\u3082': [u'\u767e'],
-                            u'\u305b': [u'\u767e', u'\u5343'],
-                            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
-
-    # filename
-    data = (u'--ayame.core\r\n'
-            u'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
-            u'Content-Type: text/plain\r\n'
-            u'\r\n'
-            u'spam\n'
-            u'eggs\n'
-            u'ham\n'
-            u'\r\n'
-            u'--ayame.core--\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
-               'CONTENT_LENGTH': str(len(data))}
-    request = core.Request(environ, {})
-    eq_(request.environ, environ)
-    eq_(request.method, 'POST')
-    eq_(request.uri, {})
-    eq_(request.query, {})
-    eq_(tuple(request.form_data), ('a',))
-
-    fields = request.form_data['a']
-    eq_(len(fields), 1)
-
-    a = fields[0]
-    eq_(a.name, 'a')
-    eq_(a.filename, u'\u3044')
-    eq_(a.value, (b'spam\n'
-                  b'eggs\n'
-                  b'ham\n'))
+    eq_(request.query, {core.AYAME_PATH: ['spam']})
+    eq_(request.form_data, {core.AYAME_PATH: ['eggs']})
+    eq_(request.path, 'eggs')
+    eq_(request.session, {})
 
     # PUT
     data = ('spam\n'
@@ -1241,27 +1149,21 @@ def test_request():
     data = data.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(data),
                'REQUEST_METHOD': 'PUT',
+               'QUERY_STRING': '',
                'CONTENT_TYPE': 'text/plain',
-               'CONTENT_LENGTH': str(len(data))}
+               'CONTENT_LENGTH': str(len(data)),
+               'ayame.session': {}}
     request = core.Request(environ, {})
     eq_(request.environ, environ)
     eq_(request.method, 'PUT')
     eq_(request.uri, {})
     eq_(request.query, {})
+    eq_(request.form_data, {})
+    eq_(request.path, None)
     eq_(request.input.read(), (b'spam\n'
                                b'eggs\n'
                                b'ham\n'))
-
-    # 408 Request Timeout
-    data = ('--ayame.core\r\n'
-            'Content-Disposition: form-data; name="a"\r\n'
-            'Content-Type: text/plain\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
-               'CONTENT_LENGTH': str(len(data) + 1)}
-    assert_raises(http.RequestTimeout, core.Request, environ, {})
+    eq_(request.session, {})
 
 def test_page():
     class SpamPage(core.Page):

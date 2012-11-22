@@ -677,7 +677,7 @@ class Request(object):
         self.method = environ['REQUEST_METHOD']
         self.uri = values
         self.query = ayame.uri.parse_qs(environ)
-        self.form_data = self._parse_form_data(environ)
+        self.form_data = ayame.http.parse_form_data(environ)
         # retrieve ayame:path
         if self.method == 'GET':
             self.path = self.query.get(AYAME_PATH)
@@ -687,44 +687,6 @@ class Request(object):
             self.path = None
         if self.path:
             self.path = self.path[0]
-
-    def _parse_form_data(self, environ):
-        ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
-        if ct not in ('application/x-www-form-urlencoded',
-                      'multipart/form-data'):
-            return {}
-
-        # isolate QUERY_STRING
-        fs_environ = environ.copy()
-        fs_environ['QUERY_STRING'] = ''
-        fs = cgi.FieldStorage(fp=environ['wsgi.input'],
-                              environ=fs_environ,
-                              keep_blank_values=True)
-
-        form_data = {}
-        if fs.list:
-            for field in fs.list:
-                if (isinstance(field, cgi.FieldStorage) and
-                    field.done == -1):
-                    raise ayame.http.RequestTimeout()
-                field.name = self._decode(field.name)
-                if field.filename:
-                    field.filename = self._decode(field.filename)
-                    value = field
-                else:
-                    value = self._decode(field.value)
-                if field.name in form_data:
-                    form_data[field.name].append(value)
-                else:
-                    form_data[field.name] = [value]
-        return form_data
-
-    if sys.hexversion < 0x03000000:
-        def _decode(self, s):
-            return unicode(s, 'utf-8', 'replace')
-    else:
-        def _decode(self, s):
-            return s
 
     @property
     def input(self):
