@@ -96,15 +96,15 @@ class Form(ayame.core.MarkupContainer):
         # render form
         return super(Form, self).on_render(element)
 
-    def submit(self, request):
-        if (request.method != self._method and
+    def submit(self):
+        if (self.request.method != self._method and
             not self.on_method_mismatch()):
             # abort
             return
-        elif request.method == 'GET':
-            values = request.query
-        elif request.method == 'POST':
-            values = request.form_data
+        elif self.request.method == 'GET':
+            values = self.request.query
+        elif self.request.method == 'POST':
+            values = self.request.form_data
         else:
             # unknown method
             return
@@ -173,8 +173,8 @@ class _FormActionBehavior(ayame.core.IgnitionBehavior):
         self.fire()
         component._method = None
 
-    def on_fire(self, component, request):
-        component.submit(request)
+    def on_fire(self, component):
+        component.submit()
 
 class FormComponent(ayame.core.MarkupContainer):
 

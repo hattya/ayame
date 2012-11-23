@@ -41,10 +41,14 @@ def application(environ=None):
     app.config['ayame.markup.pretty'] = True
     try:
         local.app = app
-        local.environ = environ
+        if environ is not None:
+            local.environ = environ
+            local.request = core.Request(environ, {})
         yield
     finally:
-        local.environ = None
+        if environ is not None:
+            local.request = None
+            local.environ = None
         local.app = None
 
 class Form(form.Form):
@@ -87,9 +91,8 @@ def test_form_error():
                'PATH_INFO': '/form',
                'QUERY_STRING': uri.quote(query)}
     with application(environ):
-        request = core.Request(environ, {})
         f._method = 'POST'
-        f.submit(request)
+        f.submit()
 
     # unknown method
     f = form.Form('a')
@@ -101,9 +104,8 @@ def test_form_error():
                'QUERY_STRING': uri.quote(query),
                'CONTENT_LENGTH': '0'}
     with application(environ):
-        request = core.Request(environ, {})
         f._method = 'POST'
-        f.submit(request)
+        f.submit()
 
     # form is nested
     f = form.Form('a')
@@ -114,14 +116,13 @@ def test_form_error():
                'PATH_INFO': '/form',
                'CONTENT_LENGTH': '0'}
     with application(environ):
-        request = core.Request(environ, {})
         f._method = 'POST'
-        assert_raises(ComponentError, f.submit, request)
+        assert_raises(ComponentError, f.submit)
 
 def test_form():
     class SpamPage(core.Page):
-        def __init__(self, request):
-            super(SpamPage, self).__init__(request)
+        def __init__(self):
+            super(SpamPage, self).__init__()
             self.add(form.Form('form', model.CompoundModel({})))
             self.find('form').add(form.TextField('text'))
             self.find('form:text').model_object = u''
@@ -182,8 +183,7 @@ def test_form():
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form'}
     with application(environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -212,8 +212,7 @@ def test_form():
                'PATH_INFO': '/form',
                'QUERY_STRING': uri.quote(query)}
     with application(environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'text': 'text',
                                          'password': 'password',
@@ -265,8 +264,7 @@ def test_form():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         assert_raises(Valid, page.render)
     f = page.find('form')
     eq_(f.model_object['text'], 'text')
@@ -294,8 +292,7 @@ def test_form():
                'PATH_INFO': '/form',
                'QUERY_STRING': uri.quote(query)}
     with application(environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         page.find('form:text').required = True
         page.find('form:password').required = True
         page.find('form:hidden').required = True
@@ -358,8 +355,8 @@ def test_choice():
 
 def test_radio_choice():
     class EggsPage(core.Page):
-        def __init__(self, request):
-            super(EggsPage, self).__init__(request)
+        def __init__(self):
+            super(EggsPage, self).__init__()
             self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.RadioChoice('radio', choices=choices))
             self.find('form:radio').model_object = choices[0]
@@ -400,8 +397,7 @@ def test_radio_choice():
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form'}
     with application(environ):
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+        page = EggsPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -427,8 +423,7 @@ def test_radio_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+        page = EggsPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'radio': choices[2]})
     ok_(not page.find('form').has_error())
@@ -447,8 +442,7 @@ def test_radio_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+        page = EggsPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'radio': None})
     ok_(not page.find('form').has_error())
@@ -471,8 +465,7 @@ def test_radio_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+        page = EggsPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'radio': choices[0]})
     ok_(page.find('form').has_error())
@@ -496,8 +489,7 @@ def test_radio_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+        page = EggsPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'radio': choices[0]})
     ok_(page.find('form').has_error())
@@ -505,8 +497,8 @@ def test_radio_choice():
 
 def test_checkbox_choice():
     class HamPage(core.Page):
-        def __init__(self, request):
-            super(HamPage, self).__init__(request)
+        def __init__(self):
+            super(HamPage, self).__init__()
             self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.CheckBoxChoice('checkbox',
                                                       choices=choices))
@@ -551,8 +543,7 @@ def test_checkbox_choice():
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form'}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -594,8 +585,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'checkbox': choices})
     ok_(not page.find('form').has_error())
@@ -614,8 +604,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'checkbox': []})
     ok_(not page.find('form').has_error())
@@ -654,8 +643,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -687,8 +675,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -712,8 +699,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -733,8 +719,7 @@ def test_checkbox_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = HamPage(request)
+        page = HamPage()
         page.find('form:checkbox').required = True
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
@@ -743,8 +728,8 @@ def test_checkbox_choice():
 
 def test_select_choice():
     class ToastPage(core.Page):
-        def __init__(self, request):
-            super(ToastPage, self).__init__(request)
+        def __init__(self):
+            super(ToastPage, self).__init__()
             self.add(Form('form', model.CompoundModel({})))
             self.find('form').add(form.SelectChoice('select',
                                                     choices=choices))
@@ -784,8 +769,7 @@ def test_select_choice():
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form'}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -827,8 +811,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'select': choices})
     ok_(not page.find('form').has_error())
@@ -847,8 +830,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         assert_raises(Valid, page.render)
     eq_(page.find('form').model_object, {'select': []})
     ok_(not page.find('form').has_error())
@@ -860,8 +842,7 @@ def test_select_choice():
                'SCRIPT_NAME': '',
                'PATH_INFO': '/form'}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         select = page.find('form:select')
         select.model_object = select.model_object[0]
         select.multiple = False
@@ -886,8 +867,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         select = page.find('form:select')
         select.model_object = select.model_object[0]
         select.multiple = False
@@ -929,8 +909,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'select': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -962,8 +941,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'select': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -987,8 +965,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'select': [choices[1]]})
     ok_(page.find('form').has_error())
@@ -1008,8 +985,7 @@ def test_select_choice():
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.form',
                'CONTENT_LENGTH': str(len(data))}
     with application(environ):
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+        page = ToastPage()
         page.find('form:select').required = True
         assert_raises(Invalid, page.render)
     eq_(page.find('form').model_object, {'select': [choices[1]]})

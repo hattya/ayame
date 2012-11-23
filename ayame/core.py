@@ -27,6 +27,7 @@
 import cgi
 import collections
 import datetime
+import locale
 import os
 import sys
 import threading
@@ -38,6 +39,7 @@ import ayame.converter
 from ayame.exception import (AyameError, ComponentError, Redirect,
                              RenderingError)
 import ayame.http
+import ayame.i18n
 import ayame.markup
 import ayame.model
 import ayame.route
@@ -55,6 +57,7 @@ AYAME_PATH = u'ayame:path'
 _local = threading.local()
 _local.app = None
 _local.environ = None
+_local.request = None
 _local._router = None
 
 class Ayame(object):
@@ -77,6 +80,7 @@ class Ayame(object):
         session_dir = os.path.join(self._root, 'session')
         self.config = {
             'ayame.converter.locator': ayame.converter.Locator(),
+            'ayame.i18n.localizer': ayame.i18n.Localizer(),
             'ayame.markup.encoding': 'utf-8',
             'ayame.markup.separator': '.',
             'ayame.markup.pretty': False,
@@ -95,6 +99,10 @@ class Ayame(object):
     @property
     def environ(self):
         return _local.environ
+
+    @property
+    def request(self):
+        return _local.request
 
     @property
     def session(self):
@@ -116,11 +124,11 @@ class Ayame(object):
             _local._router = self.config['ayame.route.map'].bind(environ)
             # dispatch
             object, values = _local._router.match()
-            request = self.config['ayame.class.Request'](environ, values)
+            _local.request = self.config['ayame.class.Request'](environ,
+                                                                values)
             for _ in xrange(self.config['ayame.max.redirect']):
                 try:
-                    status, headers, content = self.handle_request(object,
-                                                                   request)
+                    status, headers, content = self.handle_request(object)
                 except Redirect as r:
                     if r.args[3] == Redirect.PERMANENT:
                         raise ayame.http.MovedPermanently(
@@ -131,7 +139,7 @@ class Ayame(object):
                             ayame.uri.application_uri(self.environ) +
                             self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
-                    request.path = None
+                    _local.request.path = None
                 else:
                     break
             else:
@@ -148,12 +156,11 @@ class Ayame(object):
         start_response(status, headers, exc_info)
         return content
 
-    def handle_request(self, object, request):
+    def handle_request(self, object):
         if isinstance(object, type):
             if issubclass(object, Page):
-                page = object(request)
-                return page.render()
-        raise ayame.http.NotFound(ayame.uri.request_path(request.environ))
+                return object().render()
+        raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
     def handle_error(self, e):
         if isinstance(e, ayame.http.HTTPError):
@@ -262,6 +269,10 @@ class Component(object):
         return self.app.environ
 
     @property
+    def request(self):
+        return self.app.request
+
+    @property
     def session(self):
         return self.app.session
 
@@ -326,6 +337,12 @@ class Component(object):
     def on_after_render(self):
         for behavior in self.behaviors:
             behavior.on_after_render(self)
+
+    def tr(self, key, component=None):
+        component = component if component is not None else self
+        return self.config['ayame.i18n.localizer'].get(component,
+                                                       self.request.locale,
+                                                       key)
 
     def uri_for(self, *args, **kwargs):
         return self.app.uri_for(*args, **kwargs)
@@ -640,9 +657,8 @@ class MarkupContainer(Component):
 
 class Page(MarkupContainer):
 
-    def __init__(self, request):
+    def __init__(self):
         super(Page, self).__init__(None)
-        self.request = request
         self.__headers = []
         self.headers = wsgiref.headers.Headers(self.__headers)
 
@@ -670,7 +686,8 @@ class Page(MarkupContainer):
 
 class Request(object):
 
-    __slots__ = ('environ', 'method', 'uri', 'query', 'form_data', 'path')
+    __slots__ = ('environ', 'method', 'uri', 'query', 'form_data', 'path',
+                 'locale')
 
     def __init__(self, environ, values):
         self.environ = environ
@@ -687,6 +704,23 @@ class Request(object):
             self.path = None
         if self.path:
             self.path = self.path[0]
+        self.locale = self._parse_locales(environ)
+
+    def _parse_locales(self, environ):
+        values = ayame.http.parse_accept(environ.get('HTTP_ACCEPT_LANGUAGE'))
+        if values:
+            value = values[0][0]
+            sep = '-'
+        else:
+            value = locale.getdefaultlocale()[0]
+            sep = '_'
+        if value:
+            v = value.split(sep, 1)
+            if 1 < len(v):
+                return (v[0].lower(), v[1].upper())
+            elif len(v) == 1:
+                return (v[0].lower(), None)
+        return (None,) * 2
 
     @property
     def input(self):
@@ -712,6 +746,10 @@ class Behavior(object):
     @property
     def environ(self):
         return self.app.environ
+
+    @property
+    def request(self):
+        return self.app.request
 
     @property
     def session(self):
@@ -758,13 +796,11 @@ class AttributeModifier(Behavior):
 class IgnitionBehavior(Behavior):
 
     def fire(self):
-        component = self.component
-        request = component.page().request
         # fire component
-        if component.path() == request.path:
-            self.on_fire(component, request)
+        if self.component.path() == self.request.path:
+            self.on_fire(self.component)
 
-    def on_fire(self, component, request):
+    def on_fire(self, component):
         pass
 
 class nested(object):

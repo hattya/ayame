@@ -37,7 +37,7 @@ class Application(core.Ayame):
 
 class Page(core.Page):
     def __init__(self):
-        super(Page, self).__init__(None)
+        super(Page, self).__init__()
         self.add(MarkupContainer('a'))
         self.find('a').add(Component('b'))
 

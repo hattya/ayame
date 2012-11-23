@@ -85,14 +85,13 @@ class ActionLink(Link):
         self.add(_ActionLinkBehavior())
 
     def new_uri(self, _):
-        request = self.page().request
-        query = request.query.copy()
+        query = self.request.query.copy()
         query[ayame.core.AYAME_PATH] = [self.path()]
-        environ = request.environ.copy()
+        environ = self.environ.copy()
         environ['QUERY_STRING'] = urllib.urlencode(query, doseq=True)
         return ayame.uri.request_uri(environ, True)
 
-    def on_click(self, request):
+    def on_click(self):
         pass
 
 class _ActionLinkBehavior(ayame.core.IgnitionBehavior):
@@ -100,8 +99,8 @@ class _ActionLinkBehavior(ayame.core.IgnitionBehavior):
     def on_component(self, component, element):
         self.fire()
 
-    def on_fire(self, component, request):
-        component.on_click(request)
+    def on_fire(self, component):
+        component.on_click()
 
 class PageLink(Link):
 

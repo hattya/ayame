@@ -38,13 +38,17 @@ from ayame.exception import ComponentError
 @contextmanager
 def application(app, environ=None):
     local = core._local
-    environ = {}
+    if environ is None:
+        environ = {'REQUEST_METHOD': 'GET'}
     try:
         local.app = app
         local.environ = environ
+        local.request = core.Request(environ, {})
         local._router = app.config['ayame.route.map'].bind(environ)
         yield
     finally:
+        local._router = None
+        local.request = None
         local.environ = None
         local.app = None
 
@@ -95,13 +99,13 @@ def test_link():
 
 def test_action_link():
     class SpamPage(core.Page):
-        def __init__(self, request):
-            super(SpamPage, self).__init__(request)
+        def __init__(self):
+            super(SpamPage, self).__init__()
             self.add(ActionLink('link'))
 
     class ActionLink(link.ActionLink):
-        def on_click(self, request):
-            super(ActionLink, self).on_click(request)
+        def on_click(self):
+            super(ActionLink, self).on_click()
             raise OK()
 
     class OK(Exception):
@@ -138,8 +142,7 @@ def test_action_link():
                'PATH_INFO': '',
                'QUERY_STRING': uri.quote(query)}
     with application(app, environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -155,8 +158,7 @@ def test_action_link():
                'PATH_INFO': '',
                'QUERY_STRING': uri.quote(query)}
     with application(app, environ):
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+        page = SpamPage()
         assert_raises(OK, page.render)
 
 def test_page_link():

@@ -26,6 +26,7 @@
 
 from contextlib import contextmanager
 import io
+import locale
 import os
 import wsgiref.util
 
@@ -37,20 +38,19 @@ from ayame.exception import (AyameError, ComponentError, Redirect,
 
 
 def wsgi_call(application, **kwargs):
-    wsgi = {}
-
     def start_response(status, headers, exc_info=None):
         wsgi.update(status=status, headers=headers, exc_info=exc_info)
 
     environ = dict(kwargs)
     wsgiref.util.setup_testing_defaults(environ)
+    wsgi = {}
     content = application(environ, start_response)
     return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
 
 def test_simple_app():
     class SimplePage(core.Page):
-        def __init__(self, request):
-            super(SimplePage, self).__init__(request)
+        def __init__(self):
+            super(SimplePage, self).__init__()
             self.add(SessionLabel('greeting', u'Hello World!'))
 
     class SessionLabel(basic.Label):
@@ -169,13 +169,19 @@ def test_simple_app():
     eq_(content, xhtml)
 
 @contextmanager
-def application():
+def application(environ=None):
     local = core._local
     app = core.Ayame(__name__)
     try:
         local.app = app
+        if environ is not None:
+            local.environ = environ
+            local.request = core.Request(environ, {})
         yield
     finally:
+        if environ is not None:
+            local.request = None
+            local.environ = None
         local.app = None
 
 def assert_ws(element, i):
@@ -193,8 +199,10 @@ def test_component():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(AyameError, lambda: c.request)
     assert_raises(AyameError, lambda: c.session)
     assert_raises(AyameError, lambda: c.redirect(c))
+    assert_raises(AyameError, lambda: c.tr('key'))
     assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
@@ -221,8 +229,10 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.app)
     assert_raises(AyameError, lambda: c.config)
     assert_raises(AyameError, lambda: c.environ)
+    assert_raises(AyameError, lambda: c.request)
     assert_raises(AyameError, lambda: c.session)
     assert_raises(AyameError, lambda: c.redirect(c))
+    assert_raises(AyameError, lambda: c.tr('key'))
     assert_raises(AyameError, lambda: c.uri_for(c))
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
@@ -390,6 +400,7 @@ def test_behavior():
     assert_raises(AyameError, lambda: b.app)
     assert_raises(AyameError, lambda: b.config)
     assert_raises(AyameError, lambda: b.environ)
+    assert_raises(AyameError, lambda: b.request)
     assert_raises(AyameError, lambda: b.session)
     assert_raises(AyameError, lambda: b.redirect(b))
     assert_raises(AyameError, lambda: b.uri_for(b))
@@ -959,9 +970,8 @@ def test_markup_inheritance():
         pass
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET'}
-    with application():
-        request = core.Request(environ, {})
-        page = Lobster(request)
+    with application(environ):
+        page = Lobster()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1039,6 +1049,16 @@ def test_failsafe():
     eq_(mc.render_component(a), (None, a))
 
 def test_request():
+    default_locale = locale.getdefaultlocale()[0]
+    if default_locale:
+        v = default_locale.split('_', 1)
+        if 1 < len(v):
+            default_locale = (v[0].lower(), v[1].upper())
+        else:
+            default_locale = (v[0].lower() if len(v) == 1 else None, None)
+    else:
+        default_locale = (None,) * 2
+
     # QUERY_STRING and CONTENT_TYPE are empty
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
@@ -1052,6 +1072,7 @@ def test_request():
     eq_(request.form_data, {})
     eq_(request.path, None)
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     # form data is empty
     environ = {'wsgi.input': io.BytesIO(),
@@ -1067,6 +1088,7 @@ def test_request():
     eq_(request.form_data, {})
     eq_(request.path, None)
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'POST',
@@ -1081,6 +1103,7 @@ def test_request():
     eq_(request.form_data, {})
     eq_(request.path, None)
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     # GET
     query = '{}=spam'.format(core.AYAME_PATH)
@@ -1100,6 +1123,7 @@ def test_request():
     eq_(request.form_data, {})
     eq_(request.path, 'spam')
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     # POST
     query = '{}=spam'.format(core.AYAME_PATH)
@@ -1119,6 +1143,7 @@ def test_request():
     eq_(request.form_data, {core.AYAME_PATH: ['eggs']})
     eq_(request.path, 'eggs')
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     query = '{}=spam'.format(core.AYAME_PATH)
     data = ('--ayame.core\r\n'
@@ -1141,6 +1166,7 @@ def test_request():
     eq_(request.form_data, {core.AYAME_PATH: ['eggs']})
     eq_(request.path, 'eggs')
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
 
     # PUT
     data = ('spam\n'
@@ -1164,11 +1190,62 @@ def test_request():
                                b'eggs\n'
                                b'ham\n'))
     eq_(request.session, {})
+    eq_(request.locale, default_locale)
+
+    # Accept-Language
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'en-us, en',
+               'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': '',
+               'ayame.session': {}}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'GET')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(request.form_data, {})
+    eq_(request.path, None)
+    eq_(request.session, {})
+    eq_(request.locale, ('en', 'US'))
+
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'en',
+               'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': '',
+               'ayame.session': {}}
+    request = core.Request(environ, {})
+    eq_(request.environ, environ)
+    eq_(request.method, 'GET')
+    eq_(request.uri, {})
+    eq_(request.query, {})
+    eq_(request.form_data, {})
+    eq_(request.path, None)
+    eq_(request.session, {})
+    eq_(request.locale, ('en', None))
+
+    getdefaultlocale = locale.getdefaultlocale
+    locale.getdefaultlocale = lambda: (None, None)
+    try:
+        environ = {'wsgi.input': io.BytesIO(),
+                   'REQUEST_METHOD': 'GET',
+                   'QUERY_STRING': '',
+                   'ayame.session': {}}
+        request = core.Request(environ, {})
+        eq_(request.environ, environ)
+        eq_(request.method, 'GET')
+        eq_(request.uri, {})
+        eq_(request.query, {})
+        eq_(request.form_data, {})
+        eq_(request.path, None)
+        eq_(request.session, {})
+        eq_(request.locale, (None, None))
+    finally:
+        locale.getdefaultlocale = getdefaultlocale
 
 def test_page():
     class SpamPage(core.Page):
-        def __init__(self, request):
-            super(SpamPage, self).__init__(request)
+        def __init__(self):
+            super(SpamPage, self).__init__()
             self.add(basic.Label('greeting', u'Hello World!'))
             self.headers['Content-Type'] = 'text/plain'
 
@@ -1187,9 +1264,8 @@ def test_page():
 
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET'}
-    with application():
-        request = core.Request(environ, {})
-        page = SpamPage(request)
+    with application(environ):
+        page = SpamPage()
         status, headers, content = page.render()
     eq_(page.page(), page)
     eq_(page.find('greeting').page(), page)
@@ -1202,8 +1278,8 @@ def test_page():
 
 def test_ignition_behavior():
     class EggsPage(core.Page):
-        def __init__(self, request):
-            super(EggsPage, self).__init__(request)
+        def __init__(self):
+            super(EggsPage, self).__init__()
             self.model = model.CompoundModel({'clay1': 0,
                                               'clay2': 0})
             self.add(Clay('clay1'))
@@ -1218,8 +1294,8 @@ def test_ignition_behavior():
     class IgnitionBehavior(core.IgnitionBehavior):
         def on_component(self, component, element):
             self.fire()
-        def on_fire(self, component, request):
-            super(IgnitionBehavior, self).on_fire(component, request)
+        def on_fire(self, component):
+            super(IgnitionBehavior, self).on_fire(component)
             component.model_object += 1
 
     xhtml = ('<?xml version="1.0"?>\n'
@@ -1243,9 +1319,8 @@ def test_ignition_behavior():
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET',
                'QUERY_STRING': uri.quote(query)}
-    with application():
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+    with application(environ):
+        page = EggsPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1260,9 +1335,8 @@ def test_ignition_behavior():
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET',
                'QUERY_STRING': uri.quote(query)}
-    with application():
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+    with application(environ):
+        page = EggsPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1282,9 +1356,8 @@ def test_ignition_behavior():
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data))}
-    with application():
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+    with application(environ):
+        page = EggsPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1308,9 +1381,8 @@ def test_ignition_behavior():
                'REQUEST_METHOD': 'POST',
                'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.core',
                'CONTENT_LENGTH': str(len(data))}
-    with application():
-        request = core.Request(environ, {})
-        page = EggsPage(request)
+    with application(environ):
+        page = EggsPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1342,9 +1414,8 @@ def test_nested_class_markup():
     xhtml = xhtml.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET'}
-    with application():
-        request = core.Request(environ, {})
-        page = ToastPage(request)
+    with application(environ):
+        page = ToastPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1365,9 +1436,8 @@ def test_nested_class_markup():
     xhtml = xhtml.encode('utf-8')
     environ = {'wsgi.input': io.BytesIO(),
                'REQUEST_METHOD': 'GET'}
-    with application():
-        request = core.Request(environ, {})
-        page = ToastPage.NestedPage(request)
+    with application(environ):
+        page = ToastPage.NestedPage()
         status, headers, content = page.render()
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),

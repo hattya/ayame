@@ -121,7 +121,7 @@ class ContextPathGenerator(ayame.core.AttributeModifier):
                                                    ayame.model.Model(rel_path))
 
     def new_value(self, value, new_value):
-        return ayame.uri.relative_uri(self.app.environ, new_value)
+        return ayame.uri.relative_uri(self.environ, new_value)
 
 class ContextImage(ayame.core.Component):
 
