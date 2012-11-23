@@ -177,8 +177,12 @@ class Ayame(object):
             exc_info = sys.exc_info()
         return status, headers, content, exc_info
 
-    def redirect(self, *args, **kwargs):
-        raise Redirect(*args, **kwargs)
+    def forward(self, object, values=None, anchor=None):
+        raise Redirect(object, values, anchor, Redirect.INTERNAL)
+
+    def redirect(self, object, values=None, anchor=None, permanent=False):
+        raise Redirect(object, values, anchor,
+                       Redirect.PERMANENT if permanent else Redirect.TEMPORARY)
 
     def uri_for(self, *args, **kwargs):
         return self._router.build(*args, **kwargs)
@@ -285,6 +289,9 @@ class Component(object):
 
     def converter_for(self, value):
         return self.config['ayame.converter.locator'].converter_for(value)
+
+    def forward(self, *args, **kwargs):
+        return self.app.forward(*args, **kwargs)
 
     def model_object_as_string(self):
         object = self.model_object
@@ -754,6 +761,9 @@ class Behavior(object):
     @property
     def session(self):
         return self.app.session
+
+    def forward(self, *args, **kwargs):
+        return self.app.forward(*args, **kwargs)
 
     def on_before_render(self, component):
         pass

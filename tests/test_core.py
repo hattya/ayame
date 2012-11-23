@@ -33,8 +33,7 @@ import wsgiref.util
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import basic, core, http, markup, model, uri
-from ayame.exception import (AyameError, ComponentError, Redirect,
-                             RenderingError)
+from ayame.exception import AyameError, ComponentError, RenderingError
 
 
 def wsgi_call(application, **kwargs):
@@ -62,12 +61,12 @@ def test_simple_app():
         def on_render(self, element):
             if 'greeting' in self.request.query:
                 self.session['greeting'] = self.request.query['greeting'][0]
-                self.redirect(SimplePage, type=Redirect.INTERNAL)
+                self.forward(SimplePage)
             elif 'permanent' in self.request.query.get('type', []):
-                self.redirect(RedirectPage, {'p': 1}, type=Redirect.PERMANENT)
+                self.redirect(RedirectPage, {'p': 1}, permanent=True)
             elif 'temporary' in self.request.query.get('type', []):
-                self.redirect(RedirectPage, {'t': 1}, type=Redirect.TEMPORARY)
-            self.redirect(RedirectPage, type=Redirect.INTERNAL)
+                self.redirect(RedirectPage, {'t': 1})
+            self.forward(RedirectPage)
 
     app = core.Ayame(__name__)
     eq_(app._name, __name__)
@@ -201,6 +200,7 @@ def test_component():
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.request)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.forward(c))
     assert_raises(AyameError, lambda: c.redirect(c))
     assert_raises(AyameError, lambda: c.tr('key'))
     assert_raises(AyameError, lambda: c.uri_for(c))
@@ -231,6 +231,7 @@ def test_component_with_model():
     assert_raises(AyameError, lambda: c.environ)
     assert_raises(AyameError, lambda: c.request)
     assert_raises(AyameError, lambda: c.session)
+    assert_raises(AyameError, lambda: c.forward(c))
     assert_raises(AyameError, lambda: c.redirect(c))
     assert_raises(AyameError, lambda: c.tr('key'))
     assert_raises(AyameError, lambda: c.uri_for(c))
@@ -402,6 +403,7 @@ def test_behavior():
     assert_raises(AyameError, lambda: b.environ)
     assert_raises(AyameError, lambda: b.request)
     assert_raises(AyameError, lambda: b.session)
+    assert_raises(AyameError, lambda: b.forward(b))
     assert_raises(AyameError, lambda: b.redirect(b))
     assert_raises(AyameError, lambda: b.uri_for(b))
 
