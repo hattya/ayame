@@ -25,17 +25,18 @@
 #
 
 import cgi
+import re
 import sys
 
 from ayame.exception import AyameError
 
 
-__all__ = ['parse_form_data', 'HTTPStatus', 'HTTPSuccessful', 'OK', 'Created',
-           'Accepted', 'NoContent', 'HTTPError', 'Redirection',
-           'MovedPermanently', 'Found', 'SeeOther', 'NotModified',
-           'ClientError', 'BadRequest', 'Unauthrized', 'Forbidden', 'NotFound',
-           'MethodNotAllowed', 'RequestTimeout' 'ServerError',
-           'InternalServerError', 'NotImplemented']
+__all__ = ['parse_accept', 'parse_form_data', 'HTTPStatus', 'HTTPSuccessful',
+           'OK', 'Created', 'Accepted', 'NoContent', 'HTTPError',
+           'Redirection', 'MovedPermanently', 'Found', 'SeeOther',
+           'NotModified', 'ClientError', 'BadRequest', 'Unauthrized',
+           'Forbidden', 'NotFound', 'MethodNotAllowed', 'RequestTimeout'
+           'ServerError', 'InternalServerError', 'NotImplemented']
 
 _HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
          '"http://www.w3.org/TR/html4/strict.dtd">\n'
@@ -49,10 +50,23 @@ _HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
          '  </body>\n'
          '</html>\n')
 
+_accept_re = re.compile(r'([^\s,;]+)(?:[^,;]*;\s*q=(\d+(?:\.\d+)?))?')
+
 if sys.hexversion < 0x03000000:
     _decode = lambda s: unicode(s, 'utf-8', 'replace')
 else:
     _decode = None
+
+def parse_accept(value):
+    if not value:
+        return ()
+
+    qlist = []
+    for i, m in enumerate(_accept_re.finditer(value)):
+        v, q = m.groups()
+        q = min(float(q), 1.0) if q else 1.0
+        qlist.append((-q, i, v))
+    return tuple((v, -q) for q, i, v in sorted(qlist))
 
 def parse_form_data(environ):
     ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]

@@ -31,6 +31,17 @@ from nose.tools import assert_raises, eq_, ok_
 from ayame import exception, http
 
 
+def test_parse_accept():
+    eq_(http.parse_accept(''), ())
+    eq_(http.parse_accept('ja, en'), (('ja', 1.0), ('en', 1.0)))
+    eq_(http.parse_accept('en, ja'), (('en', 1.0), ('ja', 1.0)))
+    eq_(http.parse_accept('en; q=0.7, ja'), (('ja', 1.0), ('en', 0.7)))
+
+    # invalid
+    eq_(http.parse_accept('ja, en; q=33.3333'), (('ja', 1.0), ('en', 1.0)))
+    eq_(http.parse_accept('ja, en, q=0.7'),
+        (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
+
 def test_parse_form_data():
     # empty
     environ = {'wsgi.input': io.BytesIO(),
