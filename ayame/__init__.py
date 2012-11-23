@@ -24,7 +24,9 @@
 #   SOFTWARE.
 #
 
-__all__ = ['__version__']
+__all__ = ['__author__', '__version__']
+
+__author__ = 'Akinori Hattori <hattya@gmail.com>'
 
 try:
     from ayame.__version__ import version as __version__
