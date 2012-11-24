@@ -25,7 +25,6 @@
 #
 
 import collections
-import os
 import re
 import urllib
 
@@ -130,11 +129,7 @@ class Rule(object):
     def _parse(self, path):
         pos = 0
         end = len(path)
-        match = _rule_re.match
-        while pos < end:
-            m = match(path, pos)
-            if not m:
-                break
+        for m in _rule_re.finditer(path):
             g = m.groupdict()
             if g['static']:
                 yield None, None, g['static']
