@@ -29,6 +29,7 @@ import abc
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
 
+
 class Model(object):
 
     def __init__(self, object):
@@ -47,6 +48,7 @@ class Model(object):
 
     object = property(**object())
 
+
 class InheritableModel(Model):
 
     __metaclass__ = abc.ABCMeta
@@ -54,6 +56,7 @@ class InheritableModel(Model):
     @abc.abstractmethod
     def wrap(self, component):
         pass
+
 
 class WrapModel(Model):
 
@@ -70,6 +73,7 @@ class WrapModel(Model):
     @abc.abstractproperty
     def object(self):
         pass
+
 
 class CompoundModel(InheritableModel):
 

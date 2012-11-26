@@ -42,6 +42,7 @@ def test_parse_accept():
     eq_(http.parse_accept('ja, en, q=0.7'),
         (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
 
+
 def test_parse_form_data():
     # empty
     environ = {'wsgi.input': io.BytesIO(),
@@ -213,6 +214,7 @@ def test_parse_form_data():
                'CONTENT_LENGTH': str(len(data) + 1)}
     assert_raises(http.RequestTimeout, http.parse_form_data, environ)
 
+
 def test_http_status():
     e = http.HTTPStatus()
     eq_(e.__class__.__bases__, (exception.AyameError,))
@@ -222,6 +224,7 @@ def test_http_status():
     eq_(e.status, '')
     eq_(e.headers, [])
     ok_(e.html())
+
 
 def test_http_200():
     e = http.OK()
@@ -233,6 +236,7 @@ def test_http_200():
     eq_(e.headers, [])
     ok_(not e.html())
 
+
 def test_http_201():
     e = http.Created()
     eq_(e.__class__.__bases__, (http.HTTPSuccessful,))
@@ -242,6 +246,7 @@ def test_http_201():
     eq_(e.status, '201 Created')
     eq_(e.headers, [])
     ok_(not e.html())
+
 
 def test_http_202():
     e = http.Accepted()
@@ -253,6 +258,7 @@ def test_http_202():
     eq_(e.headers, [])
     ok_(not e.html())
 
+
 def test_http_204():
     e = http.NoContent()
     eq_(e.__class__.__bases__, (http.HTTPSuccessful,))
@@ -262,6 +268,7 @@ def test_http_204():
     eq_(e.status, '204 No Content')
     eq_(e.headers, [])
     ok_(not e.html())
+
 
 def test_http_301():
     uri = 'http://localhost/'
@@ -274,6 +281,7 @@ def test_http_301():
     eq_(e.headers, [('Location', uri)])
     ok_(e.html())
 
+
 def test_http_302():
     uri = 'http://localhost/'
     e = http.Found(uri)
@@ -284,6 +292,7 @@ def test_http_302():
     eq_(e.status, '302 Found')
     eq_(e.headers, [('Location', uri)])
     ok_(e.html())
+
 
 def test_http_303():
     uri = 'http://localhost/'
@@ -296,6 +305,7 @@ def test_http_303():
     eq_(e.headers, [('Location', uri)])
     ok_(e.html())
 
+
 def test_http_304():
     e = http.NotModified()
     eq_(e.__class__.__bases__, (http.Redirection,))
@@ -305,6 +315,7 @@ def test_http_304():
     eq_(e.status, '304 Not Modified')
     eq_(e.headers, [])
     ok_(not e.html())
+
 
 def test_http_400():
     e = http.BadRequest()
@@ -316,6 +327,7 @@ def test_http_400():
     eq_(e.headers, [])
     ok_(e.html())
 
+
 def test_http_401():
     e = http.Unauthrized()
     eq_(e.__class__.__bases__, (http.ClientError,))
@@ -325,6 +337,7 @@ def test_http_401():
     eq_(e.status, '401 Unauthrized')
     eq_(e.headers, [])
     ok_(e.html())
+
 
 def test_http_403():
     uri = 'http://localhsot/'
@@ -337,6 +350,7 @@ def test_http_403():
     eq_(e.headers, [])
     ok_(e.html())
 
+
 def test_http_404():
     uri = 'http://localhsot/'
     e = http.NotFound(uri)
@@ -347,6 +361,7 @@ def test_http_404():
     eq_(e.status, '404 Not Found')
     eq_(e.headers, [])
     ok_(e.html())
+
 
 def test_http_405():
     uri = 'http://localhsot/'
@@ -359,6 +374,7 @@ def test_http_405():
     eq_(e.headers, [('Allow', 'GET,POST')])
     ok_(e.html())
 
+
 def test_http_408():
     e = http.RequestTimeout()
     eq_(e.__class__.__bases__, (http.ClientError,))
@@ -369,6 +385,7 @@ def test_http_408():
     eq_(e.headers, [])
     ok_(e.html())
 
+
 def test_http_500():
     e = http.InternalServerError()
     eq_(e.__class__.__bases__, (http.ServerError,))
@@ -378,6 +395,7 @@ def test_http_500():
     eq_(e.status, '500 Internal Server Error')
     eq_(e.headers, [])
     ok_(e.html())
+
 
 def test_http_501():
     method = 'PUT'

@@ -31,6 +31,7 @@ import ayame.markup
 
 __all__ = ['Panel']
 
+
 class Panel(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):

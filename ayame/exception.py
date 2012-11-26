@@ -28,17 +28,22 @@ __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
            'Redirect', 'RenderingError', 'ResourceError', 'RouteError',
            'RequestSlash', 'ValidationError']
 
+
 class AyameError(Exception):
     pass
+
 
 class ComponentError(AyameError):
     pass
 
+
 class ConversionError(AyameError):
     pass
 
+
 class MarkupError(AyameError):
     pass
+
 
 class Redirect(AyameError):
 
@@ -49,17 +54,22 @@ class Redirect(AyameError):
     def __init__(self, object, values=None, anchor=None, type=None):
         super(Redirect, self).__init__(object, values, anchor, type)
 
+
 class RenderingError(AyameError):
     pass
+
 
 class ResourceError(AyameError):
     pass
 
+
 class RouteError(AyameError):
     pass
 
+
 class RequestSlash(RouteError):
     pass
+
 
 class ValidationError(AyameError):
     pass

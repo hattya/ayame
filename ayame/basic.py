@@ -35,6 +35,7 @@ import ayame.uri
 __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
            'ContextImage', 'ContextLink']
 
+
 class Label(ayame.core.Component):
 
     def __init__(self, id, model=None):
@@ -45,6 +46,7 @@ class Label(ayame.core.Component):
     def on_render(self, element):
         element[:] = (self.model_object_as_string(),)
         return element
+
 
 class ListView(ayame.core.MarkupContainer):
 
@@ -81,6 +83,7 @@ class ListView(ayame.core.MarkupContainer):
     def new_model(self, index):
         return _ListItemModel(self, index)
 
+
 class _ListItem(ayame.core.MarkupContainer):
 
     def __init__(self, index, model):
@@ -90,6 +93,7 @@ class _ListItem(ayame.core.MarkupContainer):
     @property
     def index(self):
         return self.__index
+
 
 class _ListItemModel(ayame.model.Model):
 
@@ -108,11 +112,13 @@ class _ListItemModel(ayame.model.Model):
 
     object = property(**object())
 
+
 class PropertyListView(ListView):
 
     def new_model(self, index):
         return ayame.model.CompoundModel(
             super(PropertyListView, self).new_model(index))
+
 
 class ContextPathGenerator(ayame.core.AttributeModifier):
 
@@ -123,11 +129,13 @@ class ContextPathGenerator(ayame.core.AttributeModifier):
     def new_value(self, value, new_value):
         return ayame.uri.relative_uri(self.environ, new_value)
 
+
 class ContextImage(ayame.core.Component):
 
     def __init__(self, id, rel_path):
         super(ContextImage, self).__init__(id)
         self.add(ContextPathGenerator(u'src', rel_path))
+
 
 class ContextLink(ayame.core.Component):
 

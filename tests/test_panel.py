@@ -42,9 +42,11 @@ def application():
     finally:
         local.app = None
 
+
 def assert_ws(element, i):
     ok_(isinstance(element[i], basestring))
     eq_(element[i].strip(), '')
+
 
 def test_panel():
     class Spam(core.MarkupContainer):
@@ -148,6 +150,7 @@ def test_panel():
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
     eq_(p.children, ['after panel (Spam)'])
+
 
 def test_panel_with_markup_inheritance():
     class Eggs(core.MarkupContainer):
@@ -264,6 +267,7 @@ def test_panel_with_markup_inheritance():
     eq_(p.ns, {})
     eq_(p.children, ['after panel (Eggs)'])
 
+
 def test_invalid_markup():
     # ayame:panel element is not found
     class Toast(core.MarkupContainer):
@@ -309,6 +313,7 @@ def test_invalid_markup():
         mc = Bacon('a')
         m = mc.load_markup()
         assert_raises(RenderingError, mc.render, m.root)
+
 
 def test_empty_markup():
     class Sausage(core.MarkupContainer):

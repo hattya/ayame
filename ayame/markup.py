@@ -100,12 +100,14 @@ _block_ex = _block + ('form', 'noscript', 'ins', 'del', 'script')
 _space_re = re.compile('\s{2,}')
 _newline_re = re.compile('[\n\r]+')
 
+
 class QName(collections.namedtuple('QName', 'ns_uri, name')):
 
     __slots__ = ()
 
     def __repr__(self):
         return u'{{{}}}{}'.format(*self)
+
 
 # HTML elements
 HTML = QName(XHTML_NS, u'html')
@@ -127,8 +129,10 @@ AYAME_REMOVE = QName(AYAME_NS, u'remove')
 AYAME_ID = QName(AYAME_NS, u'id')
 #AYAME_CHILD = QName(AYAME_NS, u'child')
 
+
 MarkupType = collections.namedtuple('MarkupType',
                                     'extension, mime_type, scope')
+
 
 class Markup(object):
 
@@ -139,6 +143,7 @@ class Markup(object):
         self.lang = None
         self.doctype = None
         self.root = None
+
 
 class Element(object):
 
@@ -228,6 +233,7 @@ class Element(object):
             children.append(u''.join(self[beg:end]))
         self[:] = children
 
+
 class _AttributeDict(ayame.util.FilterDict):
 
     __slots__ = ()
@@ -239,6 +245,7 @@ class _AttributeDict(ayame.util.FilterDict):
             return key.lower()
         return key
 
+
 class Fragment(list):
 
     __slots__ = ()
@@ -248,6 +255,7 @@ class Fragment(list):
                               for n in self)
 
     copy = __copy__
+
 
 class MarkupLoader(HTMLParser.HTMLParser, object):
 
@@ -524,6 +532,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
     xhtml1_push = xml_push
     xhtml1_pop = xml_pop
     xhtml1_finish = xml_finish
+
 
 class MarkupRenderer(object):
 
@@ -999,6 +1008,7 @@ class MarkupRenderer(object):
             if 0 < depth:
                 if element.qname.name == 'br':
                     return True
+
 
 class _ElementState(object):
 

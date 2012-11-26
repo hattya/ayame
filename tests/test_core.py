@@ -46,6 +46,7 @@ def wsgi_call(application, **kwargs):
     content = application(environ, start_response)
     return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
 
+
 def test_simple_app():
     class SimplePage(core.Page):
         def __init__(self):
@@ -167,6 +168,7 @@ def test_simple_app():
     eq_(exc_info, None)
     eq_(content, xhtml)
 
+
 @contextmanager
 def application(environ=None):
     local = core._local
@@ -183,9 +185,11 @@ def application(environ=None):
             local.environ = None
         local.app = None
 
+
 def assert_ws(element, i):
     ok_(isinstance(element[i], basestring))
     eq_(element[i].strip(), '')
+
 
 def test_component():
     assert_raises(ComponentError, core.Component, None)
@@ -207,6 +211,7 @@ def test_component():
     assert_raises(ComponentError, c.page)
     eq_(c.path(), 'a')
     eq_(c.render(''), '')
+
 
 def test_component_with_model():
     assert_raises(ComponentError, core.Component, '1', '')
@@ -249,6 +254,7 @@ def test_component_with_model():
     c.escape_model_string = False
     eq_(c.model_object, '&<>')
     eq_(c.model_object_as_string(), '&<>')
+
 
 def test_markup_container():
     mc = core.MarkupContainer('a')
@@ -309,6 +315,7 @@ def test_markup_container():
     assert_raises(StopIteration, next, it)
 
     eq_(mc.render(''), '')
+
 
 def test_render_children():
     # no child component
@@ -396,6 +403,7 @@ def test_render_children():
     eq_(root.attrib, {})
     eq_(root.children, ['>', '>>', '!', '<<', '<'])
 
+
 def test_behavior():
     b = core.Behavior()
     assert_raises(AyameError, lambda: b.app)
@@ -436,6 +444,7 @@ def test_behavior():
     eq_(mc.render(None), None)
     eq_(mc.model_object, ['before-render', 'component', 'after-render'])
 
+
 def test_attribute_modifier():
     # component
     root = markup.Element(markup.QName('', 'root'))
@@ -471,10 +480,12 @@ def test_attribute_modifier():
     eq_(root.attrib, {markup.QName('', 'c'): ''})
     eq_(root.children, [])
 
+
 def test_render_unknown_ayame_element():
     root = markup.Element(markup.QName(markup.AYAME_NS, 'spam'))
     mc = core.MarkupContainer('a')
     assert_raises(RenderingError, mc.render, root)
+
 
 def test_render_ayame_container():
     # ayame:id is not found
@@ -524,6 +535,7 @@ def test_render_ayame_container():
     eq_(a.qname, markup.QName('', 'a'))
     eq_(a.attrib, {})
     eq_(a.children, ['2'])
+
 
 def test_render_ayame_enclosure():
     # ayame:child is not found
@@ -623,6 +635,7 @@ def test_render_ayame_enclosure():
     eq_(b.qname, markup.QName('', 'b'))
     eq_(b.attrib, {})
     eq_(b.children, [])
+
 
 def test_markup_inheritance():
     class Spam(core.MarkupContainer):
@@ -980,6 +993,7 @@ def test_markup_inheritance():
                   ('Content-Length', '0')])
     eq_(content, b'')
 
+
 def test_ayame_head():
     ayame_head = markup.Element(markup.AYAME_HEAD)
     h = markup.Element(markup.QName('', 'h'))
@@ -1039,6 +1053,7 @@ def test_ayame_head():
     eq_(a.attrib, {})
     eq_(a.children, [])
 
+
 def test_failsafe():
     # Ayame
     app = core.Ayame(None)
@@ -1049,6 +1064,7 @@ def test_failsafe():
     a = markup.Element(markup.QName('', 'a'))
     assert_raises(RenderingError, mc.render_ayame_element, a)
     eq_(mc.render_component(a), (None, a))
+
 
 def test_request():
     default_locale = locale.getdefaultlocale()[0]
@@ -1244,6 +1260,7 @@ def test_request():
     finally:
         locale.getdefaultlocale = getdefaultlocale
 
+
 def test_page():
     class SpamPage(core.Page):
         def __init__(self):
@@ -1277,6 +1294,7 @@ def test_page():
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(content, xhtml)
+
 
 def test_ignition_behavior():
     class EggsPage(core.Page):
@@ -1392,6 +1410,7 @@ def test_ignition_behavior():
     eq_(content, xhtml)
     eq_(page.model_object, {'clay1': 0,
                             'clay2': 1})
+
 
 def test_nested_class_markup():
     class HamPage(core.Page):

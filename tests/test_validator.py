@@ -38,6 +38,7 @@ def test_validator():
     v = Validator()
     eq_(v.validate(None), None)
 
+
 def test_email_validator():
     v = validator.EmailValidator()
     eq_(v.validate('a@example.com'), None)
@@ -46,6 +47,7 @@ def test_email_validator():
     assert_raises(ValidationError, v.validate, '')
     assert_raises(ValidationError, v.validate, 'a@b@example.com')
     assert_raises(ValidationError, v.validate, 'a@example.')
+
 
 def test_url_validator():
     v = validator.URLValidator()
@@ -76,6 +78,7 @@ def test_url_validator():
     assert_raises(ValidationError, v.validate, '')
     assert_raises(ValidationError, v.validate, 'mailto:a@example.com')
     assert_raises(ValidationError, v.validate, 'http://user`@example.com')
+
 
 def test_range_validator():
     v = validator.RangeValidator()
@@ -113,6 +116,7 @@ def test_range_validator():
     v.max = None
     eq_(v.validate(0.0), None)
     assert_raises(ValidationError, v.validate, -0.1)
+
 
 def test_string_validator():
     v = validator.StringValidator()

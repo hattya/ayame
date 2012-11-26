@@ -61,6 +61,7 @@ def test_fqon_of():
     eq_(util.fqon_of(1), 'int')
     eq_(util.fqon_of(1.0), 'float')
 
+
 def test_load_data():
     class Spam(object):
         pass
@@ -156,6 +157,7 @@ def test_load_data():
         del module.__loader__
     sys.modules[__name__] = module
 
+
 def test_to_bytes():
     # iroha in hiragana
     v = util.to_bytes(u'\u3044\u308d\u306f')
@@ -181,6 +183,7 @@ def test_to_bytes():
     eq_(v, b'3.14')
     ok_(isinstance(v, bytes))
 
+
 def test_to_list():
     eq_(util.to_list(1), [1])
     eq_(util.to_list(3.14), [3.14])
@@ -191,10 +194,12 @@ def test_to_list():
     eq_(util.to_list((1,)), [1])
     eq_(util.to_list({'a': 1}), ['a'])
 
+
 def test_new_token():
     a = util.new_token()
     b = util.new_token()
     ok_(a != b)
+
 
 def test_filter_dict():
     class LowerDict(util.FilterDict):

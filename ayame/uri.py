@@ -41,6 +41,7 @@ if sys.hexversion < 0x03000000:
 else:
     _decode = None
 
+
 def parse_qs(environ):
     qs = environ.get('QUERY_STRING')
     if not qs:
@@ -52,13 +53,16 @@ def parse_qs(environ):
                     for k, v in qs.iteritems())
     return qs
 
+
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
     return urllib.quote(ayame.util.to_bytes(s, encoding, errors),
                         ayame.util.to_bytes(safe, 'ascii', 'ignore'))
 
+
 def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
     return urllib.quote_plus(ayame.util.to_bytes(s, encoding, errors),
                              ayame.util.to_bytes(safe, 'ascii', 'ignore'))
+
 
 def application_uri(environ):
     scheme = environ['wsgi.url_scheme']
@@ -85,6 +89,7 @@ def application_uri(environ):
     uri.append(quote(script_name) if script_name else '/')
     return ''.join(uri)
 
+
 def request_uri(environ, query=False):
     uri = [application_uri(environ)]
     # PATH_INFO
@@ -100,6 +105,7 @@ def request_uri(environ, query=False):
         uri.append(environ['QUERY_STRING'])
     return ''.join(uri)
 
+
 def request_path(environ):
     path = []
     # SCRIPT_NAME
@@ -113,6 +119,7 @@ def request_path(environ):
         path.append(quote(path_info))
     return ''.join(path)
 
+
 def is_relative_uri(uri):
     if uri == '':
         return True
@@ -120,6 +127,7 @@ def is_relative_uri(uri):
           uri[0] in ('/', '#')):
         return False
     return not urlparse.urlsplit(uri).scheme
+
 
 def relative_uri(environ, uri):
     if not is_relative_uri(uri):

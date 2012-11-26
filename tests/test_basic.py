@@ -43,12 +43,14 @@ def application(environ=None):
         local.environ = None
         local.app = None
 
+
 def test_label():
     c = basic.Label('a')
     eq_(c.model, None)
     element = c.render(markup.Element(None))
     eq_(element.attrib, {})
     eq_(element.children, [''])
+
 
 def test_label_with_model():
     with application():
@@ -73,6 +75,7 @@ def test_label_with_model():
         element = c.render(markup.Element(None))
         eq_(element.attrib, {})
         eq_(element.children, ['&lt;tag&gt;'])
+
 
 def test_list_view():
     root = markup.Element(markup.QName('', 'root'))
@@ -141,6 +144,7 @@ def test_list_view():
     eq_(len(root), 9)
     root.normalize()
     eq_(root.children, ['[0][1][2]'])
+
 
 def test_property_list_view():
     root = markup.Element(markup.QName('', 'root'))
@@ -212,6 +216,7 @@ def test_property_list_view():
     root.normalize()
     eq_(root.children, ['[0][1][2]'])
 
+
 def test_context_path_generator():
     def assert_attr(environ, value):
         element = markup.Element(markup.QName(markup.XHTML_NS, 'a'))
@@ -227,6 +232,7 @@ def test_context_path_generator():
     environ = {'PATH_INFO': '/spam/'}
     assert_attr(environ, '../eggs.html')
 
+
 def test_context_image():
     def assert_img(environ, value):
         img = markup.Element(markup.QName(markup.XHTML_NS, 'img'))
@@ -241,6 +247,7 @@ def test_context_image():
 
     environ = {'PATH_INFO': '/spam/'}
     assert_img(environ, '../eggs.gif')
+
 
 def test_context_link():
     def assert_meta(environ, value):

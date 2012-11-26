@@ -51,6 +51,7 @@ def application(environ=None):
             local.environ = None
         local.app = None
 
+
 class Form(form.Form):
 
     def on_submit(self):
@@ -61,11 +62,14 @@ class Form(form.Form):
         super(Form, self).on_error()
         raise Invalid()
 
+
 class Valid(Exception):
     pass
 
+
 class Invalid(Exception):
     pass
+
 
 def test_form_error():
     # not form element
@@ -118,6 +122,7 @@ def test_form_error():
     with application(environ):
         f._method = 'POST'
         assert_raises(ComponentError, f.submit)
+
 
 def test_form():
     class SpamPage(core.Page):
@@ -308,6 +313,7 @@ def test_form():
     ok_(isinstance(page.find('form:password').error, ValidationError))
     ok_(isinstance(page.find('form:hidden').error, ValidationError))
 
+
 def test_form_component():
     # relative path
     f = form.Form('a')
@@ -347,11 +353,13 @@ def test_form_component():
         eq_(fc.model, None)
         eq_(fc.model_object, None)
 
+
 def test_choice():
     choice = form.Choice('a')
     s = choice._id_prefix_for(markup.Element(markup.DIV))
     ok_(s)
     ok_(not s[0].isdigit())
+
 
 def test_radio_choice():
     class EggsPage(core.Page):
@@ -494,6 +502,7 @@ def test_radio_choice():
     eq_(page.find('form').model_object, {'radio': choices[0]})
     ok_(page.find('form').has_error())
     ok_(isinstance(page.find('form:radio').error, ValidationError))
+
 
 def test_checkbox_choice():
     class HamPage(core.Page):
@@ -725,6 +734,7 @@ def test_checkbox_choice():
     eq_(page.find('form').model_object, {'checkbox': [choices[1]]})
     ok_(page.find('form').has_error())
     ok_(isinstance(page.find('form:checkbox').error, ValidationError))
+
 
 def test_select_choice():
     class ToastPage(core.Page):
@@ -991,6 +1001,7 @@ def test_select_choice():
     eq_(page.find('form').model_object, {'select': [choices[1]]})
     ok_(page.find('form').has_error())
     ok_(isinstance(page.find('form:select').error, ValidationError))
+
 
 def test_invalid_markup():
     input = markup.Element(form._INPUT)

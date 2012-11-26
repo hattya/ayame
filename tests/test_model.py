@@ -35,6 +35,7 @@ def test_model():
     m.object = ''
     eq_(m.object, '')
 
+
 def test_nested_model():
     inner = model.Model(None)
     outer = model.Model(inner)
@@ -42,6 +43,7 @@ def test_nested_model():
     eq_(outer.object, None)
     outer.object = model.Model('')
     eq_(outer.object, '')
+
 
 def test_inheritable_model():
     assert_raises(TypeError, model.InheritableModel)
@@ -53,6 +55,7 @@ def test_inheritable_model():
     m = InheritableModel(None)
     eq_(m.wrap(None), None)
 
+
 def test_wrap_model():
     assert_raises(TypeError, model.WrapModel)
 
@@ -63,6 +66,7 @@ def test_wrap_model():
 
     m = WrapModel(None)
     eq_(m.object, None)
+
 
 def test_compound_model():
     class Object(object):

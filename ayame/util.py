@@ -43,6 +43,7 @@ if sys.hexversion < 0x03000000:
 else:
     builtins = 'builtins'
 
+
 def fqon_of(object):
     if not hasattr(object, '__name__'):
         object = object.__class__
@@ -52,6 +53,7 @@ def fqon_of(object):
         elif object.__module__ != builtins:
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
+
 
 def load_data(object, path, encoding='utf-8'):
     if not hasattr(object, '__name__'):
@@ -91,12 +93,14 @@ def load_data(object, path, encoding='utf-8'):
     except (IOError, OSError):
         raise ResourceError("could not load '{}'".format(path))
 
+
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
         return s
     elif not isinstance(s, basestring):
         s = unicode(s)
     return s.encode(encoding, errors)
+
 
 def to_list(o):
     if o is None:
@@ -106,10 +110,12 @@ def to_list(o):
         return list(o)
     return [o]
 
+
 def new_token(algorithm='sha1'):
     m = hashlib.new(algorithm)
     m.update(to_bytes(random.random()))
     return m.hexdigest()
+
 
 class FilterDict(dict):
 

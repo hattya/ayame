@@ -57,6 +57,7 @@ if sys.hexversion < 0x03000000:
 else:
     _decode = None
 
+
 def parse_accept(value):
     if not value:
         return ()
@@ -67,6 +68,7 @@ def parse_accept(value):
         q = min(float(q), 1.0) if q else 1.0
         qlist.append((-q, i, v))
     return tuple((v, -q) for q, i, v in sorted(qlist))
+
 
 def parse_form_data(environ):
     ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
@@ -104,6 +106,7 @@ def parse_form_data(environ):
                 form_data[field.name] = [value]
     return form_data
 
+
 class _HTTPStatusMetaclass(type):
 
     def __new__(cls, name, bases, dict):
@@ -131,6 +134,7 @@ class _HTTPStatusMetaclass(type):
                 dict['status'] = ''
         return type.__new__(cls, name, bases, dict)
 
+
 class HTTPStatus(AyameError):
 
     __metaclass__ = _HTTPStatusMetaclass
@@ -145,6 +149,7 @@ class HTTPStatus(AyameError):
                             status=self.status,
                             description=self.description)
 
+
 def _location_init(superclass, s):
     def __init__(self, location):
         superclass.__init__(self,
@@ -152,10 +157,12 @@ def _location_init(superclass, s):
                             headers=[('Location', location)])
     return __init__
 
+
 def _uri_init(superclass, s):
     def __init__(self, uri):
         superclass.__init__(self, s.format(uri=uri))
     return __init__
+
 
 def _method_init(superclass, s):
     def __init__(self, method, uri, allow=None):
@@ -168,32 +175,40 @@ def _method_init(superclass, s):
                             headers=headers)
     return __init__
 
+
 class HTTPSuccessful(HTTPStatus):
 
     def html(self):
         return ''
 
+
 class OK(HTTPSuccessful):
 
     code = 200
+
 
 class Created(HTTPSuccessful):
 
     code = 201
 
+
 class Accepted(HTTPSuccessful):
 
     code = 202
+
 
 class NoContent(HTTPSuccessful):
 
     code = 204
 
+
 class HTTPError(HTTPStatus):
     pass
 
+
 class Redirection(HTTPError):
     pass
+
 
 class MovedPermanently(Redirection):
 
@@ -202,12 +217,14 @@ class MovedPermanently(Redirection):
     __init__ = _location_init(
         Redirection, 'The document has moved <a href="{location}">here</a>.')
 
+
 class Found(Redirection):
 
     code = 302
 
     __init__ = _location_init(
         Redirection, 'The document has moved <a href="{location}">here</a>.')
+
 
 class SeeOther(Redirection):
 
@@ -217,6 +234,7 @@ class SeeOther(Redirection):
         Redirection,
         'The answer to your request is located <a href="{location}">here</a>.')
 
+
 class NotModified(Redirection):
 
     code = 304
@@ -224,12 +242,15 @@ class NotModified(Redirection):
     def html(self):
         return ''
 
+
 class ClientError(HTTPError):
     pass
+
 
 class BadRequest(ClientError):
 
     code = 400
+
 
 class Unauthrized(ClientError):
 
@@ -243,6 +264,7 @@ class Unauthrized(ClientError):
             'understand how to supply the credentials required.',
             headers)
 
+
 class Forbidden(ClientError):
 
     code = 403
@@ -251,12 +273,14 @@ class Forbidden(ClientError):
         ClientError,
         'You do not have permission to access {uri} on this server.')
 
+
 class NotFound(ClientError):
 
     code = 404
 
     __init__ = _uri_init(
         ClientError, 'The requested URL {uri} was not found on this server.')
+
 
 class MethodNotAllowed(ClientError):
 
@@ -265,6 +289,7 @@ class MethodNotAllowed(ClientError):
     __init__ = _method_init(
         ClientError,
         'The requested method {method} is not allowd for the URL {uri}.')
+
 
 class RequestTimeout(ClientError):
 
@@ -276,12 +301,15 @@ class RequestTimeout(ClientError):
             'client.',
             headers)
 
+
 class ServerError(HTTPError):
     pass
+
 
 class InternalServerError(ServerError):
 
     code = 500
+
 
 class NotImplemented(ServerError):
 

@@ -60,6 +60,7 @@ _local.environ = None
 _local.request = None
 _local._router = None
 
+
 class Ayame(object):
 
     @staticmethod
@@ -186,6 +187,7 @@ class Ayame(object):
 
     def uri_for(self, *args, **kwargs):
         return self._router.build(*args, **kwargs)
+
 
 class Component(object):
 
@@ -353,6 +355,7 @@ class Component(object):
 
     def uri_for(self, *args, **kwargs):
         return self.app.uri_for(*args, **kwargs)
+
 
 class MarkupContainer(Component):
 
@@ -662,6 +665,7 @@ class MarkupContainer(Component):
                 raise RenderingError(class_, "'head' element is not found")
         return m
 
+
 class Page(MarkupContainer):
 
     def __init__(self):
@@ -690,6 +694,7 @@ class Page(MarkupContainer):
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
         self.headers['Content-Length'] = str(len(content))
         return ayame.http.OK.status, self.__headers, content
+
 
 class Request(object):
 
@@ -737,6 +742,7 @@ class Request(object):
     def session(self):
         return self.environ['ayame.session']
 
+
 class Behavior(object):
 
     def __init__(self):
@@ -780,6 +786,7 @@ class Behavior(object):
     def uri_for(self, *args, **kwargs):
         return self.app.uri_for(*args, **kwargs)
 
+
 class AttributeModifier(Behavior):
 
     def __init__(self, attr, model):
@@ -803,6 +810,7 @@ class AttributeModifier(Behavior):
     def new_value(self, value, new_value):
         return new_value
 
+
 class IgnitionBehavior(Behavior):
 
     def fire(self):
@@ -812,6 +820,7 @@ class IgnitionBehavior(Behavior):
 
     def on_fire(self, component):
         pass
+
 
 class nested(object):
 

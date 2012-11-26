@@ -35,17 +35,21 @@ from ayame import core, i18n
 class Application(core.Ayame):
     pass
 
+
 class Page(core.Page):
     def __init__(self):
         super(Page, self).__init__()
         self.add(MarkupContainer('a'))
         self.find('a').add(Component('b'))
 
+
 class MarkupContainer(core.MarkupContainer):
     pass
 
+
 class Component(core.Component):
     pass
+
 
 @contextmanager
 def application():
@@ -56,6 +60,7 @@ def application():
         yield
     finally:
         local.app = None
+
 
 def test_iter_class():
     with application():
@@ -82,6 +87,7 @@ def test_iter_class():
              (core.Page, ''),
              (Application, ''),
              (core.Ayame, '')])
+
 
 def test_load():
     l = i18n.Localizer()
@@ -127,6 +133,7 @@ lobster\   \  lobster
                  'lobster=': '= lobster',
                  'lobster:': ': lobster',
                  'lobster ': '  lobster'})
+
 
 def test_get():
     with application():

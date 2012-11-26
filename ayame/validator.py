@@ -101,6 +101,7 @@ _INPUT = ayame.markup.QName(ayame.markup.XHTML_NS, 'input')
 _TYPE = ayame.markup.QName(ayame.markup.XHTML_NS, 'type')
 _MAXLENGTH = ayame.markup.QName(ayame.markup.XHTML_NS, 'maxlength')
 
+
 class Validator(ayame.core.Behavior):
 
     __metaclass__ = abc.ABCMeta
@@ -108,6 +109,7 @@ class Validator(ayame.core.Behavior):
     @abc.abstractmethod
     def validate(self, object):
         pass
+
 
 class RegexValidator(Validator):
 
@@ -119,16 +121,19 @@ class RegexValidator(Validator):
                 self.regex.match(object)):
             raise ValidationError()
 
+
 class EmailValidator(RegexValidator):
 
     def __init__(self):
         super(EmailValidator, self).__init__(_email,
                                              re.IGNORECASE | re.VERBOSE)
 
+
 class URLValidator(RegexValidator):
 
     def __init__(self):
         super(URLValidator, self).__init__(_url, re.IGNORECASE | re.VERBOSE)
+
 
 class RangeValidator(Validator):
 
@@ -156,6 +161,7 @@ class RangeValidator(Validator):
     else:
         def typeof(self, object):
             return type(object)
+
 
 class StringValidator(RangeValidator):
 

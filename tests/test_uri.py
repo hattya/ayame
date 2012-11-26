@@ -55,6 +55,7 @@ def test_quote():
     eq_(v, '3.14')
     ok_(isinstance(v, str))
 
+
 def test_quote_plus():
     v = uri.quote_plus('a b c')
     eq_(v, 'a+b+c')
@@ -72,6 +73,7 @@ def test_quote_plus():
     v = uri.quote_plus(u'\u3044\u308d\u306f')
     eq_(v, '%E3%81%84%E3%82%8D%E3%81%AF')
     ok_(isinstance(v, str))
+
 
 def test_parse_qs():
     # empty
@@ -123,6 +125,7 @@ def test_parse_qs():
     eq_(uri.parse_qs(environ), {u'\u3044': [u'\u58f1'],
                                 u'\u308d': [u'\u58f1', u'\u5f10'],
                                 u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2']})
+
 
 def test_application_uri():
     # SERVER_NAME and SERVER_PORT
@@ -186,6 +189,7 @@ def test_application_uri():
                'SCRIPT_NAME': '/ayame'}
     eq_(uri.application_uri(environ), 'https://localhost/ayame')
 
+
 def test_request_uri():
     # SCRIPT_NAME and PATH_INFO are empty
     environ = {'wsgi.url_scheme': 'http',
@@ -244,6 +248,7 @@ def test_request_uri():
                'QUERY_STRING': 'FrontPage'}
     eq_(uri.request_uri(environ, True), 'http://localhost/ayame/?FrontPage')
 
+
 def test_request_path():
     # SCRIPT_NAME and PATH_INFO are empty
     environ = {}
@@ -270,6 +275,7 @@ def test_request_path():
                'PATH_INFO': '/'}
     eq_(uri.request_path(environ), '/ayame/')
 
+
 def test_is_relative_uri():
     ok_(not uri.is_relative_uri(None))
     ok_(not uri.is_relative_uri('/ayame'))
@@ -281,6 +287,7 @@ def test_is_relative_uri():
     ok_(uri.is_relative_uri('..'))
     ok_(uri.is_relative_uri('spam.html'))
     ok_(uri.is_relative_uri('spam/eggs.html'))
+
 
 def test_relative_uri():
     environ = {}

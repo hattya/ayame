@@ -46,6 +46,7 @@ _STYLE = ayame.markup.QName(ayame.markup.XHTML_NS, u'style')
 _HREF = ayame.markup.QName(ayame.markup.XHTML_NS, u'href')
 _SRC = ayame.markup.QName(ayame.markup.XHTML_NS, u'src')
 
+
 class Link(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
@@ -77,6 +78,7 @@ class Link(ayame.core.MarkupContainer):
     def new_uri(self, uri):
         return uri
 
+
 class ActionLink(Link):
 
     def __init__(self, id, model=None):
@@ -94,6 +96,7 @@ class ActionLink(Link):
     def on_click(self):
         pass
 
+
 class _ActionLinkBehavior(ayame.core.IgnitionBehavior):
 
     def on_component(self, component, element):
@@ -101,6 +104,7 @@ class _ActionLinkBehavior(ayame.core.IgnitionBehavior):
 
     def on_fire(self, component):
         component.on_click()
+
 
 class PageLink(Link):
 

@@ -49,6 +49,7 @@ _rule_re = re.compile(r"""
 """, re.VERBOSE)
 _simple_rule_re = re.compile(r'<([^>]+)>')
 
+
 class Rule(object):
 
     def __init__(self, path, object, methods=None, redirection=False):
@@ -211,6 +212,7 @@ class Rule(object):
             buf.append(ayame.uri.quote(anchor, encoding=self.map.encoding))
         return u''.join(buf)
 
+
 class Map(object):
 
     def __init__(self, encoding='utf-8', slash=True, converters=None,
@@ -245,6 +247,7 @@ class Map(object):
     def bind(self, environ):
         return Router(self, environ)
 
+
 class _Submap(object):
 
     def __init__(self, map, path):
@@ -260,6 +263,7 @@ class _Submap(object):
 
     def redirect(self, path, dest, methods=None):
         self.map.add(Rule(self.path + path, dest, methods, True))
+
 
 class Router(object):
 
@@ -317,6 +321,7 @@ class Router(object):
             return ayame.uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')
 
+
 class Converter(object):
 
     pattern = '[^/]+'
@@ -329,6 +334,7 @@ class Converter(object):
 
     def to_uri(self, value):
         return ayame.uri.quote(value, encoding=self.map.encoding)
+
 
 class _StringConverter(Converter):
 
@@ -357,9 +363,11 @@ class _StringConverter(Converter):
             raise ValidationError()
         return value
 
+
 class _PathConverter(Converter):
 
     pattern = '[^/].*?'
+
 
 class _IntegerConverter(Converter):
 

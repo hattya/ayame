@@ -66,6 +66,7 @@ _FOR = ayame.markup.QName(ayame.markup.XHTML_NS, u'for')
 _MULTIPLE = ayame.markup.QName(ayame.markup.XHTML_NS, u'multiple')
 _SELECTED = ayame.markup.QName(ayame.markup.XHTML_NS, u'selected')
 
+
 class Form(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
@@ -166,6 +167,7 @@ class Form(ayame.core.MarkupContainer):
                 return True
         return False
 
+
 class _FormActionBehavior(ayame.core.IgnitionBehavior):
 
     def on_component(self, component, element):
@@ -175,6 +177,7 @@ class _FormActionBehavior(ayame.core.IgnitionBehavior):
 
     def on_fire(self, component):
         component.submit()
+
 
 class FormComponent(ayame.core.MarkupContainer):
 
@@ -228,6 +231,7 @@ class FormComponent(ayame.core.MarkupContainer):
     def on_invalid(self):
         pass
 
+
 class Button(FormComponent):
 
     def on_render(self, element):
@@ -252,6 +256,7 @@ class Button(FormComponent):
     def on_submit(self):
         pass
 
+
 class FileUploadField(FormComponent):
 
     def on_render(self, element):
@@ -263,6 +268,7 @@ class FileUploadField(FormComponent):
         element.attrib[_NAME] = self.relative_path()
         # render file upload field
         return super(FileUploadField, self).on_render(element)
+
 
 class TextField(FormComponent):
 
@@ -279,13 +285,16 @@ class TextField(FormComponent):
         # render text field
         return super(TextField, self).on_render(element)
 
+
 class PasswordField(TextField):
 
     input_type = u'password'
 
+
 class HiddenField(TextField):
 
     input_type = u'hidden'
+
 
 class TextArea(FormComponent):
 
@@ -299,6 +308,7 @@ class TextArea(FormComponent):
         element[:] = (self.model_object_as_string(),)
         # render text area
         return super(TextArea, self).on_render(element)
+
 
 class CheckBox(FormComponent):
 
@@ -323,6 +333,7 @@ class CheckBox(FormComponent):
             element.attrib[_CHECKED] = u'checked'
         # render checkbox
         return super(CheckBox, self).on_render(element)
+
 
 class Choice(FormComponent):
 
@@ -374,6 +385,7 @@ class Choice(FormComponent):
     def render_element(self, element, index, choice):
         return element
 
+
 class ChoiceRenderer(object):
 
     def label_for(self, object):
@@ -382,6 +394,7 @@ class ChoiceRenderer(object):
 
     def value_of(self, index, object):
         return unicode(index)
+
 
 class RadioChoice(Choice):
 
@@ -430,6 +443,7 @@ class RadioChoice(Choice):
                     element.extend(self.suffix.copy())
         # render radio choice
         return super(RadioChoice, self).on_render(element)
+
 
 class CheckBoxChoice(Choice):
 
@@ -480,6 +494,7 @@ class CheckBoxChoice(Choice):
                     element.extend(self.suffix.copy())
         # render checkbox choice
         return super(CheckBoxChoice, self).on_render(element)
+
 
 class SelectChoice(Choice):
 

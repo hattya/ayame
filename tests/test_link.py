@@ -52,6 +52,7 @@ def application(app, environ=None):
         local.environ = None
         local.app = None
 
+
 def test_link():
     app = core.Ayame(__name__)
     eq_(app._name, __name__)
@@ -96,6 +97,7 @@ def test_link():
         l.render(element)
     eq_(element.attrib, {})
     eq_(element.children, [])
+
 
 def test_action_link():
     class SpamPage(core.Page):
@@ -160,6 +162,7 @@ def test_action_link():
     with application(app, environ):
         page = SpamPage()
         assert_raises(OK, page.render)
+
 
 def test_page_link():
     class SpamPage(core.Page):

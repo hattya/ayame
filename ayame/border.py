@@ -31,6 +31,7 @@ import ayame.markup
 
 __all__ = ['Border']
 
+
 class Border(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
@@ -95,6 +96,7 @@ class Border(ayame.core.MarkupContainer):
             element.attrib[ayame.markup.AYAME_ID] = self.body.id
             return element
         return super(Border, self).render_ayame_element(element)
+
 
 class _BorderBody(ayame.core.MarkupContainer):
 

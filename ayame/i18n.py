@@ -54,6 +54,7 @@ _ctrl_chr = {'f': '\f',
              'r': '\r',
              't': '\t'}
 
+
 class Localizer(object):
 
     extension = '.properties'

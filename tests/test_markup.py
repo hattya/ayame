@@ -186,6 +186,7 @@ def test_element():
     spam.normalize()
     eq_(spam.children, ['a', eggs, 'bc', ham, 'def'])
 
+
 def test_fragment():
     spam = markup.Element(markup.QName('spam', 'spam'),
                           type=markup.Element.EMPTY,
@@ -199,6 +200,7 @@ def test_fragment():
     eq_(f1[0], f2[0])
     ok_(f1[1] != f2[1])
     eq_(f1[2], f2[2])
+
 
 def test_load_error():
     test = test_load_error
@@ -235,6 +237,7 @@ def test_load_error():
     except MarkupError as e:
         eq_(e.args[0], test)
         eq_(e.args[1], (1, 0))
+
 
 def test_load():
     test = test_load
@@ -274,6 +277,7 @@ def test_load():
     except MarkupError as e:
         eq_(e.args[0], test)
         eq_(e.args[1], (1, 21))
+
 
 def test_invalid_xml():
     test = test_invalid_xml
@@ -325,6 +329,7 @@ def test_invalid_xml():
                u'<spam a="1" a="2"/>',
                (1, 21))
 
+
 def test_load_empty_xml():
     test = test_load_empty_xml
 
@@ -336,6 +341,7 @@ def test_load_empty_xml():
     eq_(m.lang, 'xml')
     eq_(m.doctype, None)
     eq_(m.root, None)
+
 
 def test_load_xml():
     test = test_load_xml
@@ -371,6 +377,7 @@ def test_load_xml():
     eq_(eggs.type, markup.Element.EMPTY)
     eq_(eggs.ns, {})
     eq_(eggs.children, [])
+
 
 def test_load_xml_with_prefix():
     test = test_load_xml_with_prefix
@@ -434,6 +441,7 @@ def test_load_xml_with_prefix():
     except MarkupError as e:
         eq_(e.args[0], test)
         eq_(e.args[1], (1, 58))
+
 
 def test_load_xhtml1():
     test = test_load_xhtml1
@@ -509,6 +517,7 @@ def test_load_xhtml1():
     eq_(br.ns, {})
     eq_(br.children, [])
 
+
 def test_invalid_xhtml1():
     test = test_invalid_xhtml1
 
@@ -545,6 +554,7 @@ def test_invalid_xhtml1():
                   u'<html xmlns="http://www.w3.org/1999/xhtml">'
                   .format(doctype=markup.XHTML1_STRICT),
                   (1, 173))
+
 
 def test_ayame_remove():
     test = test_ayame_remove
@@ -617,6 +627,7 @@ def test_ayame_remove():
                   'ayame': markup.AYAME_NS})
     eq_(html.children, [])
 
+
 def test_render_error():
     test = test_render_error
 
@@ -681,6 +692,7 @@ def test_render_error():
     m.root.ns[u''] = markup.XHTML_NS
     assert_raises(RenderingError, renderer.render, test, m, pretty=False)
     assert_raises(RenderingError, renderer.render, test, m, pretty=True)
+
 
 def test_render_xml():
     test = test_render_xml
@@ -776,6 +788,7 @@ def test_render_xml():
     m.root.append(eggs)
     m.root.append(u'\n')
     eq_(renderer.render(test, m, pretty=False), xml)
+
 
 def test_render_xhtml1():
     test = test_render_xhtml1

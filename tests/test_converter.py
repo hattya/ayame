@@ -95,6 +95,7 @@ def test_locator():
     eq_(locator.converter_for(ON()), locator.get(N))
     eq_(locator.converter_for(NO()), locator.get(N))
 
+
 def test_converter():
     class C(converter.Converter):
         @property
@@ -107,6 +108,7 @@ def test_converter():
     eq_(c.type, None)
     eq_(c.to_python(None), None)
     eq_(c.to_string(None), 'None')
+
 
 def test_object():
     c = converter._ObjectConverter()
@@ -130,6 +132,7 @@ def test_object():
     eq_(c.to_string(None), 'None')
     eq_(c.to_string(o), unicode(o))
     eq_(c.to_string(n), unicode(n))
+
 
 def test_boolean():
     c = converter.BooleanConverter()
@@ -156,6 +159,7 @@ def test_boolean():
     eq_(c.to_string(True), 'True')
     assert_raises(ConversionError, c.to_string, 1)
     assert_raises(ConversionError, c.to_string, 'true')
+
 
 def test_float():
     c = converter.FloatConverter()
@@ -192,6 +196,7 @@ def test_float():
     assert_raises(ConversionError, c.to_string, '')
     assert_raises(ConversionError, c.to_string, object())
 
+
 def test_int():
     c = converter.IntegerConverter()
 
@@ -221,6 +226,7 @@ def test_int():
     assert_raises(ConversionError, c.to_string, '')
     assert_raises(ConversionError, c.to_string, object())
 
+
 def test_date():
     c = converter.DateConverter()
 
@@ -239,6 +245,7 @@ def test_date():
     assert_raises(ConversionError, c.to_string, '')
     assert_raises(ConversionError, c.to_string, object())
 
+
 def test_time():
     c = converter.TimeConverter()
 
@@ -255,6 +262,7 @@ def test_time():
     assert_raises(ConversionError, c.to_string, None)
     assert_raises(ConversionError, c.to_string, '')
     assert_raises(ConversionError, c.to_string, object())
+
 
 def test_datetime():
     c = converter.DateTimeConverter()

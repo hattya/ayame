@@ -37,6 +37,7 @@ __all__ = ['Locator', 'Converter', 'BooleanConverter', 'IntegerConverter',
            'FloatConverter', 'DateConverter', 'TimeConverter',
            'DateTimeConverter']
 
+
 class Locator(object):
 
     def __init__(self):
@@ -80,6 +81,7 @@ class Locator(object):
         if type in self.__registry:
             del self.__registry[type]
 
+
 class Converter(object):
 
     __metaclass__ = abc.ABCMeta
@@ -121,6 +123,7 @@ class Converter(object):
         return ConversionError(u"could not convert '{}' to '{}'".format(value,
                                                                         type))
 
+
 class _ObjectConverter(Converter):
 
     @property
@@ -129,6 +132,7 @@ class _ObjectConverter(Converter):
 
     def to_python(self, value):
         return value
+
 
 class BooleanConverter(Converter):
 
@@ -142,6 +146,7 @@ class BooleanConverter(Converter):
             if s in ('false', 'off', 'no', 'n'):
                 return False
         return bool(value)
+
 
 class FloatConverter(Converter):
 
@@ -162,6 +167,7 @@ class FloatConverter(Converter):
         except (TypeError, ValueError):
             raise self._new_error(value)
 
+
 class IntegerConverter(Converter):
 
     if sys.hexversion < 0x03000000:
@@ -178,6 +184,7 @@ class IntegerConverter(Converter):
             return long(value) if value is not None else long()
         except (TypeError, ValueError):
             raise self._new_error(value, type=long)
+
 
 class DateConverter(Converter):
 
@@ -202,6 +209,7 @@ class DateConverter(Converter):
         except ValueError as e:
             raise ConversionError(unicode(e))
 
+
 class TimeConverter(Converter):
 
     _format = '%H:%M:%S'
@@ -221,6 +229,7 @@ class TimeConverter(Converter):
         if error is not None:
             raise error
         return unicode(value.strftime(self._format))
+
 
 class DateTimeConverter(Converter):
 

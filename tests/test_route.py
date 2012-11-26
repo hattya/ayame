@@ -41,6 +41,7 @@ def new_environ(path_info, method='GET', query=None):
     wsgiref.util.setup_testing_defaults(environ)
     return environ
 
+
 def test_static_rules():
     map = route.Map()
     map.connect('/', 0)
@@ -119,13 +120,16 @@ def test_static_rules():
     eq_(router.build(0), '/ayame/')
     eq_(router.build(0, relative=True), '/')
 
+
 def test_duplicate_variable():
     map = route.Map()
     assert_raises(RouteError, map.connect, '/<a>/<b>/<a>/<c>', 0)
 
+
 def test_unknown_converter():
     map = route.Map()
     assert_raises(RouteError, map.connect, '/<spam:a>', 0)
+
 
 def test_custom_converter():
     class SpamConverter(route.Converter):
@@ -138,6 +142,7 @@ def test_custom_converter():
     obj, values = router.match()
     eq_(obj, 0)
     eq_(values, {'a': 'app'})
+
 
 def test_int_converter():
     map = route.Map()
@@ -224,6 +229,7 @@ def test_int_converter():
 
     assert_raises(RouteError, router.build, 2, {'a': 100})
 
+
 def test_string_converter():
     map = route.Map()
     map.connect('/<string(2):s>/', 0)
@@ -279,6 +285,7 @@ def test_string_converter():
     eq_(router.build(1, {'s': 'jpy'}), '/jpy/')
     eq_(router.build(1, {'s': 'usd'}), '/usd/')
 
+
 def test_path_converter():
     map = route.Map()
     map.connect('/<path:p>/<m>', 0)
@@ -323,6 +330,7 @@ def test_path_converter():
     eq_(router.build(1, {'p': 'WikiPage'}), '/WikiPage')
     eq_(router.build(1, {'p': ''}), '/')
 
+
 def test_redirect():
     def redirect(s):
         return '/_/{}/'.format(s)
@@ -346,11 +354,13 @@ def test_redirect():
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/_/jp/')])
 
+
 def test_add_rule():
     rule = route.Rule('/', 0)
     map = route.Map()
     map.add(rule)
     assert_raises(RouteError, map.add, rule)
+
 
 def test_mount():
     rule = route.Rule('/news/', 1)
