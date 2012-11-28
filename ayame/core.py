@@ -486,21 +486,22 @@ class MarkupContainer(Component):
         return root
 
     def render_ayame_element(self, element):
-        def get(e, a):
-            v = e.attrib.get(a)
-            if v is None:
-                raise RenderingError(
-                    self,
-                    u"'ayame:{}' attribute is required for "
-                    u"'ayame:{}' element".format(a.name, e.qname.name))
-            return v
+        def get(element, attr, keep=True):
+            if attr in element.attrib:
+                if keep:
+                    return element.attrib[attr]
+                return element.attrib.pop(attr)
+            raise RenderingError(
+                self,
+                u"'ayame:{}' attribute is required for "
+                u"'ayame:{}' element".format(attr.name, element.qname.name))
 
-        def find(p):
-            c = self.find(p)
-            if c is None:
-                raise ComponentError(
-                    self, u"component for '{}' is not found".format(p))
-            return c
+        def find(path):
+            component = self.find(path)
+            if component is not None:
+                return component
+            raise ComponentError(
+                self, u"component for '{}' is not found".format(path))
 
         if element.qname == ayame.markup.AYAME_CONTAINER:
             find(get(element, ayame.markup.AYAME_ID)).render_body_only = True
@@ -509,6 +510,13 @@ class MarkupContainer(Component):
         elif element.qname == ayame.markup.AYAME_ENCLOSURE:
             component = find(get(element, ayame.markup.AYAME_CHILD))
             return element.children if component.visible else None
+        elif element.qname == ayame.markup.AYAME_MESSAGE:
+            key = get(element, ayame.markup.AYAME_KEY, False)
+            message = _MessageContainer(ayame.util.new_token()[:7], key)
+            self.add(message)
+            element.qname = ayame.markup.DIV
+            element.attrib[ayame.markup.AYAME_ID] = message.id
+            return element
 
         if element.qname.ns_uri == ayame.markup.AYAME_NS:
             raise RenderingError(
@@ -664,6 +672,24 @@ class MarkupContainer(Component):
             if extra_head is not None:
                 raise RenderingError(class_, "'head' element is not found")
         return m
+
+
+class _MessageContainer(MarkupContainer):
+
+    def __init__(self, id, key):
+        super(_MessageContainer, self).__init__(id, ayame.model.Model(key))
+        self.escape_model_string = False
+        self.render_body_only = True
+
+    def on_render(self, element):
+        key = self.model_object_as_string()
+        value = self.parent.tr(key)
+        if value is None:
+            raise RenderingError(
+                self.parent,
+                "no value found for ayame:message with key '{}'".format(key))
+        element[:] = (value,)
+        return element
 
 
 class Page(MarkupContainer):

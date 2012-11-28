@@ -51,7 +51,7 @@ def test_simple_app():
     class SimplePage(core.Page):
         def __init__(self):
             super(SimplePage, self).__init__()
-            self.add(SessionLabel('greeting', u'Hello World!'))
+            self.add(SessionLabel('message', u'Hello World!'))
 
     class SessionLabel(basic.Label):
         def __init__(self, id, default):
@@ -60,8 +60,8 @@ def test_simple_app():
 
     class RedirectPage(core.Page):
         def on_render(self, element):
-            if 'greeting' in self.request.query:
-                self.session['greeting'] = self.request.query['greeting'][0]
+            if 'message' in self.request.query:
+                self.session['message'] = self.request.query['message'][0]
                 self.forward(SimplePage)
             elif 'permanent' in self.request.query.get('type', []):
                 self.redirect(RedirectPage, {'p': 1}, permanent=True)
@@ -155,9 +155,9 @@ def test_simple_app():
     eq_(exc_info, None)
     ok_(content)
 
-    # GET /redir?greeting=Hallo+Welt! -> OK
+    # GET /redir?message=Hallo+Welt! -> OK
     xhtml = xhtml.replace(b'Hello World!', b'Hallo Welt!')
-    query = uri.quote_plus('greeting=Hallo Welt!')
+    query = uri.quote_plus('message=Hallo Welt!')
     status, headers, exc_info, content = wsgi_call(app,
                                                    REQUEST_METHOD='GET',
                                                    PATH_INFO='/redir',
@@ -1265,7 +1265,7 @@ def test_page():
     class SpamPage(core.Page):
         def __init__(self):
             super(SpamPage, self).__init__()
-            self.add(basic.Label('greeting', u'Hello World!'))
+            self.add(basic.Label('message', u'Hello World!'))
             self.headers['Content-Type'] = 'text/plain'
 
     xhtml = ('<?xml version="1.0"?>\n'
@@ -1287,9 +1287,9 @@ def test_page():
         page = SpamPage()
         status, headers, content = page.render()
     eq_(page.page(), page)
-    eq_(page.find('greeting').page(), page)
+    eq_(page.find('message').page(), page)
     eq_(page.path(), '')
-    eq_(page.find('greeting').path(), 'greeting')
+    eq_(page.find('message').path(), 'message')
     eq_(status, http.OK.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
@@ -1464,3 +1464,63 @@ def test_nested_class_markup():
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', str(len(xhtml)))])
     eq_(content, xhtml)
+
+
+def test_render_ayame_message():
+    class BeansPage(core.Page):
+        pass
+
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>BeansPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <p>Hello World!</p>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = BeansPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    xhtml = (u'<?xml version="1.0"?>\n'
+             u'{doctype}\n'
+             u'<html xmlns="{xhtml}">\n'
+             u'  <head>\n'
+             u'    <title>BeansPage</title>\n'
+             u'  </head>\n'
+             u'  <body>\n'
+             u'    <p>\u3053\u3093\u306b\u3061\u306f\u4e16\u754c</p>\n'
+             u'  </body>\n'
+             u'</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                  xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'ja, en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = BeansPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    # no value found for key
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        message = markup.Element(markup.AYAME_MESSAGE)
+        message.attrib[markup.AYAME_KEY] = 'b'
+        mc = core.MarkupContainer('a')
+        assert_raises(RenderingError, mc.render, message)

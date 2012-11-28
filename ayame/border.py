@@ -38,7 +38,7 @@ class Border(ayame.core.MarkupContainer):
         super(Border, self).__init__(id, model)
         self.render_body_only = True
         # ayame:body
-        self.body = _BorderBody(id)
+        self.body = _BorderBodyContainer(id)
         self.body.render_body_only = True
         self.add_to_border(self.body)
 
@@ -46,7 +46,12 @@ class Border(ayame.core.MarkupContainer):
         return super(Border, self).add(*args)
 
     def add(self, *args):
-        return self.body.add(*args)
+        for object in args:
+            if isinstance(object, ayame.core._MessageContainer):
+                self.add_to_border(object)
+            else:
+                self.body.add(object)
+        return self
 
     def on_render(self, element):
         def step(element, depth):
@@ -98,7 +103,11 @@ class Border(ayame.core.MarkupContainer):
         return super(Border, self).render_ayame_element(element)
 
 
-class _BorderBody(ayame.core.MarkupContainer):
+class _BorderBodyContainer(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        super(_BorderBody, self).__init__(id + u'_body', model)
+        super(_BorderBodyContainer, self).__init__(id + u'_body', model)
+
+    def tr(self, key, component=None):
+        # retrieve message from parent of Border
+        return super(_BorderBodyContainer, self).tr(key, self.parent.parent)

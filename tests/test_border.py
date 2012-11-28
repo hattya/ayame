@@ -25,21 +25,28 @@
 #
 
 from contextlib import contextmanager
+import io
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, border, markup
+from ayame import basic, border, core, http, markup
 from ayame.exception import RenderingError
 
 
 @contextmanager
-def application():
+def application(environ=None):
     local = core._local
     app = core.Ayame(__name__)
     try:
         local.app = app
+        if environ is not None:
+            local.environ = environ
+            local.request = core.Request(environ, {})
         yield
     finally:
+        if environ is not None:
+            local.request = None
+            local.environ = None
         local.app = None
 
 
@@ -438,3 +445,59 @@ def test_empty_markup():
     eq_(p.type, markup.Element.OPEN)
     eq_(p.ns, {})
     eq_(p.children, ['after border (Sausage)'])
+
+
+def test_render_ayame_message():
+    class TomatoPage(core.Page):
+        def __init__(self):
+            super(TomatoPage, self).__init__()
+            self.add(TomatoBorder('border'))
+
+    class TomatoBorder(border.Border):
+        pass
+
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>TomatoPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <p>before, body, after</p>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = TomatoPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    xhtml = (u'<?xml version="1.0"?>\n'
+             u'{doctype}\n'
+             u'<html xmlns="{xhtml}">\n'
+             u'  <head>\n'
+             u'    <title>TomatoPage</title>\n'
+             u'  </head>\n'
+             u'  <body>\n'
+             u'    <p>\u524d, \u4e2d, \u5f8c</p>\n'
+             u'  </body>\n'
+             u'</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                  xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'ja, en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = TomatoPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)

@@ -37,9 +37,9 @@ import ayame.util
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'HTML', 'HEAD', 'DIV', 'AYAME_CONTAINER', 'AYAME_ENCLOSURE',
            'AYAME_EXTEND', 'AYAME_CHILD', 'AYAME_PANEL', 'AYAME_BORDER',
-           'AYAME_BODY', 'AYAME_HEAD', 'AYAME_REMOVE', 'AYAME_ID',
-           'MarkupType', 'Markup', 'Element', 'Fragment', 'MarkupLoader',
-           'MarkupRenderer']
+           'AYAME_BODY', 'AYAME_HEAD', 'AYAME_MESSAGE', 'AYAME_REMOVE',
+           'AYAME_ID', 'AYAME_KEY', 'MarkupType', 'Markup', 'Element',
+           'Fragment', 'MarkupLoader', 'MarkupRenderer']
 
 # namespace URI
 XML_NS = u'http://www.w3.org/XML/1998/namespace'
@@ -123,11 +123,13 @@ AYAME_PANEL = QName(AYAME_NS, u'panel')
 AYAME_BORDER = QName(AYAME_NS, u'border')
 AYAME_BODY = QName(AYAME_NS, u'body')
 AYAME_HEAD = QName(AYAME_NS, u'head')
+AYAME_MESSAGE = QName(AYAME_NS, u'message')
 AYAME_REMOVE = QName(AYAME_NS, u'remove')
 
 # ayame attributes
 AYAME_ID = QName(AYAME_NS, u'id')
 #AYAME_CHILD = QName(AYAME_NS, u'child')
+AYAME_KEY = QName(AYAME_NS, u'key')
 
 
 MarkupType = collections.namedtuple('MarkupType',
