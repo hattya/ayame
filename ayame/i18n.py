@@ -92,15 +92,16 @@ class Localizer(object):
     def _iter_class(self, component):
         queue = collections.deque(((ayame.core.Ayame.instance().__class__,
                                     ''),))
-        path = component.path().split(':')
-        index = len(path)
-        join = '.'.join
-        while component.parent:
-            queue.append((component.__class__, join(path[index:])))
-            component = component.parent
-            if 0 < index:
-                index -= 1
-        queue.append((component.__class__, join(path)))
+        if isinstance(component, ayame.core.Component):
+            path = component.path().split(':')
+            index = len(path)
+            join = '.'.join
+            while component.parent:
+                queue.append((component.__class__, join(path[index:])))
+                component = component.parent
+                if 0 < index:
+                    index -= 1
+            queue.append((component.__class__, join(path)))
 
         while queue:
             class_, prefix = queue.pop()

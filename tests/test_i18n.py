@@ -87,6 +87,9 @@ def test_iter_class():
              (core.Page, ''),
              (Application, ''),
              (core.Ayame, '')])
+        eq_([v for v in l._iter_class(None)],
+            [(Application, ''),
+             (core.Ayame, '')])
 
 
 def test_load():
