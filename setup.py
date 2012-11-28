@@ -166,6 +166,12 @@ class test(Command, Mixin2to3):
         nose.run(argv=['test', '-w', self.build_tests])
 
 
+try:
+    with open('README.rst') as fp:
+        long_description = fp.read()
+except:
+    long_description = ''
+
 packages = ['ayame']
 package_data = {'ayame': []}
 
@@ -175,7 +181,8 @@ cmdclass = {'build_py': build_py,
 
 setup(name='ayame',
       version=ayame.__version__,
-      description='A Wicket-like WSGI framework',
+      description='An Apache Wicket-like component based WSGI framework',
+      long_description=long_description,
       author=ayame.__author__,
       author_email='hattya@gmail.com',
       url='https://github.com/hattya/ayame',
