@@ -455,7 +455,13 @@ class MarkupContainer(Component):
                         parent[index:index + 1] = value
                     continue
             elif ayame.markup.AYAME_ID in element.attrib:
-                # render component
+                ayame_id, value = self.render_component(element)
+            elif ayame.markup.AYAME_MESSAGE in element.attrib:
+                # prepare for AttributeLocalizer
+                message = _MessageContainer(ayame.util.new_token()[:7])
+                self.add(message)
+                element.attrib[ayame.markup.AYAME_ID] = message.id
+
                 ayame_id, value = self.render_component(element)
             else:
                 # there is no associated component
@@ -555,7 +561,7 @@ class MarkupContainer(Component):
                 continue
             elif attr.name == 'id':
                 ayame_id = element.attrib.pop(attr)
-            else:
+            elif attr.name != 'message':
                 raise RenderingError(
                     self, u"unknown attribute 'ayame:{}'".format(attr.name))
         if ayame_id is None:
@@ -676,20 +682,29 @@ class MarkupContainer(Component):
 
 class _MessageContainer(MarkupContainer):
 
-    def __init__(self, id, key):
-        super(_MessageContainer, self).__init__(id, ayame.model.Model(key))
-        self.escape_model_string = False
-        self.render_body_only = True
+    def __init__(self, id, key=None):
+        if key is not None:
+            # ayame:message element
+            super(_MessageContainer, self).__init__(id, ayame.model.Model(key))
+            self.render_body_only = True
+        else:
+            # ayame:message attribute
+            super(_MessageContainer, self).__init__(id)
+            self.add(_AttributeLocalizer())
 
     def on_render(self, element):
-        key = self.model_object_as_string()
-        value = self.parent.tr(key)
-        if value is None:
-            raise RenderingError(
-                self.parent,
-                "no value found for ayame:message with key '{}'".format(key))
-        element[:] = (value,)
-        return element
+        key = self.model_object
+        if key is not None:
+            value = self.parent.tr(key)
+            if value is None:
+                raise RenderingError(
+                    self.parent,
+                    "no value found for ayame:message with "
+                    "key '{}'".format(key))
+            element[:] = (value,)
+            return element
+        # notify behaviors and render components
+        return super(_MessageContainer, self).on_render(element)
 
 
 class Page(MarkupContainer):
@@ -846,6 +861,23 @@ class IgnitionBehavior(Behavior):
 
     def on_fire(self, component):
         pass
+
+
+class _AttributeLocalizer(Behavior):
+
+    def on_component(self, component, element):
+        expr = element.attrib.pop(ayame.markup.AYAME_MESSAGE)
+        for s in expr.split(','):
+            try:
+                name, key = s.rsplit(':', 1)
+            except ValueError:
+                raise RenderingError(
+                    component,
+                    'invalid value is found in ayame:message attribute')
+            value = component.tr(key)
+            if value is not None:
+                attr = ayame.markup.QName(element.qname.ns_uri, name)
+                element.attrib[attr] = value
 
 
 class nested(object):

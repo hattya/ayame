@@ -1466,7 +1466,7 @@ def test_nested_class_markup():
     eq_(content, xhtml)
 
 
-def test_render_ayame_message():
+def test_render_ayame_message_element():
     class BeansPage(core.Page):
         pass
 
@@ -1524,3 +1524,73 @@ def test_render_ayame_message():
         message.attrib[markup.AYAME_KEY] = 'b'
         mc = core.MarkupContainer('a')
         assert_raises(RenderingError, mc.render, message)
+
+
+def test_render_ayame_message_attribute():
+    class BaconPage(core.Page):
+        pass
+
+    xhtml = ('<?xml version="1.0"?>\n'
+             '{doctype}\n'
+             '<html xmlns="{xhtml}">\n'
+             '  <head>\n'
+             '    <title>BaconPage</title>\n'
+             '  </head>\n'
+             '  <body>\n'
+             '    <form action="#">\n'
+             '      <div>\n'
+             '        <input type="submit" value="Submit"/>\n'
+             '      </div>\n'
+             '    </form>\n'
+             '  </body>\n'
+             '</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                 xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = BaconPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    xhtml = (u'<?xml version="1.0"?>\n'
+             u'{doctype}\n'
+             u'<html xmlns="{xhtml}">\n'
+             u'  <head>\n'
+             u'    <title>BaconPage</title>\n'
+             u'  </head>\n'
+             u'  <body>\n'
+             u'    <form action="#">\n'
+             u'      <div>\n'
+             u'        <input type="submit" value="\u9001\u4fe1"/>\n'
+             u'      </div>\n'
+             u'    </form>\n'
+             u'  </body>\n'
+             u'</html>\n').format(doctype=markup.XHTML1_STRICT,
+                                  xhtml=markup.XHTML_NS)
+    xhtml = xhtml.encode('utf-8')
+    environ = {'wsgi.input': io.BytesIO(),
+               'HTTP_ACCEPT_LANGUAGE': 'ja, en',
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        page = BaconPage()
+        status, headers, content = page.render()
+    eq_(status, http.OK.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', str(len(xhtml)))])
+    eq_(content, xhtml)
+
+    # invalid value for ayame:message attribute
+    environ = {'wsgi.input': io.BytesIO(),
+               'REQUEST_METHOD': 'GET'}
+    with application(environ):
+        root = markup.Element(markup.QName('', 'root'))
+        root.attrib[markup.AYAME_ID] = 'b'
+        root.attrib[markup.AYAME_MESSAGE] = 'id'
+        mc = core.MarkupContainer('a')
+        mc.add(core._MessageContainer('b'))
+        assert_raises(RenderingError, mc.render, root)
