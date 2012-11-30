@@ -115,8 +115,7 @@ class Rule(object):
                     "variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
-                pattern = conv.pattern
-                buf.append('(?P<{}>{})'.format(var, pattern))
+                buf.append('(?P<{}>{})'.format(var, conv.pattern))
                 self._segments.append((True, var))
                 self._converters[var] = conv
                 self._variables.add(var)
@@ -129,7 +128,6 @@ class Rule(object):
 
     def _parse(self, path):
         pos = 0
-        end = len(path)
         for m in _rule_re.finditer(path):
             g = m.groupdict()
             if g['static']:
@@ -138,13 +136,14 @@ class Rule(object):
                    g['args'] if g['args'] else None,
                    g['variable'])
             pos = m.end()
-        if pos < end:
+        if pos < len(path):
             yield None, None, path[pos:]
 
     def _new_converter(self, name, args):
         converter = self.map.converters.get(name)
         if converter is None:
             raise RouteError("converter '{}' not found".format(name))
+
         if args:
             args, kwargs = eval('(lambda *a, **kw: (a, kw))({})'.format(args),
                                 {'__builtins__': None})
@@ -310,8 +309,7 @@ class Router(object):
 
     def build(self, object, values=None, anchor=None, method=None,
               append_query=True, relative=False):
-        if not values:
-            values = {}
+        values = values if values else {}
         for rule in self.map._ref.get(object, ()):
             path = rule.build(values, anchor, method, append_query)
             if path is None:

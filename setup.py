@@ -41,8 +41,7 @@ def find_executable(cmd, path=None):
     cands = []
     if (not ext and
         sys.platform == 'win32'):
-        for ext in ('.exe', '.bat', '.cmd'):
-            cands.append(name + ext)
+        cands.extend(name + ext for ext in ('.exe', '.bat', '.cmd'))
     else:
         cands.append(cmd)
     for path in PATH:

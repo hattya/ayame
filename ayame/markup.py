@@ -600,8 +600,8 @@ class MarkupRenderer(object):
                     self._pop()
                 else:
                     # push children
-                    for i in xrange(len(element) - 1, -1, -1):
-                        queue.append((i, element[i]))
+                    queue.extend((i, element[i])
+                                 for i in xrange(len(element) - 1, -1, -1))
             elif isinstance(node, basestring):
                 # render text
                 self.render_text(index, node)

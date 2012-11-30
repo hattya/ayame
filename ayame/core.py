@@ -449,8 +449,8 @@ class MarkupContainer(Component):
                             # replace ayame element (queue)
                             total = len(elements)
                             last = index + total - 1
-                            for i in xrange(total):
-                                queue.append((parent, last - i, elements[i]))
+                            queue.extend((parent, last - i, elements[i])
+                                         for i in xrange(total))
                         # replace ayame element (parent)
                         parent[index:index + 1] = value
                     continue
