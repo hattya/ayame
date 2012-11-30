@@ -188,15 +188,11 @@ class FormComponent(ayame.core.MarkupContainer):
         self.error = None
 
     def relative_path(self):
-        current = self
-        buf = []
-        while not (isinstance(current, Form) or
-                   current.parent is None):
-            buf.append(current.id)
-            current = current.parent
-        if not isinstance(current, Form):
-            raise ComponentError(self, 'component is not attached to Form')
-        return u':'.join(reversed(buf))
+        lis = [self.id]
+        lis.extend(c.id for c in self.iter_parent(Form))
+        # relative path from Form
+        del lis[-1]
+        return u':'.join(reversed(lis))
 
     def validate(self, value):
         try:

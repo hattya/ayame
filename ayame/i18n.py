@@ -96,12 +96,11 @@ class Localizer(object):
             path = component.path().split(':')
             index = len(path)
             join = '.'.join
-            while component.parent:
-                queue.append((component.__class__, join(path[index:])))
-                component = component.parent
+            queue.append((component.__class__, ''))
+            for component in component.iter_parent():
                 if 0 < index:
                     index -= 1
-            queue.append((component.__class__, join(path)))
+                queue.append((component.__class__, join(path[index:])))
 
         while queue:
             class_, prefix = queue.pop()

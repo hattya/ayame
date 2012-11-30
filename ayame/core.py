@@ -213,13 +213,10 @@ class Component(object):
             if self.__model is not None:
                 return self.__model
             else:
-                current = self.parent
-                while current:
-                    model = current.model
-                    if isinstance(model, ayame.model.InheritableModel):
-                        self.__model = model.wrap(self)
+                for current in self.iter_parent():
+                    if isinstance(current.model, ayame.model.InheritableModel):
+                        self.__model = current.model.wrap(self)
                         return self.__model
-                    current = current.parent
 
         def fset(self, model):
             if (model is not None and
@@ -295,6 +292,22 @@ class Component(object):
     def forward(self, *args, **kwargs):
         return self.app.forward(*args, **kwargs)
 
+    def iter_parent(self, class_=None):
+        current = self.parent
+        if class_ is None:
+            while current is not None:
+                yield current
+                current = current.parent
+        else:
+            while current is not None:
+                yield current
+                if isinstance(current, class_):
+                    return
+                current = current.parent
+            raise ComponentError(self,
+                                 u'component is not attached to {}'.format(
+                                     ayame.util.fqon_of(class_)))
+
     def model_object_as_string(self):
         object = self.model_object
         if object is not None:
@@ -308,22 +321,18 @@ class Component(object):
 
     def page(self):
         current = self
-        while current.parent is not None:
-            current = current.parent
-        if isinstance(current, Page):
-            return current
-        raise ComponentError(self, 'component is not attached to Page')
+        if not isinstance(current, Page):
+            for current in self.iter_parent(Page):
+                pass
+        return current
 
     def path(self):
-        current = self
-        buf = [current.id]
-        while current.parent is not None:
-            current = current.parent
-            buf.append(current.id)
-        if (isinstance(current, Page) and
-            buf[-1] is None):
-            buf = buf[:-1]
-        return u':'.join(reversed(buf))
+        lis = [self]
+        lis.extend(c for c in self.iter_parent())
+        if (isinstance(lis[-1], Page) and
+            lis[-1].id is None):
+            del lis[-1]
+        return u':'.join(c.id for c in reversed(lis))
 
     def redirect(self, *args, **kwargs):
         return self.app.redirect(*args, **kwargs)
@@ -532,8 +541,8 @@ class MarkupContainer(Component):
 
     def push_ayame_head(self, ayame_head):
         current = self
-        while current.parent is not None:
-            current = current.parent
+        for current in self.iter_parent():
+            pass
         current._extra_head += ayame_head.children
 
     def merge_ayame_head(self, root):
