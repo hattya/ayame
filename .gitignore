@@ -1,5 +1,7 @@
 *.py[co]
 *.sw?
 .coverage
+MANIFEST
 ayame/__version__.py
 build/
+dist/
