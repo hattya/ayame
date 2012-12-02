@@ -463,19 +463,24 @@ class MarkupContainer(Component):
                         # replace ayame element (parent)
                         parent[index:index + 1] = value
                     continue
-            elif ayame.markup.AYAME_ID in element.attrib:
-                ayame_id, value = self.render_component(element)
-            elif ayame.markup.AYAME_MESSAGE in element.attrib:
-                # prepare for AttributeLocalizer
-                message = _MessageContainer(ayame.util.new_token()[:7])
-                self.add(message)
-                element.attrib[ayame.markup.AYAME_ID] = message.id
-
-                ayame_id, value = self.render_component(element)
             else:
-                # there is no associated component
-                push(queue, element)
-                continue
+                # render ayame attribute
+                ayame_id = element.attrib.get(ayame.markup.AYAME_ID)
+                if ayame.markup.AYAME_MESSAGE in element.attrib:
+                    # prepare AttributeLocalizer
+                    if ayame_id is not None:
+                        self.find(ayame_id).add(_AttributeLocalizer())
+                    else:
+                        ayame_id = ayame.util.new_token()[:7]
+                        self.add(_MessageContainer(ayame_id))
+                        element.attrib[ayame.markup.AYAME_ID] = ayame_id
+                # render component
+                if ayame_id is not None:
+                    ayame_id, value = self.render_component(element)
+                else:
+                    # there is no associated component
+                    push(queue, element)
+                    continue
 
             if parent is None:
                 # replace root element

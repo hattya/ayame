@@ -1592,5 +1592,5 @@ def test_render_ayame_message_attribute():
         root.attrib[markup.AYAME_ID] = 'b'
         root.attrib[markup.AYAME_MESSAGE] = 'id'
         mc = core.MarkupContainer('a')
-        mc.add(core._MessageContainer('b'))
+        mc.add(core.Component('b'))
         assert_raises(RenderingError, mc.render, root)
