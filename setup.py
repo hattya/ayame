@@ -9,7 +9,6 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
 from distutils.command.clean import clean as _clean
-from distutils.core import setup, Command
 from distutils.dir_util import remove_tree
 try:
     from distutils.util import Mixin2to3
@@ -27,9 +26,11 @@ import sys
 import time
 
 try:
-    import nose
+    from setuptools import setup, Command
+    setuptools = True
 except ImportError:
-    nose = None
+    from distutils.core import setup, Command
+    setuptools = False
 
 
 def find_executable(cmd, path=None):
@@ -137,7 +138,17 @@ class test(Command, Mixin2to3):
             self.build_tests = os.path.join(self.build_base, 'tests')
 
     def run(self):
-        if not nose:
+        if setuptools:
+            if self.distribution.install_requires:
+                self.distribution.fetch_build_eggs(
+                    self.distribution.install_requires)
+            if self.distribution.tests_require:
+                self.distribution.fetch_build_eggs(
+                    self.distribution.tests_require)
+            self.run_command('egg_info')
+        try:
+            import nose
+        except ImportError:
             return self.warn('nose is required for unit testing')
 
         self.run_command('build')
@@ -178,11 +189,18 @@ cmdclass = {'build_py': build_py,
             'clean': clean,
             'test': test}
 
+kwargs = {}
+if setuptools:
+    kwargs.update(zip_safe=False,
+                  install_requires=['Beaker'],
+                  tests_require=['nose',
+                                 'coverage'])
+
 setup(name='ayame',
       version=ayame.__version__,
       description='An Apache Wicket-like component based WSGI framework',
       long_description=long_description,
-      author=ayame.__author__,
+      author='Akinori Hattori',
       author_email='hattya@gmail.com',
       url='https://github.com/hattya/ayame',
       license='MIT',
@@ -205,4 +223,5 @@ setup(name='ayame',
           'Topic :: Software Development :: Libraries :: Application Frameworks',
           'Topic :: Software Development :: Libraries :: Python Modules',
       ),
-      cmdclass=cmdclass)
+      cmdclass=cmdclass,
+      **kwargs)
