@@ -128,14 +128,14 @@ def test_duplicate_variable():
 
 def test_unknown_converter():
     map = route.Map()
-    assert_raises(RouteError, map.connect, '/<spam:a>', 0)
+    assert_raises(RouteError, map.connect, '/<a:spam>', 0)
 
 
 def test_custom_converter():
     class SpamConverter(route.Converter):
         pass
     map = route.Map(converters={'spam': SpamConverter})
-    map.connect('/<spam:a>', 0)
+    map.connect('/<a:spam>', 0)
 
     # GET /app
     router = map.bind(new_environ('/app'))
@@ -146,9 +146,9 @@ def test_custom_converter():
 
 def test_int_converter():
     map = route.Map()
-    map.connect('/<int:y>/', 0)
-    map.connect('/<int:y>/<int(2, min=1, max=12):m>/', 1)
-    map.connect('/_/<int(2):a>/', 2)
+    map.connect('/<y:int>/', 0)
+    map.connect('/<y:int>/<m:int(2, min=1, max=12)>/', 1)
+    map.connect('/_/<a:int(2)>/', 2)
 
     # GET /2011 -> MovedPermanently
     router = map.bind(new_environ('/2011'))
@@ -232,9 +232,9 @@ def test_int_converter():
 
 def test_string_converter():
     map = route.Map()
-    map.connect('/<string(2):s>/', 0)
-    map.connect('/<string(3, min=3):s>/', 1)
-    map.connect('/<string:s>/', 2)
+    map.connect('/<s:string(2)>/', 0)
+    map.connect('/<s:string(3, min=3)>/', 1)
+    map.connect('/<s:string>/', 2)
 
     # GET /jp -> MovedPermanently
     router = map.bind(new_environ('/jp'))
@@ -288,8 +288,8 @@ def test_string_converter():
 
 def test_path_converter():
     map = route.Map()
-    map.connect('/<path:p>/<m>', 0)
-    map.connect('/<path:p>', 1)
+    map.connect('/<p:path>/<m>', 0)
+    map.connect('/<p:path>', 1)
 
     # GET /WikiPage/edit
     router = map.bind(new_environ('/WikiPage/edit'))
@@ -335,8 +335,8 @@ def test_redirect():
     def redirect(s):
         return '/_/{}/'.format(s)
     map = route.Map()
-    map.redirect('/<int:y>/<int(2, min=1, max=12):m>/', '/_/<y>/<m>/')
-    map.redirect('/<string(2):s>/', redirect)
+    map.redirect('/<y:int>/<m:int(2, min=1, max=12)>/', '/_/<y>/<m>/')
+    map.redirect('/<s:string(2)>/', redirect)
 
     # GET /2011/01/ -> MovedPermanently
     router = map.bind(new_environ('/2011/01/'))

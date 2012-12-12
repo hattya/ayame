@@ -173,7 +173,7 @@ def test_page_link():
     eq_(app._root, os.path.dirname(__file__))
 
     map = app.config['ayame.route.map']
-    map.connect('/<int:y>', SpamPage)
+    map.connect('/<y:int>', SpamPage)
     map.connect('/', SpamPage)
 
     element = markup.Element(link._A)

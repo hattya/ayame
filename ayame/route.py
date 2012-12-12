@@ -39,12 +39,12 @@ __all__ = ['Rule', 'Map', 'Router', 'Converter']
 _rule_re = re.compile(r"""
     (?P<static>[^<]*)
     <
+        (?P<variable>[a-zA-Z][a-zA-Z0-9_-]*)
         (?:
+            :
             (?P<converter>[a-zA-Z_][a-zA-Z0-9_-]*)
             (?:\((?P<args>.*?)\))?
-            :
         )?
-        (?P<variable>[a-zA-Z][a-zA-Z0-9_-]*)
     >
 """, re.VERBOSE)
 _simple_rule_re = re.compile(r'<([^>]+)>')
@@ -106,7 +106,7 @@ class Rule(object):
         self._variables.clear()
 
         buf = ['^']
-        for conv, args, var in self._parse(path):
+        for var, conv, args in self._parse(path):
             if conv is None:
                 buf.append(re.escape(var))
                 self._segments.append((False, var))
@@ -131,13 +131,13 @@ class Rule(object):
         for m in _rule_re.finditer(path):
             g = m.groupdict()
             if g['static']:
-                yield None, None, g['static']
-            yield (g['converter'] if g['converter'] else 'default',
-                   g['args'] if g['args'] else None,
-                   g['variable'])
+                yield g['static'], None, None
+            yield (g['variable'],
+                   g['converter'] if g['converter'] else 'default',
+                   g['args'] if g['args'] else None)
             pos = m.end()
         if pos < len(path):
-            yield None, None, path[pos:]
+            yield path[pos:], None, None
 
     def _new_converter(self, name, args):
         converter = self.map.converters.get(name)
