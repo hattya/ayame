@@ -75,11 +75,18 @@ def load_data(object, path, encoding='utf-8'):
     name = os.path.splitext(name)[0]
     if name.lower() != '__init__':
         parent = os.path.join(parent, name)
+
+    new_path = os.path.normpath(path)
+    if (os.path.isabs(new_path) or
+        new_path.split(os.path.sep, 1)[0] == os.path.pardir):
+        raise ResourceError("invalid path '{}'".format(path))
+    path = new_path
     if (is_module or
         not path.startswith('.')):
         path = os.path.join(parent, path)
     else:
         path = os.path.join(parent, object.__name__ + path)
+
     loader = getattr(module, '__loader__', None)
     if loader:
         try:

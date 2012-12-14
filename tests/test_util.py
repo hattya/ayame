@@ -25,6 +25,7 @@
 #
 
 import io
+import os
 import sys
 
 from nose.tools import assert_raises, eq_, ok_
@@ -83,6 +84,11 @@ def test_load_data():
         eq_(fp.read().strip(), 'test_util/spam.txt')
     with util.load_data(sys.modules[__name__], '.txt') as fp:
         eq_(fp.read().strip(), 'test_util/.txt')
+
+    assert_raises(ResourceError, util.load_data, Spam, os.path.pardir)
+    assert_raises(ResourceError, util.load_data, Spam,
+                  os.path.join(*(os.path.pardir,) * 2))
+    assert_raises(ResourceError, util.load_data, Spam, os.path.sep)
 
     class Eggs(object):
         pass
