@@ -43,7 +43,9 @@ _rule_re = re.compile(r"""
         (?:
             :
             (?P<converter>[a-zA-Z_][a-zA-Z0-9_-]*)
-            (?:\((?P<args>.*?)\))?
+            (?:
+                \( (?P<args>.*?) \)
+            )?
         )?
     >
 """, re.VERBOSE)
@@ -105,7 +107,7 @@ class Rule(object):
         self._converters.clear()
         self._variables.clear()
 
-        buf = ['^']
+        buf = [r'\A']
         for var, conv, args in self._parse(path):
             if conv is None:
                 buf.append(re.escape(var))
@@ -122,7 +124,7 @@ class Rule(object):
         if not self.is_leaf():
             self._segments.append((False, '/'))
         buf.append('(?P<__slash__>/?)')
-        buf.append('$')
+        buf.append(r'\Z')
 
         self._regex = re.compile(''.join(buf))
 
@@ -309,7 +311,9 @@ class Router(object):
 
     def build(self, object, values=None, anchor=None, method=None,
               append_query=True, relative=False):
-        values = values if values else {}
+        if values is None:
+            values = {}
+
         for rule in self.map._ref.get(object, ()):
             path = rule.build(values, anchor, method, append_query)
             if path is None:

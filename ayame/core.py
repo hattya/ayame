@@ -357,7 +357,9 @@ class Component(object):
             behavior.on_after_render(self)
 
     def tr(self, key, component=None):
-        component = component if component is not None else self
+        if component is None:
+            component = self
+
         return self.config['ayame.i18n.localizer'].get(component,
                                                        self.request.locale,
                                                        key)
@@ -401,15 +403,14 @@ class MarkupContainer(Component):
         return child
 
     def walk(self, step=None):
-        step = step if callable(step) else lambda *args: True
-
         queue = collections.deque(((self, 0),))
         while queue:
             component, depth = queue.pop()
             yield component, depth
             # push child components
             if (isinstance(component, MarkupContainer) and
-                step(component, depth)):
+                (step is None or
+                 step(component, depth))):
                 queue.extend((c, depth + 1)
                              for c in reversed(component.children))
 
@@ -613,7 +614,9 @@ class MarkupContainer(Component):
                         markup_type.extension)
             return markup_type.extension
 
-        class_ = class_ if class_ is not None else self.__class__
+        if class_ is None:
+            class_ = self.__class__
+
         loader = self.config['ayame.class.MarkupLoader']()
         encoding = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
@@ -855,6 +858,7 @@ class AttributeModifier(Behavior):
         else:
             attr = ayame.markup.QName(element.qname.ns_uri, self._attr)
         value = self._model.object if self._model is not None else None
+
         new_value = self.new_value(element.attrib.get(attr), value)
         if new_value is None:
             if attr in element.attrib:
@@ -880,8 +884,7 @@ class IgnitionBehavior(Behavior):
 class _AttributeLocalizer(Behavior):
 
     def on_component(self, component, element):
-        expr = element.attrib.pop(ayame.markup.AYAME_MESSAGE)
-        for s in expr.split(','):
+        for s in element.attrib.pop(ayame.markup.AYAME_MESSAGE).split(','):
             try:
                 name, key = s.rsplit(':', 1)
             except ValueError:

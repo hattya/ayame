@@ -39,29 +39,30 @@ __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
            'FilterDict']
 
 if sys.hexversion < 0x03000000:
-    builtins = '__builtin__'
+    _builtins = '__builtin__'
 else:
-    builtins = 'builtins'
+    _builtins = 'builtins'
 
 
 def fqon_of(object):
     if not hasattr(object, '__name__'):
         object = object.__class__
+
     if hasattr(object, '__module__'):
         if object.__module__ is None:
             return '.'.join(('<unknown>', object.__name__))
-        elif object.__module__ != builtins:
+        elif object.__module__ != _builtins:
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
 
 
 def load_data(object, path, encoding='utf-8'):
-    if not hasattr(object, '__name__'):
-        object = object.__class__
     if isinstance(object, types.ModuleType):
         module = object
         is_module = True
     else:
+        if not hasattr(object, '__name__'):
+            object = object.__class__
         try:
             module = sys.modules[object.__module__]
             is_module = False

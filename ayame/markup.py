@@ -52,16 +52,16 @@ _xml_decl_re = re.compile(r"""
     xml
     # VersionInfo
     \s*
-    version\s*=\s*(?P<version>["']1.\d+["'])
+    version \s* = \s* (?P<version>["'] 1\.\d ["'])
     # EncodingDecl
     (?:
         \s*
-        encoding\s*=\s*(?P<encoding>["'][a-zA-Z][a-zA-Z0-9._-]*["'])
+        encoding \s* = \s* (?P<encoding>["'] [a-zA-Z][a-zA-Z0-9._-]* ["'])
     )?
     # SDDecl
     (?:
         \s*
-        standalone\s*=\s*(?P<standalone>["'](?:yes|no)["'])
+        standalone \s* = \s* (?P<standalone>["'] (?:yes | no) ["'])
     )?
     \s*
     \?
@@ -71,16 +71,19 @@ _xml_decl_re = re.compile(r"""
 # DOCTYPE of (X)HTML
 XHTML1_STRICT = (u'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
                  u' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
-_xhtml1_strict_re = re.compile(
-    '\A'
-    'DOCTYPE\s+html\s+'
-    'PUBLIC\s+"-//W3C//DTD XHTML 1.0 Strict//EN"\s+'
-    '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"'
-    '\Z')
-_html_re = re.compile(
-    '\A'
-    'DOCTYPE\s+(?:HTML|html)\s+'
-    'PUBLIC\s+')
+_xhtml1_strict_re = re.compile(r"""
+    \A
+    DOCTYPE \s+ html
+    \s+
+    PUBLIC \s+ "-//W3C//DTD\ XHTML\ 1\.0\ Strict//EN"
+    \s+
+    "http://www\.w3\.org/TR/xhtml1/DTD/xhtml1-strict\.dtd"
+    \Z
+""", re.VERBOSE)
+_html_re = re.compile(r"""
+    \A
+    DOCTYPE \s+ [hH][tT][mM][lL]
+""", re.VERBOSE)
 
 # from DTD
 _empty = ('base', 'meta', 'link', 'hr', 'br', 'param', 'img', 'area', 'input',
@@ -210,14 +213,13 @@ class Element(object):
         self.children.remove(node)
 
     def walk(self, step=None):
-        step = step if callable(step) else lambda *args: True
-
         queue = collections.deque(((self, 0),))
         while queue:
             element, depth = queue.pop()
             yield element, depth
             # push child elements
-            if step(element, depth):
+            if (step is None or
+                step(element, depth)):
                 queue.extend((node, depth + 1) for node in reversed(element)
                              if isinstance(node, Element))
 
@@ -425,7 +427,9 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
                     prefix in element.ns):
                     return element.ns[prefix]
 
-        ns = ns if ns else {}
+        if ns is None:
+            ns = {}
+
         if ':' in name:
             prefix, name = name.split(':', 1)
             uri = ns.get(prefix, ns_uri_of(prefix))

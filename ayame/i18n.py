@@ -37,14 +37,17 @@ __all__ = ['Localizer']
 
 _kv_re = re.compile(r"""
     \A
-    # key
-    (.*? (?<!\\)(?:\\\\)*)
+    (?P<key>
+        .*? (?<!\\)(?:\\\\)*
+    )
     (?:
         # separator
-        (?:\s* [:=] \s*) | \s+
+        (?:
+            \s* [:=] \s*
+        ) |
+        \s+
     )
-    # value
-    (.*)
+    (?P<value>.*)
     \Z
 """, re.VERBOSE)
 _backslash_re = re.compile(r'\\(.)')

@@ -42,10 +42,10 @@ _label = '(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
 _email = r"""
     \A
     # local part
-    {atext}+(?:\.{atext}+)*
+    {atext}+ (?:\. {atext}+)*
     @
     # domain
-    {label}(?:\.{label})*
+    {label} (?:\. {label})*
     \Z
 """.format(atext=_atext,
            label=_label)
@@ -59,33 +59,38 @@ _ipv4 = '(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 _url = r"""
     \A
     # scheme
-    (?:https?|ftp) : //
+    (?:https? | ftp) : //
     # authority
     (?:
         # userinfo
-        (?:{unreserved}|{pct_encoded}|{sub_delims})+
+        (?:{unreserved} | {pct_encoded} | {sub_delims})+
         (?:
-            : (?:{unreserved}|{pct_encoded}|{sub_delims})+
+            :
+            (?:{unreserved} | {pct_encoded} | {sub_delims})+
         )?
         @
     )?
     (?:
         # host
-        (?:{label}(?:\.{label})*) | {ipv4}
+        (?:{label} (?:\. {label})*) |
+        {ipv4}
     )
     (?:
         # port
-        : \d+
+        :
+        \d+
     )?
     # path
-    (?:/{pchar}*(?:/{pchar}*)*)?
+    (?:/ {pchar}*)*
     # query
     (?:
-        \? (?:{pchar}|[/?])*
+        \?
+        (?:{pchar} | [/?])*
     )?
     # fragment
     (?:
-        \# (?:{pchar}|[/?])*
+        \#
+        (?:{pchar} | [/?])*
     )?
     \Z
 """.format(unreserved=_unreserved,

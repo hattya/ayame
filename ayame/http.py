@@ -50,7 +50,12 @@ _HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
          '  </body>\n'
          '</html>\n')
 
-_accept_re = re.compile(r'([^\s,;]+)(?:[^,;]*;\s*q=(\d+(?:\.\d+)?))?')
+_accept_re = re.compile(r"""
+    (?P<param>[^\s,;]+)
+    (?:
+        [^,;]*; \s* q= (?P<qvalue>\d+ (?:\. \d+)?)
+    )?
+""", re.VERBOSE)
 
 if sys.hexversion < 0x03000000:
     _decode = lambda s: unicode(s, 'utf-8', 'replace')

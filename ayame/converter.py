@@ -98,6 +98,7 @@ class Converter(object):
         error = self._check_type(value)
         if error is not None:
             raise error
+
         return unicode(value)
 
     def _check_type(self, value):
@@ -119,7 +120,9 @@ class Converter(object):
                 "expected {} but got '{}'".format(et, type(value)))
 
     def _new_error(self, value, type=None):
-        type = type if type is not None else self.type
+        if type is None:
+            type = self.type
+
         return ConversionError(u"could not convert '{}' to '{}'".format(value,
                                                                         type))
 
@@ -159,6 +162,7 @@ class FloatConverter(Converter):
             error = self._check_type(value)
             if error is not None:
                 raise error
+
             return repr(value)
 
     def to_python(self, value):
@@ -204,6 +208,7 @@ class DateConverter(Converter):
         error = self._check_type(value)
         if error is not None:
             raise error
+
         try:
             return unicode(value.strftime(self._format))
         except ValueError as e:
@@ -228,6 +233,7 @@ class TimeConverter(Converter):
         error = self._check_type(value)
         if error is not None:
             raise error
+
         return unicode(value.strftime(self._format))
 
 
@@ -282,6 +288,7 @@ class DateTimeConverter(Converter):
         error = self._check_type(value)
         if error is not None:
             raise error
+
         try:
             utcoffset = value.utcoffset()
         except TypeError as e:
