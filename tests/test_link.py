@@ -31,26 +31,21 @@ import urllib
 
 from nose.tools import assert_raises, eq_
 
-from ayame import core, http, link, markup, uri
+from ayame import core, http, link, local, markup, uri
 from ayame.exception import ComponentError
 
 
 @contextmanager
 def application(app, environ=None):
-    local = core._local
     if environ is None:
         environ = {'REQUEST_METHOD': 'GET'}
     try:
-        local.app = app
-        local.environ = environ
-        local.request = core.Request(environ, {})
-        local._router = app.config['ayame.route.map'].bind(environ)
+        ctx = local.push(app, environ)
+        ctx.request = core.Request(environ, {})
+        ctx._router = app.config['ayame.route.map'].bind(environ)
         yield
     finally:
-        local._router = None
-        local.request = None
-        local.environ = None
-        local.app = None
+        local.pop()
 
 
 def test_link():

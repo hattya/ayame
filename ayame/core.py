@@ -30,7 +30,6 @@ import datetime
 import locale
 import os
 import sys
-import threading
 import wsgiref.headers
 
 import beaker.middleware
@@ -40,6 +39,7 @@ from ayame.exception import (AyameError, ComponentError, Redirect,
                              RenderingError)
 import ayame.http
 import ayame.i18n
+import ayame.local
 import ayame.markup
 import ayame.model
 import ayame.route
@@ -54,22 +54,8 @@ __all__ = ['AYAME_PATH', 'Ayame', 'Component', 'MarkupContainer', 'Page',
 # marker for firing component
 AYAME_PATH = u'ayame:path'
 
-_local = threading.local()
-_local.app = None
-_local.environ = None
-_local.request = None
-_local._router = None
-
 
 class Ayame(object):
-
-    @staticmethod
-    def instance():
-        app = _local.app
-        if not isinstance(app, Ayame):
-            raise AyameError(u"there is no application attached to "
-                             u"'{}'".format(threading.current_thread().name))
-        return app
 
     def __init__(self, name):
         self._name = name
@@ -99,19 +85,19 @@ class Ayame(object):
 
     @property
     def environ(self):
-        return _local.environ
+        return ayame.local.context().environ
 
     @property
     def request(self):
-        return _local.request
+        return ayame.local.context().request
 
     @property
     def session(self):
-        return _local.environ['ayame.session']
+        return ayame.local.context().environ['ayame.session']
 
     @property
     def _router(self):
-        return _local._router
+        return ayame.local.context()._router
 
     def new(self):
         app = beaker.middleware.SessionMiddleware(self, self.config,
@@ -120,27 +106,26 @@ class Ayame(object):
 
     def __call__(self, environ, start_response):
         try:
-            _local.app = self
-            _local.environ = environ
-            _local._router = self.config['ayame.route.map'].bind(environ)
+            context = ayame.local.push(self, environ)
+            context._router = self.config['ayame.route.map'].bind(environ)
             # dispatch
-            object, values = _local._router.match()
-            _local.request = self.config['ayame.class.Request'](environ,
-                                                                values)
+            object, values = context._router.match()
+            context.request = self.config['ayame.class.Request'](environ,
+                                                                 values)
             for _ in xrange(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(object)
                 except Redirect as r:
                     if r.args[3] == Redirect.PERMANENT:
                         raise ayame.http.MovedPermanently(
-                            ayame.uri.application_uri(self.environ) +
+                            ayame.uri.application_uri(environ) +
                             self.uri_for(*r.args[:3], relative=True)[1:])
                     elif r.args[3] != Redirect.INTERNAL:
                         raise ayame.http.Found(
-                            ayame.uri.application_uri(self.environ) +
+                            ayame.uri.application_uri(environ) +
                             self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
-                    _local.request.path = None
+                    context.request.path = None
                 else:
                     break
             else:
@@ -150,9 +135,7 @@ class Ayame(object):
         except Exception as e:
             status, headers, content, exc_info = self.handle_error(e)
         finally:
-            _local._router = None
-            _local.environ = None
-            _local.app = None
+            ayame.local.pop()
 
         start_response(status, headers, exc_info)
         return content
@@ -261,7 +244,7 @@ class Component(object):
 
     @property
     def app(self):
-        return Ayame.instance()
+        return ayame.local.app()
 
     @property
     def config(self):
@@ -808,7 +791,7 @@ class Behavior(object):
 
     @property
     def app(self):
-        return Ayame.instance()
+        return ayame.local.app()
 
     @property
     def config(self):

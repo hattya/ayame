@@ -29,7 +29,7 @@ import io
 
 from nose.tools import eq_
 
-from ayame import core, i18n
+from ayame import core, i18n, local
 
 
 class Application(core.Ayame):
@@ -53,13 +53,12 @@ class Component(core.Component):
 
 @contextmanager
 def application():
-    local = core._local
     app = Application(__name__)
     try:
-        local.app = app
+        local.push(app, None)
         yield
     finally:
-        local.app = None
+        local.pop()
 
 
 def test_iter_class():

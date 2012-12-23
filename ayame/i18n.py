@@ -30,6 +30,7 @@ import sys
 
 import ayame.core
 from ayame.exception import ResourceError
+import ayame.local
 import ayame.util
 
 
@@ -93,8 +94,7 @@ class Localizer(object):
                 yield load(module, class_.__name__), prefix
 
     def _iter_class(self, component):
-        queue = collections.deque(((ayame.core.Ayame.instance().__class__,
-                                    ''),))
+        queue = collections.deque(((ayame.local.app().__class__, ''),))
         if isinstance(component, ayame.core.Component):
             path = component.path().split(':')
             index = len(path)

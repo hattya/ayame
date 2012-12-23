@@ -30,26 +30,21 @@ import io
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import core, form, http, markup, model, uri, validator
+from ayame import core, form, http, local, markup, model, uri, validator
 from ayame.exception import ComponentError, RenderingError, ValidationError
 
 
 @contextmanager
 def application(environ=None):
-    local = core._local
     app = core.Ayame(__name__)
     app.config['ayame.markup.pretty'] = True
     try:
-        local.app = app
+        ctx = local.push(app, environ)
         if environ is not None:
-            local.environ = environ
-            local.request = core.Request(environ, {})
+            ctx.request = core.Request(environ, {})
         yield
     finally:
-        if environ is not None:
-            local.request = None
-            local.environ = None
-        local.app = None
+        local.pop()
 
 
 class Form(form.Form):

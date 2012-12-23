@@ -32,7 +32,7 @@ import wsgiref.util
 
 from nose.tools import assert_raises, eq_, ok_
 
-from ayame import basic, core, http, markup, model, uri
+from ayame import basic, core, http, local, markup, model, uri
 from ayame.exception import AyameError, ComponentError, RenderingError
 
 
@@ -171,19 +171,14 @@ def test_simple_app():
 
 @contextmanager
 def application(environ=None):
-    local = core._local
     app = core.Ayame(__name__)
     try:
-        local.app = app
+        ctx = local.push(app, environ)
         if environ is not None:
-            local.environ = environ
-            local.request = core.Request(environ, {})
+            ctx.request = core.Request(environ, {})
         yield
     finally:
-        if environ is not None:
-            local.request = None
-            local.environ = None
-        local.app = None
+        local.pop()
 
 
 def assert_ws(element, i):

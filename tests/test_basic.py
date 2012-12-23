@@ -28,20 +28,17 @@ from contextlib import contextmanager
 
 from nose.tools import eq_, ok_
 
-from ayame import basic, core, markup, model
+from ayame import basic, core, local, markup, model
 
 
 @contextmanager
 def application(environ=None):
-    local = core._local
     app = core.Ayame(__name__)
     try:
-        local.app = app
-        local.environ = environ
+        local.push(app, environ)
         yield
     finally:
-        local.environ = None
-        local.app = None
+        local.pop()
 
 
 def test_label():
