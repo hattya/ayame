@@ -32,6 +32,7 @@ import urllib
 from nose.tools import assert_raises, eq_
 
 from ayame import core, http, link, local, markup, uri
+from ayame import app as _app
 from ayame.exception import ComponentError
 
 
@@ -41,7 +42,7 @@ def application(app, environ=None):
         environ = {'REQUEST_METHOD': 'GET'}
     try:
         ctx = local.push(app, environ)
-        ctx.request = core.Request(environ, {})
+        ctx.request = app.config['ayame.class.Request'](environ, {})
         ctx._router = app.config['ayame.route.map'].bind(environ)
         yield
     finally:
@@ -49,7 +50,7 @@ def application(app, environ=None):
 
 
 def test_link():
-    app = core.Ayame(__name__)
+    app = _app.Ayame(__name__)
     eq_(app._name, __name__)
     eq_(app._root, os.path.dirname(__file__))
 
@@ -123,7 +124,7 @@ def test_action_link():
                                  query=urllib.urlencode(query))
     xhtml = xhtml.encode('utf-8')
 
-    app = core.Ayame(__name__)
+    app = _app.Ayame(__name__)
     eq_(app._name, __name__)
     eq_(app._root, os.path.dirname(__file__))
 
@@ -163,7 +164,7 @@ def test_page_link():
     class SpamPage(core.Page):
         pass
 
-    app = core.Ayame(__name__)
+    app = _app.Ayame(__name__)
     eq_(app._name, __name__)
     eq_(app._root, os.path.dirname(__file__))
 

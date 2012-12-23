@@ -28,6 +28,7 @@ import collections
 import re
 import sys
 
+import ayame.app
 import ayame.core
 from ayame.exception import ResourceError
 import ayame.local
@@ -114,11 +115,11 @@ class Localizer(object):
                              if self.is_target_class(c))
 
     def is_target_class(self, class_):
-        return issubclass(class_, (ayame.core.Component, ayame.core.Ayame))
+        return issubclass(class_, (ayame.core.Component, ayame.app.Ayame))
 
     def is_base_class(self, class_):
         return class_ in (ayame.core.Page, ayame.core.MarkupContainer,
-                          ayame.core.Component, ayame.core.Ayame)
+                          ayame.core.Component, ayame.app.Ayame)
 
     def _load(self, fp):
         def repl(m):

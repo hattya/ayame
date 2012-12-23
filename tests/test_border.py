@@ -30,16 +30,17 @@ import io
 from nose.tools import assert_raises, eq_, ok_
 
 from ayame import basic, border, core, http, local, markup
+from ayame import app as _app
 from ayame.exception import RenderingError
 
 
 @contextmanager
 def application(environ=None):
-    app = core.Ayame(__name__)
+    app = _app.Ayame(__name__)
     try:
         ctx = local.push(app, environ)
         if environ is not None:
-            ctx.request = core.Request(environ, {})
+            ctx.request = app.config['ayame.class.Request'](environ, {})
         yield
     finally:
         local.pop()

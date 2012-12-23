@@ -29,11 +29,12 @@ from contextlib import contextmanager
 from nose.tools import eq_, ok_
 
 from ayame import basic, core, local, markup, model
+from ayame import app as _app
 
 
 @contextmanager
 def application(environ=None):
-    app = core.Ayame(__name__)
+    app = _app.Ayame(__name__)
     try:
         local.push(app, environ)
         yield

@@ -30,9 +30,10 @@ import io
 from nose.tools import eq_
 
 from ayame import core, i18n, local
+from ayame import app as _app
 
 
-class Application(core.Ayame):
+class Application(_app.Ayame):
     pass
 
 
@@ -73,22 +74,22 @@ def test_iter_class():
              (Component, ''),
              (core.Component, ''),
              (Application, ''),
-             (core.Ayame, '')])
+             (_app.Ayame, '')])
         eq_([v for v in l._iter_class(page.find('a'))],
             [(Page, 'a'),
              (core.Page, 'a'),
              (MarkupContainer, ''),
              (core.MarkupContainer, ''),
              (Application, ''),
-             (core.Ayame, '')])
+             (_app.Ayame, '')])
         eq_([v for v in l._iter_class(page)],
             [(Page, ''),
              (core.Page, ''),
              (Application, ''),
-             (core.Ayame, '')])
+             (_app.Ayame, '')])
         eq_([v for v in l._iter_class(None)],
             [(Application, ''),
-             (core.Ayame, '')])
+             (_app.Ayame, '')])
 
 
 def test_load():
