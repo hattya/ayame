@@ -581,6 +581,7 @@ class Page(MarkupContainer):
 
     def __init__(self):
         super(Page, self).__init__(None)
+        self.status = ayame.http.OK.status
         self.__headers = []
         self.headers = wsgiref.headers.Headers(self.__headers)
 
@@ -604,7 +605,7 @@ class Page(MarkupContainer):
         mime_type = self.markup_type.mime_type
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
         self.headers['Content-Length'] = str(len(content))
-        return ayame.http.OK.status, self.__headers, content
+        return self.status, self.__headers, content
 
 
 class Behavior(object):
