@@ -30,7 +30,7 @@ except ImportError:
     setuptools = False
 
 
-def find_executable(cmd, path=None):
+def whence(cmd, path=None):
     try:
         PATH = (path or os.environ['PATH']).split(os.pathsep)
     except KeyError:
@@ -65,7 +65,7 @@ if os.path.isdir('.git'):
     env = {'LANGUAGE': 'C'}
     if 'SystemRoot' in os.environ:
         env['SystemRoot'] = os.environ['SystemRoot']
-    out = runcmd([find_executable('git'), 'describe', '--tags',
+    out = runcmd([whence('git'), 'describe', '--tags',
                   '--dirty=+', '--long', '--always'],
                  env)
     v = out.strip().rsplit('-', 2)
@@ -79,7 +79,7 @@ if os.path.isdir('.git'):
         else:
             version = '{}.{}-{}'.format(*v)
     elif v[0]:
-        out = runcmd([find_executable('git'), 'rev-list', 'HEAD'], env)
+        out = runcmd([whence('git'), 'rev-list', 'HEAD'], env)
         if out:
             version = '0.0.{}-{}'.format(str(len(out.splitlines())), v[0])
     if version.endswith('+'):
