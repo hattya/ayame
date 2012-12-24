@@ -32,23 +32,11 @@ from ayame.exception import AyameError
 
 
 __all__ = ['parse_accept', 'parse_form_data', 'HTTPStatus', 'HTTPSuccessful',
-           'OK', 'Created', 'Accepted', 'NoContent', 'HTTPError',
-           'Redirection', 'MovedPermanently', 'Found', 'SeeOther',
-           'NotModified', 'ClientError', 'BadRequest', 'Unauthrized',
-           'Forbidden', 'NotFound', 'MethodNotAllowed', 'RequestTimeout'
-           'ServerError', 'InternalServerError', 'NotImplemented']
-
-_HTML = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
-         '"http://www.w3.org/TR/html4/strict.dtd">\n'
-         '<html>\n'
-         '  <head>\n'
-         '    <title>{status}</title>\n'
-         '  <head>\n'
-         '  <body>\n'
-         '    <h1>{reason}</h1>\n'
-         '    <p>{description}</p>\n'
-         '  </body>\n'
-         '</html>\n')
+           'OK', 'Created', 'Accepted', 'NoContent', 'HTTPRedirection',
+           'MovedPermanently', 'Found', 'SeeOther', 'NotModified', 'HTTPError',
+           'ClientError', 'BadRequest', 'Unauthrized', 'Forbidden', 'NotFound',
+           'MethodNotAllowed', 'RequestTimeout' 'ServerError',
+           'InternalServerError', 'NotImplemented']
 
 _accept_re = re.compile(r"""
     (?P<param>[^\s,;]+)
@@ -115,14 +103,14 @@ def parse_form_data(environ):
 class _HTTPStatusMetaclass(type):
 
     def __new__(cls, name, bases, dict):
-        if not dict.get('code'):
+        if 'code' not in dict:
             dict['code'] = 0
-        if not dict.get('reason'):
+        if 'reason' not in dict:
             if dict['code']:
                 prev = None
                 buf = []
                 for ch in name:
-                    if (prev and
+                    if (prev is not None and
                         buf and
                         (prev.islower() and
                          ch.isupper())):
@@ -132,7 +120,7 @@ class _HTTPStatusMetaclass(type):
                 dict['reason'] = ''.join(buf)
             else:
                 dict['reason'] = ''
-        if not dict.get('status'):
+        if 'status' not in dict:
             if dict['code']:
                 dict['status'] = '{code} {reason}'.format(**dict)
             else:
@@ -147,44 +135,11 @@ class HTTPStatus(AyameError):
     def __init__(self, description='', headers=None):
         super(HTTPStatus, self).__init__(self.status)
         self.description = description
-        self.headers = list(headers) if headers else []
-
-    def html(self):
-        return _HTML.format(reason=self.reason,
-                            status=self.status,
-                            description=self.description)
-
-
-def _location_init(superclass, s):
-    def __init__(self, location):
-        superclass.__init__(self,
-                            s.format(location=cgi.escape(location, True)),
-                            headers=[('Location', location)])
-    return __init__
-
-
-def _uri_init(superclass, s):
-    def __init__(self, uri):
-        superclass.__init__(self, s.format(uri=uri))
-    return __init__
-
-
-def _method_init(superclass, s):
-    def __init__(self, method, uri, allow=None):
-        headers = []
-        if allow:
-            if hasattr(allow, '__iter__'):
-                allow = ','.join(allow)
-            headers.append(('Allow', allow))
-        superclass.__init__(self, s.format(method=method, uri=uri),
-                            headers=headers)
-    return __init__
+        self.headers = list(headers) if headers is not None else []
 
 
 class HTTPSuccessful(HTTPStatus):
-
-    def html(self):
-        return ''
+    pass
 
 
 class OK(HTTPSuccessful):
@@ -207,45 +162,47 @@ class NoContent(HTTPSuccessful):
     code = 204
 
 
-class HTTPError(HTTPStatus):
+class HTTPRedirection(HTTPStatus):
     pass
 
 
-class Redirection(HTTPError):
-    pass
+class _HTTPMove(HTTPRedirection):
+
+    _template = ('The requested resource has moved to '
+                 '<a href="{location}">{location}</a>.')
+
+    def __init__(self, location, headers=None):
+        if headers is None:
+            headers = []
+        super(_HTTPMove, self).__init__(
+            self._template.format(location=cgi.escape(location, True)),
+            headers + [('Location', location)])
 
 
-class MovedPermanently(Redirection):
+class MovedPermanently(_HTTPMove):
 
     code = 301
 
-    __init__ = _location_init(
-        Redirection, 'The document has moved <a href="{location}">here</a>.')
 
-
-class Found(Redirection):
+class Found(_HTTPMove):
 
     code = 302
+    _template = ('The requested resource was found at '
+                 '<a href="{location}">{location}</a>.')
 
-    __init__ = _location_init(
-        Redirection, 'The document has moved <a href="{location}">here</a>.')
 
-
-class SeeOther(Redirection):
+class SeeOther(_HTTPMove):
 
     code = 303
 
-    __init__ = _location_init(
-        Redirection,
-        'The answer to your request is located <a href="{location}">here</a>.')
 
-
-class NotModified(Redirection):
+class NotModified(HTTPRedirection):
 
     code = 304
 
-    def html(self):
-        return ''
+
+class HTTPError(HTTPStatus):
+    pass
 
 
 class ClientError(HTTPError):
@@ -264,9 +221,7 @@ class Unauthrized(ClientError):
     def __init__(self, headers=None):
         super(Unauthrized, self).__init__(
             'This server could not verify that you are authorized to access '
-            'the document requested. Either you supplied the wrong '
-            'credentials (e.g. bad password), or your browser does not '
-            'understand how to supply the credentials required.',
+            'the requested resource.',
             headers)
 
 
@@ -274,26 +229,35 @@ class Forbidden(ClientError):
 
     code = 403
 
-    __init__ = _uri_init(
-        ClientError,
-        'You do not have permission to access {uri} on this server.')
+    def __init__(self, uri, headers=None):
+        super(Forbidden, self).__init__(
+            'You do not have permission to access <code>{uri}</code> on this '
+            'server.'.format(uri=uri),
+            headers)
 
 
 class NotFound(ClientError):
 
     code = 404
 
-    __init__ = _uri_init(
-        ClientError, 'The requested URL {uri} was not found on this server.')
+    def __init__(self, uri, headers=None):
+        super(NotFound, self).__init__(
+            'The requested URI <code>{uri}</code> was not found on this '
+            'server'.format(uri=uri),
+            headers)
 
 
 class MethodNotAllowed(ClientError):
 
     code = 405
 
-    __init__ = _method_init(
-        ClientError,
-        'The requested method {method} is not allowd for the URL {uri}.')
+    def __init__(self, method, uri, allow, headers=None):
+        if headers is None:
+            headers = []
+        super(MethodNotAllowed, self).__init__(
+            'The requested method <code>{method}</code> is not allowed for '
+            'the URI <code>{uri}</code>.'.format(method=method, uri=uri),
+            headers + [('Allow', ', '.join(allow))])
 
 
 class RequestTimeout(ClientError):
@@ -320,5 +284,8 @@ class NotImplemented(ServerError):
 
     code = 501
 
-    __init__ = _method_init(ServerError,
-                            '{method} to {uri} is not implemented.')
+    def __init__(self, method, uri, headers=None):
+        super(NotImplemented, self).__init__(
+            'The requested method <code>{method}</code> is not implemented '
+            'for the URI <code>{uri}</code>'.format(method=method, uri=uri),
+            headers)

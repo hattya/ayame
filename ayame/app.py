@@ -38,6 +38,7 @@ import ayame.http
 import ayame.i18n
 import ayame.local
 import ayame.markup
+import ayame.page
 import ayame.route
 import ayame.uri
 
@@ -63,6 +64,7 @@ class Ayame(object):
             'ayame.markup.pretty': False,
             'ayame.max.redirect': 7,
             'ayame.route.map': ayame.route.Map(),
+            'ayame.class.HTTPStatusPage': ayame.page.HTTPStatusPage,
             'ayame.class.MarkupLoader': ayame.markup.MarkupLoader,
             'ayame.class.MarkupRenderer': ayame.markup.MarkupRenderer,
             'ayame.class.Request': Request,
@@ -123,7 +125,7 @@ class Ayame(object):
                                  'redirects')
             exc_info = None
         except Exception as e:
-            status, headers, content, exc_info = self.handle_error(e)
+            status, headers, exc_info, content = self.handle_error(e)
         finally:
             ayame.local.pop()
 
@@ -136,20 +138,17 @@ class Ayame(object):
                 return object().render()
         raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
-    def handle_error(self, e):
-        if isinstance(e, ayame.http.HTTPError):
-            status = e.status
-            content = e.html().encode('utf-8')
-            headers = list(e.headers)
-            headers.append(('Content-Type', 'text/html; charset=UTF-8'))
-            headers.append(('Content-Length', str(len(content))))
+    def handle_error(self, error):
+        if isinstance(error, ayame.http.HTTPStatus):
+            page = self.config['ayame.class.HTTPStatusPage'](error)
+            status, headers, content = page.render()
             exc_info = None
         else:
             status = ayame.http.InternalServerError.status
             headers = []
             content = []
             exc_info = sys.exc_info()
-        return status, headers, content, exc_info
+        return status, headers, exc_info, content
 
     def forward(self, object, values=None, anchor=None):
         raise Redirect(object, values, anchor, Redirect.INTERNAL)

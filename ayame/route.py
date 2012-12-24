@@ -306,7 +306,7 @@ class Router(object):
             return rule if as_rule else rule.object, values
         if allow:
             raise ayame.http.NotImplemented(
-                method, ayame.uri.request_path(self.environ), sorted(allow))
+                method, ayame.uri.request_path(self.environ))
         raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
     def build(self, object, values=None, anchor=None, method=None,

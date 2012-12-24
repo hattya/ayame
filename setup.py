@@ -183,7 +183,7 @@ except:
     long_description = ''
 
 packages = ['ayame']
-package_data = {'ayame': []}
+package_data = {'ayame': ['*/*.html']}
 
 cmdclass = {'build_py': build_py,
             'clean': clean,

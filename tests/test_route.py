@@ -73,7 +73,7 @@ def test_static_rules():
     try:
         router.match()
     except http.NotImplemented as e:
-        eq_(e.headers, [('Allow', 'GET,POST')])
+        eq_(e.headers, [])
 
     # GET /news
     router = map.bind(new_environ('/news'))

@@ -119,7 +119,7 @@ def test_simple_app():
                                                    PATH_INFO='/int')
     eq_(status, http.NotFound.status)
     eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '263')])
+                  ('Content-Length', '916')])
     eq_(exc_info, None)
     ok_(content)
 
