@@ -33,7 +33,7 @@ from ayame import converter
 from ayame.exception import ConversionError
 
 
-def test_locator():
+def test_registry():
     class O:
         pass
     class OO(O):
@@ -62,38 +62,38 @@ def test_locator():
         def to_python(self, value):
             return unicode(value)
 
-    locator = converter.Locator()
-    locator.add(OConverter())
-    locator.add(NConverter())
+    registry = converter.ConverterRegistry()
+    registry.add(OConverter())
+    registry.add(NConverter())
 
-    eq_(locator.converter_for(sys), locator.get(object))
-    eq_(locator.converter_for(test_locator), locator.get(object))
-    eq_(locator.converter_for(None), locator.get(object))
-    eq_(locator.converter_for(0), locator.get(int))
-    eq_(locator.converter_for(True), locator.get(bool))
+    eq_(registry.converter_for(sys), registry.get(object))
+    eq_(registry.converter_for(test_registry), registry.get(object))
+    eq_(registry.converter_for(None), registry.get(object))
+    eq_(registry.converter_for(0), registry.get(int))
+    eq_(registry.converter_for(True), registry.get(bool))
 
-    eq_(locator.converter_for(O), locator.get(O))
-    eq_(locator.converter_for(N), locator.get(N))
-    eq_(locator.converter_for(OO), locator.get(O))
-    eq_(locator.converter_for(NN), locator.get(N))
-    eq_(locator.converter_for(ON), locator.get(O))
-    eq_(locator.converter_for(NO), locator.get(N))
+    eq_(registry.converter_for(O), registry.get(O))
+    eq_(registry.converter_for(N), registry.get(N))
+    eq_(registry.converter_for(OO), registry.get(O))
+    eq_(registry.converter_for(NN), registry.get(N))
+    eq_(registry.converter_for(ON), registry.get(O))
+    eq_(registry.converter_for(NO), registry.get(N))
 
-    eq_(locator.converter_for(O()), locator.get(O))
-    eq_(locator.converter_for(N()), locator.get(N))
-    eq_(locator.converter_for(OO()), locator.get(O))
-    eq_(locator.converter_for(NN()), locator.get(N))
-    eq_(locator.converter_for(ON()), locator.get(O))
-    eq_(locator.converter_for(NO()), locator.get(N))
+    eq_(registry.converter_for(O()), registry.get(O))
+    eq_(registry.converter_for(N()), registry.get(N))
+    eq_(registry.converter_for(OO()), registry.get(O))
+    eq_(registry.converter_for(NN()), registry.get(N))
+    eq_(registry.converter_for(ON()), registry.get(O))
+    eq_(registry.converter_for(NO()), registry.get(N))
 
-    locator.remove(O)
+    registry.remove(O)
 
-    eq_(locator.converter_for(O()), locator.get(object))
-    eq_(locator.converter_for(N()), locator.get(N))
-    eq_(locator.converter_for(OO()), locator.get(object))
-    eq_(locator.converter_for(NN()), locator.get(N))
-    eq_(locator.converter_for(ON()), locator.get(N))
-    eq_(locator.converter_for(NO()), locator.get(N))
+    eq_(registry.converter_for(O()), registry.get(object))
+    eq_(registry.converter_for(N()), registry.get(N))
+    eq_(registry.converter_for(OO()), registry.get(object))
+    eq_(registry.converter_for(NN()), registry.get(N))
+    eq_(registry.converter_for(ON()), registry.get(N))
+    eq_(registry.converter_for(NO()), registry.get(N))
 
 
 def test_converter():

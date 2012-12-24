@@ -57,7 +57,7 @@ class Ayame(object):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
         self.config = {
-            'ayame.converter.locator': ayame.converter.Locator(),
+            'ayame.converter.registry': ayame.converter.ConverterRegistry(),
             'ayame.i18n.localizer': ayame.i18n.Localizer(),
             'ayame.markup.encoding': 'utf-8',
             'ayame.markup.separator': '.',

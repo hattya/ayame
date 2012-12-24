@@ -33,12 +33,12 @@ import types
 from ayame.exception import ConversionError
 
 
-__all__ = ['Locator', 'Converter', 'BooleanConverter', 'IntegerConverter',
-           'FloatConverter', 'DateConverter', 'TimeConverter',
-           'DateTimeConverter']
+__all__ = ['ConverterRegistry', 'Converter', 'BooleanConverter',
+           'IntegerConverter', 'FloatConverter', 'DateConverter',
+           'TimeConverter', 'DateTimeConverter']
 
 
-class Locator(object):
+class ConverterRegistry(object):
 
     def __init__(self):
         self.__registry = {}

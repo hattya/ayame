@@ -140,7 +140,7 @@ class Component(object):
         return self
 
     def converter_for(self, value):
-        return self.config['ayame.converter.locator'].converter_for(value)
+        return self.config['ayame.converter.registry'].converter_for(value)
 
     def forward(self, *args, **kwargs):
         return self.app.forward(*args, **kwargs)
