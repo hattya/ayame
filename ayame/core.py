@@ -470,7 +470,7 @@ class MarkupContainer(Component):
         if class_ is None:
             class_ = self.__class__
 
-        loader = self.config['ayame.class.MarkupLoader']()
+        loader = self.config['ayame.markup.loader']()
         encoding = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
         extra_head = []
@@ -598,7 +598,7 @@ class Page(MarkupContainer):
                 if m.root.ns[prefix] == ayame.markup.AYAME_NS:
                     del m.root.ns[prefix]
             # render markup
-            renderer = self.config['ayame.class.MarkupRenderer']()
+            renderer = self.config['ayame.markup.renderer']()
             pretty = self.config['ayame.markup.pretty']
             content = renderer.render(self, m, pretty=pretty)
         # HTTP headers

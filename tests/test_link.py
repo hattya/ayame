@@ -42,7 +42,7 @@ def application(app, environ=None):
         environ = {'REQUEST_METHOD': 'GET'}
     try:
         ctx = local.push(app, environ)
-        ctx.request = app.config['ayame.class.Request'](environ, {})
+        ctx.request = app.config['ayame.request'](environ, {})
         ctx._router = app.config['ayame.route.map'].bind(environ)
         yield
     finally:

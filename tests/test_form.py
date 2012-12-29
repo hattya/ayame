@@ -42,7 +42,7 @@ def application(environ=None):
     try:
         ctx = local.push(app, environ)
         if environ is not None:
-            ctx.request = app.config['ayame.class.Request'](environ, {})
+            ctx.request = app.config['ayame.request'](environ, {})
         yield
     finally:
         local.pop()

@@ -60,14 +60,14 @@ class Ayame(object):
             'ayame.converter.registry': ayame.converter.ConverterRegistry(),
             'ayame.i18n.localizer': ayame.i18n.Localizer(),
             'ayame.markup.encoding': 'utf-8',
-            'ayame.markup.separator': '.',
+            'ayame.markup.loader': ayame.markup.MarkupLoader,
             'ayame.markup.pretty': False,
+            'ayame.markup.renderer': ayame.markup.MarkupRenderer,
+            'ayame.markup.separator': '.',
             'ayame.max.redirect': 7,
+            'ayame.page.http': ayame.page.HTTPStatusPage,
+            'ayame.request': Request,
             'ayame.route.map': ayame.route.Map(),
-            'ayame.class.HTTPStatusPage': ayame.page.HTTPStatusPage,
-            'ayame.class.MarkupLoader': ayame.markup.MarkupLoader,
-            'ayame.class.MarkupRenderer': ayame.markup.MarkupRenderer,
-            'ayame.class.Request': Request,
             'beaker.session.type': 'file',
             'beaker.session.data_dir': os.path.join(session_dir, 'data'),
             'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
@@ -102,8 +102,7 @@ class Ayame(object):
             context._router = self.config['ayame.route.map'].bind(environ)
             # dispatch
             object, values = context._router.match()
-            context.request = self.config['ayame.class.Request'](environ,
-                                                                 values)
+            context.request = self.config['ayame.request'](environ, values)
             for _ in xrange(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(object)
@@ -140,7 +139,7 @@ class Ayame(object):
 
     def handle_error(self, error):
         if isinstance(error, ayame.http.HTTPStatus):
-            page = self.config['ayame.class.HTTPStatusPage'](error)
+            page = self.config['ayame.page.http'](error)
             status, headers, content = page.render()
             exc_info = None
         else:
