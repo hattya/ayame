@@ -51,5 +51,5 @@ def test_http_status_page():
     eq_(status, http.Found.status)
     eq_(headers, [('Location', location),
                   ('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '930')])
+                  ('Content-Length', '931')])
     ok_(content)

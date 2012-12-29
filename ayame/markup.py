@@ -877,7 +877,7 @@ class MarkupRenderer(object):
             else:
                 self._write(u' ')
 
-    def render_xml_start_tag(self, index, element):
+    def render_xml_start_tag(self, index, element, empty=u'/>'):
         prefix_for = self._prefix_for
 
         element_prefix = prefix_for(element.qname.ns_uri)
@@ -908,7 +908,7 @@ class MarkupRenderer(object):
                 raise RenderingError(self._object,
                                      'cannot combine with default namespace')
             self._write(name, u'="', value, u'"')
-        self._write(u'/>' if element.type == Element.EMPTY else u'>')
+        self._write(empty if element.type == Element.EMPTY else u'>')
 
     def render_xml_end_tag(self, element):
         prefix = self._prefix_for(element.qname.ns_uri)
@@ -940,7 +940,7 @@ class MarkupRenderer(object):
             if element.attrib[attr] is None:
                 raise RenderingError(self._object,
                                      u"'{}' attribute is None".format(attr))
-        return self.render_xml_start_tag(index, element)
+        return self.render_xml_start_tag(index, element, u' />')
 
     render_xhtml1_end_tag = render_xml_end_tag
     render_xhtml1_text = render_xml_text
