@@ -564,6 +564,12 @@ class MarkupRenderer(object):
         return (self._lang == 'xml' or
                 'xhtml' in self._lang)
 
+    def is_empty_element(self, element):
+        if ('html' in self._lang and
+            element.qname.ns_uri == XHTML_NS):
+            return element.qname.name in _empty
+        return not element.children
+
     def render(self, object, markup, encoding='utf-8', indent=2, pretty=False):
         self.__stack.clear()
         self._cache.clear()
@@ -594,10 +600,10 @@ class MarkupRenderer(object):
                     element, newline = self._impl_of('compile_element')(node)
                 else:
                     element, newline = node, 0
-                if element.children:
-                    element.type = Element.OPEN
-                else:
+                if self.is_empty_element(element):
                     element.type = Element.EMPTY
+                else:
+                    element.type = Element.OPEN
                 self._push(index, element, newline)
                 self.render_start_tag()
                 if element.type == Element.EMPTY:
