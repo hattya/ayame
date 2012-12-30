@@ -51,6 +51,56 @@ _rule_re = re.compile(r"""
 """, re.VERBOSE)
 _simple_rule_re = re.compile(r'<([^>]+)>')
 
+_args_re = re.compile(r"""
+    \s*
+    (?:
+        (?P<name>\w+) \s* = \s*
+    )?
+    (?P<value>
+        (?P<const>
+            None |
+            True |
+            False
+        ) |
+        (?P<float>
+            [+-]?
+            (?:
+                (?:
+                    \d+ |
+                    \d* \. \d+ |
+                    \d+ \.
+                )
+                [eE] [+-]? \d+
+            ) |
+            (?:
+                \d* \. \d+ |
+                \d+ \.
+            )
+        ) |
+        (?P<int>
+            [+-]?
+            (?:
+               [1-9] \d* |
+               0 [oO] [0-7]+ |
+               0 [xX] [\da-fA-F]+ |
+               0 [bB] [01]+ |
+               0+
+            )
+        ) |
+        (?P<str>
+            ".*? (?<!\\)(?:\\\\)*" |
+            '.*? (?<!\\)(?:\\\\)*'
+        )
+    )
+    (?P<error>[^,]*?)
+    \s*
+    (?P<sep>
+        , \s*|
+        \Z
+    )
+""", re.VERBOSE)
+_sep_re = re.compile('[\s,]')
+
 
 class Rule(object):
 
@@ -147,11 +197,62 @@ class Rule(object):
             raise RouteError("converter '{}' not found".format(name))
 
         if args:
-            args, kwargs = eval('(lambda *a, **kw: (a, kw))({})'.format(args),
-                                {'__builtins__': None})
+            args, kwargs = self._parse_args(args)
         else:
             args, kwargs = (), {}
         return converter(self.map, *args, **kwargs)
+
+    def _parse_args(self, expr):
+        info = lambda offset, expr: ('<args>', 1, offset, expr)
+        pos = 0
+        args = []
+        kwargs = {}
+        for m in _args_re.finditer(expr):
+            if m.group('error'):
+                raise SyntaxError('invalid syntax',
+                                  info(m.start('error') + 1, expr))
+
+            name = m.group('name')
+            if kwargs:
+                if name is None:
+                    raise SyntaxError('non-keyword arg after keyword arg',
+                                      info(m.endpos - 1, expr))
+                elif name in kwargs:
+                    raise SyntaxError('keyword argument repeated',
+                                      info(m.start('name') + 1, expr))
+
+            for type in ('const', 'int', 'float', 'str'):
+                value = m.group(type)
+                if value is None:
+                    continue
+                elif type == 'const':
+                    if value == 'True':
+                        value = True
+                    elif value == 'False':
+                        value = False
+                    else:
+                        value = None
+                    break
+                elif type == 'int':
+                    value = int(value, 0)
+                    break
+                elif type == 'float':
+                    value = float(value)
+                    break
+                elif type == 'str':
+                    q = value[0]
+                    value = unicode(value[1:-1].replace('\\' + q, q))
+                    break
+            if name is None:
+                args.append(value)
+            else:
+                kwargs[name] = value
+            pos = m.endpos
+
+        if (pos != len(expr) and
+            _sep_re.sub('', expr)):
+            raise SyntaxError('invalid syntax', info(max(pos, 1), expr))
+        return tuple(args), kwargs
 
     def match(self, path):
         assert self.map is not None, 'rule not bound to map'

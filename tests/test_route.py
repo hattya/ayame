@@ -389,3 +389,29 @@ def test_mount():
         router.match()
     except http.MovedPermanently as e:
         eq_(e.headers, [('Location', 'http://localhost/_/new')])
+
+
+def test_parse_args():
+    rule = route.Rule('/', 1)
+
+    eq_(rule._parse_args(''), ((), {}))
+    eq_(rule._parse_args(' '), ((), {}))
+    eq_(rule._parse_args(' , '), ((), {}))
+
+    eq_(rule._parse_args('None, True, False'), ((None, True, False), {}))
+    eq_(rule._parse_args('0, 1, 0b10, 0o10, 0x10'), ((0, 1, 2, 8, 16), {}))
+    eq_(rule._parse_args('0, -1, -0b10, -0o10, -0x10'),
+        ((0, -1, -2, -8, -16), {}))
+    eq_(rule._parse_args('3.14, 10., .001, 1e100, 3.14e-10, 0e0'),
+        ((3.14, 10.0, 0.001, 1e+100, 3.14e-10, 0.0), {}))
+    eq_(rule._parse_args(r'"spam", "eggs\"ham", "toast\\"'),
+        (('spam', 'eggs"ham', r'toast\\'), {}))
+
+    eq_(rule._parse_args('0, spam=1'), ((0,), {'spam': 1}))
+    eq_(rule._parse_args('0, spam = 1'), ((0,), {'spam': 1}))
+
+    assert_raises(SyntaxError, rule._parse_args, '0, 1 2, 3')
+    assert_raises(SyntaxError, rule._parse_args, '0, spam=1, 2')
+    assert_raises(SyntaxError, rule._parse_args, '0, spam=1, spam=2')
+    assert_raises(SyntaxError, rule._parse_args, r'"spam\\"eggs"')
+    assert_raises(SyntaxError, rule._parse_args, r'"spam\"')
