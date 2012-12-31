@@ -53,3 +53,13 @@ def test_http_status_page():
                   ('Content-Type', 'text/html; charset=UTF-8'),
                   ('Content-Length', '931')])
     ok_(content)
+    ok_(b'<p>' in content)
+
+    with application():
+        page = _page.HTTPStatusPage(http.NotModified())
+        status, headers, content = page.render()
+    eq_(status, http.NotModified.status)
+    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
+                  ('Content-Length', '852')])
+    ok_(content)
+    ok_(b'<p>' not in content)

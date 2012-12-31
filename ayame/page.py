@@ -44,4 +44,5 @@ class HTTPStatusPage(ayame.core.Page):
         self.add(ayame.basic.Label('reason', error.reason))
         label = ayame.basic.Label('description', error.description)
         label.escape_model_string = False
+        label.visible = bool(label.model_object)
         self.add(label)
