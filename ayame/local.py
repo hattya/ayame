@@ -36,11 +36,9 @@ _local = threading.local()
 
 class _Context(object):
 
-    __slots__ = ('app', 'environ', 'request', '_router')
-
-    def __init__(self):
-        self.app = None
-        self.environ = None
+    def __init__(self, app, environ):
+        self.app = app
+        self.environ = environ
         self.request = None
         self._router = None
 
@@ -50,9 +48,7 @@ def push(app, environ):
     if stack is None:
         _local.stack = stack = []
 
-    context = _Context()
-    context.app = app
-    context.environ = environ
+    context = _Context(app, environ)
     stack.append(context)
     return context
 

@@ -76,20 +76,24 @@ class Ayame(object):
             'beaker.session.secret': None}
 
     @property
+    def context(self):
+        return ayame.local.context()
+
+    @property
     def environ(self):
-        return ayame.local.context().environ
+        return self.context.environ
 
     @property
     def request(self):
-        return ayame.local.context().request
+        return self.context.request
 
     @property
     def session(self):
-        return ayame.local.context().environ['ayame.session']
+        return self.context.environ['ayame.session']
 
     @property
     def _router(self):
-        return ayame.local.context()._router
+        return self.context._router
 
     def new(self):
         app = beaker.middleware.SessionMiddleware(self, self.config,
