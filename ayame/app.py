@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -33,7 +33,7 @@ import beaker.middleware
 
 import ayame.converter
 import ayame.core
-from ayame.exception import AyameError, Redirect
+from ayame.exception import AyameError, _Redirect
 import ayame.http
 import ayame.i18n
 import ayame.local
@@ -110,12 +110,12 @@ class Ayame(object):
             for _ in xrange(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(object)
-                except Redirect as r:
-                    if r.args[3] == Redirect.PERMANENT:
+                except _Redirect as r:
+                    if r.args[3] == _Redirect.PERMANENT:
                         raise ayame.http.MovedPermanently(
                             ayame.uri.application_uri(environ) +
                             self.uri_for(*r.args[:3], relative=True)[1:])
-                    elif r.args[3] != Redirect.INTERNAL:
+                    elif r.args[3] != _Redirect.INTERNAL:
                         raise ayame.http.Found(
                             ayame.uri.application_uri(environ) +
                             self.uri_for(*r.args[:3], relative=True)[1:])
@@ -154,11 +154,12 @@ class Ayame(object):
         return status, headers, exc_info, content
 
     def forward(self, object, values=None, anchor=None):
-        raise Redirect(object, values, anchor, Redirect.INTERNAL)
+        raise _Redirect(object, values, anchor, _Redirect.INTERNAL)
 
     def redirect(self, object, values=None, anchor=None, permanent=False):
-        raise Redirect(object, values, anchor,
-                       Redirect.PERMANENT if permanent else Redirect.TEMPORARY)
+        raise _Redirect(
+            object, values, anchor,
+            _Redirect.PERMANENT if permanent else _Redirect.TEMPORARY)
 
     def uri_for(self, *args, **kwargs):
         return self._router.build(*args, **kwargs)

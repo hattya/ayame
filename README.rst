@@ -34,9 +34,8 @@ app.wsgi
 
 .. code:: python
 
-    from ayame.app import Ayame
+    from ayame import Ayame, Page
     from ayame.basic import Label
-    from ayame.core import Page
 
 
     class HelloWorld(Page):

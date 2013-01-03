@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -28,7 +28,7 @@ import collections
 import re
 import urllib
 
-from ayame.exception import RequestSlash, RouteError, ValidationError
+from ayame.exception import _RequestSlash, RouteError, ValidationError
 import ayame.http
 import ayame.uri
 import ayame.util
@@ -264,7 +264,7 @@ class Rule(object):
         if (self.map.slash and
             not self.is_leaf() and
             not slash):
-            raise RequestSlash()
+            raise _RequestSlash()
 
         values = {}
         for var in g:
@@ -380,7 +380,7 @@ class Router(object):
         for rule in self.map._rules:
             try:
                 values = rule.match(path)
-            except RequestSlash:
+            except _RequestSlash:
                 environ = self.environ.copy()
                 environ['PATH_INFO'] += '/'
                 raise ayame.http.MovedPermanently(

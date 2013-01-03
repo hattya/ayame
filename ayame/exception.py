@@ -1,7 +1,7 @@
 #
 # ayame.exception
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -25,8 +25,7 @@
 #
 
 __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
-           'Redirect', 'RenderingError', 'ResourceError', 'RouteError',
-           'RequestSlash', 'ValidationError']
+           'RenderingError', 'ResourceError', 'RouteError', 'ValidationError']
 
 
 class AyameError(Exception):
@@ -45,14 +44,14 @@ class MarkupError(AyameError):
     pass
 
 
-class Redirect(AyameError):
+class _Redirect(AyameError):
 
     INTERNAL = -1
     PERMANENT = 1
     TEMPORARY = 2
 
     def __init__(self, object, values=None, anchor=None, type=None):
-        super(Redirect, self).__init__(object, values, anchor, type)
+        super(_Redirect, self).__init__(object, values, anchor, type)
 
 
 class RenderingError(AyameError):
@@ -67,7 +66,7 @@ class RouteError(AyameError):
     pass
 
 
-class RequestSlash(RouteError):
+class _RequestSlash(RouteError):
     pass
 
 
