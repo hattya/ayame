@@ -274,7 +274,7 @@ class Rule(object):
                 return
         return values
 
-    def build(self, values, anchor=None, method=None, append_query=True):
+    def build(self, values, anchor=None, method=None, query=True):
         assert self.map is not None, 'rule not bound to map'
         if (method is not None and
             method not in self.methods):
@@ -298,7 +298,7 @@ class Rule(object):
             else:
                 buf.append(var)
         # query
-        if append_query:
+        if query:
             query = []
             for var in values:
                 data = cache.get(var, ayame.util.to_list(values[var]))
@@ -410,13 +410,13 @@ class Router(object):
                 method, ayame.uri.request_path(self.environ))
         raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
 
-    def build(self, object, values=None, anchor=None, method=None,
-              append_query=True, relative=False):
+    def build(self, object, values=None, anchor=None, method=None, query=True,
+              relative=False):
         if values is None:
             values = {}
 
         for rule in self.map._ref.get(object, ()):
-            path = rule.build(values, anchor, method, append_query)
+            path = rule.build(values, anchor, method, query)
             if path is None:
                 continue
             elif relative:

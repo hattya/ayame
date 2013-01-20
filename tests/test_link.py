@@ -140,7 +140,7 @@ class LinkTestCase(AyameTestCase):
     def test_page_link_error(self):
         with self.application(self.new_environ()):
             with self.assert_raises_regex(ayame.ComponentError,
-                                          r" is not subclass of Page\b"):
+                                          r" is not a subclass of Page\b"):
                 link.PageLink('a', object)
 
 

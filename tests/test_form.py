@@ -80,7 +80,7 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ(method='POST')):
             f._method = 'POST'
             with self.assert_raises_regex(ayame.ComponentError,
-                                          r"'form' .* is nested\b"):
+                                          r"\bForm is nested\b"):
                 f.submit()
 
     def test_form(self):

@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -179,9 +179,8 @@ class Element(object):
         return element
 
     def __repr__(self):
-        return '<{}.{} {} at 0x{:x}>'.format(self.__class__.__module__,
-                                             self.__class__.__name__,
-                                             repr(self.qname), id(self))
+        return '<{} {} at 0x{:x}>'.format(ayame.util.fqon_of(self),
+                                          repr(self.qname), id(self))
 
     def __nonzero__(self):
         return True
@@ -324,7 +323,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
             self._markup.root is not None and
             element.qname != AYAME_REMOVE):
             raise MarkupError(self._object, self.getpos(),
-                              'multiple root element')
+                              'there are multiple root elements')
         # push element
         self._impl_of('push')(element)
         if element.qname == AYAME_REMOVE:
@@ -346,7 +345,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
         elif (self._ptr() == 0 and
               self._markup.root is not None):
             raise MarkupError(self._object, self.getpos(),
-                              'multiple root element')
+                              'there are multiple root elements')
         # push and pop element
         self._impl_of('push')(element)
         self._impl_of('pop')(element.qname)
@@ -507,7 +506,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
             if qname in element.attrib:
                 raise MarkupError(
                     self._object, self.getpos(),
-                    u"attribute '{}' already exist".format(qname))
+                    u"attribute '{}' already exists".format(qname))
             element.attrib[qname] = v
         return element
 
@@ -617,7 +616,7 @@ class MarkupRenderer(object):
                 self.render_text(index, node)
             else:
                 raise RenderingError(self._object,
-                                     u"invalid type '{}'", type(node))
+                                     u"invalid type '{}'".format(type(node)))
             # render end tag(s)
             while (0 < self._ptr() and
                    self._peek().pending == 0):
@@ -823,7 +822,7 @@ class MarkupRenderer(object):
                             children.append(u'')
             else:
                 raise RenderingError(self._object,
-                                     "invalid type '{}'", type(node))
+                                     "invalid type '{}'".format(type(node)))
         # remove indent
         if 0 < shift_width:
             for i in marks:

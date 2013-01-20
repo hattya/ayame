@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -76,7 +76,7 @@ class Component(object):
                 not isinstance(model, ayame.model.Model)):
                 self.__model = None
                 raise ComponentError(
-                    self, '{!r} is not instance of Model'.format(model))
+                    self, '{!r} is not an instance of Model'.format(model))
             # update model
             prev = self.__model
             self.__model = model
@@ -158,7 +158,7 @@ class Component(object):
                     return
                 current = current.parent
             raise ComponentError(self,
-                                 u'component is not attached to {}'.format(
+                                 "component is not attached to '{}'".format(
                                      ayame.util.fqon_of(class_)))
 
     def model_object_as_string(self):
@@ -237,7 +237,7 @@ class MarkupContainer(Component):
                 if object.id in self._ref:
                     raise ComponentError(
                         self,
-                        u"component for '{}' already exist".format(object.id))
+                        u"component for '{}' already exists".format(object.id))
                 self.children.append(object)
                 self._ref[object.id] = object
                 object.parent = self
@@ -502,7 +502,7 @@ class MarkupContainer(Component):
                             superclass = c
                         if superclass is None:
                             raise AyameError(
-                                u"superclass of '{}' is not found".format(
+                                "superclass of '{}' is not found".format(
                                     ayame.util.fqon_of(class_)))
                         class_ = superclass
                         ayame_extend = element
@@ -654,16 +654,16 @@ class Behavior(object):
 
 class AttributeModifier(Behavior):
 
-    def __init__(self, attr, model):
+    def __init__(self, attribute, model):
         super(AttributeModifier, self).__init__()
-        self._attr = attr
+        self._attribute = attribute
         self._model = model
 
     def on_component(self, component, element):
-        if isinstance(self._attr, ayame.markup.QName):
-            attr = self._attr
+        if isinstance(self._attribute, ayame.markup.QName):
+            attr = self._attribute
         else:
-            attr = ayame.markup.QName(element.qname.ns_uri, self._attr)
+            attr = ayame.markup.QName(element.qname.ns_uri, self._attribute)
         value = self._model.object if self._model is not None else None
 
         new_value = self.new_value(element.attrib.get(attr), value)

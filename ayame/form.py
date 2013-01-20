@@ -1,7 +1,7 @@
 #
 # ayame.form
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -118,7 +118,7 @@ class Form(ayame.core.MarkupContainer):
             if isinstance(component, Form):
                 # check nested form
                 if form is not None:
-                    raise ComponentError(self, "'form' element is nested")
+                    raise ComponentError(self, "Form is nested")
                 form = component
             elif isinstance(component, FormComponent):
                 # validate
@@ -426,7 +426,7 @@ class RadioChoice(Choice):
                 # label
                 text = self.renderer.label_for(choice)
                 if not isinstance(text, basestring):
-                    converter = self.converter_for(type(text))
+                    converter = self.converter_for(text)
                     text = converter.to_string(text)
                 label = ayame.markup.Element(_LABEL,
                                              type=ayame.markup.Element.EMPTY)
@@ -477,7 +477,7 @@ class CheckBoxChoice(Choice):
                 # label
                 text = self.renderer.label_for(choice)
                 if not isinstance(text, basestring):
-                    converter = self.converter_for(type(text))
+                    converter = self.converter_for(text)
                     text = converter.to_string(text)
                 label = ayame.markup.Element(_LABEL,
                                              type=ayame.markup.Element.EMPTY)
@@ -528,7 +528,7 @@ class SelectChoice(Choice):
                 # label
                 text = self.renderer.label_for(choice)
                 if not isinstance(text, basestring):
-                    converter = self.converter_for(type(text))
+                    converter = self.converter_for(text)
                     text = converter.to_string(text)
                 option.append(cgi.escape(text, True))
                 element.append(option)

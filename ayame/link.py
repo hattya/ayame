@@ -1,7 +1,7 @@
 #
 # ayame.link
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -31,6 +31,7 @@ from ayame.exception import ComponentError
 import ayame.markup
 import ayame.model
 import ayame.uri
+import ayame.util
 
 
 __all__ = ['Link', 'ActionLink', 'PageLink']
@@ -113,7 +114,8 @@ class PageLink(Link):
         if (not issubclass(page, ayame.core.Page) or
             page is ayame.core.Page):
             raise ComponentError(self,
-                                 u'{!r} is not subclass of Page'.format(page))
+                                 "'{}' is not a subclass of Page".format(
+                                     ayame.util.fqon_of(page)))
         self._page = page
         self._values = values
         self._anchor = anchor

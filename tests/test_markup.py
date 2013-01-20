@@ -281,19 +281,19 @@ class MarkupTestCase(AyameTestCase):
         xml = u'<spam></spam>'
         assert_xml(xml, (1, 0), '^XML declaration is not found$')
 
-        # multiple root element
+        # multiple root elements
         xml = u"""\
 <?xml version="1.0"?>\
 <spam/>\
 <eggs/>\
 """
-        assert_xml(xml, (1, 28), '^multiple root element$')
+        assert_xml(xml, (1, 28), ' multiple root elements$')
         xml = u"""\
 <?xml version="1.0"?>\
 <spam></spam>\
 <eggs></eggs>\
 """
-        assert_xml(xml, (1, 34), '^multiple root element$')
+        assert_xml(xml, (1, 34), ' multiple root elements$')
 
         # omitted end tag for root element
         xml = u"""\
@@ -314,7 +314,7 @@ class MarkupTestCase(AyameTestCase):
 <?xml version="1.0"?>\
 <spam a="1" a="2"/>\
 """
-        assert_xml(xml, (1, 21), "^attribute '{}a' already exist$")
+        assert_xml(xml, (1, 21), "^attribute '{}a' already exists$")
 
     def test_load_empty_xml(self):
         xml = u"<?xml version='1.0'?>"
@@ -436,7 +436,7 @@ x\
 <html xmlns="http://www.w3.org/1999/xhtml" />\
 <html xmlns="http://www.w3.org/1999/xhtml" />\
 """
-        assert_xhtml1(html_t, (1, 175), '^multiple root element$')
+        assert_xhtml1(html_t, (1, 175), ' multiple root elements$')
 
         # omitted end tag for root element
         html_t = u"""\
@@ -551,8 +551,8 @@ x\
                                     'ayame': markup.AYAME_NS})
         self.assert_equal(html.children, [])
 
-        # multiple root element
-        html = self.format(u"""\
+        # multiple root elements
+        html_t = self.format(u"""\
 <?xml version="1.0"?>\
 {doctype}\
 <ayame:remove xmlns:ayame="{ayame}">\
@@ -572,7 +572,7 @@ before html\
 after html\
 </ayame:remove>\
 """)
-        src = io.StringIO(html)
+        src = io.StringIO(html_t)
         loader = markup.MarkupLoader()
         m = loader.load(self, src, lang='xhtml1')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
@@ -608,9 +608,9 @@ after html\
 
         # invalid type
         m = new_markup('xml')
-        self.assert_rendering_error('^invalid type ',
+        self.assert_rendering_error("^invalid type .* 'int'",
                                     m, pretty=False)
-        self.assert_rendering_error('^invalid type ',
+        self.assert_rendering_error("^invalid type .* 'int'",
                                     m, pretty=True)
 
         # svg

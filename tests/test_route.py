@@ -80,7 +80,7 @@ class RouteTestCase(AyameTestCase):
             router.build(0, method='PUT')
         self.assert_equal(router.build(0),
                           '/')
-        self.assert_equal(router.build(0, {'a': ['1']}, append_query=False),
+        self.assert_equal(router.build(0, {'a': ['1']}, query=False),
                           '/')
         self.assert_equal(router.build(0, {'a': ['1']}),
                           '/?a=1')
@@ -215,7 +215,7 @@ class RouteTestCase(AyameTestCase):
         self.assert_equal(router.build(0, {'y': ['2010', '2011']}),
                           '/2010/?y=2011')
         self.assert_equal(router.build(0, {'y': ['2010', '2011']},
-                                       append_query=False),
+                                       query=False),
                           '/2010/')
 
         with self.assert_raises(ayame.RouteError):

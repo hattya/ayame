@@ -1,7 +1,7 @@
 #
 # ayame.validator
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -162,10 +162,10 @@ class RangeValidator(Validator):
                 return (long, int)
             elif isinstance(object, basestring):
                 return basestring
-            return type(object)
+            return object.__class__
     else:
         def typeof(self, object):
-            return type(object)
+            return object.__class__
 
 
 class StringValidator(RangeValidator):

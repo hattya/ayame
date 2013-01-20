@@ -73,7 +73,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_component_with_model(self):
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r'\bis not instance of Model\b'):
+                                      r'\bis not an instance of Model\b'):
             ayame.Component('1', '')
 
         m = model.Model(None)
@@ -147,7 +147,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(mc.children, [b1])
         self.assert_is(mc.find('b1'), b1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b1' already exist\b"):
+                                      r"'b1' already exists\b"):
             mc.add(b1)
         b2 = ayame.MarkupContainer('b2')
         mc.add(b2)
@@ -158,7 +158,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(mc.children, [b1, b2])
         self.assert_is(mc.find('b2'), b2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b2' already exist\b"):
+                                      r"'b2' already exists\b"):
             mc.add(b2)
         it = mc.walk()
         self.assert_equal(list(it), [(mc, 0),
@@ -173,7 +173,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(b2.children, [c1])
         self.assert_is(mc.find('b2:c1'), c1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c1' already exist\b"):
+                                      r"'c1' already exists\b"):
             b2.add(c1)
         c2 = ayame.MarkupContainer('c2')
         b2.add(c2)
@@ -184,7 +184,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(b2.children, [c1, c2])
         self.assert_is(mc.find('b2:c2'), c2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c2' already exist\b"):
+                                      r"'c2' already exists\b"):
             b2.add(c2)
         it = mc.walk()
         self.assert_equal(list(it), [(mc, 0),

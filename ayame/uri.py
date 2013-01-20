@@ -1,7 +1,7 @@
 #
 # ayame.uri
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -49,8 +49,7 @@ def parse_qs(environ):
 
     qs = urlparse.parse_qs(qs, keep_blank_values=True)
     if _decode is not None:
-        return dict((_decode(k), [_decode(s) for s in v])
-                    for k, v in qs.iteritems())
+        return {_decode(k): [_decode(s) for s in v] for k, v in qs.iteritems()}
     return qs
 
 

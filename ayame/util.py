@@ -161,8 +161,7 @@ class FilterDict(dict):
         return super(FilterDict, self).get(self.__convert__(key), *args)
 
     if sys.hexversion < 0x03000000:
-        def has_key(self, key):
-            return self.__contains__(key)
+        has_key = __contains__
 
     def pop(self, key, *args):
         return super(FilterDict, self).pop(self.__convert__(key), *args)
