@@ -1,7 +1,7 @@
 #
 # test_route
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,394 +24,396 @@
 #   SOFTWARE.
 #
 
-import wsgiref.util
-
-from nose.tools import assert_raises, eq_
-
+import ayame
 from ayame import http, route
-from ayame.exception import RouteError
-
-
-def new_environ(path_info, method='GET', query=None):
-    environ = {'SERVER_NAME': 'localhost',
-               'PATH_INFO': path_info,
-               'REQUEST_METHOD': method}
-    if query:
-        environ['QUERY_STRING'] = query
-    wsgiref.util.setup_testing_defaults(environ)
-    return environ
-
-
-def test_static_rules():
-    map = route.Map()
-    map.connect('/', 0)
-    map.connect('/news', 1, methods=['GET', 'HEAD'])
-
-    # GET /
-    router = map.bind(new_environ('/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {})
-
-    # GET /?a=1
-    router = map.bind(new_environ('/', query='a=1'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {})
-
-    # GET (empty path info) -> MovedPermanently
-    router = map.bind(new_environ(''))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/')])
-
-    # HEAD / -> NotImplemented
-    router = map.bind(new_environ('/', method='HEAD'))
-    assert_raises(http.NotImplemented, router.match)
-    try:
-        router.match()
-    except http.NotImplemented as e:
-        eq_(e.headers, [])
-
-    # GET /news
-    router = map.bind(new_environ('/news'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {})
-
-    # PUT /news -> NotImplemented
-    router = map.bind(new_environ('/news', method='PUT'))
-    assert_raises(http.NotImplemented, router.match)
-
-    # GET /404 -> NotFound
-    router = map.bind(new_environ('/404'))
-    assert_raises(http.NotFound, router.match)
-
-    # build URI
-    router = map.bind(new_environ('/'))
-    assert_raises(RouteError, router.build, -1)
-
-    assert_raises(RouteError, router.build, 0, method='PUT')
-    eq_(router.build(0), '/')
-    eq_(router.build(0, {'a': ['1']}, append_query=False), '/')
-    eq_(router.build(0, {'a': ['1']}), '/?a=1')
-    eq_(router.build(0, {'a': ['1']}, 'ch1'), '/?a=1#ch1')
-    eq_(router.build(0, anchor='ch1'), '/#ch1')
-    eq_(router.build(0, {'a': 1}), '/?a=1')
-    eq_(router.build(0, {'a': '1'}), '/?a=1')
-    eq_(router.build(0, {'a': [1]}), '/?a=1')
-    eq_(router.build(0, {'a': (1,)}), '/?a=1')
-    eq_(router.build(0, {'a': ['1']}), '/?a=1')
-    eq_(router.build(0, {'a': ('1',)}), '/?a=1')
-    eq_(router.build(0, {'a': ''}), '/?a=')
-    eq_(router.build(0, {'a': 1, 'z': 3, 'm': 2}), '/?a=1&m=2&z=3')
-    eq_(router.build(0, {'a': [3, 2, 1]}), '/?a=1&a=2&a=3')
-
-    def key(o):
-        return o[0]
-    map.sort_key = key
-    eq_(router.build(0, {'a': [3, 2, 1]}), '/?a=3&a=2&a=1')
-
-    # build URI (without SCRIPT_NAME)
-    router = map.bind(new_environ('/'))
-    router.environ['SCRIPT_NAME'] = '/ayame'
-    eq_(router.build(0), '/ayame/')
-    eq_(router.build(0, relative=True), '/')
-
-
-def test_duplicate_variable():
-    map = route.Map()
-    assert_raises(RouteError, map.connect, '/<a>/<b>/<a>/<c>', 0)
-
-
-def test_unknown_converter():
-    map = route.Map()
-    assert_raises(RouteError, map.connect, '/<a:spam>', 0)
-
-
-def test_custom_converter():
-    class SpamConverter(route.Converter):
-        pass
-    map = route.Map(converters={'spam': SpamConverter})
-    map.connect('/<a:spam>', 0)
-
-    # GET /app
-    router = map.bind(new_environ('/app'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'a': 'app'})
-
-
-def test_int_converter():
-    map = route.Map()
-    map.connect('/<y:int>/', 0)
-    map.connect('/<y:int>/<m:int(2, min=1, max=12)>/', 1)
-    map.connect('/_/<a:int(2)>/', 2)
-
-    # GET /2011 -> MovedPermanently
-    router = map.bind(new_environ('/2011'))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/2011/')])
-
-    # GET /2011/
-    router = map.bind(new_environ('/2011/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'y': 2011})
-
-    # GET /0/
-    router = map.bind(new_environ('/0/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'y': 0})
-
-    # GET /2011/01 -> MovedPermanently
-    router = map.bind(new_environ('/2011/01'))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/2011/01/')])
-
-    # GET /2011/01/
-    router = map.bind(new_environ('/2011/01/'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {'y': 2011, 'm': 1})
-
-    # GET /2011/12/
-    router = map.bind(new_environ('/2011/12/'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {'y': 2011, 'm': 12})
-
-    # GET /2011/1/ -> NotFound
-    router = map.bind(new_environ('/2011/1/'))
-    assert_raises(http.NotFound, router.match)
-
-    # GET /2011/100/ -> NotFound
-    router = map.bind(new_environ('/2011/100/'))
-    assert_raises(http.NotFound, router.match)
-
-    # GET /2011/00/ -> NotFound
-    router = map.bind(new_environ('/2011/00/'))
-    assert_raises(http.NotFound, router.match)
-
-    # GET /2011/13/ -> NotFound
-    router = map.bind(new_environ('/2011/13/'))
-    assert_raises(http.NotFound, router.match)
-
-    # build URI
-    router = map.bind(new_environ('/'))
-    assert_raises(RouteError, router.build, -1)
-
-    assert_raises(RouteError, router.build, 0)
-    assert_raises(RouteError, router.build, 0, {'y': None})
-    assert_raises(RouteError, router.build, 0, {'y': 'a'})
-    eq_(router.build(0, {'y': [2011]}), '/2011/')
-    eq_(router.build(0, {'y': ['2011']}), '/2011/')
-    eq_(router.build(0, {'y': 2011}), '/2011/')
-    eq_(router.build(0, {'y': '2011'}), '/2011/')
-    eq_(router.build(0, {'y': ['2010', '2011']}), '/2010/?y=2011')
-    eq_(router.build(0, {'y': ['2010', '2011']}, append_query=False), '/2010/')
-
-    assert_raises(RouteError, router.build, 1)
-    assert_raises(RouteError, router.build, 1, {'y': 2011, 'm': 0})
-    assert_raises(RouteError, router.build, 1, {'y': 2011, 'm': 13})
-    assert_raises(RouteError, router.build, 1, {'y': 2011, 'm': 100})
-    eq_(router.build(1, {'y': 2011, 'm': 1}), '/2011/01/')
-    eq_(router.build(1, {'y': 2011, 'm': 12}), '/2011/12/')
-
-    assert_raises(RouteError, router.build, 2, {'a': 100})
-
-
-def test_string_converter():
-    map = route.Map()
-    map.connect('/<s:string(2)>/', 0)
-    map.connect('/<s:string(3, min=3)>/', 1)
-    map.connect('/<s:string>/', 2)
-
-    # GET /jp -> MovedPermanently
-    router = map.bind(new_environ('/jp'))
-    assert_raises(http.MovedPermanently, router.match)
-
-    # GET /jp/
-    router = map.bind(new_environ('/jp/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'s': 'jp'})
-
-    # GET /jpy -> MovedPermanently
-    router = map.bind(new_environ('/jpy'))
-    assert_raises(http.MovedPermanently, router.match)
-
-    # GET /jpy/
-    router = map.bind(new_environ('/jpy/'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {'s': 'jpy'})
-
-    # GET /news -> MovedPermanently
-    router = map.bind(new_environ('/news'))
-    assert_raises(http.MovedPermanently, router.match)
-
-    # GET /news/
-    router = map.bind(new_environ('/news/'))
-    obj, values = router.match()
-    eq_(obj, 2)
-    eq_(values, {'s': 'news'})
-
-    # build URI
-    router = map.bind(new_environ('/'))
-    assert_raises(RouteError, router.build, -1)
-
-    assert_raises(RouteError, router.build, 0)
-    assert_raises(RouteError, router.build, 0, {'s': None})
-    assert_raises(RouteError, router.build, 0, {'s': ''})
-    assert_raises(RouteError, router.build, 0, {'s': 'abc'})
-    eq_(router.build(0, {'s': 'jp'}), '/jp/')
-    eq_(router.build(0, {'s': 'us'}), '/us/')
-
-    assert_raises(RouteError, router.build, 1)
-    assert_raises(RouteError, router.build, 1, {'s': None})
-    assert_raises(RouteError, router.build, 1, {'s': ''})
-    assert_raises(RouteError, router.build, 1, {'s': 'ab'})
-    assert_raises(RouteError, router.build, 1, {'s': 'abcd'})
-    eq_(router.build(1, {'s': 'jpy'}), '/jpy/')
-    eq_(router.build(1, {'s': 'usd'}), '/usd/')
-
-
-def test_path_converter():
-    map = route.Map()
-    map.connect('/<p:path>/<m>', 0)
-    map.connect('/<p:path>', 1)
-
-    # GET /WikiPage/edit
-    router = map.bind(new_environ('/WikiPage/edit'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'p': 'WikiPage', 'm': 'edit'})
-
-    # GET /WikiPage/edit/
-    router = map.bind(new_environ('/WikiPage/edit/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {'p': 'WikiPage', 'm': 'edit'})
-
-    # GET /WikiPage
-    router = map.bind(new_environ('/WikiPage'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {'p': 'WikiPage'})
-
-    # GET /WikiPage/
-    router = map.bind(new_environ('/WikiPage/'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {'p': 'WikiPage'})
-
-    # build URI
-    router = map.bind(new_environ('/'))
-    assert_raises(RouteError, router.build, -1)
-
-    assert_raises(RouteError, router.build, 0)
-    assert_raises(RouteError, router.build, 0, {'p': None})
-    assert_raises(RouteError, router.build, 0, {'p': ''})
-    eq_(router.build(0, {'p': 'WikiPage', 'm': 'edit'}), '/WikiPage/edit')
-    eq_(router.build(0, {'p': 'WikiPage', 'm': 'delete'}), '/WikiPage/delete')
-    eq_(router.build(0, {'p': '', 'm': ''}), '//')
-
-    assert_raises(RouteError, router.build, 1)
-    eq_(router.build(1, {'p': 'WikiPage'}), '/WikiPage')
-    eq_(router.build(1, {'p': ''}), '/')
-
-
-def test_redirect():
-    def redirect(s):
-        return '/_/{}/'.format(s)
-    map = route.Map()
-    map.redirect('/<y:int>/<m:int(2, min=1, max=12)>/', '/_/<y>/<m>/')
-    map.redirect('/<s:string(2)>/', redirect)
-
-    # GET /2011/01/ -> MovedPermanently
-    router = map.bind(new_environ('/2011/01/'))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/_/2011/01/')])
-
-    # GET /jp/ -> MovedPermanently
-    router = map.bind(new_environ('/jp/'))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/_/jp/')])
-
-
-def test_add_rule():
-    rule = route.Rule('/', 0)
-    map = route.Map()
-    map.add(rule)
-    assert_raises(RouteError, map.add, rule)
-
-
-def test_mount():
-    rule = route.Rule('/news/', 1)
-    map = route.Map()
-    submap = map.mount('/_')
-    submap.connect('/', 0)
-    submap.redirect('/old', '/_/new')
-    submap.add(rule)
-
-    # GET /_/
-    router = map.bind(new_environ('/_/'))
-    obj, values = router.match()
-    eq_(obj, 0)
-    eq_(values, {})
-
-    # GET /_/news/
-    router = map.bind(new_environ('/_/news/'))
-    obj, values = router.match()
-    eq_(obj, 1)
-    eq_(values, {})
-
-    # GET /_/old -> MovedPermanently
-    router = map.bind(new_environ('/_/old'))
-    assert_raises(http.MovedPermanently, router.match)
-    try:
-        router.match()
-    except http.MovedPermanently as e:
-        eq_(e.headers, [('Location', 'http://localhost/_/new')])
-
-
-def test_parse_args():
-    rule = route.Rule('/', 1)
-
-    eq_(rule._parse_args(''), ((), {}))
-    eq_(rule._parse_args(' '), ((), {}))
-    eq_(rule._parse_args(' , '), ((), {}))
-
-    eq_(rule._parse_args('None, True, False'), ((None, True, False), {}))
-    eq_(rule._parse_args('0, 1, 0b10, 0o10, 0x10'), ((0, 1, 2, 8, 16), {}))
-    eq_(rule._parse_args('0, -1, -0b10, -0o10, -0x10'),
-        ((0, -1, -2, -8, -16), {}))
-    eq_(rule._parse_args('3.14, 10., .001, 1e100, 3.14e-10, 0e0'),
-        ((3.14, 10.0, 0.001, 1e+100, 3.14e-10, 0.0), {}))
-    eq_(rule._parse_args(r'"spam", "eggs\"ham", "toast\\"'),
-        (('spam', 'eggs"ham', r'toast\\'), {}))
-
-    eq_(rule._parse_args('0, spam=1'), ((0,), {'spam': 1}))
-    eq_(rule._parse_args('0, spam = 1'), ((0,), {'spam': 1}))
-
-    assert_raises(SyntaxError, rule._parse_args, '0, 1 2, 3')
-    assert_raises(SyntaxError, rule._parse_args, '0, spam=1, 2')
-    assert_raises(SyntaxError, rule._parse_args, '0, spam=1, spam=2')
-    assert_raises(SyntaxError, rule._parse_args, r'"spam\\"eggs"')
-    assert_raises(SyntaxError, rule._parse_args, r'"spam\"')
+from base import AyameTestCase
+
+
+class RouteTestCase(AyameTestCase):
+
+    def test_static_rules(self):
+        map = route.Map()
+        map.connect('/', 0)
+        map.connect('/news', 1, methods=['GET', 'HEAD'])
+
+        # GET /
+        router = map.bind(self.new_environ(path='/'))
+        self.assert_equal(router.match(), (0, {}))
+
+        # GET /?a=1
+        router = map.bind(self.new_environ(path='/', query='a=1'))
+        self.assert_equal(router.match(), (0, {}))
+
+        # GET (empty path info) -> MovedPermanently
+        router = map.bind(self.new_environ(path=''))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/')])
+
+        # HEAD / -> NotImplemented
+        router = map.bind(self.new_environ(method='HEAD', path='/'))
+        with self.assert_raises(http.NotImplemented) as a:
+            router.match()
+        self.assert_equal(a.exception.headers, [])
+
+        # GET /news
+        router = map.bind(self.new_environ(path='/news'))
+        self.assert_equal(router.match(), (1, {}))
+
+        # PUT /news -> NotImplemented
+        router = map.bind(self.new_environ(method='PUT', path='/news'))
+        with self.assert_raises(http.NotImplemented):
+            router.match()
+
+        # GET /404 -> NotFound
+        router = map.bind(self.new_environ(path='/404'))
+        with self.assert_raises(http.NotFound):
+            router.match()
+
+        # build URI
+        router = map.bind(self.new_environ(path='/'))
+        with self.assert_raises(ayame.RouteError):
+            router.build(-1)
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, method='PUT')
+        self.assert_equal(router.build(0),
+                          '/')
+        self.assert_equal(router.build(0, {'a': ['1']}, append_query=False),
+                          '/')
+        self.assert_equal(router.build(0, {'a': ['1']}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': ['1']}, 'ch1'),
+                          '/?a=1#ch1')
+        self.assert_equal(router.build(0, anchor='ch1'),
+                          '/#ch1')
+        self.assert_equal(router.build(0, {'a': 1}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': '1'}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': [1]}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': (1,)}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': ['1']}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': ('1',)}),
+                          '/?a=1')
+        self.assert_equal(router.build(0, {'a': ''}),
+                          '/?a=')
+        self.assert_equal(router.build(0, {'a': 1, 'z': 3, 'm': 2}),
+                          '/?a=1&m=2&z=3')
+        self.assert_equal(router.build(0, {'a': [3, 2, 1]}),
+                          '/?a=1&a=2&a=3')
+
+        map.sort_key = lambda o: o[0]
+        self.assert_equal(router.build(0, {'a': [3, 2, 1]}), '/?a=3&a=2&a=1')
+
+        # build URI (without SCRIPT_NAME)
+        environ = self.new_environ(path='/')
+        environ['SCRIPT_NAME'] = '/ayame'
+        router = map.bind(environ)
+        self.assert_equal(router.build(0), '/ayame/')
+        self.assert_equal(router.build(0, relative=True), '/')
+
+    def test_duplicate_variable(self):
+        map = route.Map()
+        with self.assert_raises_regex(ayame.RouteError, "'a' already in use$"):
+            map.connect('/<a>/<b>/<a>/<c>', 0)
+
+    def test_unknown_converter(self):
+        map = route.Map()
+        with self.assert_raises_regex(ayame.RouteError, " 'spam' not found$"):
+            map.connect('/<a:spam>', 0)
+
+    def test_custom_converter(self):
+        class SpamConverter(route.Converter):
+            pass
+
+        map = route.Map(converters={'spam': SpamConverter})
+        map.connect('/<a:spam>', 0)
+
+        router = map.bind(self.new_environ(path='/app'))
+        self.assert_equal(router.match(), (0, {'a': 'app'}))
+
+    def test_int_converter(self):
+        map = route.Map()
+        map.connect('/<y:int>/', 0)
+        map.connect('/<y:int>/<m:int(2, min=1, max=12)>/', 1)
+        map.connect('/_/<a:int(2)>/', 2)
+
+        # GET /2011 -> MovedPermanently
+        router = map.bind(self.new_environ(path='/2011'))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/2011/')])
+
+        # GET /2011/
+        router = map.bind(self.new_environ(path='/2011/'))
+        self.assert_equal(router.match(), (0, {'y': 2011}))
+
+        # GET /0/
+        router = map.bind(self.new_environ(path='/0/'))
+        self.assert_equal(router.match(), (0, {'y': 0}))
+
+        # GET /2011/01 -> MovedPermanently
+        router = map.bind(self.new_environ(path='/2011/01'))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/2011/01/')])
+
+        # GET /2011/01/
+        router = map.bind(self.new_environ(path='/2011/01/'))
+        self.assert_equal(router.match(), (1, {'y': 2011, 'm': 1}))
+
+        # GET /2011/12/
+        router = map.bind(self.new_environ(path='/2011/12/'))
+        self.assert_equal(router.match(), (1, {'y': 2011, 'm': 12}))
+
+        # GET /2011/1/ -> NotFound
+        router = map.bind(self.new_environ(path='/2011/1/'))
+        with self.assert_raises(http.NotFound):
+            router.match()
+
+        # GET /2011/100/ -> NotFound
+        router = map.bind(self.new_environ(path='/2011/100/'))
+        with self.assert_raises(http.NotFound):
+            router.match()
+
+        # GET /2011/00/ -> NotFound
+        router = map.bind(self.new_environ(path='/2011/00/'))
+        with self.assert_raises(http.NotFound):
+            router.match()
+
+        # GET /2011/13/ -> NotFound
+        router = map.bind(self.new_environ(path='/2011/13/'))
+        with self.assert_raises(http.NotFound):
+            router.match()
+
+        # build URI
+        router = map.bind(self.new_environ(path='/'))
+        with self.assert_raises(ayame.RouteError):
+            router.build(-1)
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(0)
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'y': None})
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'y': 'a'})
+        self.assert_equal(router.build(0, {'y': [2011]}),
+                          '/2011/')
+        self.assert_equal(router.build(0, {'y': ['2011']}),
+                          '/2011/')
+        self.assert_equal(router.build(0, {'y': 2011}),
+                          '/2011/')
+        self.assert_equal(router.build(0, {'y': '2011'}),
+                          '/2011/')
+        self.assert_equal(router.build(0, {'y': ['2010', '2011']}),
+                          '/2010/?y=2011')
+        self.assert_equal(router.build(0, {'y': ['2010', '2011']},
+                                       append_query=False),
+                          '/2010/')
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(1)
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'y': 2011, 'm': 0})
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'y': 2011, 'm': 13})
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'y': 2011, 'm': 100})
+        self.assert_equal(router.build(1, {'y': 2011, 'm': 1}), '/2011/01/')
+        self.assert_equal(router.build(1, {'y': 2011, 'm': 12}), '/2011/12/')
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(2, {'a': 100})
+
+    def test_string_converter(self):
+        map = route.Map()
+        map.connect('/<s:string(2)>/', 0)
+        map.connect('/<s:string(3, min=3)>/', 1)
+        map.connect('/<s:string>/', 2)
+
+        # GET /jp -> MovedPermanently
+        router = map.bind(self.new_environ(path='/jp'))
+        with self.assert_raises(http.MovedPermanently):
+            router.match()
+
+        # GET /jp/
+        router = map.bind(self.new_environ(path='/jp/'))
+        self.assert_equal(router.match(), (0, {'s': 'jp'}))
+
+        # GET /jpy -> MovedPermanently
+        router = map.bind(self.new_environ(path='/jpy'))
+        with self.assert_raises(http.MovedPermanently):
+            router.match()
+
+        # GET /jpy/
+        router = map.bind(self.new_environ(path='/jpy/'))
+        self.assert_equal(router.match(), (1, {'s': 'jpy'}))
+
+        # GET /news -> MovedPermanently
+        router = map.bind(self.new_environ(path='/news'))
+        with self.assert_raises(http.MovedPermanently):
+            router.match()
+
+        # GET /news/
+        router = map.bind(self.new_environ(path='/news/'))
+        self.assert_equal(router.match(), (2, {'s': 'news'}))
+
+        # build URI
+        router = map.bind(self.new_environ(path='/'))
+        with self.assert_raises(ayame.RouteError):
+            router.build(-1)
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(0)
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'s': None})
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'s': ''})
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'s': 'abc'})
+        self.assert_equal(router.build(0, {'s': 'jp'}), '/jp/')
+        self.assert_equal(router.build(0, {'s': 'us'}), '/us/')
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(1)
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'s': None})
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'s': ''})
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'s': 'ab'})
+        with self.assert_raises(ayame.RouteError):
+            router.build(1, {'s': 'abcd'})
+        self.assert_equal(router.build(1, {'s': 'jpy'}), '/jpy/')
+        self.assert_equal(router.build(1, {'s': 'usd'}), '/usd/')
+
+    def test_path_converter(self):
+        map = route.Map()
+        map.connect('/<p:path>/<m>', 0)
+        map.connect('/<p:path>', 1)
+
+        # GET /WikiPage/edit
+        router = map.bind(self.new_environ(path='/WikiPage/edit'))
+        self.assert_equal(router.match(), (0, {'p': 'WikiPage', 'm': 'edit'}))
+
+        # GET /WikiPage/edit/
+        router = map.bind(self.new_environ(path='/WikiPage/edit/'))
+        self.assert_equal(router.match(), (0, {'p': 'WikiPage', 'm': 'edit'}))
+
+        # GET /WikiPage
+        router = map.bind(self.new_environ(path='/WikiPage'))
+        self.assert_equal(router.match(), (1, {'p': 'WikiPage'}))
+
+        # GET /WikiPage/
+        router = map.bind(self.new_environ(path='/WikiPage/'))
+        self.assert_equal(router.match(), (1, {'p': 'WikiPage'}))
+
+        # build URI
+        router = map.bind(self.new_environ(path='/'))
+        with self.assert_raises(ayame.RouteError):
+            router.build(-1)
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(0)
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'p': None})
+        with self.assert_raises(ayame.RouteError):
+            router.build(0, {'p': ''})
+        self.assert_equal(router.build(0, {'p': 'WikiPage', 'm': 'edit'}),
+                          '/WikiPage/edit')
+        self.assert_equal(router.build(0, {'p': 'WikiPage', 'm': 'delete'}),
+                          '/WikiPage/delete')
+        self.assert_equal(router.build(0, {'p': '', 'm': ''}),
+                          '//')
+
+        with self.assert_raises(ayame.RouteError):
+            router.build(1)
+        self.assert_equal(router.build(1, {'p': 'WikiPage'}), '/WikiPage')
+        self.assert_equal(router.build(1, {'p': ''}), '/')
+
+    def test_redirect(self):
+        map = route.Map()
+        map.redirect('/<y:int>/<m:int(2, min=1, max=12)>/', '/_/<y>/<m>/')
+        map.redirect('/<s:string(2)>/', lambda s: '/_/{}/'.format(s))
+
+        # GET /2011/01/ -> MovedPermanently
+        router = map.bind(self.new_environ(path='/2011/01/'))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/_/2011/01/')])
+
+        # GET /jp/ -> MovedPermanently
+        router = map.bind(self.new_environ(path='/jp/'))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/_/jp/')])
+
+    def test_add_rule(self):
+        rule = route.Rule('/', 0)
+        map = route.Map()
+        map.add(rule)
+        with self.assert_raises(ayame.RouteError):
+            map.add(rule)
+
+    def test_mount(self):
+        map = route.Map()
+        submap = map.mount('/_')
+        submap.connect('/', 0)
+        submap.redirect('/old', '/_/new')
+        submap.add(route.Rule('/news/', 1))
+
+        # GET /_/
+        router = map.bind(self.new_environ(path='/_/'))
+        self.assert_equal(router.match(), (0, {}))
+
+        # GET /_/news/
+        router = map.bind(self.new_environ(path='/_/news/'))
+        self.assert_equal(router.match(), (1, {}))
+
+        # GET /_/old -> MovedPermanently
+        router = map.bind(self.new_environ(path='/_/old'))
+        with self.assert_raises(http.MovedPermanently) as a:
+            router.match()
+        self.assert_equal(a.exception.headers,
+                          [('Location', 'http://localhost/_/new')])
+
+    def test_parse_args(self):
+        rule = route.Rule('/', 1)
+        self.assert_equal(rule._parse_args(''), ((), {}))
+        self.assert_equal(rule._parse_args(' '), ((), {}))
+        self.assert_equal(rule._parse_args(' , '), ((), {}))
+
+        self.assert_equal(rule._parse_args('None, True, False'),
+                          ((None, True, False), {}))
+        self.assert_equal(rule._parse_args('0, 1, 0b10, 0o10, 0x10'),
+                          ((0, 1, 2, 8, 16), {}))
+        self.assert_equal(rule._parse_args('0, -1, -0b10, -0o10, -0x10'),
+                          ((0, -1, -2, -8, -16), {}))
+        self.assert_equal(
+            rule._parse_args('3.14, 10., .001, 1e100, 3.14e-10, 0e0'),
+            ((3.14, 10.0, 0.001, 1e+100, 3.14e-10, 0.0), {}))
+        self.assert_equal(rule._parse_args(r'"spam", "eggs\"ham", "toast\\"'),
+                          (('spam', 'eggs"ham', r'toast\\'), {}))
+
+        self.assert_equal(rule._parse_args('0, spam=1'), ((0,), {'spam': 1}))
+        self.assert_equal(rule._parse_args('0, spam = 1'), ((0,), {'spam': 1}))
+
+        with self.assert_raises(SyntaxError):
+            rule._parse_args('0, 1 2, 3')
+        with self.assert_raises(SyntaxError):
+            rule._parse_args('0, spam=1, 2')
+        with self.assert_raises(SyntaxError):
+            rule._parse_args('0, spam=1, spam=2')
+        with self.assert_raises(SyntaxError):
+            rule._parse_args(r'"spam\\"eggs"')
+        with self.assert_raises(SyntaxError):
+            rule._parse_args(r'"spam\"')

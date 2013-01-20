@@ -1,7 +1,7 @@
 #
 # test_border
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,476 +24,447 @@
 #   SOFTWARE.
 #
 
-from contextlib import contextmanager
-import io
-
-from nose.tools import assert_raises, eq_, ok_
-
-from ayame import basic, border, core, http, local, markup
-from ayame import app as _app
-from ayame.exception import RenderingError
+import ayame
+from ayame import basic, border, http, markup
+from base import AyameTestCase
 
 
-@contextmanager
-def application(environ=None):
-    app = _app.Ayame(__name__)
-    try:
-        ctx = local.push(app, environ)
-        if environ is not None:
-            ctx.request = app.config['ayame.request'](environ, {})
-        yield
-    finally:
-        local.pop()
+class BorderTestCase(AyameTestCase):
+
+    def test_border(self):
+        class Spam(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Spam, self).__init__(id)
+                self.add(SpamBorder('border'))
+
+        class SpamBorder(Border):
+            pass
+
+        with self.application():
+            mc = Spam('a')
+            m = mc.load_markup()
+            html = mc.render(m.root)
+        self.assert_equal(m.xml_decl, {'version': '1.0'})
+        self.assert_equal(m.lang, 'xhtml1')
+        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
+        self.assert_true(m.root)
+
+        self.assert_equal(html.qname, self.html_of('html'))
+        self.assert_equal(html.attrib, {})
+        self.assert_equal(html.type, markup.Element.OPEN)
+        self.assert_equal(html.ns, {'': markup.XHTML_NS,
+                                    'xml': markup.XML_NS,
+                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(len(html), 5)
+        self.assert_ws(html, 0)
+        self.assert_ws(html, 2)
+        self.assert_ws(html, 4)
+
+        head = html[1]
+        self.assert_equal(head.qname, self.html_of('head'))
+        self.assert_equal(head.attrib, {})
+        self.assert_equal(head.type, markup.Element.OPEN)
+        self.assert_equal(head.ns, {})
+        self.assert_equal(len(head), 8)
+        self.assert_ws(head, 0)
+        self.assert_ws(head, 2)
+        self.assert_ws(head, 4)
+        self.assert_ws(head, 5)
+        self.assert_ws(head, 7)
+
+        title = head[1]
+        self.assert_equal(title.qname, self.html_of('title'))
+        self.assert_equal(title.attrib, {})
+        self.assert_equal(title.type, markup.Element.OPEN)
+        self.assert_equal(title.ns, {})
+        self.assert_equal(title.children, ['Spam'])
+
+        meta = head[3]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Spam'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        meta = head[6]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'SpamBorder'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        body = html[3]
+        self.assert_equal(body.qname, self.html_of('body'))
+        self.assert_equal(body.attrib, {})
+        self.assert_equal(body.type, markup.Element.OPEN)
+        self.assert_equal(body.ns, {})
+        self.assert_equal(len(body), 15)
+        self.assert_ws(body, 0)
+        self.assert_ws(body, 2)
+        self.assert_ws(body, 3)
+        self.assert_ws(body, 5)
+        self.assert_ws(body, 6)
+        self.assert_ws(body, 8)
+        self.assert_ws(body, 9)
+        self.assert_ws(body, 11)
+        self.assert_ws(body, 12)
+        self.assert_ws(body, 14)
+
+        p = body[1]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before border (Spam)'])
+
+        p = body[4]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before ayame:body (SpamBorder)'])
+
+        p = body[7]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(len(p), 3)
+        p.normalize()
+        self.assert_equal(p.children, ['inside border (SpamBorder)'])
+
+        p = body[10]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after ayame:body (SpamBorder)'])
+
+        p = body[13]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after border (Spam)'])
+
+    def test_border_with_markup_inheritance(self):
+        class Eggs(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Eggs, self).__init__(id)
+                self.add(HamBorder('border'))
+
+        class EggsBorder(Border):
+            pass
+        class HamBorder(EggsBorder):
+            pass
+
+        with self.application():
+            mc = Eggs('a')
+            m = mc.load_markup()
+            html = mc.render(m.root)
+        self.assert_equal(m.xml_decl, {'version': '1.0'})
+        self.assert_equal(m.lang, 'xhtml1')
+        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
+        self.assert_true(m.root)
+
+        self.assert_equal(html.qname, self.html_of('html'))
+        self.assert_equal(html.attrib, {})
+        self.assert_equal(html.type, markup.Element.OPEN)
+        self.assert_equal(html.ns, {'': markup.XHTML_NS,
+                                    'xml': markup.XML_NS,
+                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(len(html), 5)
+        self.assert_ws(html, 0)
+        self.assert_ws(html, 2)
+        self.assert_ws(html, 4)
+
+        head = html[1]
+        self.assert_equal(head.qname, self.html_of('head'))
+        self.assert_equal(head.attrib, {})
+        self.assert_equal(head.type, markup.Element.OPEN)
+        self.assert_equal(head.ns, {})
+        self.assert_equal(len(head), 11)
+        self.assert_ws(head, 0)
+        self.assert_ws(head, 2)
+        self.assert_ws(head, 4)
+        self.assert_ws(head, 5)
+        self.assert_ws(head, 7)
+        self.assert_ws(head, 8)
+        self.assert_ws(head, 10)
+
+        title = head[1]
+        self.assert_equal(title.qname, self.html_of('title'))
+        self.assert_equal(title.attrib, {})
+        self.assert_equal(title.type, markup.Element.OPEN)
+        self.assert_equal(title.ns, {})
+        self.assert_equal(title.children, ['Eggs'])
+
+        meta = head[3]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Eggs'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        meta = head[6]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'EggsBorder'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        meta = head[9]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'HamBorder'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        body = html[3]
+        self.assert_equal(body.qname, self.html_of('body'))
+        self.assert_equal(body.attrib, {})
+        self.assert_equal(body.type, markup.Element.OPEN)
+        self.assert_equal(body.ns, {})
+        self.assert_equal(len(body), 15)
+        self.assert_ws(body, 0)
+        self.assert_ws(body, 2)
+        self.assert_ws(body, 3)
+        self.assert_ws(body, 5)
+        self.assert_ws(body, 6)
+        self.assert_ws(body, 8)
+        self.assert_ws(body, 9)
+        self.assert_ws(body, 11)
+        self.assert_ws(body, 12)
+        self.assert_ws(body, 14)
+
+        p = body[1]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before border (Eggs)'])
+
+        p = body[4]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before ayame:body (HamBorder)'])
+
+        p = body[7]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(len(p), 3)
+        p.normalize()
+        self.assert_equal(p.children, ['inside border (HamBorder)'])
+
+        p = body[10]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after ayame:body (HamBorder)'])
+
+        p = body[13]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after border (Eggs)'])
+
+    def test_invalid_markup_no_ayame_border(self):
+        class Toast(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Toast, self).__init__(id)
+                self.add(ToastBorder('border'))
+
+        class ToastBorder(Border):
+            pass
+
+        with self.application():
+            mc = Toast('a')
+            m = mc.load_markup()
+            with self.assert_raises_regex(ayame.RenderingError,
+                                          r"'ayame:border' .* not found\b"):
+                mc.render(m.root)
+
+    def test_invalid_markup_no_ayame_body(self):
+        class Beans(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Beans, self).__init__(id)
+                self.add(BeansBorder('border'))
+
+        class BeansBorder(Border):
+            pass
+
+        with self.application():
+            mc = Beans('a')
+            m = mc.load_markup()
+            with self.assert_raises_regex(ayame.RenderingError,
+                                          r"'ayame:body' .* not found\b"):
+                mc.render(m.root)
+
+    def test_invalid_markup_unknown_ayame_element(self):
+        class Bacon(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Bacon, self).__init__(id)
+                self.add(BaconBorder('border'))
+
+        class BaconBorder(Border):
+            pass
+
+        with self.application():
+            mc = Bacon('a')
+            m = mc.load_markup()
+            with self.assert_raises_regex(ayame.RenderingError,
+                                          r"\bunknown .* 'ayame:bacon'"):
+                mc.render(m.root)
+
+    def test_empty_markup(self):
+        class Sausage(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Sausage, self).__init__(id)
+                self.add(SausageBorder('border'))
+
+        class SausageBorder(Border):
+            pass
+
+        with self.application():
+            mc = Sausage('a')
+            m = mc.load_markup()
+            html = mc.render(m.root)
+        self.assert_equal(m.xml_decl, {'version': '1.0'})
+        self.assert_equal(m.lang, 'xhtml1')
+        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
+        self.assert_true(m.root)
+
+        self.assert_equal(html.qname, self.html_of('html'))
+        self.assert_equal(html.attrib, {})
+        self.assert_equal(html.type, markup.Element.OPEN)
+        self.assert_equal(html.ns, {'': markup.XHTML_NS,
+                                    'xml': markup.XML_NS,
+                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(len(html), 5)
+        self.assert_ws(html, 0)
+        self.assert_ws(html, 2)
+        self.assert_ws(html, 4)
+
+        head = html[1]
+        self.assert_equal(head.qname, self.html_of('head'))
+        self.assert_equal(head.attrib, {})
+        self.assert_equal(head.type, markup.Element.OPEN)
+        self.assert_equal(head.ns, {})
+        self.assert_equal(len(head), 5)
+        self.assert_ws(head, 0)
+        self.assert_ws(head, 2)
+        self.assert_ws(head, 4)
+
+        title = head[1]
+        self.assert_equal(title.qname, self.html_of('title'))
+        self.assert_equal(title.attrib, {})
+        self.assert_equal(title.type, markup.Element.OPEN)
+        self.assert_equal(title.ns, {})
+        self.assert_equal(title.children, ['Sausage'])
+
+        meta = head[3]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Sausage'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        body = html[3]
+        self.assert_equal(body.qname, self.html_of('body'))
+        self.assert_equal(body.attrib, {})
+        self.assert_equal(body.type, markup.Element.OPEN)
+        self.assert_equal(body.ns, {})
+        self.assert_equal(len(body), 9)
+        self.assert_ws(body, 0)
+        self.assert_ws(body, 2)
+        self.assert_ws(body, 3)
+        self.assert_ws(body, 5)
+        self.assert_ws(body, 6)
+        self.assert_ws(body, 8)
+
+        p = body[1]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before border (Sausage)'])
+
+        p = body[4]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['inside border (Sausage)'])
+
+        p = body[7]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after border (Sausage)'])
+
+    def test_render_ayame_message(self):
+        with self.application(self.new_environ(accept='en')):
+            p = TomatoPage()
+            status, headers, content = p.render()
+        html = self.format(TomatoPage, message='before, body, after')
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_render_ayame_message_ja(self):
+        with self.application(self.new_environ(accept='ja, en')):
+            p = TomatoPage()
+            status, headers, content = p.render()
+        html = self.format(TomatoPage, message=u'\u524d, \u4e2d, \u5f8c')
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
 
 
-def assert_ws(element, i):
-    ok_(isinstance(element[i], basestring))
-    eq_(element[i].strip(), '')
+class Border(border.Border):
+
+    def __init__(self, id, model=None):
+        super(Border, self).__init__(id, model)
+        self.add(basic.Label('class', self.__class__.__name__))
+        self.body.find('class').render_body_only = True
 
 
-def test_border():
-    class Spam(core.MarkupContainer):
-        def __init__(self, id):
-            super(Spam, self).__init__(id)
-            self.add(SpamBorder('border'))
+class TomatoPage(ayame.Page):
 
-    class SpamBorder(border.Border):
-        def __init__(self, id):
-            super(SpamBorder, self).__init__(id)
-            self.add(basic.Label('class', self.__class__.__name__))
-            self.body.find('class').render_body_only = True
+    html_t = u"""\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="{xhtml}">
+  <head>
+    <title>TomatoPage</title>
+  </head>
+  <body>
+    <p>{message}</p>
+  </body>
+</html>
+"""
 
-    with application():
-        mc = Spam('a')
-        m = mc.load_markup()
-        html = mc.render(m.root)
-    eq_(m.xml_decl, {'version': '1.0'})
-    eq_(m.lang, 'xhtml1')
-    eq_(m.doctype, markup.XHTML1_STRICT)
-    ok_(m.root)
-
-    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
-    eq_(html.attrib, {})
-    eq_(html.type, markup.Element.OPEN)
-    eq_(html.ns, {'': markup.XHTML_NS,
-                  'xml': markup.XML_NS,
-                  'ayame': markup.AYAME_NS})
-    eq_(len(html), 5)
-    assert_ws(html, 0)
-    assert_ws(html, 2)
-    assert_ws(html, 4)
-
-    head = html[1]
-    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
-    eq_(head.attrib, {})
-    eq_(head.type, markup.Element.OPEN)
-    eq_(head.ns, {})
-    eq_(len(head), 8)
-    assert_ws(head, 0)
-    assert_ws(head, 2)
-    assert_ws(head, 4)
-    assert_ws(head, 5)
-    assert_ws(head, 7)
-
-    title = head[1]
-    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
-    eq_(title.attrib, {})
-    eq_(title.type, markup.Element.OPEN)
-    eq_(title.ns, {})
-    eq_(title.children, ['Spam'])
-
-    meta = head[3]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'Spam'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    meta = head[6]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'SpamBorder'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    body = html[3]
-    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
-    eq_(body.attrib, {})
-    eq_(body.type, markup.Element.OPEN)
-    eq_(body.ns, {})
-    eq_(len(body), 15)
-    assert_ws(body, 0)
-    assert_ws(body, 2)
-    assert_ws(body, 3)
-    assert_ws(body, 5)
-    assert_ws(body, 6)
-    assert_ws(body, 8)
-    assert_ws(body, 9)
-    assert_ws(body, 11)
-    assert_ws(body, 12)
-    assert_ws(body, 14)
-
-    p = body[1]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['before border (Spam)'])
-
-    p = body[4]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['before ayame:body (SpamBorder)'])
-
-    p = body[7]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(len(p), 3)
-    p.normalize()
-    eq_(p.children, ['inside border (SpamBorder)'])
-
-    p = body[10]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['after ayame:body (SpamBorder)'])
-
-    p = body[13]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['after border (Spam)'])
+    def __init__(self):
+        super(TomatoPage, self).__init__()
+        self.add(TomatoBorder('border'))
 
 
-def test_border_with_markup_inheritance():
-    class Eggs(core.MarkupContainer):
-        def __init__(self, id):
-            super(Eggs, self).__init__(id)
-            self.add(HamBorder('border'))
-
-    class EggsBorder(border.Border):
-        pass
-    class HamBorder(EggsBorder):
-        def __init__(self, id):
-            super(HamBorder, self).__init__(id)
-            self.add(basic.Label('class', self.__class__.__name__))
-            self.body.find('class').render_body_only = True
-
-    with application():
-        mc = Eggs('a')
-        m = mc.load_markup()
-        html = mc.render(m.root)
-    eq_(m.xml_decl, {'version': '1.0'})
-    eq_(m.lang, 'xhtml1')
-    eq_(m.doctype, markup.XHTML1_STRICT)
-    ok_(m.root)
-
-    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
-    eq_(html.attrib, {})
-    eq_(html.type, markup.Element.OPEN)
-    eq_(html.ns, {'': markup.XHTML_NS,
-                  'xml': markup.XML_NS,
-                  'ayame': markup.AYAME_NS})
-    eq_(len(html), 5)
-    assert_ws(html, 0)
-    assert_ws(html, 2)
-    assert_ws(html, 4)
-
-    head = html[1]
-    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
-    eq_(head.attrib, {})
-    eq_(head.type, markup.Element.OPEN)
-    eq_(head.ns, {})
-    eq_(len(head), 11)
-    assert_ws(head, 0)
-    assert_ws(head, 2)
-    assert_ws(head, 4)
-    assert_ws(head, 5)
-    assert_ws(head, 7)
-    assert_ws(head, 8)
-    assert_ws(head, 10)
-
-    title = head[1]
-    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
-    eq_(title.attrib, {})
-    eq_(title.type, markup.Element.OPEN)
-    eq_(title.ns, {})
-    eq_(title.children, ['Eggs'])
-
-    meta = head[3]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'Eggs'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    meta = head[6]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'EggsBorder'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    meta = head[9]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'HamBorder'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    body = html[3]
-    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
-    eq_(body.attrib, {})
-    eq_(body.type, markup.Element.OPEN)
-    eq_(body.ns, {})
-    eq_(len(body), 15)
-    assert_ws(body, 0)
-    assert_ws(body, 2)
-    assert_ws(body, 3)
-    assert_ws(body, 5)
-    assert_ws(body, 6)
-    assert_ws(body, 8)
-    assert_ws(body, 9)
-    assert_ws(body, 11)
-    assert_ws(body, 12)
-    assert_ws(body, 14)
-
-    p = body[1]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['before border (Eggs)'])
-
-    p = body[4]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['before ayame:body (HamBorder)'])
-
-    p = body[7]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(len(p), 3)
-    p.normalize()
-    eq_(p.children, ['inside border (HamBorder)'])
-
-    p = body[10]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['after ayame:body (HamBorder)'])
-
-    p = body[13]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['after border (Eggs)'])
-
-
-def test_invalid_markup():
-    # ayame:border element is not found
-    class Toast(core.MarkupContainer):
-        def __init__(self, id):
-            super(Toast, self).__init__(id)
-            self.add(ToastBorder('border'))
-    class ToastBorder(border.Border):
-        def __init__(self, id):
-            super(ToastBorder, self).__init__(id)
-            self.add(basic.Label('class', self.__class__.__name__))
-            self.body.find('class').render_body_only = True
-    with application():
-        mc = Toast('a')
-        m = mc.load_markup()
-        assert_raises(RenderingError, mc.render, m.root)
-
-    # ayame:body element is not found
-    class Beans(core.MarkupContainer):
-        def __init__(self, id):
-            super(Beans, self).__init__(id)
-            self.add(BeansBorder('border'))
-    class BeansBorder(border.Border):
-        def __init__(self, id):
-            super(BeansBorder, self).__init__(id)
-            self.add(basic.Label('class', self.__class__.__name__))
-            self.body.find('class').render_body_only = True
-    with application():
-        mc = Beans('a')
-        m = mc.load_markup()
-        assert_raises(RenderingError, mc.render, m.root)
-
-    # unknown ayame element
-    class Bacon(core.MarkupContainer):
-        def __init__(self, id):
-            super(Bacon, self).__init__(id)
-            self.add(BaconBorder('border'))
-    class BaconBorder(border.Border):
-        def __init__(self, id):
-            super(BaconBorder, self).__init__(id)
-            self.add(basic.Label('class', self.__class__.__name__))
-            self.body.find('class').render_body_only = True
-    with application():
-        mc = Bacon('a')
-        m = mc.load_markup()
-        assert_raises(RenderingError, mc.render, m.root)
-
-
-def test_empty_markup():
-    class Sausage(core.MarkupContainer):
-        def __init__(self, id):
-            super(Sausage, self).__init__(id)
-            self.add(SausageBorder('border'))
-
-    class SausageBorder(border.Border):
-        pass
-
-    with application():
-        mc = Sausage('a')
-        m = mc.load_markup()
-        html = mc.render(m.root)
-    eq_(m.xml_decl, {'version': '1.0'})
-    eq_(m.lang, 'xhtml1')
-    eq_(m.doctype, markup.XHTML1_STRICT)
-    ok_(m.root)
-
-    eq_(html.qname, markup.QName(markup.XHTML_NS, 'html'))
-    eq_(html.attrib, {})
-    eq_(html.type, markup.Element.OPEN)
-    eq_(html.ns, {'': markup.XHTML_NS,
-                  'xml': markup.XML_NS,
-                  'ayame': markup.AYAME_NS})
-    eq_(len(html), 5)
-    assert_ws(html, 0)
-    assert_ws(html, 2)
-    assert_ws(html, 4)
-
-    head = html[1]
-    eq_(head.qname, markup.QName(markup.XHTML_NS, 'head'))
-    eq_(head.attrib, {})
-    eq_(head.type, markup.Element.OPEN)
-    eq_(head.ns, {})
-    eq_(len(head), 5)
-    assert_ws(head, 0)
-    assert_ws(head, 2)
-    assert_ws(head, 4)
-
-    title = head[1]
-    eq_(title.qname, markup.QName(markup.XHTML_NS, 'title'))
-    eq_(title.attrib, {})
-    eq_(title.type, markup.Element.OPEN)
-    eq_(title.ns, {})
-    eq_(title.children, ['Sausage'])
-
-    meta = head[3]
-    eq_(meta.qname, markup.QName(markup.XHTML_NS, 'meta'))
-    eq_(meta.attrib, {markup.QName(markup.XHTML_NS, 'name'): 'class',
-                      markup.QName(markup.XHTML_NS, 'content'): 'Sausage'})
-    eq_(meta.type, markup.Element.EMPTY)
-    eq_(meta.ns, {})
-    eq_(meta.children, [])
-
-    body = html[3]
-    eq_(body.qname, markup.QName(markup.XHTML_NS, 'body'))
-    eq_(body.attrib, {})
-    eq_(body.type, markup.Element.OPEN)
-    eq_(body.ns, {})
-    eq_(len(body), 9)
-    assert_ws(body, 0)
-    assert_ws(body, 2)
-    assert_ws(body, 3)
-    assert_ws(body, 5)
-    assert_ws(body, 6)
-    assert_ws(body, 8)
-
-    p = body[1]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['before border (Sausage)'])
-
-    p = body[4]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['inside border (Sausage)'])
-
-    p = body[7]
-    eq_(p.qname, markup.QName(markup.XHTML_NS, 'p'))
-    eq_(p.attrib, {})
-    eq_(p.type, markup.Element.OPEN)
-    eq_(p.ns, {})
-    eq_(p.children, ['after border (Sausage)'])
-
-
-def test_render_ayame_message():
-    class TomatoPage(core.Page):
-        def __init__(self):
-            super(TomatoPage, self).__init__()
-            self.add(TomatoBorder('border'))
-
-    class TomatoBorder(border.Border):
-        pass
-
-    xhtml = ('<?xml version="1.0"?>\n'
-             '{doctype}\n'
-             '<html xmlns="{xhtml}">\n'
-             '  <head>\n'
-             '    <title>TomatoPage</title>\n'
-             '  </head>\n'
-             '  <body>\n'
-             '    <p>before, body, after</p>\n'
-             '  </body>\n'
-             '</html>\n').format(doctype=markup.XHTML1_STRICT,
-                                 xhtml=markup.XHTML_NS)
-    xhtml = xhtml.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(),
-               'HTTP_ACCEPT_LANGUAGE': 'en',
-               'REQUEST_METHOD': 'GET'}
-    with application(environ):
-        page = TomatoPage()
-        status, headers, content = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(content, xhtml)
-
-    xhtml = (u'<?xml version="1.0"?>\n'
-             u'{doctype}\n'
-             u'<html xmlns="{xhtml}">\n'
-             u'  <head>\n'
-             u'    <title>TomatoPage</title>\n'
-             u'  </head>\n'
-             u'  <body>\n'
-             u'    <p>\u524d, \u4e2d, \u5f8c</p>\n'
-             u'  </body>\n'
-             u'</html>\n').format(doctype=markup.XHTML1_STRICT,
-                                  xhtml=markup.XHTML_NS)
-    xhtml = xhtml.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(),
-               'HTTP_ACCEPT_LANGUAGE': 'ja, en',
-               'REQUEST_METHOD': 'GET'}
-    with application(environ):
-        page = TomatoPage()
-        status, headers, content = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(content, xhtml)
+class TomatoBorder(Border):
+    pass

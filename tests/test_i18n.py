@@ -1,7 +1,7 @@
 #
 # test_i18n
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,77 +24,50 @@
 #   SOFTWARE.
 #
 
-from contextlib import contextmanager
 import io
 
-from nose.tools import eq_
-
-from ayame import core, i18n, local
-from ayame import app as _app
-
-
-class Application(_app.Ayame):
-    pass
+import ayame
+from ayame import i18n
+from base import AyameTestCase
 
 
-class Page(core.Page):
-    def __init__(self):
-        super(Page, self).__init__()
-        self.add(MarkupContainer('a'))
-        self.find('a').add(Component('b'))
+class I18nTestCase(AyameTestCase):
 
+    def setup(self):
+        super(I18nTestCase, self).setup()
+        self.app = Application(__name__)
 
-class MarkupContainer(core.MarkupContainer):
-    pass
+    def test_iter_class(self):
+        with self.application():
+            l = i18n.Localizer()
+            p = Page()
+            self.assert_equal(list(l._iter_class(p.find('a:b'))),
+                              [(Page, 'a.b'),
+                               (ayame.Page, 'a.b'),
+                               (MarkupContainer, 'b'),
+                               (ayame.MarkupContainer, 'b'),
+                               (Component, ''),
+                               (ayame.Component, ''),
+                               (Application, ''),
+                               (ayame.Ayame, '')])
+            self.assert_equal(list(l._iter_class(p.find('a'))),
+                              [(Page, 'a'),
+                               (ayame.Page, 'a'),
+                               (MarkupContainer, ''),
+                               (ayame.MarkupContainer, ''),
+                               (Application, ''),
+                               (ayame.Ayame, '')])
+            self.assert_equal(list(l._iter_class(p)),
+                              [(Page, ''),
+                               (ayame.Page, ''),
+                               (Application, ''),
+                               (ayame.Ayame, '')])
+            self.assert_equal(list(l._iter_class(None)),
+                              [(Application, ''),
+                               (ayame.Ayame, '')])
 
-
-class Component(core.Component):
-    pass
-
-
-@contextmanager
-def application():
-    app = Application(__name__)
-    try:
-        local.push(app, None)
-        yield
-    finally:
-        local.pop()
-
-
-def test_iter_class():
-    with application():
-        page = Page()
-        l = i18n.Localizer()
-        eq_([v for v in l._iter_class(page.find('a:b'))],
-            [(Page, 'a.b'),
-             (core.Page, 'a.b'),
-             (MarkupContainer, 'b'),
-             (core.MarkupContainer, 'b'),
-             (Component, ''),
-             (core.Component, ''),
-             (Application, ''),
-             (_app.Ayame, '')])
-        eq_([v for v in l._iter_class(page.find('a'))],
-            [(Page, 'a'),
-             (core.Page, 'a'),
-             (MarkupContainer, ''),
-             (core.MarkupContainer, ''),
-             (Application, ''),
-             (_app.Ayame, '')])
-        eq_([v for v in l._iter_class(page)],
-            [(Page, ''),
-             (core.Page, ''),
-             (Application, ''),
-             (_app.Ayame, '')])
-        eq_([v for v in l._iter_class(None)],
-            [(Application, ''),
-             (_app.Ayame, '')])
-
-
-def test_load():
-    l = i18n.Localizer()
-    data = ur"""
+    def test_load(self):
+        data = ur"""
 # comment
 spam : spam
 ! comment
@@ -117,35 +90,55 @@ lobster\= == lobster
 lobster\: :: lobster
 lobster\   \  lobster
 """
-    bundle = l._load(io.StringIO(data))
-    eq_(bundle, {'spam': 'spam',
-                 'eggs': 'eggs',
-                 'ham': 'ham',
-                 'toast:': 'toast:',
-                 'toast=': 'toast=',
-                 'toast ': 'toast ',
-                 'beans1\\': 'beans1',
-                 'beans2\\': 'beans2',
-                 'beans3\\': 'beans3',
-                 'beans\\:': 'beans:',
-                 'beans\\=': 'beans=',
-                 'beans\\ ': 'beans ',
-                 'bacon': 'bacon bacon',
-                 'sausage': 'sausage\nsausage',
-                 'tomato': '',
-                 'lobster=': '= lobster',
-                 'lobster:': ': lobster',
-                 'lobster ': '  lobster'})
-
-
-def test_get():
-    with application():
-        page = Page()
-        locale = ('ja', 'JP')
         l = i18n.Localizer()
-        eq_(l.get(page.find('a:b'), locale, 'spam'), 'spam')
-        eq_(l.get(page.find('a:b'), locale, 'eggs'), 'eggs')
-        eq_(l.get(page.find('a:b'), locale, 'ham'), 'ham')
-        eq_(l.get(page.find('a:b'), locale, 'toast'), 'toast')
-        eq_(l.get(page.find('a:b'), locale, 'beans'), 'beans')
-        eq_(l.get(page.find('a:b'), locale, 'bacon'), 'bacon')
+        self.assert_equal(l._load(io.StringIO(data)),
+                          {'spam': 'spam',
+                           'eggs': 'eggs',
+                           'ham': 'ham',
+                           'toast:': 'toast:',
+                           'toast=': 'toast=',
+                           'toast ': 'toast ',
+                           'beans1\\': 'beans1',
+                           'beans2\\': 'beans2',
+                           'beans3\\': 'beans3',
+                           'beans\\:': 'beans:',
+                           'beans\\=': 'beans=',
+                           'beans\\ ': 'beans ',
+                           'bacon': 'bacon bacon',
+                           'sausage': 'sausage\nsausage',
+                           'tomato': '',
+                           'lobster=': '= lobster',
+                           'lobster:': ': lobster',
+                           'lobster ': '  lobster'})
+
+    def test_get(self):
+        with self.application():
+            locale = ('ja', 'JP')
+            l = i18n.Localizer()
+            p = Page()
+            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+
+
+class Application(ayame.Ayame):
+    pass
+
+
+class Page(ayame.Page):
+
+    def __init__(self):
+        super(Page, self).__init__()
+        self.add(MarkupContainer('a'))
+        self.find('a').add(Component('b'))
+
+
+class MarkupContainer(ayame.MarkupContainer):
+    pass
+
+
+class Component(ayame.Component):
+    pass

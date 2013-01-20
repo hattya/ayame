@@ -1,7 +1,7 @@
 #
 # test_model
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,107 +24,119 @@
 #   SOFTWARE.
 #
 
-from nose.tools import assert_raises, eq_
-
-from ayame import core, model
-
-
-def test_model():
-    m = model.Model(None)
-    eq_(m.object, None)
-    m.object = ''
-    eq_(m.object, '')
+import ayame
+from ayame import model
+from base import AyameTestCase
 
 
-def test_nested_model():
-    inner = model.Model(None)
-    outer = model.Model(inner)
-    eq_(inner.object, None)
-    eq_(outer.object, None)
-    outer.object = model.Model('')
-    eq_(outer.object, '')
+class ModelTestCase(AyameTestCase):
 
+    def test_model(self):
+        m = model.Model(None)
+        self.assert_is_none(m.object)
 
-def test_inheritable_model():
-    assert_raises(TypeError, model.InheritableModel)
+        m.object = ''
+        self.assert_equal(m.object, '')
 
-    class InheritableModel(model.InheritableModel):
-        def wrap(self, component):
-            return super(InheritableModel, self).wrap(component)
+    def test_nested_model(self):
+        inner = model.Model(None)
+        outer = model.Model(inner)
+        self.assert_is_none(inner.object)
+        self.assert_is_none(outer.object)
 
-    m = InheritableModel(None)
-    eq_(m.wrap(None), None)
+        outer.object = model.Model('')
+        self.assert_equal(outer.object, '')
 
+    def test_inheritable_model(self):
+        with self.assert_raises(TypeError):
+            model.InheritableModel()
 
-def test_wrap_model():
-    assert_raises(TypeError, model.WrapModel)
+        class InheritableModel(model.InheritableModel):
+            def wrap(self, component):
+                return super(InheritableModel, self).wrap(component)
+        m = InheritableModel(None)
+        self.assert_is_none(m.wrap(None))
 
-    class WrapModel(model.WrapModel):
-        @property
-        def object(self):
-            return super(WrapModel, self).object
+    def test_wrap_model(self):
+        with self.assert_raises(TypeError):
+            model.WrapModel()
 
-    m = WrapModel(None)
-    eq_(m.object, None)
+        class WrapModel(model.WrapModel):
+            @property
+            def object(self):
+                return super(WrapModel, self).object
+        m = WrapModel(None)
+        self.assert_is_none(m.object)
 
+    def test_compound_model_attribute(self):
+        class Object(object):
+            attr = 'value'
 
-def test_compound_model():
-    class Object(object):
-        attr = 'value'
-    o = Object()
-    m = model.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('attr'))
-    eq_(len(mc.children), 1)
-    eq_(o.attr, 'value')
-    eq_(mc.find('attr').model.object, 'value')
-    mc.find('attr').model.object = 'new_value'
-    eq_(o.attr, 'new_value')
-    eq_(mc.find('attr').model.object, 'new_value')
+        o = Object()
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.Component('attr'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(o.attr, 'value')
+        self.assert_equal(mc.find('attr').model.object, 'value')
 
-    class Object(object):
-        def __init__(self):
-            self.__method = 'value'
-        def get_method(self):
-            return self.__method
-        def set_method(self, method):
-            self.__method = method
-    o = Object()
-    m = model.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('method'))
-    eq_(len(mc.children), 1)
-    eq_(o.get_method(), 'value')
-    eq_(mc.find('method').model.object, 'value')
-    mc.find('method').model.object = 'new_value'
-    eq_(o.get_method(), 'new_value')
-    eq_(mc.find('method').model.object, 'new_value')
+        mc.find('attr').model.object = 'new_value'
+        self.assert_equal(o.attr, 'new_value')
+        self.assert_equal(mc.find('attr').model.object, 'new_value')
 
-    o = {'mapping': 'value'}
-    m = model.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.Component('mapping'))
-    eq_(len(mc.children), 1)
-    eq_(o['mapping'], 'value')
-    eq_(mc.find('mapping').model.object, 'value')
-    mc.find('mapping').model.object = 'new_value'
-    eq_(o['mapping'], 'new_value')
-    eq_(mc.find('mapping').model.object, 'new_value')
+    def test_compound_model_method(self):
+        class Object(object):
+            def __init__(self):
+                self.__method = 'value'
+            def get_method(self):
+                return self.__method
+            def set_method(self, method):
+                self.__method = method
 
-    o = {'b': 'b',
-         'c': 'c'}
-    m = model.CompoundModel(o)
-    mc = core.MarkupContainer('a', m)
-    mc.add(core.MarkupContainer('b'))
-    eq_(len(mc.children), 1)
-    eq_(mc.find('b').model.object, 'b')
-    mc.find('b').add(core.Component('c'))
-    eq_(len(mc.children), 1)
-    eq_(len(mc.find('b').children), 1)
-    eq_(mc.find('b:c').model.object, 'c')
-    mc.model = model.CompoundModel(object())
-    eq_(mc.find('b').model.object, None)
-    eq_(mc.find('b:c').model.object, None)
-    assert_raises(AttributeError, setattr, mc.find('b').model, 'object', '')
-    assert_raises(AttributeError, setattr, mc.find('b:c').model, 'object', '')
-    eq_(mc.render(''), '')
+        o = Object()
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.Component('method'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(o.get_method(), 'value')
+        self.assert_equal(mc.find('method').model.object, 'value')
+
+        mc.find('method').model.object = 'new_value'
+        self.assert_equal(o.get_method(), 'new_value')
+        self.assert_equal(mc.find('method').model.object, 'new_value')
+
+    def test_compound_model_dict(self):
+        o = {'mapping': 'value'}
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.Component('mapping'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(o['mapping'], 'value')
+        self.assert_equal(mc.find('mapping').model.object, 'value')
+
+        mc.find('mapping').model.object = 'new_value'
+        self.assert_equal(o['mapping'], 'new_value')
+        self.assert_equal(mc.find('mapping').model.object, 'new_value')
+
+    def test_compound_model_replace(self):
+        o = {'b': 'b',
+             'c': 'c'}
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.MarkupContainer('b'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(mc.find('b').model.object, 'b')
+
+        mc.find('b').add(ayame.Component('c'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(len(mc.find('b').children), 1)
+        self.assert_equal(mc.find('b:c').model.object, 'c')
+
+        mc.model = model.CompoundModel(object())
+        self.assert_is_none(mc.find('b').model.object)
+        self.assert_is_none(mc.find('b:c').model.object)
+        with self.assert_raises_regex(AttributeError, '^b$'):
+            setattr(mc.find('b').model, 'object', '')
+        with self.assert_raises_regex(AttributeError, '^c$'):
+            setattr(mc.find('b:c').model, 'object', '')
+        self.assert_equal(mc.render(''), '')

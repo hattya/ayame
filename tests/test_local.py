@@ -1,7 +1,7 @@
 #
 # test_local
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,31 +24,35 @@
 #   SOFTWARE.
 #
 
-from nose.tools import assert_raises, eq_
-
+import ayame
 from ayame import local
-from ayame.exception import AyameError
+from base import AyameTestCase
 
 
-def test_empty():
-    eq_(local.pop(), None)
+class LocalTestCase(AyameTestCase):
 
-    assert_raises(AyameError, local.context)
-    assert_raises(AyameError, local.app)
+    def test_empty(self):
+        self.assert_is_none(local.pop())
 
+        with self.assert_raises(ayame.AyameError):
+            local.context()
+        with self.assert_raises(ayame.AyameError):
+            local.app()
 
-def test_push():
-    ctx = local.push(0, 1)
-    eq_(ctx.app, 0)
-    eq_(ctx.environ, 1)
-    eq_(ctx.request, None)
-    eq_(ctx._router, None)
+    def test_push(self):
+        ctx = local.push(0, 1)
+        self.assert_equal(ctx.app, 0)
+        self.assert_equal(ctx.environ, 1)
+        self.assert_is_none(ctx.request)
+        self.assert_is_none(ctx._router)
 
-    eq_(local.context(), ctx)
-    eq_(local.app(), ctx.app)
-    eq_(local.pop(), ctx)
+        self.assert_is(local.context(), ctx)
+        self.assert_is(local.app(), ctx.app)
+        self.assert_is(local.pop(), ctx)
 
-    eq_(local.pop(), None)
+        self.assert_is_none(local.pop())
 
-    assert_raises(AyameError, local.context)
-    assert_raises(AyameError, local.app)
+        with self.assert_raises(ayame.AyameError):
+            local.context()
+        with self.assert_raises(ayame.AyameError):
+            local.app()

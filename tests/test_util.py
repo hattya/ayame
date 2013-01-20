@@ -1,7 +1,7 @@
 #
 # test_util
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -27,234 +27,327 @@
 import io
 import os
 import sys
+import types
 
-from nose.tools import assert_raises, eq_, ok_
-
+import ayame
 from ayame import util
-from ayame.exception import ResourceError
+from base import AyameTestCase
 
 
-def test_fqon_of():
-    class O:
-        pass
-    class N(object):
-        pass
+class UtilTestCase(AyameTestCase):
 
-    o = O()
-    n = N()
+    def setup(self):
+        super(UtilTestCase, self).setup()
+        self._module = sys.modules[__name__]
 
-    def f():
-        pass
-    def u():
-        pass
-    del u.__module__
+    def teardown(self):
+        super(UtilTestCase, self).teardown()
+        sys.modules[__name__] = self._module
 
-    eq_(util.fqon_of(O), __name__ + '.O')
-    eq_(util.fqon_of(o), __name__ + '.O')
-    eq_(util.fqon_of(N), __name__ + '.N')
-    eq_(util.fqon_of(n), __name__ + '.N')
-    eq_(util.fqon_of(f), __name__ + '.f')
-    eq_(util.fqon_of(u), '<unknown>.u')
-    eq_(util.fqon_of(util), 'ayame.util')
-    # __builtin__
-    eq_(util.fqon_of([]), 'list')
-    eq_(util.fqon_of({}), 'dict')
-    eq_(util.fqon_of(1), 'int')
-    eq_(util.fqon_of(1.0), 'float')
+    def test_fqon_of_builtin(self):
+        self.assert_equal(util.fqon_of(None), 'NoneType')
+        self.assert_equal(util.fqon_of(True), 'bool')
+        self.assert_equal(util.fqon_of(False), 'bool')
+        self.assert_equal(util.fqon_of(''), 'str')
+        self.assert_equal(util.fqon_of([]), 'list')
+        self.assert_equal(util.fqon_of({}), 'dict')
+        self.assert_equal(util.fqon_of(1), 'int')
+        self.assert_equal(util.fqon_of(3.14), 'float')
 
+    def test_fqon_of_class(self):
+        class O:
+            pass
+        self.assert_equal(util.fqon_of(O), __name__ + '.O')
+        self.assert_equal(util.fqon_of(O()), __name__ + '.O')
+        O.__module__ = None
+        self.assert_equal(util.fqon_of(O), '<unknown>.O')
+        self.assert_equal(util.fqon_of(O()), '<unknown>.O')
+        if sys.hexversion < 0x03000000:
+            del O.__module__
+            self.assert_equal(util.fqon_of(O), 'O')
+            self.assert_equal(util.fqon_of(O()), 'O')
 
-def test_load_data():
-    class Spam(object):
-        pass
+        class N(object):
+            pass
+        self.assert_equal(util.fqon_of(N), __name__ + '.N')
+        self.assert_equal(util.fqon_of(N()), __name__ + '.N')
+        N.__module__ = None
+        self.assert_equal(util.fqon_of(N), '<unknown>.N')
+        self.assert_equal(util.fqon_of(N()), '<unknown>.N')
 
-    def spam():
-        pass
+    def test_fqon_of_function(self):
+        def f():
+            pass
+        self.assert_equal(util.fqon_of(f), __name__ + '.f')
+        del f.__module__
+        self.assert_equal(util.fqon_of(f), '<unknown>.f')
 
-    with util.load_data(Spam, 'Spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt')
-    with util.load_data(Spam, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt')
-    with util.load_data(Spam(), 'Spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt')
-    with util.load_data(Spam(), '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt')
-    with util.load_data(spam, 'spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/spam.txt')
-    with util.load_data(spam, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/spam.txt')
-    with util.load_data(sys.modules[__name__], '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/.txt')
+        f = lambda: None
+        self.assert_equal(util.fqon_of(f), __name__ + '.<lambda>')
+        del f.__module__
+        self.assert_equal(util.fqon_of(f), '<unknown>.<lambda>')
 
-    assert_raises(ResourceError, util.load_data, Spam, os.path.pardir)
-    assert_raises(ResourceError, util.load_data, Spam,
-                  os.path.join(*(os.path.pardir,) * 2))
-    assert_raises(ResourceError, util.load_data, Spam, os.path.sep)
+    def test_fqon_of_module(self):
+        self.assert_equal(util.fqon_of(os), 'os')
+        self.assert_equal(util.fqon_of(util), 'ayame.util')
 
-    class Eggs(object):
-        pass
-    assert_raises(ResourceError, util.load_data, Eggs, 'Eggs.txt')
-    assert_raises(ResourceError, util.load_data, Eggs, '.txt')
-    assert_raises(ResourceError, util.load_data, Eggs(), 'Eggs.txt')
-    assert_raises(ResourceError, util.load_data, Eggs(), '.txt')
+    def test_load_data_class(self):
+        class Spam(object):
+            pass
 
-    def eggs():
-        pass
-    del eggs.__module__
-    assert_raises(ResourceError, util.load_data, eggs, 'eggs.txt')
-    assert_raises(ResourceError, util.load_data, eggs, '.txt')
+        def assert_load(*args):
+            with util.load_data(*args) as fp:
+                self.assert_equal(fp.read().strip(), 'test_util/Spam.txt')
+        assert_load(Spam, 'Spam.txt')
+        assert_load(Spam, '.txt')
+        assert_load(Spam(), 'Spam.txt')
+        assert_load(Spam(), '.txt')
 
-    class Module(object):
-        __name__ = __name__
-    module = sys.modules[__name__]
-    sys.modules[__name__] = Module()
-    assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
-    assert_raises(ResourceError, util.load_data, Spam, '.txt')
-    assert_raises(ResourceError, util.load_data, Spam(), 'Spam.txt')
-    assert_raises(ResourceError, util.load_data, Spam(), '.txt')
-    assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
-    assert_raises(ResourceError, util.load_data, spam, '.txt')
-    assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
-    sys.modules[__name__] = module
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          "^invalid path '"):
+                util.load_data(*args)
+        assert_load(Spam, os.path.pardir)
+        assert_load(Spam, os.path.join(*(os.path.pardir,) * 2))
+        assert_load(Spam, os.path.sep)
+        assert_load(Spam(), os.path.pardir)
+        assert_load(Spam(), os.path.join(*(os.path.pardir,) * 2))
+        assert_load(Spam(), os.path.sep)
 
-    class Module(object):
-        __file__ = __file__
-        __loader__ = True
-        __name__ = __name__
-    module = sys.modules[__name__]
-    sys.modules[__name__] = Module()
-    assert_raises(ResourceError, util.load_data, Spam, 'Spam.txt')
-    assert_raises(ResourceError, util.load_data, Spam, '.txt')
-    assert_raises(ResourceError, util.load_data, Spam(), 'Spam.txt')
-    assert_raises(ResourceError, util.load_data, Spam(), '.txt')
-    assert_raises(ResourceError, util.load_data, spam, 'spam.txt')
-    assert_raises(ResourceError, util.load_data, spam, '.txt')
-    assert_raises(ResourceError, util.load_data, sys.modules[__name__], '.txt')
-    sys.modules[__name__] = module
+        Spam.__module__ = None
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          ' find module '):
+                util.load_data(*args)
+        assert_load(Spam, 'Spam.txt')
+        assert_load(Spam, '.txt')
+        assert_load(Spam(), 'Spam.txt')
+        assert_load(Spam(), '.txt')
 
-    class Loader(object):
-        def get_data(self, path):
-            with io.open(path, 'rb') as fp:
-                return fp.read().strip() + b' from Loader'
-    class Module(object):
-        __file__ = __file__
-        __loader__ = Loader()
-        __name__ = __name__
-    module = sys.modules[__name__]
-    sys.modules[__name__] = Module()
-    with util.load_data(Spam, 'Spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
-    with util.load_data(Spam, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
-    with util.load_data(Spam(), 'Spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
-    with util.load_data(Spam(), '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/Spam.txt from Loader')
-    with util.load_data(spam, 'spam.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/spam.txt from Loader')
-    with util.load_data(spam, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/spam.txt from Loader')
-    loader = getattr(module, '__loader__', None)
-    module.__loader__ = Loader()
-    with util.load_data(module, '.txt') as fp:
-        eq_(fp.read().strip(), 'test_util/.txt from Loader')
-    if loader:
-        module.__loader__ = loader
-    else:
-        del module.__loader__
-    sys.modules[__name__] = module
+        class Eggs(object):
+            pass
 
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+                util.load_data(*args)
+        assert_load(Eggs, 'Eggs.txt')
+        assert_load(Eggs, '.txt')
+        assert_load(Eggs(), 'Eggs.txt')
+        assert_load(Eggs(), '.txt')
 
-def test_to_bytes():
-    # iroha in hiragana
-    v = util.to_bytes(u'\u3044\u308d\u306f')
-    eq_(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
-    ok_(isinstance(v, bytes))
+    def test_load_data_function(self):
+        def spam():
+            pass
 
-    v = util.to_bytes(u'\u3044\u308d\u306f', 'ascii', 'ignore')
-    eq_(v, b'')
-    ok_(isinstance(v, bytes))
+        def assert_load(*args):
+            with util.load_data(*args) as fp:
+                self.assert_equal(fp.read().strip(), 'test_util/spam.txt')
+        assert_load(spam, 'spam.txt')
+        assert_load(spam, '.txt')
 
-    assert_raises(UnicodeEncodeError,
-                  util.to_bytes, u'\u3044\u308d\u306f', 'ascii')
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          "^invalid path '"):
+                util.load_data(*args)
+        assert_load(spam, os.path.pardir)
+        assert_load(spam, os.path.join(*(os.path.pardir,) * 2))
+        assert_load(spam, os.path.sep)
 
-    v = util.to_bytes(b'abc')
-    eq_(v, b'abc')
-    ok_(isinstance(v, bytes))
+        del spam.__module__
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          ' find module '):
+                util.load_data(*args)
+        assert_load(spam, 'spam.txt')
+        assert_load(spam, '.txt')
 
-    v = util.to_bytes(0)
-    eq_(v, b'0')
-    ok_(isinstance(v, bytes))
+        def eggs():
+            pass
 
-    v = util.to_bytes(3.14)
-    eq_(v, b'3.14')
-    ok_(isinstance(v, bytes))
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+                util.load_data(*args)
+        assert_load(eggs, 'eggs.txt')
+        assert_load(eggs, '.txt')
 
+    def test_load_data_module(self):
+        module = sys.modules[__name__]
 
-def test_to_list():
-    eq_(util.to_list(1), [1])
-    eq_(util.to_list(3.14), [3.14])
-    eq_(util.to_list('abc'), ['abc'])
-    eq_(util.to_list(''), [''])
-    eq_(util.to_list(None), [])
-    eq_(util.to_list([1]), [1])
-    eq_(util.to_list((1,)), [1])
-    eq_(util.to_list({'a': 1}), ['a'])
+        with util.load_data(module, '.txt') as fp:
+            self.assert_equal(fp.read().strip(), 'test_util/.txt')
 
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          "^invalid path '"):
+                util.load_data(*args)
+        assert_load(module, os.path.pardir)
+        assert_load(module, os.path.join(*(os.path.pardir,) * 2))
+        assert_load(module, os.path.sep)
 
-def test_new_token():
-    a = util.new_token()
-    b = util.new_token()
-    ok_(a != b)
+    def test_load_data_no___file__(self):
+        class Module(types.ModuleType):
+            pass
 
+        class Spam(object):
+            pass
+        def spam():
+            pass
 
-def test_filter_dict():
-    class LowerDict(util.FilterDict):
-        def __convert__(self, key):
-            if isinstance(key, basestring):
-                return key.lower()
-            return super(LowerDict, self).__convert__(key)
+        sys.modules[__name__] = Module(__name__)
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          "' module location$"):
+                util.load_data(*args)
+        assert_load(Spam, 'Spam.txt')
+        assert_load(Spam, '.txt')
+        assert_load(Spam(), 'Spam.txt')
+        assert_load(Spam(), '.txt')
+        assert_load(spam, 'spam.txt')
+        assert_load(spam, '.txt')
+        assert_load(sys.modules[__name__], '.txt')
 
-    d = LowerDict(A=0)
+    def test_load_data_no___loader__(self):
+        class Module(types.ModuleType):
+            __file__ = __file__
+            __loader__ = True
 
-    eq_(d['A'], 0)
-    eq_(d['a'], 0)
-    ok_('A' in d)
-    ok_('a' in d)
-    eq_(d.get('A'), 0)
-    eq_(d.get('a'), 0)
-    ok_(d.has_key('A'))
-    ok_(d.has_key('a'))
-    d.setdefault('a', -1)
-    eq_(d, {'a': 0})
+        class Spam(object):
+            pass
+        def spam():
+            pass
 
-    d['B'] = 1
-    eq_(d['B'], 1)
-    eq_(d['b'], 1)
-    ok_('B' in d)
-    ok_('b' in d)
-    eq_(d.get('B'), 1)
-    eq_(d.get('b'), 1)
-    ok_(d.has_key('B'))
-    ok_(d.has_key('b'))
-    d.setdefault('b', -1)
-    eq_(d, {'a': 0, 'b': 1})
+        sys.modules[__name__] = Module(__name__)
+        def assert_load(*args):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          " load '.*' from loader "):
+                util.load_data(*args)
+        assert_load(Spam, 'Spam.txt')
+        assert_load(Spam, '.txt')
+        assert_load(Spam(), 'Spam.txt')
+        assert_load(Spam(), '.txt')
+        assert_load(spam, 'spam.txt')
+        assert_load(spam, '.txt')
+        assert_load(sys.modules[__name__], '.txt')
 
-    del d['b']
-    eq_(d, {'a': 0})
+    def test_load_data___loader__(self):
+        class Loader(object):
+            def get_data(self, path):
+                with io.open(path, 'rb') as fp:
+                    return fp.read().strip() + b' from Loader'
+        class Module(types.ModuleType):
+            __file__ = __file__
+            __loader__ = Loader()
 
-    eq_(d.pop('a'), 0)
-    eq_(d, {})
+        class Spam(object):
+            pass
+        def spam():
+            pass
 
-    d.update(A=0, b=1)
-    eq_(d, {'a': 0, 'b': 1})
+        sys.modules[__name__] = Module(__name__)
 
-    d[0] = 'a'
-    eq_(d, {'a': 0, 'b': 1, 0: 'a'})
+        def assert_load(*args):
+            with util.load_data(*args) as fp:
+                self.assert_equal(fp.read().strip(),
+                                  'test_util/Spam.txt from Loader')
+        assert_load(Spam, 'Spam.txt')
+        assert_load(Spam, '.txt')
+        assert_load(Spam(), 'Spam.txt')
+        assert_load(Spam(), '.txt')
 
-    x = d.copy()
-    ok_(isinstance(x, LowerDict))
-    eq_(x, d)
+        def assert_load(*args):
+            with util.load_data(*args) as fp:
+                self.assert_equal(fp.read().strip(),
+                                  'test_util/spam.txt from Loader')
+        assert_load(spam, 'spam.txt')
+        assert_load(spam, '.txt')
 
-    x[0] = 'b'
-    eq_(d, {'a': 0, 'b': 1, 0: 'a'})
-    eq_(x, {'a': 0, 'b': 1, 0: 'b'})
+        with util.load_data(sys.modules[__name__], '.txt') as fp:
+            self.assert_equal(fp.read().strip(), 'test_util/.txt from Loader')
+
+    def test_to_bytes(self):
+        # iroha in hiragana
+        v = util.to_bytes(u'\u3044\u308d\u306f')
+        self.assert_is_instance(v, bytes)
+        self.assert_equal(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
+
+        v = util.to_bytes(u'\u3044\u308d\u306f', 'ascii', 'ignore')
+        self.assert_is_instance(v, bytes)
+        self.assert_equal(v, b'')
+
+        with self.assert_raises(UnicodeEncodeError):
+            util.to_bytes(u'\u3044\u308d\u306f', 'ascii')
+
+        v = util.to_bytes(b'abc')
+        self.assert_is_instance(v, bytes)
+        self.assert_equal(v, b'abc')
+
+        v = util.to_bytes(0)
+        self.assert_is_instance(v, bytes)
+        self.assert_equal(v, b'0')
+
+        v = util.to_bytes(3.14)
+        self.assert_is_instance(v, bytes)
+        self.assert_equal(v, b'3.14')
+
+    def test_to_list(self):
+        self.assert_equal(util.to_list(None), [])
+        self.assert_equal(util.to_list('abc'), ['abc'])
+        self.assert_equal(util.to_list(''), [''])
+        self.assert_equal(util.to_list(1), [1])
+        self.assert_equal(util.to_list(3.14), [3.14])
+        self.assert_equal(util.to_list((1,)), [1])
+        self.assert_equal(util.to_list([1]), [1])
+        self.assert_equal(util.to_list({'a': 1}), ['a'])
+
+    def test_new_token(self):
+        a = util.new_token()
+        b = util.new_token()
+        self.assert_not_equal(a, b)
+
+    def test_filter_dict(self):
+        class LowerDict(util.FilterDict):
+            def __convert__(self, key):
+                if isinstance(key, basestring):
+                    return key.lower()
+                return super(LowerDict, self).__convert__(key)
+
+        d = LowerDict(A=0)
+        self.assert_equal(d['A'], 0)
+        self.assert_equal(d['a'], 0)
+        self.assert_in('A', d)
+        self.assert_in('a', d)
+        self.assert_equal(d.get('A'), 0)
+        self.assert_equal(d.get('a'), 0)
+        self.assert_true(d.has_key('A'))
+        self.assert_true(d.has_key('a'))
+        d.setdefault('a', -1)
+        self.assert_equal(d, {'a': 0})
+
+        d['B'] = 1
+        self.assert_equal(d['B'], 1)
+        self.assert_equal(d['b'], 1)
+        self.assert_in('B', d)
+        self.assert_in('b', d)
+        self.assert_equal(d.get('B'), 1)
+        self.assert_equal(d.get('b'), 1)
+        self.assert_true(d.has_key('B'))
+        self.assert_true(d.has_key('b'))
+        d.setdefault('b', -1)
+        self.assert_equal(d, {'a': 0, 'b': 1})
+
+        del d['b']
+        self.assert_equal(d, {'a': 0})
+        self.assert_equal(d.pop('a'), 0)
+        self.assert_equal(d, {})
+
+        d.update(A=0, b=1)
+        self.assert_equal(d, {'a': 0, 'b': 1})
+        d[0] = 'a'
+        self.assert_equal(d, {'a': 0, 'b': 1, 0: 'a'})
+
+        x = d.copy()
+        self.assert_is_instance(x, LowerDict)
+        self.assert_equal(x, d)
+        x[0] = 'b'
+        self.assert_equal(d, {'a': 0, 'b': 1, 0: 'a'})
+        self.assert_equal(x, {'a': 0, 'b': 1, 0: 'b'})

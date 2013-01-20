@@ -1,7 +1,7 @@
 #
 # test_page
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,42 +24,32 @@
 #   SOFTWARE.
 #
 
-from contextlib import contextmanager
-
-from nose.tools import eq_, ok_
-
-from ayame import http, local
-from ayame import app as _app
-from ayame import page as _page
+from ayame import http, page
+from base import AyameTestCase
 
 
-@contextmanager
-def application(environ=None):
-    app = _app.Ayame(__name__)
-    try:
-        ctx = local.push(app, environ)
-        yield
-    finally:
-        local.pop()
+class PageTestCase(AyameTestCase):
 
+    def test_http_302(self):
+        location = 'http://localhost/'
+        with self.application():
+            p = page.HTTPStatusPage(http.Found(location))
+            status, headers, content = p.render()
+        self.assert_equal(status, http.Found.status)
+        self.assert_equal(headers,
+                          [('Location', location),
+                           ('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', '931')])
+        self.assert_true(content)
+        self.assert_regex(content, b'<p>.*</p>')
 
-def test_http_status_page():
-    location = 'http://localhost/'
-    with application():
-        page = _page.HTTPStatusPage(http.Found(location))
-        status, headers, content = page.render()
-    eq_(status, http.Found.status)
-    eq_(headers, [('Location', location),
-                  ('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '931')])
-    ok_(content)
-    ok_(b'<p>' in content)
-
-    with application():
-        page = _page.HTTPStatusPage(http.NotModified())
-        status, headers, content = page.render()
-    eq_(status, http.NotModified.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', '852')])
-    ok_(content)
-    ok_(b'<p>' not in content)
+    def test_http_304(self):
+        with self.application():
+            p = page.HTTPStatusPage(http.NotModified())
+            status, headers, content = p.render()
+        self.assert_equal(status, http.NotModified.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', '852')])
+        self.assert_true(content)
+        self.assert_not_in(b'<p>', content)

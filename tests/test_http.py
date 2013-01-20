@@ -1,7 +1,7 @@
 #
 # test_http
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,387 +24,353 @@
 #   SOFTWARE.
 #
 
-import io
-
-from nose.tools import assert_raises, eq_, ok_
-
-from ayame import exception, http
+import ayame
+from ayame import http
+from base import AyameTestCase
 
 
-def test_parse_accept():
-    eq_(http.parse_accept(''), ())
-    eq_(http.parse_accept('ja, en'), (('ja', 1.0), ('en', 1.0)))
-    eq_(http.parse_accept('en, ja'), (('en', 1.0), ('ja', 1.0)))
-    eq_(http.parse_accept('en; q=0.7, ja'), (('ja', 1.0), ('en', 0.7)))
+class HTTPTestCase(AyameTestCase):
 
-    # invalid
-    eq_(http.parse_accept('ja, en; q=33.3333'), (('ja', 1.0), ('en', 1.0)))
-    eq_(http.parse_accept('ja, en, q=0.7'),
-        (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
+    def setup(self):
+        super(HTTPTestCase, self).setup()
+        self.boundary = 'ayame.http'
 
+    def new_environ(self, data=None, body=None):
+        return super(HTTPTestCase, self).new_environ(method='POST',
+                                                     data=data,
+                                                     body=body)
 
-def test_parse_form_data():
-    # empty
-    environ = {'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_LENGTH': '0'}
-    eq_(http.parse_form_data(environ), {})
+    def test_parse_accept(self):
+        self.assert_equal(http.parse_accept(''),
+                          ())
+        self.assert_equal(http.parse_accept('ja, en'),
+                          (('ja', 1.0), ('en', 1.0)))
+        self.assert_equal(http.parse_accept('en, ja'),
+                          (('en', 1.0), ('ja', 1.0)))
+        self.assert_equal(http.parse_accept('en; q=0.7, ja'),
+                          (('ja', 1.0), ('en', 0.7)))
+        # invalid
+        self.assert_equal(http.parse_accept('ja, en; q=33.3333'),
+                          (('ja', 1.0), ('en', 1.0)))
+        self.assert_equal(http.parse_accept('ja, en, q=0.7'),
+                          (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
 
-    environ = {'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-               'CONTENT_LENGTH': '0'}
-    eq_(http.parse_form_data(environ), {})
+    def test_parse_form_data_empty(self):
+        self.assert_equal(http.parse_form_data(self.new_environ()), {})
+        self.assert_equal(http.parse_form_data(self.new_environ(data='')), {})
+        self.assert_equal(http.parse_form_data(self.new_environ(body='')), {})
 
-    environ = {'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
-               'CONTENT_LENGTH': '0'}
-    eq_(http.parse_form_data(environ), {})
+    def test_parse_form_data_ascii(self):
+        data = """\
+x=-1&\
+y=-1&\
+y=-2&\
+z=-1&\
+z=-2&\
+z=-3\
+"""
+        self.assert_equal(http.parse_form_data(self.new_environ(data=data)),
+                          {'x': ['-1'],
+                           'y': ['-1', '-2'],
+                           'z': ['-1', '-2', '-3']})
 
-    # ASCII
-    data = ('x=-1&'
-            'y=-1&'
-            'y=-2&'
-            'z=-1&'
-            'z=-2&'
-            'z=-3')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-               'CONTENT_LENGTH': str(len(data))}
-    eq_(http.parse_form_data(environ), {'x': ['-1'],
-                                        'y': ['-1', '-2'],
-                                        'z': ['-1', '-2', '-3']})
+        data = """\
+{__}
+Content-Disposition: form-data; name="x"
 
-    data = ('--ayame.http\r\n'
-            'Content-Disposition: form-data; name="x"\r\n'
-            '\r\n'
-            '-1\r\n'
-            '--ayame.http\r\n'
-            'Content-Disposition: form-data; name="y"\r\n'
-            '\r\n'
-            '-1\r\n'
-            '--ayame.http\r\n'
-            'Content-Disposition: form-data; name="y"\r\n'
-            '\r\n'
-            '-2\r\n'
-            '--ayame.http\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-1\r\n'
-            '--ayame.http\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-2\r\n'
-            '--ayame.http\r\n'
-            'Content-Disposition: form-data; name="z"\r\n'
-            '\r\n'
-            '-3\r\n'
-            '--ayame.http--\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
-               'CONTENT_LENGTH': str(len(data))}
-    eq_(http.parse_form_data(environ), {'x': ['-1'],
-                                        'y': ['-1', '-2'],
-                                        'z': ['-1', '-2', '-3']})
+-1
+{__}
+Content-Disposition: form-data; name="y"
 
-    # UTF-8
-    data = (u'\u3082=\u767e&'
-            u'\u305b=\u767e&'
-            u'\u305b=\u5343&'
-            u'\u3059=\u767e&'
-            u'\u3059=\u5343&'
-            u'\u3059=\u4e07')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'application/x-www-form-urlencoded',
-               'CONTENT_LENGTH': str(len(data))}
-    eq_(http.parse_form_data(environ),
-        {u'\u3082': [u'\u767e'],
-         u'\u305b': [u'\u767e', u'\u5343'],
-         u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+-1
+{__}
+Content-Disposition: form-data; name="y"
 
-    data = (u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u3082"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u305b"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u305b"\r\n'
-            u'\r\n'
-            u'\u5343\r\n'
-            u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u767e\r\n'
-            u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u5343\r\n'
-            u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="\u3059"\r\n'
-            u'\r\n'
-            u'\u4e07\r\n'
-            u'--ayame.http--\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
-               'CONTENT_LENGTH': str(len(data))}
-    eq_(http.parse_form_data(environ),
-        {u'\u3082': [u'\u767e'],
-         u'\u305b': [u'\u767e', u'\u5343'],
-         u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+-2
+{__}
+Content-Disposition: form-data; name="z"
 
-    # filename
-    data = (u'--ayame.http\r\n'
-            u'Content-Disposition: form-data; name="a"; filename="\u3044"\r\n'
-            u'Content-Type: text/plain\r\n'
-            u'\r\n'
-            u'spam\n'
-            u'eggs\n'
-            u'ham\n'
-            u'\r\n'
-            u'--ayame.http--\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
-               'CONTENT_LENGTH': str(len(data))}
-    form_data = http.parse_form_data(environ)
-    eq_(tuple(form_data), ('a',))
+-1
+{__}
+Content-Disposition: form-data; name="z"
 
-    fields = form_data['a']
-    eq_(len(fields), 1)
+-2
+{__}
+Content-Disposition: form-data; name="z"
 
-    a = fields[0]
-    eq_(a.name, 'a')
-    eq_(a.filename, u'\u3044')
-    eq_(a.value, (b'spam\n'
-                  b'eggs\n'
-                  b'ham\n'))
+-3
+{____}
+"""
+        self.assert_equal(http.parse_form_data(self.new_environ(body=data)),
+                          {'x': ['-1'],
+                           'y': ['-1', '-2'],
+                           'z': ['-1', '-2', '-3']})
 
-    # PUT
-    data = ('spam\n'
-            'eggs\n'
-            'ham\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'PUT',
-               'CONTENT_TYPE': 'text/plain',
-               'CONTENT_LENGTH': str(len(data))}
-    eq_(http.parse_form_data(environ), {})
+    def test_parse_form_data_utf_8(self):
+        data = u"""\
+\u3082=\u767e&\
+\u305b=\u767e&\
+\u305b=\u5343&\
+\u3059=\u767e&\
+\u3059=\u5343&\
+\u3059=\u4e07\
+"""
+        self.assert_equal(http.parse_form_data(self.new_environ(data=data)),
+                          {u'\u3082': [u'\u767e'],
+                           u'\u305b': [u'\u767e', u'\u5343'],
+                           u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
-    # 408 Request Timeout
-    data = ('--ayame.http\r\n'
-            'Content-Disposition: form-data; name="a"\r\n'
-            'Content-Type: text/plain\r\n')
-    data = data.encode('utf-8')
-    environ = {'wsgi.input': io.BytesIO(data),
-               'REQUEST_METHOD': 'POST',
-               'CONTENT_TYPE': 'multipart/form-data; boundary=ayame.http',
-               'CONTENT_LENGTH': str(len(data) + 1)}
-    assert_raises(http.RequestTimeout, http.parse_form_data, environ)
+        data = u"""\
+{__}
+Content-Disposition: form-data; name="\u3082"
 
+\u767e
+{__}
+Content-Disposition: form-data; name="\u305b"
 
-def test_http_status():
-    e = http.HTTPStatus()
-    ok_(issubclass(e.__class__, exception.AyameError))
-    eq_(str(e), e.status)
-    eq_(e.code, 0)
-    eq_(e.reason, '')
-    eq_(e.status, '')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+\u767e
+{__}
+Content-Disposition: form-data; name="\u305b"
 
+\u5343
+{__}
+Content-Disposition: form-data; name="\u3059"
 
-def test_http_200():
-    e = http.OK()
-    ok_(issubclass(e.__class__, http.HTTPSuccessful))
-    eq_(str(e), e.status)
-    eq_(e.code, 200)
-    eq_(e.reason, 'OK')
-    eq_(e.status, '200 OK')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+\u767e
+{__}
+Content-Disposition: form-data; name="\u3059"
 
+\u5343
+{__}
+Content-Disposition: form-data; name="\u3059"
 
-def test_http_201():
-    e = http.Created()
-    ok_(issubclass(e.__class__, http.HTTPSuccessful))
-    eq_(str(e), e.status)
-    eq_(e.code, 201)
-    eq_(e.reason, 'Created')
-    eq_(e.status, '201 Created')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+\u4e07
+{____}
+"""
+        self.assert_equal(http.parse_form_data(self.new_environ(body=data)),
+                          {u'\u3082': [u'\u767e'],
+                           u'\u305b': [u'\u767e', u'\u5343'],
+                           u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
+    def test_parse_form_data_post(self):
+        data = u"""\
+{__}
+Content-Disposition: form-data; name="a"; filename="\u3044"
+Content-Type: text/plain
 
-def test_http_202():
-    e = http.Accepted()
-    ok_(issubclass(e.__class__, http.HTTPSuccessful))
-    eq_(str(e), e.status)
-    eq_(e.code, 202)
-    eq_(e.reason, 'Accepted')
-    eq_(e.status, '202 Accepted')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+spam
+eggs
+ham
 
+{____}
+"""
+        form_data = http.parse_form_data(self.new_environ(body=data))
+        self.assert_equal(tuple(form_data), ('a',))
+        self.assert_equal(len(form_data['a']), 1)
+        a = form_data['a'][0]
+        self.assert_equal(a.name, 'a')
+        self.assert_equal(a.filename, u'\u3044')
+        self.assert_equal(a.value, (b'spam\n'
+                                    b'eggs\n'
+                                    b'ham\n'))
 
-def test_http_204():
-    e = http.NoContent()
-    ok_(issubclass(e.__class__, http.HTTPSuccessful))
-    eq_(str(e), e.status)
-    eq_(e.code, 204)
-    eq_(e.reason, 'No Content')
-    eq_(e.status, '204 No Content')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+    def test_parse_form_data_put(self):
+        data = """\
+spam
+eggs
+ham
+"""
+        environ = self.new_environ(data=data)
+        environ.update(REQUEST_METHOD='PUT',
+                       CONTENT_TYPE='text/plain')
+        self.assert_equal(http.parse_form_data(environ), {})
 
+    def test_parse_form_data_http_408(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="a"
+Content-Type: text/plain
+"""
+        environ = self.new_environ(body=data)
+        environ['CONTENT_LENGTH'] = str(len(data) * 2)
+        with self.assert_raises(http.RequestTimeout):
+            http.parse_form_data(environ)
 
-def test_http_301():
-    uri = 'http://localhost/'
-    e = http.MovedPermanently(uri)
-    ok_(issubclass(e.__class__, http.HTTPRedirection))
-    eq_(str(e), e.status)
-    eq_(e.code, 301)
-    eq_(e.reason, 'Moved Permanently')
-    eq_(e.status, '301 Moved Permanently')
-    eq_(e.headers, [('Location', uri)])
-    ok_(e.description)
+    def test_http_status(self):
+        e = http.HTTPStatus()
+        self.assert_true(issubclass(e.__class__, ayame.AyameError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 0)
+        self.assert_equal(e.reason, '')
+        self.assert_equal(e.status, '')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
+    def test_http_200(self):
+        e = http.OK()
+        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 200)
+        self.assert_equal(e.reason, 'OK')
+        self.assert_equal(e.status, '200 OK')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
-def test_http_302():
-    uri = 'http://localhost/'
-    e = http.Found(uri)
-    ok_(issubclass(e.__class__, http.HTTPRedirection))
-    eq_(str(e), e.status)
-    eq_(e.code, 302)
-    eq_(e.reason, 'Found')
-    eq_(e.status, '302 Found')
-    eq_(e.headers, [('Location', uri)])
-    ok_(e.description)
+    def test_http_201(self):
+        e = http.Created()
+        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 201)
+        self.assert_equal(e.reason, 'Created')
+        self.assert_equal(e.status, '201 Created')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
+    def test_http_202(self):
+        e = http.Accepted()
+        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 202)
+        self.assert_equal(e.reason, 'Accepted')
+        self.assert_equal(e.status, '202 Accepted')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
-def test_http_303():
-    uri = 'http://localhost/'
-    e = http.SeeOther(uri)
-    ok_(issubclass(e.__class__, http.HTTPRedirection))
-    eq_(str(e), e.status)
-    eq_(e.code, 303)
-    eq_(e.reason, 'See Other')
-    eq_(e.status, '303 See Other')
-    eq_(e.headers, [('Location', uri)])
-    ok_(e.description)
+    def test_http_204(self):
+        e = http.NoContent()
+        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 204)
+        self.assert_equal(e.reason, 'No Content')
+        self.assert_equal(e.status, '204 No Content')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
+    def test_http_301(self):
+        uri = 'http://localhost/'
+        e = http.MovedPermanently(uri)
+        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 301)
+        self.assert_equal(e.reason, 'Moved Permanently')
+        self.assert_equal(e.status, '301 Moved Permanently')
+        self.assert_equal(e.headers, [('Location', uri)])
+        self.assert_in(uri, e.description)
 
-def test_http_304():
-    e = http.NotModified()
-    ok_(issubclass(e.__class__, http.HTTPRedirection))
-    eq_(str(e), e.status)
-    eq_(e.code, 304)
-    eq_(e.reason, 'Not Modified')
-    eq_(e.status, '304 Not Modified')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+    def test_http_302(self):
+        uri = 'http://localhost/'
+        e = http.Found(uri)
+        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 302)
+        self.assert_equal(e.reason, 'Found')
+        self.assert_equal(e.status, '302 Found')
+        self.assert_equal(e.headers, [('Location', uri)])
+        self.assert_in(uri, e.description)
 
+    def test_http_303(self):
+        uri = 'http://localhost/'
+        e = http.SeeOther(uri)
+        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 303)
+        self.assert_equal(e.reason, 'See Other')
+        self.assert_equal(e.status, '303 See Other')
+        self.assert_equal(e.headers, [('Location', uri)])
+        self.assert_in(uri, e.description)
 
-def test_http_400():
-    e = http.BadRequest()
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 400)
-    eq_(e.reason, 'Bad Request')
-    eq_(e.status, '400 Bad Request')
-    eq_(e.headers, [])
-    eq_(e.description, '')
+    def test_http_304(self):
+        e = http.NotModified()
+        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 304)
+        self.assert_equal(e.reason, 'Not Modified')
+        self.assert_equal(e.status, '304 Not Modified')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
+    def test_http_400(self):
+        e = http.BadRequest()
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 400)
+        self.assert_equal(e.reason, 'Bad Request')
+        self.assert_equal(e.status, '400 Bad Request')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
-def test_http_401():
-    e = http.Unauthrized()
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 401)
-    eq_(e.reason, 'Unauthrized')
-    eq_(e.status, '401 Unauthrized')
-    eq_(e.headers, [])
-    ok_(e.description)
+    def test_http_401(self):
+        e = http.Unauthrized()
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 401)
+        self.assert_equal(e.reason, 'Unauthrized')
+        self.assert_equal(e.status, '401 Unauthrized')
+        self.assert_equal(e.headers, [])
+        self.assert_true(e.description)
 
+    def test_http_403(self):
+        uri = 'http://localhsot/'
+        e = http.Forbidden(uri)
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 403)
+        self.assert_equal(e.reason, 'Forbidden')
+        self.assert_equal(e.status, '403 Forbidden')
+        self.assert_equal(e.headers, [])
+        self.assert_in(uri, e.description)
 
-def test_http_403():
-    uri = 'http://localhsot/'
-    e = http.Forbidden(uri)
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 403)
-    eq_(e.reason, 'Forbidden')
-    eq_(e.status, '403 Forbidden')
-    eq_(e.headers, [])
-    ok_(e.description)
+    def test_http_404(self):
+        uri = 'http://localhsot/'
+        e = http.NotFound(uri)
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 404)
+        self.assert_equal(e.reason, 'Not Found')
+        self.assert_equal(e.status, '404 Not Found')
+        self.assert_equal(e.headers, [])
+        self.assert_in(uri, e.description)
 
+    def test_http_405(self):
+        uri = 'http://localhsot/'
+        e = http.MethodNotAllowed('PUT', uri, ['GET', 'POST'])
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 405)
+        self.assert_equal(e.reason, 'Method Not Allowed')
+        self.assert_equal(e.status, '405 Method Not Allowed')
+        self.assert_equal(e.headers, [('Allow', 'GET, POST')])
+        self.assert_in(uri, e.description)
 
-def test_http_404():
-    uri = 'http://localhsot/'
-    e = http.NotFound(uri)
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 404)
-    eq_(e.reason, 'Not Found')
-    eq_(e.status, '404 Not Found')
-    eq_(e.headers, [])
-    ok_(e.description)
+    def test_http_408(self):
+        e = http.RequestTimeout()
+        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 408)
+        self.assert_equal(e.reason, 'Request Timeout')
+        self.assert_equal(e.status, '408 Request Timeout')
+        self.assert_equal(e.headers, [])
+        self.assert_true(e.description)
 
+    def test_http_500(self):
+        e = http.InternalServerError()
+        self.assert_true(issubclass(e.__class__, http.ServerError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 500)
+        self.assert_equal(e.reason, 'Internal Server Error')
+        self.assert_equal(e.status, '500 Internal Server Error')
+        self.assert_equal(e.headers, [])
+        self.assert_equal(e.description, '')
 
-def test_http_405():
-    uri = 'http://localhsot/'
-    e = http.MethodNotAllowed('PUT', uri, ['GET', 'POST'])
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 405)
-    eq_(e.reason, 'Method Not Allowed')
-    eq_(e.status, '405 Method Not Allowed')
-    eq_(e.headers, [('Allow', 'GET, POST')])
-    ok_(e.description)
-
-
-def test_http_408():
-    e = http.RequestTimeout()
-    ok_(issubclass(e.__class__, http.ClientError))
-    eq_(str(e), e.status)
-    eq_(e.code, 408)
-    eq_(e.reason, 'Request Timeout')
-    eq_(e.status, '408 Request Timeout')
-    eq_(e.headers, [])
-    ok_(e.description)
-
-
-def test_http_500():
-    e = http.InternalServerError()
-    ok_(issubclass(e.__class__, http.ServerError))
-    eq_(str(e), e.status)
-    eq_(e.code, 500)
-    eq_(e.reason, 'Internal Server Error')
-    eq_(e.status, '500 Internal Server Error')
-    eq_(e.headers, [])
-    eq_(e.description, '')
-
-
-def test_http_501():
-    method = 'PUT'
-    uri = 'http://localhsot/'
-    e = http.NotImplemented(method, uri)
-    ok_(issubclass(e.__class__, http.ServerError))
-    eq_(str(e), e.status)
-    eq_(e.code, 501)
-    eq_(e.reason, 'Not Implemented')
-    eq_(e.status, '501 Not Implemented')
-    eq_(e.headers, [])
-    ok_(e.description)
+    def test_http_501(self):
+        method = 'PUT'
+        uri = 'http://localhsot/'
+        e = http.NotImplemented(method, uri)
+        self.assert_true(issubclass(e.__class__, http.ServerError))
+        self.assert_equal(str(e), e.status)
+        self.assert_equal(e.code, 501)
+        self.assert_equal(e.reason, 'Not Implemented')
+        self.assert_equal(e.status, '501 Not Implemented')
+        self.assert_equal(e.headers, [])
+        self.assert_in(method, e.description)
+        self.assert_in(uri, e.description)

@@ -1,7 +1,7 @@
 #
 # test_link
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,173 +24,150 @@
 #   SOFTWARE.
 #
 
-from contextlib import contextmanager
-import io
-import os
-import urllib
-
-from nose.tools import assert_raises, eq_
-
-from ayame import core, http, link, local, markup, uri
-from ayame import app as _app
-from ayame.exception import ComponentError
+import ayame
+from ayame import http, link, markup, uri
+from base import AyameTestCase
 
 
-@contextmanager
-def application(app, environ=None):
-    if environ is None:
-        environ = {'REQUEST_METHOD': 'GET'}
-    try:
-        ctx = local.push(app, environ)
-        ctx.request = app.config['ayame.request'](environ, {})
-        ctx._router = app.config['ayame.route.map'].bind(environ)
-        yield
-    finally:
-        local.pop()
+class LinkTestCase(AyameTestCase):
+
+    def test_link_href(self):
+        a = markup.Element(link._A)
+        with self.application():
+            l = link.Link('a')
+            l.render(a)
+        self.assert_equal(a.attrib, {})
+        self.assert_equal(a.children, [])
+
+        a = markup.Element(link._A,
+                           attrib={link._HREF: None})
+        with self.application():
+            l = link.Link('a')
+            l.render(a)
+        self.assert_equal(a.attrib, {})
+        self.assert_equal(a.children, [])
+
+        a = markup.Element(link._A,
+                           attrib={link._HREF: '/spam'})
+        with self.application():
+            l = link.Link('a')
+            l.render(a)
+        self.assert_equal(a.attrib, {link._HREF: '/spam'})
+        self.assert_equal(a.children, [])
+
+    def test_link_src(self):
+        script = markup.Element(link._SCRIPT)
+        with self.application():
+            l = link.Link('a')
+            l.render(script)
+        self.assert_equal(script.attrib, {})
+        self.assert_equal(script.children, [])
+
+        script = markup.Element(link._SCRIPT,
+                                attrib={link._SRC: None})
+        with self.application():
+            l = link.Link('a')
+            l.render(script)
+        self.assert_equal(script.attrib, {})
+        self.assert_equal(script.children, [])
+
+        script = markup.Element(link._SCRIPT,
+                                attrib={link._SRC: '/spam'})
+        with self.application():
+            l = link.Link('a')
+            l.render(script)
+        self.assert_equal(script.attrib, {link._SRC: '/spam'})
+        self.assert_equal(script.children, [])
+
+    def test_link_replace_children(self):
+        a = markup.Element(link._A)
+        with self.application():
+            l = link.Link('a', 'spam')
+            l.render(a)
+        self.assert_equal(a.attrib, {})
+        self.assert_equal(a.children, ['spam'])
+
+    def test_action_link(self):
+        map = self.app.config['ayame.route.map']
+        map.connect('/', SpamPage)
+
+        with self.application(self.new_environ()):
+            p = SpamPage()
+            status, headers, content = p.render()
+        html = self.format(SpamPage)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_action_link_fire(self):
+        query = '{path}=link'
+        with self.application(self.new_environ(query=query)):
+            p = SpamPage()
+            with self.assert_raises(Clicked):
+                p.render()
+
+    def test_page_link(self):
+        map = self.app.config['ayame.route.map']
+        map.connect('/<y:int>', SpamPage)
+        map.connect('/', SpamPage)
+
+        a = markup.Element(link._A)
+        with self.application(self.new_environ()):
+            l = link.PageLink('a', SpamPage)
+            l.render(a)
+        self.assert_equal(a.attrib, {link._HREF: '/'})
+
+        a = markup.Element(link._A)
+        with self.application(self.new_environ()):
+            l = link.PageLink('a', SpamPage, {'a': ['1', '2']})
+            l.render(a)
+        self.assert_equal(a.attrib, {link._HREF: '/?a=1&a=2'})
+
+        a = markup.Element(link._A)
+        with self.application(self.new_environ()):
+            l = link.PageLink('a', SpamPage, {'y': 2012})
+            l.render(a)
+        self.assert_equal(a.attrib, {link._HREF: '/2012'})
+
+        a = markup.Element(link._A)
+        with self.application(self.new_environ()):
+            l = link.PageLink('a', SpamPage, {'y': 2012, 'a': ['1', '2']})
+            l.render(a)
+        self.assert_equal(a.attrib, {link._HREF: '/2012?a=1&a=2'})
+
+    def test_page_link_error(self):
+        with self.application(self.new_environ()):
+            with self.assert_raises_regex(ayame.ComponentError,
+                                          r" is not subclass of Page\b"):
+                link.PageLink('a', object)
 
 
-def test_link():
-    app = _app.Ayame(__name__)
-    eq_(app._name, __name__)
-    eq_(app._root, os.path.dirname(__file__))
+class SpamPage(ayame.Page):
 
-    # href attribute
-    element = markup.Element(link._A)
-    with application(app):
-        lnk = link.Link('a')
-        lnk.render(element)
-    eq_(element.attrib, {})
-    eq_(element.children, [])
+    html_t = """\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="{xhtml}">
+  <head>
+    <title>SpamPage</title>
+  </head>
+  <body>
+    <a href="http://localhost/?{query}">_</a>
+  </body>
+</html>
+"""
+    kwargs = {'query': uri.quote('{}=link'.format(ayame.AYAME_PATH), '/=')}
 
-    element = markup.Element(link._A)
-    element.attrib[link._HREF] = None
-    with application(app):
-        lnk = link.Link('a')
-        lnk.render(element)
-    eq_(element.attrib, {})
-    eq_(element.children, [])
-
-    element = markup.Element(link._A)
-    element.attrib[link._HREF] = '/spam'
-    with application(app):
-        l = link.Link('a')
-        l.render(element)
-    eq_(element.attrib, {link._HREF: '/spam'})
-    eq_(element.children, [])
-
-    # replace children by model object
-    element = markup.Element(link._A)
-    with application(app):
-        lnk = link.Link('a', 'spam')
-        lnk.render(element)
-    eq_(element.attrib, {})
-    eq_(element.children, ['spam'])
-
-    # src attribute
-    element = markup.Element(link._SCRIPT)
-    with application(app):
-        l = link.Link('a')
-        l.render(element)
-    eq_(element.attrib, {})
-    eq_(element.children, [])
+    def __init__(self):
+        super(SpamPage, self).__init__()
+        class ActionLink(link.ActionLink):
+            def on_click(self):
+                super(ActionLink, self).on_click()
+                raise Clicked()
+        self.add(ActionLink('link'))
 
 
-def test_action_link():
-    class SpamPage(core.Page):
-        def __init__(self):
-            super(SpamPage, self).__init__()
-            self.add(ActionLink('link'))
-
-    class ActionLink(link.ActionLink):
-        def on_click(self):
-            super(ActionLink, self).on_click()
-            raise OK()
-
-    class OK(Exception):
-        pass
-
-    query = {core.AYAME_PATH: 'link'}
-    xhtml = ('<?xml version="1.0"?>\n'
-             '{doctype}\n'
-             '<html xmlns="{xhtml}">\n'
-             '  <head>\n'
-             '    <title>SpamPage</title>\n'
-             '  </head>\n'
-             '  <body>\n'
-             '    <a href="http://localhost/?{query}">_</a>\n'
-             '  </body>\n'
-             '</html>\n').format(doctype=markup.XHTML1_STRICT,
-                                 xhtml=markup.XHTML_NS,
-                                 query=urllib.urlencode(query))
-    xhtml = xhtml.encode('utf-8')
-
-    app = _app.Ayame(__name__)
-    eq_(app._name, __name__)
-    eq_(app._root, os.path.dirname(__file__))
-
-    map = app.config['ayame.route.map']
-    map.connect('/', SpamPage)
-
-    query = ''
-    environ = {'wsgi.url_scheme': 'http',
-               'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'GET',
-               'HTTP_HOST': 'localhost',
-               'SCRIPT_NAME': '',
-               'PATH_INFO': '',
-               'QUERY_STRING': uri.quote(query)}
-    with application(app, environ):
-        page = SpamPage()
-        status, headers, content = page.render()
-    eq_(status, http.OK.status)
-    eq_(headers, [('Content-Type', 'text/html; charset=UTF-8'),
-                  ('Content-Length', str(len(xhtml)))])
-    eq_(content, xhtml)
-
-    query = '{}=link'.format(core.AYAME_PATH)
-    environ = {'wsgi.url_scheme': 'http',
-               'wsgi.input': io.BytesIO(),
-               'REQUEST_METHOD': 'GET',
-               'HTTP_HOST': 'localhost',
-               'SCRIPT_NAME': '',
-               'PATH_INFO': '',
-               'QUERY_STRING': uri.quote(query)}
-    with application(app, environ):
-        page = SpamPage()
-        assert_raises(OK, page.render)
-
-
-def test_page_link():
-    class SpamPage(core.Page):
-        pass
-
-    app = _app.Ayame(__name__)
-    eq_(app._name, __name__)
-    eq_(app._root, os.path.dirname(__file__))
-
-    map = app.config['ayame.route.map']
-    map.connect('/<y:int>', SpamPage)
-    map.connect('/', SpamPage)
-
-    element = markup.Element(link._A)
-    with application(app):
-        l = link.PageLink('a', SpamPage)
-        l.render(element)
-    eq_(element.attrib, {link._HREF: '/'})
-
-    element = markup.Element(link._A)
-    with application(app):
-        l = link.PageLink('a', SpamPage, {'a': ['1', '2']})
-        l.render(element)
-    eq_(element.attrib, {link._HREF: '/?a=1&a=2'})
-
-    element = markup.Element(link._A)
-    with application(app):
-        l = link.PageLink('a', SpamPage, {'y': 2012, 'a': '1'})
-        l.render(element)
-    eq_(element.attrib, {link._HREF: '/2012?a=1'})
-
-    # error
-    element = markup.Element(link._A)
-    with application(app):
-        assert_raises(ComponentError, link.PageLink, 'a', object)
+class Clicked(Exception):
+    pass
