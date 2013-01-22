@@ -311,7 +311,7 @@ class UtilTestCase(AyameTestCase):
                     return key.lower()
                 return super(LowerDict, self).__convert__(key)
 
-        d = LowerDict(A=0)
+        d = LowerDict(a=-1, A=0)
         self.assert_equal(d['A'], 0)
         self.assert_equal(d['a'], 0)
         self.assert_in('A', d)
@@ -340,6 +340,8 @@ class UtilTestCase(AyameTestCase):
         self.assert_equal(d.pop('a'), 0)
         self.assert_equal(d, {})
 
+        d.update(A=0)
+        self.assert_equal(d, {'a': 0})
         d.update(A=0, b=1)
         self.assert_equal(d, {'a': 0, 'b': 1})
         d[0] = 'a'

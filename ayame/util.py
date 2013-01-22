@@ -1,7 +1,7 @@
 #
 # ayame.util
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -131,7 +131,7 @@ class FilterDict(dict):
         super(FilterDict, self).__init__(*args, **kwargs)
         convert = self.__convert__
         pop = super(FilterDict, self).pop
-        for key in self:
+        for key in tuple(self):
             new_key = convert(key)
             if new_key != key:
                 self[new_key] = pop(key)
@@ -174,7 +174,7 @@ class FilterDict(dict):
         super(FilterDict, self).update(*args, **kwargs)
         convert = self.__convert__
         pop = super(FilterDict, self).pop
-        for key in self:
+        for key in tuple(self):
             if key not in keys:
                 new_key = convert(key)
                 if new_key != key:
