@@ -1155,6 +1155,25 @@ clay1
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 1})
 
+    def test_nested(self):
+        regex = r" is not a subclass of MarkupContainer\b"
+        with self.assert_raises_regex(ayame.AyameError, regex):
+            class C(object):
+                @ayame.nested
+                class C(object):
+                    pass
+        with self.assert_raises_regex(ayame.AyameError, regex):
+            class C(object):
+                @ayame.nested
+                def f(self):
+                    pass
+
+        class C(object):
+            @ayame.nested
+            class MarkupContainer(ayame.MarkupContainer):
+                pass
+        self.assert_is_instance(C.MarkupContainer('a'), ayame.MarkupContainer)
+
     def test_nested_class_markup(self):
         class HamPage(ayame.Page):
             html_t = """\

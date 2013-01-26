@@ -706,14 +706,23 @@ class _AttributeLocalizer(Behavior):
 
 class nested(object):
 
-    def __init__(self, class_):
-        self.__class = class_
+    def __init__(self, attribute):
+        if (not isinstance(attribute, type) or
+            not issubclass(attribute, MarkupContainer) or
+            attribute is MarkupContainer):
+            raise AyameError(
+                "'{}' is not a subclass of MarkupContainer".format(
+                    ayame.util.fqon_of(attribute)))
+        self._attribute = attribute
+        self._arranged = False
 
     def __get__(self, instance, owner):
-        class_ = self.__class
-        if (issubclass(class_, MarkupContainer) and
+        attr = self._attribute
+        if (not self._arranged and
             issubclass(owner, MarkupContainer)):
-            class_.markup_type = ayame.markup.MarkupType(
-                class_.markup_type.extension, class_.markup_type.mime_type,
+            attr.markup_type = ayame.markup.MarkupType(
+                attr.markup_type.extension,
+                attr.markup_type.mime_type,
                 owner.markup_type.scope + (owner,))
-        return class_
+            self._arranged = True
+        return attr
