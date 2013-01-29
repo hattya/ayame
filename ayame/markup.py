@@ -396,12 +396,10 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
             for k, v in m.groupdict().iteritems():
                 if not v:
                     continue
-                elif v[0] in ('"', "'"):
-                    if v[-1] != v[0]:
-                        raise MarkupError(self._object, self.getpos(),
-                                          'mismatched quotes')
-                    v = v.strip(v[0])
-                self._markup.xml_decl[k] = v
+                elif v[0] != v[-1]:
+                    raise MarkupError(self._object, self.getpos(),
+                                      'mismatched quotes')
+                self._markup.xml_decl[k] = v.strip(v[0])
 
     def _impl_of(self, name):
         # from method cache
@@ -468,8 +466,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
             self._text = None
 
     def _peek(self):
-        if 0 < self._ptr():
-            return self.__stack[-1][1]
+        return self.__stack[-1][1]
 
     def _at(self, index):
         return self.__stack[index][1]
@@ -732,8 +729,7 @@ class MarkupRenderer(object):
         return self.__stack.pop()
 
     def _peek(self):
-        if 0 < self._ptr():
-            return self.__stack[-1]
+        return self.__stack[-1]
 
     def _at(self, index):
         return self.__stack[index]

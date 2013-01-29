@@ -343,31 +343,32 @@ class Choice(FormComponent):
 
     def validate(self, value):
         try:
-            if self.choices:
-                if self.multiple:
-                    # convert to object
-                    values = set(value)
-                    selected = []
-                    for index, choice in enumerate(self.choices):
-                        value = self.renderer.value_of(index, choice)
-                        if value in values:
-                            values.remove(value)
-                            selected.append(choice)
-                    if not values:
-                        # check required
-                        if (self.required and
-                            not selected):
-                            raise ValidationError()
+            if not self.choices:
+                return
+            elif self.multiple:
+                # convert to object
+                values = set(value)
+                selected = []
+                for index, choice in enumerate(self.choices):
+                    value = self.renderer.value_of(index, choice)
+                    if value in values:
+                        values.remove(value)
+                        selected.append(choice)
+                if not values:
+                    # check required
+                    if (self.required and
+                        not selected):
+                        raise ValidationError()
 
-                        if self.model is not None:
-                            self.model.object = selected
-                        return self.on_valid()
-                else:
-                    if value is None:
-                        return super(Choice, self).validate(value)
-                    for index, choice in enumerate(self.choices):
-                        if self.renderer.value_of(index, choice) == value:
-                            return super(Choice, self).validate(choice)
+                    if self.model is not None:
+                        self.model.object = selected
+                    return self.on_valid()
+            else:
+                if value is None:
+                    return super(Choice, self).validate(value)
+                for index, choice in enumerate(self.choices):
+                    if self.renderer.value_of(index, choice) == value:
+                        return super(Choice, self).validate(choice)
         except ValidationError as e:
             self.error = e
         else:

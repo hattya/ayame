@@ -1,7 +1,7 @@
 #
 # ayame.i18n
 #
-#   Copyright (c) 2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -102,8 +102,7 @@ class Localizer(object):
             join = '.'.join
             queue.append((component.__class__, ''))
             for component in component.iter_parent():
-                if 0 < index:
-                    index -= 1
+                index -= 1
                 queue.append((component.__class__, join(path[index:])))
 
         while queue:

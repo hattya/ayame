@@ -1,7 +1,7 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -34,8 +34,8 @@ from ayame.exception import AyameError
 __all__ = ['parse_accept', 'parse_form_data', 'HTTPStatus', 'HTTPSuccessful',
            'OK', 'Created', 'Accepted', 'NoContent', 'HTTPRedirection',
            'MovedPermanently', 'Found', 'SeeOther', 'NotModified', 'HTTPError',
-           'ClientError', 'BadRequest', 'Unauthrized', 'Forbidden', 'NotFound',
-           'MethodNotAllowed', 'RequestTimeout' 'ServerError',
+           'HTTPClientError', 'BadRequest', 'Unauthrized', 'Forbidden',
+           'NotFound', 'MethodNotAllowed', 'RequestTimeout', 'HTTPServerError',
            'InternalServerError', 'NotImplemented']
 
 _accept_re = re.compile(r"""
@@ -107,16 +107,14 @@ class _HTTPStatusMetaclass(type):
             dict['code'] = 0
         if 'reason' not in dict:
             if dict['code']:
-                prev = None
+                prev = ''
                 buf = []
-                for ch in name:
-                    if (prev is not None and
-                        buf and
-                        (prev.islower() and
-                         ch.isupper())):
+                for c in name:
+                    if (c.isupper() and
+                        prev.islower()):
                         buf.append(' ')
-                    buf.append(ch)
-                    prev = ch
+                    buf.append(c)
+                    prev = c
                 dict['reason'] = ''.join(buf)
             else:
                 dict['reason'] = ''
@@ -205,16 +203,16 @@ class HTTPError(HTTPStatus):
     pass
 
 
-class ClientError(HTTPError):
+class HTTPClientError(HTTPError):
     pass
 
 
-class BadRequest(ClientError):
+class BadRequest(HTTPClientError):
 
     code = 400
 
 
-class Unauthrized(ClientError):
+class Unauthrized(HTTPClientError):
 
     code = 401
 
@@ -225,7 +223,7 @@ class Unauthrized(ClientError):
             headers)
 
 
-class Forbidden(ClientError):
+class Forbidden(HTTPClientError):
 
     code = 403
 
@@ -236,7 +234,7 @@ class Forbidden(ClientError):
             headers)
 
 
-class NotFound(ClientError):
+class NotFound(HTTPClientError):
 
     code = 404
 
@@ -247,7 +245,7 @@ class NotFound(ClientError):
             headers)
 
 
-class MethodNotAllowed(ClientError):
+class MethodNotAllowed(HTTPClientError):
 
     code = 405
 
@@ -260,7 +258,7 @@ class MethodNotAllowed(ClientError):
             headers + [('Allow', ', '.join(allow))])
 
 
-class RequestTimeout(ClientError):
+class RequestTimeout(HTTPClientError):
 
     code = 408
 
@@ -271,16 +269,16 @@ class RequestTimeout(ClientError):
             headers)
 
 
-class ServerError(HTTPError):
+class HTTPServerError(HTTPError):
     pass
 
 
-class InternalServerError(ServerError):
+class InternalServerError(HTTPServerError):
 
     code = 500
 
 
-class NotImplemented(ServerError):
+class NotImplemented(HTTPServerError):
 
     code = 501
 

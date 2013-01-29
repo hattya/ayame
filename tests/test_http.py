@@ -291,7 +291,7 @@ Content-Type: text/plain
 
     def test_http_400(self):
         e = http.BadRequest()
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 400)
         self.assert_equal(e.reason, 'Bad Request')
@@ -301,7 +301,7 @@ Content-Type: text/plain
 
     def test_http_401(self):
         e = http.Unauthrized()
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 401)
         self.assert_equal(e.reason, 'Unauthrized')
@@ -312,7 +312,7 @@ Content-Type: text/plain
     def test_http_403(self):
         uri = 'http://localhsot/'
         e = http.Forbidden(uri)
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 403)
         self.assert_equal(e.reason, 'Forbidden')
@@ -323,7 +323,7 @@ Content-Type: text/plain
     def test_http_404(self):
         uri = 'http://localhsot/'
         e = http.NotFound(uri)
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 404)
         self.assert_equal(e.reason, 'Not Found')
@@ -334,7 +334,7 @@ Content-Type: text/plain
     def test_http_405(self):
         uri = 'http://localhsot/'
         e = http.MethodNotAllowed('PUT', uri, ['GET', 'POST'])
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 405)
         self.assert_equal(e.reason, 'Method Not Allowed')
@@ -344,7 +344,7 @@ Content-Type: text/plain
 
     def test_http_408(self):
         e = http.RequestTimeout()
-        self.assert_true(issubclass(e.__class__, http.ClientError))
+        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 408)
         self.assert_equal(e.reason, 'Request Timeout')
@@ -354,7 +354,7 @@ Content-Type: text/plain
 
     def test_http_500(self):
         e = http.InternalServerError()
-        self.assert_true(issubclass(e.__class__, http.ServerError))
+        self.assert_true(issubclass(e.__class__, http.HTTPServerError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 500)
         self.assert_equal(e.reason, 'Internal Server Error')
@@ -366,7 +366,7 @@ Content-Type: text/plain
         method = 'PUT'
         uri = 'http://localhsot/'
         e = http.NotImplemented(method, uri)
-        self.assert_true(issubclass(e.__class__, http.ServerError))
+        self.assert_true(issubclass(e.__class__, http.HTTPServerError))
         self.assert_equal(str(e), e.status)
         self.assert_equal(e.code, 501)
         self.assert_equal(e.reason, 'Not Implemented')

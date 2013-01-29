@@ -451,7 +451,7 @@ class MarkupContainer(Component):
         for child in self.children:
             child.on_after_render()
 
-    def load_markup(self, class_=None):
+    def load_markup(self):
         def step(element, depth):
             return element.qname not in (ayame.markup.AYAME_CHILD,
                                          ayame.markup.AYAME_HEAD)
@@ -467,12 +467,10 @@ class MarkupContainer(Component):
                         markup_type.extension)
             return markup_type.extension
 
-        if class_ is None:
-            class_ = self.__class__
-
         loader = self.config['ayame.markup.loader']()
         encoding = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
+        class_ = self.__class__
         extra_head = []
         ayame_child = None
         while True:

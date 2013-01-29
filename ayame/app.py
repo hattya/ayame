@@ -121,8 +121,8 @@ class Ayame(object):
                             self.uri_for(*r.args[:3], relative=True)[1:])
                     object = r.args[0]
                     context.request.path = None
-                else:
-                    break
+                    continue
+                break
             else:
                 raise AyameError('reached to the maximum number of internal '
                                  'redirects')
@@ -199,8 +199,7 @@ class Request(object):
             v = value.split(sep, 1)
             if 1 < len(v):
                 return (v[0].lower(), v[1].upper())
-            elif len(v) == 1:
-                return (v[0].lower(), None)
+            return (v[0].lower(), None)
         return (None,) * 2
 
     @property
