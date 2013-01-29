@@ -72,34 +72,36 @@ class ConverterTestCase(AyameTestCase):
                 return unicode(value)
 
         registry = converter.ConverterRegistry()
-        registry.add(OConverter())
-        registry.add(NConverter())
-        self.assert_is(registry.converter_for(O), registry.get(O))
-        self.assert_is(registry.converter_for(O()), registry.get(O))
-        self.assert_is(registry.converter_for(N), registry.get(N))
-        self.assert_is(registry.converter_for(N()), registry.get(N))
-        self.assert_is(registry.converter_for(OO), registry.get(O))
-        self.assert_is(registry.converter_for(OO()), registry.get(O))
-        self.assert_is(registry.converter_for(NN), registry.get(N))
-        self.assert_is(registry.converter_for(NN()), registry.get(N))
-        self.assert_is(registry.converter_for(ON), registry.get(O))
-        self.assert_is(registry.converter_for(ON()), registry.get(O))
-        self.assert_is(registry.converter_for(NO), registry.get(N))
-        self.assert_is(registry.converter_for(NO()), registry.get(N))
+        oc = OConverter()
+        registry.add(oc)
+        nc = NConverter()
+        registry.add(nc)
+        self.assert_is(registry.converter_for(O), oc)
+        self.assert_is(registry.converter_for(O()), oc)
+        self.assert_is(registry.converter_for(N), nc)
+        self.assert_is(registry.converter_for(N()), nc)
+        self.assert_is(registry.converter_for(OO), oc)
+        self.assert_is(registry.converter_for(OO()), oc)
+        self.assert_is(registry.converter_for(NN), nc)
+        self.assert_is(registry.converter_for(NN()), nc)
+        self.assert_is(registry.converter_for(ON), oc)
+        self.assert_is(registry.converter_for(ON()), oc)
+        self.assert_is(registry.converter_for(NO), nc)
+        self.assert_is(registry.converter_for(NO()), nc)
 
         registry.remove(O)
         self.assert_is(registry.converter_for(O), registry.get(object))
         self.assert_is(registry.converter_for(O()), registry.get(object))
-        self.assert_is(registry.converter_for(N), registry.get(N))
-        self.assert_is(registry.converter_for(N()), registry.get(N))
+        self.assert_is(registry.converter_for(N), nc)
+        self.assert_is(registry.converter_for(N()), nc)
         self.assert_is(registry.converter_for(OO), registry.get(object))
         self.assert_is(registry.converter_for(OO()), registry.get(object))
-        self.assert_is(registry.converter_for(NN), registry.get(N))
-        self.assert_is(registry.converter_for(NN()), registry.get(N))
-        self.assert_is(registry.converter_for(ON), registry.get(N))
-        self.assert_is(registry.converter_for(ON()), registry.get(N))
-        self.assert_is(registry.converter_for(NO), registry.get(N))
-        self.assert_is(registry.converter_for(NO()), registry.get(N))
+        self.assert_is(registry.converter_for(NN), nc)
+        self.assert_is(registry.converter_for(NN()), nc)
+        self.assert_is(registry.converter_for(ON), nc)
+        self.assert_is(registry.converter_for(ON()), nc)
+        self.assert_is(registry.converter_for(NO), nc)
+        self.assert_is(registry.converter_for(NO()), nc)
 
         registry.remove(N)
         self.assert_is(registry.converter_for(O), registry.get(object))
@@ -115,6 +117,23 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is(registry.converter_for(NO), registry.get(object))
         self.assert_is(registry.converter_for(NO()), registry.get(object))
 
+    def test_registry_no_type(self):
+        class Converter(converter.Converter):
+            @property
+            def type(self):
+                pass
+            def to_python(self, value):
+                pass
+
+        registry = converter.ConverterRegistry()
+        c = Converter()
+        registry.add(c)
+        self.assert_is_not(registry.converter_for(None), c)
+        self.assert_is(registry.converter_for(None), registry.get(object))
+
+        registry.remove(None)
+        self.assert_is(registry.converter_for(None), registry.get(object))
+
     def test_converter(self):
         class Converter(converter.Converter):
             @property
@@ -127,6 +146,29 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is_none(c.type)
         self.assert_is_none(c.to_python(None))
         self.assert_equal(c.to_string(None), 'None')
+
+    def test_conversion_error(self):
+        class Converter(converter.Converter):
+            @property
+            def type(self):
+                return (str,)
+            def to_python(self, value):
+                pass
+        c = Converter()
+        with self.assert_raises_regex(ayame.ConversionError,
+                                      " .* 'str'.* but "):
+            c.to_string(0)
+
+        class Converter(converter.Converter):
+            @property
+            def type(self):
+                return (int, float)
+            def to_python(self, value):
+                pass
+        c = Converter()
+        with self.assert_raises_regex(ayame.ConversionError,
+                                      " .* 'int'.* or .* 'float'.* but "):
+            c.to_string('')
 
     def test_object(self):
         class O:

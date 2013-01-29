@@ -84,6 +84,30 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(o.attr, 'new_value')
         self.assert_equal(mc.find('attr').model.object, 'new_value')
 
+    def test_compound_model_property_attribute(self):
+        class Object(object):
+            def __init__(self):
+                self.__attr = 'value'
+            def attr():
+                def fget(self):
+                    return self.__attr
+                def fset(self, attr):
+                    self.__attr = attr
+                return locals()
+            attr = property(**attr())
+
+        o = Object()
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.Component('attr'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_equal(o.attr, 'value')
+        self.assert_equal(mc.find('attr').model.object, 'value')
+
+        mc.find('attr').model.object = 'new_value'
+        self.assert_equal(o.attr, 'new_value')
+        self.assert_equal(mc.find('attr').model.object, 'new_value')
+
     def test_compound_model_method(self):
         class Object(object):
             def __init__(self):
@@ -104,6 +128,20 @@ class ModelTestCase(AyameTestCase):
         mc.find('method').model.object = 'new_value'
         self.assert_equal(o.get_method(), 'new_value')
         self.assert_equal(mc.find('method').model.object, 'new_value')
+
+    def test_compound_model_method_noncallable(self):
+        class Object(object):
+            get_method = set_method = None
+
+        o = Object()
+        m = model.CompoundModel(o)
+        mc = ayame.MarkupContainer('a', m)
+        mc.add(ayame.Component('method'))
+        self.assert_equal(len(mc.children), 1)
+        self.assert_is_none(mc.find('method').model.object)
+
+        with self.assert_raises_regex(AttributeError, '^method$'):
+            mc.find('method').model.object = 'new_value'
 
     def test_compound_model_dict(self):
         o = {'mapping': 'value'}

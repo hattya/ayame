@@ -68,6 +68,37 @@ class BasicTestCase(AyameTestCase):
             self.assert_equal(element.attrib, {})
             self.assert_equal(element.children, ['&lt;tag&gt;'])
 
+    def test_list_view_empty_model(self):
+        root = markup.Element(markup.QName('', 'root'),
+                              attrib={markup.AYAME_ID: 'b'})
+        label = markup.Element(markup.QName('', 'label'),
+                               attrib={markup.AYAME_ID: 'c'})
+        root.append(label)
+        mc = ayame.MarkupContainer('a')
+        m = model.Model(None)
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+        mc.add(basic.ListView('b', m, populate_item))
+
+        root = mc.render(root)
+        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.attrib, {})
+        self.assert_equal(root.children, [])
+
+    def test_list_view_error(self):
+        root = markup.Element(markup.QName('', 'root'),
+                              attrib={markup.AYAME_ID: 'b'})
+        label = markup.Element(markup.QName('', 'label'),
+                               attrib={markup.AYAME_ID: 'c'})
+        root.append(label)
+        mc = ayame.MarkupContainer('a')
+        m = model.Model([str(i) for i in xrange(3)])
+        mc.add(basic.ListView('b', m, None))
+
+        with self.assert_raises_regex(ayame.ComponentError,
+                                      r"\bcomponent .* 'c' .* not found\b"):
+            mc.render(root)
+
     def test_list_view(self):
         root = markup.Element(markup.QName('', 'root'),
                               attrib={markup.AYAME_ID: 'b'})

@@ -27,7 +27,7 @@
 import datetime
 
 import ayame
-from ayame import form, http, markup, model, validator
+from ayame import basic, form, http, markup, model, validator
 from base import AyameTestCase
 
 
@@ -83,6 +83,23 @@ class FormTestCase(AyameTestCase):
                                           r"\bForm is nested\b"):
                 f.submit()
 
+    def test_form_duplicate_buttons(self):
+        class Button(form.Button):
+            def relative_path(self):
+                return super(Button, self).relative_path()[:-1]
+            def on_submit(self):
+                raise Valid(self.id)
+
+        f = form.Form('a')
+        f.add(Button('b1'))
+        f.add(Button('b2'))
+        query = ('{path}=a&'
+                 'b')
+        with self.application(self.new_environ(query=query)):
+            f._method = 'GET'
+            with self.assert_raises_regex(Valid, '^b1$'):
+                f.submit()
+
     def test_form(self):
         with self.application(self.new_environ()):
             p = SpamPage()
@@ -109,11 +126,31 @@ class FormTestCase(AyameTestCase):
                  'password=password&'
                  'hidden=hidden&'
                  'area=area&'
+                 'file=a.txt')
+        with self.application(self.new_environ(query=query)):
+            p = SpamPage()
+            with self.assert_raises_regex(Valid, '^form$'):
+                p.render()
+        f = p.find('form')
+        self.assert_equal(f.model_object,
+                          {'text': 'text',
+                           'password': 'password',
+                           'hidden': 'hidden',
+                           'area': 'area',
+                           'checkbox': False,
+                           'file': 'a.txt'})
+        self.assert_false(f.has_error())
+
+        query = ('{path}=form&'
+                 'text=text&'
+                 'password=password&'
+                 'hidden=hidden&'
+                 'area=area&'
                  'file=a.txt&'
                  'button')
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
-            with self.assert_raises(Valid):
+            with self.assert_raises_regex(Valid, '^button$'):
                 p.render()
         f = p.find('form')
         self.assert_equal(f.model_object,
@@ -156,6 +193,58 @@ spam
 eggs
 ham
 
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = SpamPage()
+            with self.assert_raises_regex(Valid, '^form$'):
+                p.render()
+        f = p.find('form')
+        self.assert_equal(f.model_object['text'], 'text')
+        self.assert_equal(f.model_object['password'], 'password')
+        self.assert_equal(f.model_object['hidden'], 'hidden')
+        self.assert_equal(f.model_object['area'], 'area')
+        self.assert_equal(f.model_object['checkbox'], False)
+        self.assert_equal(f.model_object['file'].name, 'file')
+        self.assert_equal(f.model_object['file'].filename, 'a.txt')
+        self.assert_equal(f.model_object['file'].value, (b'spam\n'
+                                                         b'eggs\n'
+                                                         b'ham\n'))
+        self.assert_is_not_none(f.model_object['file'].file)
+        self.assert_equal(f.model_object['file'].type, 'text/plain')
+        self.assert_equal(f.model_object['file'].type_options, {})
+        self.assert_not_in('button', f.model_object)
+        self.assert_false(f.has_error())
+
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="text"
+
+text
+{__}
+Content-Disposition: form-data; name="password"
+
+password
+{__}
+Content-Disposition: form-data; name="hidden"
+
+hidden
+{__}
+Content-Disposition: form-data; name="area"
+
+area
+{__}
+Content-Disposition: form-data; name="file"; filename="a.txt"
+Content-Type: text/plain
+
+spam
+eggs
+ham
+
 {__}
 Content-Disposition: form-data; name="button"
 
@@ -163,7 +252,7 @@ Content-Disposition: form-data; name="button"
 """
         with self.application(self.new_environ(method='POST', body=data)):
             p = SpamPage()
-            with self.assert_raises(Valid):
+            with self.assert_raises_regex(Valid, '^button$'):
                 p.render()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
@@ -258,6 +347,20 @@ Content-Disposition: form-data; name="button"
             self.assert_is_none(fc.model)
             self.assert_is_none(fc.model_object)
 
+    def test_button(self):
+        element = markup.Element(form._FORM,
+                                 attrib={form._METHOD: 'GET'})
+        button = markup.Element(form._BUTTON,
+                                attrib={markup.AYAME_ID: 'b'})
+        element.append(button)
+        with self.application(self.new_environ()):
+            f = form.Form('a')
+            f.add(form.Button('b'))
+            element = f.render(element)
+        self.assert_equal(len(element), 2)
+        button = element.children[1]
+        self.assert_equal(button.attrib, {form._NAME: 'b'})
+
     def test_button_invalid_markup(self):
         input = markup.Element(form._INPUT,
                                attrib={form._TYPE: 'text'})
@@ -287,6 +390,23 @@ Content-Disposition: form-data; name="button"
         with self.assert_raises_regex(ayame.RenderingError,
                                       "'textarea' element is "):
             fc.render(markup.Element(markup.DIV))
+
+    def test_check_box(self):
+        element = markup.Element(form._FORM,
+                                 attrib={form._METHOD: 'GET'})
+        input = markup.Element(form._INPUT,
+                               attrib={markup.AYAME_ID: 'b',
+                                       form._TYPE: 'checkbox'})
+        element.append(input)
+        with self.application(self.new_environ()):
+            f = form.Form('a')
+            f.add(form.CheckBox('b'))
+            f.render(element)
+        self.assert_equal(len(element), 2)
+        input = element.children[1]
+        self.assert_equal(input.attrib, {form._NAME: 'b',
+                                         form._TYPE: 'checkbox',
+                                         form._VALUE: 'on'})
 
     def test_check_box_invalid_markup(self):
         input = markup.Element(form._INPUT,
@@ -320,6 +440,36 @@ Content-Disposition: form-data; name="button"
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
 
+    def test_radio_choice_with_renderer(self):
+        with self.application(self.new_environ()):
+            p = EggsPage()
+            p.find('form:radio').renderer = ChoiceRenderer()
+            status, headers, content = p.render()
+        html = self.format(EggsPage)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'radio': p.choices[0]})
+
+    def test_radio_choice_no_choices(self):
+        with self.application(self.new_environ()):
+            p = EggsPage()
+            p.find('form:radio').choices = []
+            status, headers, content = p.render()
+        html = self.format(EggsPage, choices=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'radio': p.choices[0]})
+
     def test_radio_choice_post(self):
         data = """\
 {__}
@@ -338,6 +488,27 @@ Content-Disposition: form-data; name="radio"
                 p.render()
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[2]})
+        self.assert_false(f.has_error())
+
+    def test_radio_choice_post_no_choices(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="radio"
+
+2
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = EggsPage()
+            p.find('form:radio').choices = []
+            with self.assert_raises(Valid):
+                p.render()
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'radio': p.choices[0]})
         self.assert_false(f.has_error())
 
     def test_radio_choice_post_empty(self):
@@ -410,7 +581,51 @@ Content-Disposition: form-data; name="radio"
         self.assert_equal(content, html)
 
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': [p.choices[1]]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+
+    def test_check_box_choice_single(self):
+        with self.application(self.new_environ()):
+            p = HamPage(multiple=False)
+            status, headers, content = p.render()
+        html = self.format(HamPage, choices=1)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'checkbox': p.choices[0]})
+
+    def test_check_box_choice_with_renderer(self):
+        with self.application(self.new_environ()):
+            p = HamPage()
+            p.find('form:checkbox').renderer = ChoiceRenderer()
+            status, headers, content = p.render()
+        html = self.format(HamPage)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+
+    def test_check_box_choice_no_choices(self):
+        with self.application(self.new_environ()):
+            p = HamPage()
+            p.find('form:checkbox').choices = []
+            status, headers, content = p.render()
+        html = self.format(HamPage, choices=0)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
 
     def test_check_box_choice_post(self):
         data = """\
@@ -448,6 +663,84 @@ Content-Disposition: form-data; name="checkbox"
         self.assert_equal(f.model_object, {'checkbox': p.choices})
         self.assert_false(f.has_error())
 
+    def test_check_box_choice_post_single(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+2
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = HamPage(multiple=False)
+            with self.assert_raises(Valid):
+                p.render()
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'checkbox': p.choices[2]})
+        self.assert_false(f.has_error())
+
+    def test_check_box_choice_post_no_choices(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+0
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+1
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+2
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = HamPage()
+            p.find('form:checkbox').choices = []
+            with self.assert_raises(Valid):
+                p.render()
+        f = p.find('form')
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+        self.assert_false(f.has_error())
+
+    def test_check_box_choice_post_no_model(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+0
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+1
+{__}
+Content-Disposition: form-data; name="checkbox"
+
+2
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = HamPage()
+            p.find('form').model = None
+            with self.assert_raises(Valid):
+                p.render()
+        f = p.find('form')
+        self.assert_is_none(f.model_object)
+        self.assert_false(f.has_error())
+
     def test_check_box_choice_post_empty(self):
         data = """\
 {__}
@@ -478,7 +771,7 @@ form
             with self.assert_raises(Invalid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': [p.choices[1]]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
         self.assert_is_instance(f.find('checkbox').error,
                                 ayame.ValidationError)
@@ -508,7 +801,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.assert_raises(Invalid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': [p.choices[1]]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
         self.assert_is_instance(f.find('checkbox').error,
                                 ayame.ValidationError)
@@ -530,7 +823,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.assert_raises(Invalid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': [p.choices[1]]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
         self.assert_is_instance(f.find('checkbox').error,
                                 ayame.ValidationError)
@@ -568,7 +861,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.assert_raises(Invalid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': [p.choices[1]]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
         self.assert_is_instance(f.find('checkbox').error,
                                 ayame.ValidationError)
@@ -580,18 +873,66 @@ Content-Disposition: form-data; name="checkbox"
             fc.render(markup.Element(markup.DIV))
 
     def test_select_choice(self):
-        with self.application(self.new_environ()):
-            p = ToastPage()
-            status, headers, content = p.render()
-        html = self.format(ToastPage)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ()):
+                p = class_()
+                status, headers, content = p.render()
+            html = self.format(class_)
+            self.assert_equal(status, http.OK.status)
+            self.assert_equal(headers,
+                              [('Content-Type', 'text/html; charset=UTF-8'),
+                               ('Content-Length', str(len(html)))])
+            self.assert_equal(content, html)
 
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': [p.choices[1]]})
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+
+    def test_select_choice_single(self):
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ()):
+                p = class_(multiple=False)
+                status, headers, content = p.render()
+            html = self.format(class_, multiple=False, choices=1)
+            self.assert_equal(status, http.OK.status)
+            self.assert_equal(headers,
+                              [('Content-Type', 'text/html; charset=UTF-8'),
+                               ('Content-Length', str(len(html)))])
+            self.assert_equal(content, html)
+
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[0]})
+
+    def test_select_choice_with_renderer(self):
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ()):
+                p = class_()
+                p.find('form:select').renderer = ChoiceRenderer()
+                status, headers, content = p.render()
+            html = self.format(class_)
+            self.assert_equal(status, http.OK.status)
+            self.assert_equal(headers,
+                              [('Content-Type', 'text/html; charset=UTF-8'),
+                               ('Content-Length', str(len(html)))])
+            self.assert_equal(content, html)
+
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+
+    def test_select_choice_no_choices(self):
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ()):
+                p = class_()
+                p.find('form:select').choices = []
+                status, headers, content = p.render()
+            html = self.format(class_, choices=False)
+            self.assert_equal(status, http.OK.status)
+            self.assert_equal(headers,
+                              [('Content-Type', 'text/html; charset=UTF-8'),
+                               ('Content-Length', str(len(html)))])
+            self.assert_equal(content, html)
+
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
 
     def test_select_choice_post(self):
         data = """\
@@ -621,46 +962,14 @@ Content-Disposition: form-data; name="select"
 2
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            with self.assert_raises(Valid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': p.choices})
-        self.assert_false(f.has_error())
-
-    def test_select_choice_post_empty(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            with self.assert_raises(Valid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': []})
-        self.assert_false(f.has_error())
-
-    def test_select_choice_single(self):
-        with self.application(self.new_environ()):
-            p = ToastPage()
-            fc = p.find('form:select')
-            fc.model_object = fc.model_object[0]
-            fc.multiple = False
-            status, headers, content = p.render()
-        html = self.format(ToastPage, multiple=False)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
-
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': p.choices[1]})
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                with self.assert_raises(Valid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices})
+            self.assert_false(f.has_error())
 
     def test_select_choice_post_single(self):
         data = """\
@@ -670,16 +979,91 @@ Content-Disposition: form-data; name="{path}"
 form
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            fc = p.find('form:select')
-            fc.model_object = fc.model_object[0]
-            fc.multiple = False
-            with self.assert_raises(Valid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': None})
-        self.assert_false(f.has_error())
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_(multiple=False)
+                with self.assert_raises(Valid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': None})
+            self.assert_false(f.has_error())
+
+    def test_select_choice_post_no_choices(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="select"
+
+0
+{__}
+Content-Disposition: form-data; name="select"
+
+1
+{__}
+Content-Disposition: form-data; name="select"
+
+2
+{____}
+"""
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                p.find('form:select').choices = []
+                with self.assert_raises(Valid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+            self.assert_false(f.has_error())
+
+    def test_select_choice_post_no_model(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{__}
+Content-Disposition: form-data; name="select"
+
+0
+{__}
+Content-Disposition: form-data; name="select"
+
+1
+{__}
+Content-Disposition: form-data; name="select"
+
+2
+{____}
+"""
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                p.find('form').model = None
+                with self.assert_raises(Valid):
+                    p.render()
+            f = p.find('form')
+            self.assert_is_none(f.model_object)
+            self.assert_false(f.has_error())
+
+    def test_select_choice_post_empty(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{____}
+"""
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                with self.assert_raises(Valid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': []})
+            self.assert_false(f.has_error())
 
     def test_select_choice_required_error(self):
         data = """\
@@ -689,15 +1073,17 @@ Content-Disposition: form-data; name="{path}"
 form
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            p.find('form:select').required = True
-            with self.assert_raises(Invalid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': [p.choices[1]]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                p.find('form:select').required = True
+                with self.assert_raises(Invalid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_is_instance(f.find('select').error,
+                                    ayame.ValidationError)
 
     def test_select_choice_validation_error_out_of_range(self):
         data = """\
@@ -719,14 +1105,16 @@ Content-Disposition: form-data; name="select"
 3
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            with self.assert_raises(Invalid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': [p.choices[1]]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                with self.assert_raises(Invalid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_is_instance(f.find('select').error,
+                                    ayame.ValidationError)
 
     def test_select_choice_validation_error_no_value(self):
         data = """\
@@ -740,14 +1128,16 @@ Content-Disposition: form-data; name="select"
 
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            with self.assert_raises(Invalid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': [p.choices[1]]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                with self.assert_raises(Invalid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_is_instance(f.find('select').error,
+                                    ayame.ValidationError)
 
     def test_select_choice_validation_error_no_values(self):
         data = """\
@@ -777,14 +1167,16 @@ Content-Disposition: form-data; name="select"
 2
 {____}
 """
-        with self.application(self.new_environ(method='POST', body=data)):
-            p = ToastPage()
-            with self.assert_raises(Invalid):
-                p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'select': [p.choices[1]]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+        for class_ in (ToastPage, BeansPage):
+            with self.application(self.new_environ(method='POST', body=data)):
+                p = class_()
+                with self.assert_raises(Invalid):
+                    p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'select': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_is_instance(f.find('select').error,
+                                    ayame.ValidationError)
 
 
 class SpamPage(ayame.Page):
@@ -820,9 +1212,11 @@ value="form" /></div>
 
     def __init__(self):
         super(SpamPage, self).__init__()
-        self.add(form.Form('form', model.CompoundModel({})))
+        self.add(Form('form', model.CompoundModel({})))
+        self.find('form').add(basic.Label('legend', 'form'))
         self.find('form').add(form.TextField('text'))
         self.find('form:text').model_object = u''
+        self.find('form:text').add(ayame.Behavior())
         self.find('form').add(form.PasswordField('password'))
         self.find('form:password').model_object = u''
         self.find('form').add(form.HiddenField('hidden'))
@@ -837,10 +1231,10 @@ value="form" /></div>
             def on_submit(self):
                 super(Button, self).on_submit()
                 self.model_object = 'submitted'
-                raise Valid()
+                raise Valid(self.id)
             def on_error(self):
                 super(Button, self).on_error()
-                raise Invalid()
+                raise Invalid(self.id)
         self.find('form').add(Button('button'))
 
 
@@ -862,19 +1256,21 @@ class EggsPage(ayame.Page):
 value="form" /></div>
       <fieldset>
         <legend>radio</legend>
-        <div id="radio">
+        <div id="radio">{choices}</div>
+      </fieldset>
+    </form>
+  </body>
+</html>
+"""
+    kwargs = {'choices': lambda v=True: """
           <input checked="checked" id="radio-0" name="radio" type="radio" \
 value="0" /><label for="radio-0">2012-01-01</label><br />
           <input id="radio-1" name="radio" type="radio" value="1" /><label \
 for="radio-1">2012-01-02</label><br />
           <input id="radio-2" name="radio" type="radio" value="2" /><label \
 for="radio-2">2012-01-03</label>
-        </div>
-      </fieldset>
-    </form>
-  </body>
-</html>
-"""
+        \
+""" if v else ''}
 
     def __init__(self):
         super(EggsPage, self).__init__()
@@ -901,40 +1297,45 @@ class HamPage(ayame.Page):
 value="form" /></div>
       <fieldset>
         <legend>checkbox</legend>
-        <div id="checkbox">
-          <input id="checkbox-0" name="checkbox" type="checkbox" value="0" />\
-<label for="checkbox-0">2012-01-01</label><br />
-          <input checked="checked" id="checkbox-1" name="checkbox" \
-type="checkbox" value="1" /><label for="checkbox-1">2012-01-02</label><br />
-          <input id="checkbox-2" name="checkbox" type="checkbox" value="2" />\
-<label for="checkbox-2">2012-01-03</label>
-        </div>
+        <div id="checkbox">{choices}</div>
       </fieldset>
     </form>
   </body>
 </html>
 """
+    kwargs = {'choices': lambda v=2: """
+          <input {}id="checkbox-0" name="checkbox" type="checkbox" \
+value="0" /><label for="checkbox-0">2012-01-01</label><br />
+          <input {}id="checkbox-1" name="checkbox" type="checkbox" \
+value="1" /><label for="checkbox-1">2012-01-02</label><br />
+          <input {}id="checkbox-2" name="checkbox" type="checkbox" \
+value="2" /><label for="checkbox-2">2012-01-03</label>
+        \
+""".format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''}
 
-    def __init__(self):
+    def __init__(self, multiple=True):
         super(HamPage, self).__init__()
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.CheckBoxChoice('checkbox',
                                                   choices=self.choices))
-        self.find('form:checkbox').model_object = [self.choices[1]]
-        self.find('form:checkbox').multiple = True
+        if multiple:
+            self.find('form:checkbox').model_object = self.choices[:2]
+        else:
+            self.find('form:checkbox').model_object = self.choices[0]
+        self.find('form:checkbox').multiple = multiple
 
 
-class ToastPage(ayame.Page):
+class SelectChoicePage(ayame.Page):
 
-    choices = [datetime.date(2012, 1, 1),
-               datetime.date(2012, 1, 2),
-               datetime.date(2012, 1, 3)]
+    choices = [datetime.date(2013, 1, 1),
+               datetime.date(2013, 1, 2),
+               datetime.date(2013, 1, 3)]
     html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
   <head>
-    <title>ToastPage</title>
+    <title>{title}</title>
   </head>
   <body>
     <form action="/form" method="post">
@@ -942,36 +1343,50 @@ class ToastPage(ayame.Page):
 value="form" /></div>
       <fieldset>
         <legend>select</legend>
-        <select {multiple}name="select">
-          <option value="0">2012-01-01</option>
-          <option selected="selected" value="1">2012-01-02</option>
-          <option value="2">2012-01-03</option>
+        <select {multiple}name="select">{choices}
         </select>
       </fieldset>
     </form>
   </body>
 </html>
 """
-    kwargs = {'multiple': lambda v=True: u'multiple="multiple" ' if v else u''}
+    kwargs = {'multiple': lambda v=True: 'multiple="multiple" ' if v else '',
+              'choices': lambda v=2: """
+          <option {}value="0">2013-01-01</option>
+          <option {}value="1">2013-01-02</option>
+          <option {}value="2">2013-01-03</option>\
+""".format(*('selected="selected" ',) * v + ('',) * (3 - v)) if v else ''}
 
-    def __init__(self):
-        super(ToastPage, self).__init__()
+    def __init__(self, multiple=True):
+        super(SelectChoicePage, self).__init__()
+        self.kwargs['title'] = self.__class__.__name__
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.SelectChoice('select',
                                                 choices=self.choices))
-        self.find('form:select').model_object = [self.choices[1]]
-        self.find('form:select').multiple = True
+        if multiple:
+            self.find('form:select').model_object = self.choices[:2]
+        else:
+            self.find('form:select').model_object = self.choices[0]
+        self.find('form:select').multiple = multiple
+
+
+class ToastPage(SelectChoicePage):
+    pass
+
+
+class BeansPage(SelectChoicePage):
+    pass
 
 
 class Form(form.Form):
 
     def on_submit(self):
         super(Form, self).on_submit()
-        raise Valid()
+        raise Valid(self.id)
 
     def on_error(self):
         super(Form, self).on_error()
-        raise Invalid()
+        raise Invalid(self.id)
 
 
 class Valid(Exception):
@@ -980,3 +1395,9 @@ class Valid(Exception):
 
 class Invalid(Exception):
     pass
+
+
+class ChoiceRenderer(form.ChoiceRenderer):
+
+    def label_for(self, object):
+        return object.strftime('%Y-%m-%d')

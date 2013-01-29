@@ -184,6 +184,9 @@ class UtilTestCase(AyameTestCase):
         assert_load(module, os.path.join(*(os.path.pardir,) * 2))
         assert_load(module, os.path.sep)
 
+        with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+            util.load_data(ayame, '.txt')
+
     def test_load_data_no___file__(self):
         class Module(types.ModuleType):
             pass

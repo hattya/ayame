@@ -117,6 +117,13 @@ class RouteTestCase(AyameTestCase):
         self.assert_equal(router.build(0), '/ayame/')
         self.assert_equal(router.build(0, relative=True), '/')
 
+    def test_no_static(self):
+        map = route.Map()
+        map.connect('<a>', 0)
+
+        router = map.bind(self.new_environ(path='app'))
+        self.assert_equal(router.match(), (0, {'a': 'app'}))
+
     def test_duplicate_variable(self):
         map = route.Map()
         with self.assert_raises_regex(ayame.RouteError, "'a' already in use$"):

@@ -210,6 +210,7 @@ class SimpleAppTestCase(AyameTestCase):
         map = self.app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)
+        map.connect('/class', object)
         map.connect('/redir', RedirectPage)
 
         self.app = self.app.new()
@@ -254,6 +255,15 @@ class SimpleAppTestCase(AyameTestCase):
     def test_get_int(self):
         # GET /int -> NotFound
         environ = self.new_environ('GET', '/int')
+        status, headers, exc_info, content = self.wsgi_call(environ)
+        self.assert_equal(status, http.NotFound.status)
+        self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assert_is_none(exc_info)
+        self.assert_true(content)
+
+    def test_get_class(self):
+        # GET /class -> NotFound
+        environ = self.new_environ('GET', '/class')
         status, headers, exc_info, content = self.wsgi_call(environ)
         self.assert_equal(status, http.NotFound.status)
         self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)

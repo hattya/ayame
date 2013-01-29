@@ -82,8 +82,9 @@ beans3\\ beans3
 beans\\\: beans:
 beans\\\= beans=
 beans\\\  beans\ 
-bacon = bacon \
-        bacon
+bacon1 = bacon \
+         bacon
+bacon2 = bacon\\
 sausage = sausage\nsausage
 tomato
 lobster\= == lobster
@@ -104,7 +105,8 @@ lobster\   \  lobster
                            'beans\\:': 'beans:',
                            'beans\\=': 'beans=',
                            'beans\\ ': 'beans ',
-                           'bacon': 'bacon bacon',
+                           'bacon1': 'bacon bacon',
+                           'bacon2': 'bacon\\',
                            'sausage': 'sausage\nsausage',
                            'tomato': '',
                            'lobster=': '= lobster',
@@ -113,9 +115,35 @@ lobster\   \  lobster
 
     def test_get(self):
         with self.application():
+            locale = (None,) * 2
+            l = i18n.Localizer()
+            p = Page()
+            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+
+    def test_get_ja(self):
+        with self.application():
             locale = ('ja', 'JP')
             l = i18n.Localizer()
             p = Page()
+            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
+            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+
+    def test_get_no___module__(self):
+        class P(Page):
+            __module__ = None
+        with self.application():
+            locale = ('ja', 'JP')
+            l = i18n.Localizer()
+            p = P()
             self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
             self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
             self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')

@@ -87,6 +87,14 @@ class LinkTestCase(AyameTestCase):
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, ['spam'])
 
+    def test_link_unknown(self):
+        div = markup.Element(markup.DIV)
+        with self.application():
+            l = link.Link('a', 'spam')
+            l.render(div)
+        self.assert_equal(div.attrib, {})
+        self.assert_equal(div.children, ['spam'])
+
     def test_action_link(self):
         map = self.app.config['ayame.route.map']
         map.connect('/', SpamPage)

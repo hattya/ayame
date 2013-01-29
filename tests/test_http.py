@@ -35,6 +35,20 @@ class HTTPTestCase(AyameTestCase):
         super(HTTPTestCase, self).setup()
         self.boundary = 'ayame.http'
 
+    def assert_status_class(self, st, code, reason, superclass=None):
+        self.assert_equal(st.code, code)
+        self.assert_equal(st.reason, reason)
+        if code == 0:
+            self.assert_equal(st.status, '')
+        else:
+            self.assert_equal(st.status, '{} {}'.format(code, reason))
+        if superclass is None:
+            self.assert_is_instance(st, object)
+            self.assert_equal(str(st), st.status)
+        else:
+            self.assert_is_instance(st, type)
+            self.assert_true(issubclass(st, superclass))
+
     def new_environ(self, data=None, body=None):
         return super(HTTPTestCase, self).new_environ(method='POST',
                                                      data=data,
@@ -197,180 +211,235 @@ Content-Type: text/plain
             http.parse_form_data(environ)
 
     def test_http_status(self):
-        e = http.HTTPStatus()
-        self.assert_true(issubclass(e.__class__, ayame.AyameError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 0)
-        self.assert_equal(e.reason, '')
-        self.assert_equal(e.status, '')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (0, '', ayame.AyameError)
+        self.assert_status_class(http.HTTPStatus, *args)
+
+        st = http.HTTPStatus()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
+
+        class ST(http.HTTPStatus):
+            code = -1
+            reason = None
+            status = None
+
+        self.assert_equal(ST.code, -1)
+        self.assert_is_none(ST.reason)
+        self.assert_is_none(ST.status)
+
+        st = ST()
+        self.assert_equal(st.code, -1)
+        self.assert_is_none(st.reason)
+        self.assert_is_none(st.status)
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_200(self):
-        e = http.OK()
-        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 200)
-        self.assert_equal(e.reason, 'OK')
-        self.assert_equal(e.status, '200 OK')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (200, 'OK', http.HTTPSuccessful)
+        self.assert_status_class(http.OK, *args)
+
+        st = http.OK()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_201(self):
-        e = http.Created()
-        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 201)
-        self.assert_equal(e.reason, 'Created')
-        self.assert_equal(e.status, '201 Created')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (201, 'Created', http.HTTPSuccessful)
+        self.assert_status_class(http.Created, *args)
+
+        st = http.Created()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_202(self):
-        e = http.Accepted()
-        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 202)
-        self.assert_equal(e.reason, 'Accepted')
-        self.assert_equal(e.status, '202 Accepted')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (202, 'Accepted', http.HTTPSuccessful)
+        self.assert_status_class(http.Accepted, *args)
+
+        st = http.Accepted()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_204(self):
-        e = http.NoContent()
-        self.assert_true(issubclass(e.__class__, http.HTTPSuccessful))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 204)
-        self.assert_equal(e.reason, 'No Content')
-        self.assert_equal(e.status, '204 No Content')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (204, 'No Content', http.HTTPSuccessful)
+        self.assert_status_class(http.NoContent, *args)
+
+        st = http.NoContent()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_301(self):
+        args = (301, 'Moved Permanently', http.HTTPRedirection)
+        self.assert_status_class(http.MovedPermanently, *args)
+
         uri = 'http://localhost/'
-        e = http.MovedPermanently(uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 301)
-        self.assert_equal(e.reason, 'Moved Permanently')
-        self.assert_equal(e.status, '301 Moved Permanently')
-        self.assert_equal(e.headers, [('Location', uri)])
-        self.assert_in(uri, e.description)
+        def assert_instance(st, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_in(uri, st.description)
+
+        st = http.MovedPermanently(uri)
+        assert_instance(st, uri, [('Location', uri)])
+
+        headers = [('Server', 'Python')]
+        st = http.MovedPermanently(uri, headers)
+        assert_instance(st, uri, [('Server', 'Python'), ('Location', uri)])
+        self.assert_not_equal(st.headers, headers)
 
     def test_http_302(self):
+        args = (302, 'Found', http.HTTPRedirection)
+        self.assert_status_class(http.Found, *args)
+
         uri = 'http://localhost/'
-        e = http.Found(uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 302)
-        self.assert_equal(e.reason, 'Found')
-        self.assert_equal(e.status, '302 Found')
-        self.assert_equal(e.headers, [('Location', uri)])
-        self.assert_in(uri, e.description)
+        def assert_instance(st, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_in(uri, st.description)
+
+        st = http.Found(uri)
+        assert_instance(st, uri, [('Location', uri)])
+
+        headers = [('Server', 'Python')]
+        st = http.Found(uri, headers)
+        assert_instance(st, uri, [('Server', 'Python'), ('Location', uri)])
+        self.assert_not_equal(st.headers, headers)
 
     def test_http_303(self):
+        args = (303, 'See Other', http.HTTPRedirection)
+        self.assert_status_class(http.SeeOther, *args)
+
         uri = 'http://localhost/'
-        e = http.SeeOther(uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 303)
-        self.assert_equal(e.reason, 'See Other')
-        self.assert_equal(e.status, '303 See Other')
-        self.assert_equal(e.headers, [('Location', uri)])
-        self.assert_in(uri, e.description)
+        def assert_instance(st, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_in(uri, st.description)
+
+        st = http.SeeOther(uri)
+        assert_instance(st, uri, [('Location', uri)])
+
+        headers = [('Server', 'Python')]
+        st = http.SeeOther(uri, headers)
+        assert_instance(st, uri, [('Server', 'Python'), ('Location', uri)])
+        self.assert_not_equal(st.headers, headers)
 
     def test_http_304(self):
-        e = http.NotModified()
-        self.assert_true(issubclass(e.__class__, http.HTTPRedirection))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 304)
-        self.assert_equal(e.reason, 'Not Modified')
-        self.assert_equal(e.status, '304 Not Modified')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (304, 'Not Modified', http.HTTPRedirection)
+        self.assert_status_class(http.NotModified, *args)
+
+        st = http.NotModified()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_400(self):
-        e = http.BadRequest()
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 400)
-        self.assert_equal(e.reason, 'Bad Request')
-        self.assert_equal(e.status, '400 Bad Request')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (400, 'Bad Request', http.HTTPClientError)
+        self.assert_status_class(http.BadRequest, *args)
+
+        st = http.BadRequest()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_401(self):
-        e = http.Unauthrized()
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 401)
-        self.assert_equal(e.reason, 'Unauthrized')
-        self.assert_equal(e.status, '401 Unauthrized')
-        self.assert_equal(e.headers, [])
-        self.assert_true(e.description)
+        args = (401, 'Unauthrized', http.HTTPClientError)
+        self.assert_status_class(http.Unauthrized, *args)
+
+        def assert_instance(st, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_not_equal(id(st.headers), id(headers))
+            self.assert_true(st.description)
+        headers = []
+        assert_instance(http.Unauthrized(), headers)
+        assert_instance(http.Unauthrized(headers), headers)
+        self.assert_equal(headers, [])
 
     def test_http_403(self):
+        args = (403, 'Forbidden', http.HTTPClientError)
+        self.assert_status_class(http.Forbidden, *args)
+
         uri = 'http://localhsot/'
-        e = http.Forbidden(uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 403)
-        self.assert_equal(e.reason, 'Forbidden')
-        self.assert_equal(e.status, '403 Forbidden')
-        self.assert_equal(e.headers, [])
-        self.assert_in(uri, e.description)
+        def assert_instance(st, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_not_equal(id(st.headers), id(headers))
+            self.assert_in(uri, st.description)
+        headers = []
+        assert_instance(http.Forbidden(uri), uri, headers)
+        assert_instance(http.Forbidden(uri, headers), uri, headers)
+        self.assert_equal(headers, [])
 
     def test_http_404(self):
+        args = (404, 'Not Found', http.HTTPClientError)
+        self.assert_status_class(http.NotFound, *args)
+
         uri = 'http://localhsot/'
-        e = http.NotFound(uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 404)
-        self.assert_equal(e.reason, 'Not Found')
-        self.assert_equal(e.status, '404 Not Found')
-        self.assert_equal(e.headers, [])
-        self.assert_in(uri, e.description)
+        def assert_instance(st, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_not_equal(id(st.headers), id(headers))
+            self.assert_in(uri, st.description)
+        headers = []
+        assert_instance(http.NotFound(uri), uri, headers)
+        assert_instance(http.NotFound(uri, headers), uri, headers)
+        self.assert_equal(headers, [])
 
     def test_http_405(self):
-        uri = 'http://localhsot/'
-        e = http.MethodNotAllowed('PUT', uri, ['GET', 'POST'])
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 405)
-        self.assert_equal(e.reason, 'Method Not Allowed')
-        self.assert_equal(e.status, '405 Method Not Allowed')
-        self.assert_equal(e.headers, [('Allow', 'GET, POST')])
-        self.assert_in(uri, e.description)
+        args = (405, 'Method Not Allowed', http.HTTPClientError)
+        self.assert_status_class(http.MethodNotAllowed, *args)
+
+        method = 'PUT'
+        uri = 'http://localhost/'
+        allow = ['GET', 'POST']
+        def assert_instance(st, method, uri, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_in(method, st.description)
+            self.assert_in(uri, st.description)
+
+        st = http.MethodNotAllowed(method, uri, allow)
+        assert_instance(st, method, uri, [('Allow', 'GET, POST')])
+
+        headers = [('Server', 'Python')]
+        st = http.MethodNotAllowed(method, uri, allow, headers)
+        assert_instance(st, method, uri, [('Server', 'Python'),
+                                          ('Allow', 'GET, POST')])
+        self.assert_not_equal(st.headers, headers)
 
     def test_http_408(self):
-        e = http.RequestTimeout()
-        self.assert_true(issubclass(e.__class__, http.HTTPClientError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 408)
-        self.assert_equal(e.reason, 'Request Timeout')
-        self.assert_equal(e.status, '408 Request Timeout')
-        self.assert_equal(e.headers, [])
-        self.assert_true(e.description)
+        args = (408, 'Request Timeout', http.HTTPClientError)
+        self.assert_status_class(http.RequestTimeout, *args)
+
+        def assert_instance(st, headers):
+            self.assert_status_class(st, *args[:-1])
+            self.assert_equal(st.headers, headers)
+            self.assert_not_equal(id(st.headers), id(headers))
+            self.assert_true(st.description)
+        headers = []
+        assert_instance(http.RequestTimeout(), headers)
+        assert_instance(http.RequestTimeout(headers), headers)
+        self.assert_equal(headers, [])
 
     def test_http_500(self):
-        e = http.InternalServerError()
-        self.assert_true(issubclass(e.__class__, http.HTTPServerError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 500)
-        self.assert_equal(e.reason, 'Internal Server Error')
-        self.assert_equal(e.status, '500 Internal Server Error')
-        self.assert_equal(e.headers, [])
-        self.assert_equal(e.description, '')
+        args = (500, 'Internal Server Error', http.HTTPServerError)
+        self.assert_status_class(http.InternalServerError, *args)
+
+        st = http.InternalServerError()
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_equal(st.description, '')
 
     def test_http_501(self):
+        args = (501, 'Not Implemented', http.HTTPServerError)
+        self.assert_status_class(http.NotImplemented, *args)
+
         method = 'PUT'
         uri = 'http://localhsot/'
-        e = http.NotImplemented(method, uri)
-        self.assert_true(issubclass(e.__class__, http.HTTPServerError))
-        self.assert_equal(str(e), e.status)
-        self.assert_equal(e.code, 501)
-        self.assert_equal(e.reason, 'Not Implemented')
-        self.assert_equal(e.status, '501 Not Implemented')
-        self.assert_equal(e.headers, [])
-        self.assert_in(method, e.description)
-        self.assert_in(uri, e.description)
+        st = http.NotImplemented(method, uri)
+        self.assert_status_class(st, *args[:-1])
+        self.assert_equal(st.headers, [])
+        self.assert_in(method, st.description)
+        self.assert_in(uri, st.description)

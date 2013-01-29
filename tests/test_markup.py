@@ -121,7 +121,7 @@ class MarkupTestCase(AyameTestCase):
         spam = markup.Element(markup.QName('', 'spam'),
                               attrib={markup.AYAME_ID: 'spam'})
         eggs = markup.Element(markup.QName('', 'eggs'))
-        spam.extend(['a', 'b', 'c', eggs, 'd', 'e', 'f'])
+        spam.extend(('a', 'b', 'c', eggs, 'd', 'e', 'f'))
         self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
         self.assert_equal(eggs.children, [])
 
@@ -155,13 +155,46 @@ class MarkupTestCase(AyameTestCase):
         self.assert_equal(eggs.children, [])
 
     def test_element_normalize(self):
-        spam = markup.Element(markup.QName('', 'spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
-        ham = markup.Element(markup.QName('', 'ham'))
-        spam.extend(['a', eggs, 'b', 'c', ham, 'd', 'e', 'f'])
+        def new_elements(i=None):
+            for n in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon',
+                      'sausage')[:i]:
+                yield markup.Element(markup.QName('', n))
+
+        spam, eggs, ham, toast = new_elements(4)
+        spam.extend(('a', eggs,
+                     'b', 'c', ham, toast,
+                     'd', 'e', 'f'))
         spam.normalize()
-        self.assert_equal(spam.children, ['a', eggs, 'bc', ham, 'def'])
+        self.assert_equal(spam.children, ['a', eggs,
+                                          'bc', ham, toast,
+                                          'def'])
+
+        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
+        spam.extend(('a', eggs,
+                     'b', 'c', ham, toast,
+                     'd', 'e', 'f', beans, bacon, sausage))
+        spam.normalize()
+        self.assert_equal(spam.children, ['a', eggs,
+                                          'bc', ham, toast,
+                                          'def', beans, bacon, sausage])
+
+        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
+        spam.extend((eggs, 'a',
+                     ham, toast, 'b', 'c',
+                     beans, bacon, sausage))
+        spam.normalize()
+        self.assert_equal(spam.children, [eggs, 'a',
+                                          ham, toast, 'bc',
+                                          beans, bacon, sausage])
+
+        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
+        spam.extend((eggs, 'a',
+                     ham, toast, 'b', 'c',
+                     beans, bacon, sausage, 'd', 'e', 'f'))
+        spam.normalize()
+        self.assert_equal(spam.children, [eggs, 'a',
+                                          ham, toast, 'bc',
+                                          beans, bacon, sausage, 'def'])
 
     def test_element_walk(self):
         root = markup.Element(markup.QName('', 'root'),
@@ -240,6 +273,16 @@ class MarkupTestCase(AyameTestCase):
         self.assert_is_none(m.doctype)
         self.assert_is_none(m.root)
 
+        # no root element
+        text = u'&amp; &#38;'
+        src = io.StringIO(text)
+        loader = markup.MarkupLoader()
+        m = loader.load(self, src, lang='xml')
+        self.assert_equal(m.xml_decl, {})
+        self.assert_equal(m.lang, 'xml')
+        self.assert_is_none(m.doctype)
+        self.assert_is_none(m.root)
+
         # load from file
         fp = tempfile.NamedTemporaryFile()
         src = fp.name
@@ -269,6 +312,10 @@ class MarkupTestCase(AyameTestCase):
 
         # malformed xml declaration
         xml = u'<?xml standalone="yes"?>'
+        assert_xml(xml, (1, 0), '^malformed XML declaration$')
+
+        # unquoted xml attributes
+        xml = u'<?xml version=1.0?>'
         assert_xml(xml, (1, 0), '^malformed XML declaration$')
 
         # mismatched quotes in xml declaration

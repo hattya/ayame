@@ -415,6 +415,132 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(p.ns, {})
         self.assert_equal(p.children, ['after border (Sausage)'])
 
+    def test_duplicate_ayame_elements(self):
+        class Lobster(ayame.MarkupContainer):
+            def __init__(self, id):
+                super(Lobster, self).__init__(id)
+                self.add(LobsterBorder('border'))
+
+        class LobsterBorder(Border):
+            pass
+
+        with self.application():
+            mc = Lobster('a')
+            m = mc.load_markup()
+            html = mc.render(m.root)
+        self.assert_equal(m.xml_decl, {'version': '1.0'})
+        self.assert_equal(m.lang, 'xhtml1')
+        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
+        self.assert_true(m.root)
+
+        self.assert_equal(html.qname, self.html_of('html'))
+        self.assert_equal(html.attrib, {})
+        self.assert_equal(html.type, markup.Element.OPEN)
+        self.assert_equal(html.ns, {'': markup.XHTML_NS,
+                                    'xml': markup.XML_NS,
+                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(len(html), 5)
+        self.assert_ws(html, 0)
+        self.assert_ws(html, 2)
+        self.assert_ws(html, 4)
+
+        head = html[1]
+        self.assert_equal(head.qname, self.html_of('head'))
+        self.assert_equal(head.attrib, {})
+        self.assert_equal(head.type, markup.Element.OPEN)
+        self.assert_equal(head.ns, {})
+        self.assert_equal(len(head), 8)
+        self.assert_ws(head, 0)
+        self.assert_ws(head, 2)
+        self.assert_ws(head, 4)
+        self.assert_ws(head, 5)
+        self.assert_ws(head, 7)
+
+        title = head[1]
+        self.assert_equal(title.qname, self.html_of('title'))
+        self.assert_equal(title.attrib, {})
+        self.assert_equal(title.type, markup.Element.OPEN)
+        self.assert_equal(title.ns, {})
+        self.assert_equal(title.children, ['Lobster'])
+
+        meta = head[3]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Lobster'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        meta = head[6]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib,
+                          {self.html_of('name'): 'class',
+                           self.html_of('content'): 'LobsterBorder'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        body = html[3]
+        self.assert_equal(body.qname, self.html_of('body'))
+        self.assert_equal(body.attrib, {})
+        self.assert_equal(body.type, markup.Element.OPEN)
+        self.assert_equal(body.ns, {})
+        self.assert_equal(len(body), 16)
+        self.assert_ws(body, 0)
+        self.assert_ws(body, 2)
+        self.assert_ws(body, 3)
+        self.assert_ws(body, 5)
+        self.assert_ws(body, 6)
+        self.assert_ws(body, 8)
+        self.assert_ws(body, 10)
+        self.assert_ws(body, 12)
+        self.assert_ws(body, 13)
+        self.assert_ws(body, 15)
+
+        p = body[1]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before border (Lobster)'])
+
+        p = body[4]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before ayame:body (LobsterBorder)'])
+
+        p = body[7]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(len(p), 3)
+        p.normalize()
+        self.assert_equal(p.children, ['inside border (LobsterBorder)'])
+
+        div = body[9]
+        self.assert_equal(div.qname, self.html_of('div'))
+        self.assert_equal(div.attrib, {})
+        self.assert_equal(div.type, markup.Element.EMPTY)
+        self.assert_equal(div.ns, {})
+        self.assert_equal(div.children, [])
+
+        p = body[11]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after ayame:body (LobsterBorder)'])
+
+        p = body[14]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after border (Lobster)'])
+
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()

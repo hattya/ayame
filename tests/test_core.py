@@ -68,6 +68,8 @@ class CoreTestCase(AyameTestCase):
         with self.assert_raises_regex(ayame.ComponentError,
                                       r" is not attached .*\.Page\b"):
             c.page()
+        c.add(None, True, 0, 3.14, '')
+        self.assert_equal(c.behaviors, [])
         self.assert_equal(c.path(), 'a')
         self.assert_equal(c.render(''), '')
 
@@ -112,6 +114,8 @@ class CoreTestCase(AyameTestCase):
         with self.assert_raises_regex(ayame.ComponentError,
                                       r" is not attached .*\.Page\b"):
             c.page()
+        c.add(None, True, 0, 3.14, '')
+        self.assert_equal(c.behaviors, [])
         self.assert_equal(c.path(), 'a')
         self.assert_equal(c.render(''), '')
 
@@ -872,7 +876,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(p.children, ['after ayame:child (Bacon)'])
 
     def test_markup_inheritance_no_superclass(self):
-        class Sausage(ayame.MarkupContainer):
+        class Sausage(ayame.MarkupContainer, object):
             pass
 
         with self.application():
@@ -958,6 +962,100 @@ class CoreTestCase(AyameTestCase):
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', '0')])
         self.assert_equal(content, b'')
+
+    def test_markup_inheritance_duplicate_ayame_elements(self):
+        class Shallots(ayame.MarkupContainer):
+            pass
+        class Aubergine(Shallots):
+            pass
+
+        with self.application():
+            mc = Aubergine('a')
+            m = mc.load_markup()
+        self.assert_equal(m.xml_decl, {'version': '1.0'})
+        self.assert_equal(m.lang, 'xhtml1')
+        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
+        self.assert_true(m.root)
+
+        html = m.root
+        self.assert_equal(html.qname, self.html_of('html'))
+        self.assert_equal(html.attrib, {})
+        self.assert_equal(html.type, markup.Element.OPEN)
+        self.assert_equal(html.ns, {'': markup.XHTML_NS,
+                                    'xml': markup.XML_NS,
+                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(len(html), 5)
+        self.assert_ws(html, 0)
+        self.assert_ws(html, 2)
+        self.assert_ws(html, 4)
+
+        head = html[1]
+        self.assert_equal(head.qname, self.html_of('head'))
+        self.assert_equal(head.attrib, {})
+        self.assert_equal(head.type, markup.Element.OPEN)
+        self.assert_equal(head.ns, {})
+        self.assert_equal(len(head), 8)
+        self.assert_ws(head, 0)
+        self.assert_ws(head, 2)
+        self.assert_ws(head, 4)
+        self.assert_ws(head, 5)
+        self.assert_ws(head, 7)
+
+        title = head[1]
+        self.assert_equal(title.qname, self.html_of('title'))
+        self.assert_equal(title.attrib, {})
+        self.assert_equal(title.type, markup.Element.OPEN)
+        self.assert_equal(title.ns, {})
+        self.assert_equal(title.children, ['Shallots'])
+
+        meta = head[3]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Shallots'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        meta = head[6]
+        self.assert_equal(meta.qname, self.html_of('meta'))
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'Aubergine'})
+        self.assert_equal(meta.type, markup.Element.EMPTY)
+        self.assert_equal(meta.ns, {})
+        self.assert_equal(meta.children, [])
+
+        body = html[3]
+        self.assert_equal(body.qname, self.html_of('body'))
+        self.assert_equal(body.attrib, {})
+        self.assert_equal(body.type, markup.Element.OPEN)
+        self.assert_equal(body.ns, {})
+        self.assert_equal(len(body), 8)
+        self.assert_ws(body, 0)
+        self.assert_ws(body, 2)
+        self.assert_ws(body, 3)
+        self.assert_ws(body, 5)
+        self.assert_ws(body, 7)
+
+        p = body[1]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['before ayame:child (Shallots)'])
+
+        ayame_child = body[4]
+        self.assert_equal(ayame_child.qname, self.ayame_of('child'))
+        self.assert_equal(ayame_child.attrib, {})
+        self.assert_equal(ayame_child.type, markup.Element.EMPTY)
+        self.assert_equal(ayame_child.ns, {})
+        self.assert_equal(ayame_child.children, [])
+
+        p = body[6]
+        self.assert_equal(p.qname, self.html_of('p'))
+        self.assert_equal(p.attrib, {})
+        self.assert_equal(p.type, markup.Element.OPEN)
+        self.assert_equal(p.ns, {})
+        self.assert_equal(p.children, ['after ayame:child (Shallots)'])
 
     def test_page(self):
         class SpamPage(ayame.Page):
@@ -1193,6 +1291,11 @@ clay1
             @ayame.nested
             class NestedPage(HamPage):
                 pass
+
+        mt = markup.MarkupType('.htm', 'text/html', ())
+        self.assert_equal(ToastPage.markup_type, mt)
+        mt = markup.MarkupType('.html', 'text/html', (ToastPage,))
+        self.assert_equal(ToastPage.NestedPage.markup_type, mt)
 
         with self.application(self.new_environ()):
             p = ToastPage()
