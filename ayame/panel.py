@@ -1,7 +1,7 @@
 #
 # ayame.panel
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -69,6 +69,5 @@ class Panel(ayame.core.MarkupContainer):
 
     def render_ayame_element(self, element):
         if element.qname == ayame.markup.AYAME_PANEL:
-            element.qname = ayame.markup.DIV
             return element
         return super(Panel, self).render_ayame_element(element)

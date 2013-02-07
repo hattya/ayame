@@ -293,31 +293,36 @@ class MarkupContainer(Component):
             if element.qname.ns_uri == ayame.markup.AYAME_NS:
                 # render ayame element
                 value = self.render_ayame_element(element)
-                if value is not None:
-                    if isinstance(value, ayame.markup.Element):
-                        queue.append((parent, index, value))
-                    elif isinstance(value, collections.Sequence):
-                        # save same parent elements
-                        elements = []
-                        while queue:
-                            q = queue.pop()
-                            if q[0] != parent:
-                                queue.append(q)
-                                break
-                            elements.append(q[2])
-                        # append rendered children
-                        elements.extend(v for v in value
-                                        if isinstance(v, ayame.markup.Element))
-                        if elements:
-                            # replace ayame element (queue)
-                            total = len(elements)
-                            last = index + total - 1
-                            queue.extend((parent, last - i, elements[i])
-                                         for i in xrange(total))
-                        # replace ayame element (parent)
+                if (isinstance(value, collections.Iterable) and
+                    not isinstance(value, basestring)):
+                    # replace ayame element (parent)
+                    if parent is None:
+                        root = value
+                    else:
                         parent[index:index + 1] = value
+                    # save same parent elements
+                    elements = []
+                    while queue:
+                        q = queue.pop()
+                        if q[0] != parent:
+                            queue.append(q)
+                            break
+                        elements.append(q[2])
+                    # append rendered children
+                    elements.extend(v for v in value
+                                    if isinstance(v, ayame.markup.Element))
+                    if elements:
+                        # replace ayame element (queue)
+                        total = len(elements)
+                        last = index + total - 1
+                        queue.extend((parent, last - i, elements[i])
+                                     for i in xrange(total))
                     continue
-            else:
+                elif isinstance(value, ayame.markup.Element):
+                    element = value
+                else:
+                    element = None
+            if element is not None:
                 # render ayame attribute
                 ayame_id = element.attrib.get(ayame.markup.AYAME_ID)
                 if ayame.markup.AYAME_MESSAGE in element.attrib:
@@ -343,14 +348,15 @@ class MarkupContainer(Component):
                 else:
                     root = value
                     push(queue, root)
-            elif isinstance(value, collections.Sequence):
+            elif value is None:
+                # remove element
+                del parent[index]
+            elif (isinstance(value, collections.Iterable) and
+                  not isinstance(value, basestring)):
                 # replace element
                 parent[index:index + 1] = value
                 for v in value:
                     push(queue, v)
-            elif value is None:
-                # remove element
-                del parent[index]
             else:
                 # replace element
                 parent[index] = value
@@ -379,7 +385,6 @@ class MarkupContainer(Component):
 
         if element.qname == ayame.markup.AYAME_CONTAINER:
             find(get(element, ayame.markup.AYAME_ID)).render_body_only = True
-            element.qname = ayame.markup.DIV
             return element
         elif element.qname == ayame.markup.AYAME_ENCLOSURE:
             component = find(get(element, ayame.markup.AYAME_CHILD))
@@ -388,7 +393,6 @@ class MarkupContainer(Component):
             key = get(element, ayame.markup.AYAME_KEY, False)
             message = _MessageContainer(ayame.util.new_token()[:7], key)
             self.add(message)
-            element.qname = ayame.markup.DIV
             element.attrib[ayame.markup.AYAME_ID] = message.id
             return element
 

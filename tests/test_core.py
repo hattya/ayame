@@ -256,6 +256,28 @@ class CoreTestCase(AyameTestCase):
         mc.add(Component('b'))
         self.assert_equal(mc.render(root), '')
 
+    def test_render_replace_root_element_by_string(self):
+        class Component(ayame.Component):
+            def on_render(self, element):
+                return ''
+
+        root = markup.Element(markup.QName('', 'root'),
+                              attrib={markup.AYAME_ID: 'b'})
+        mc = ayame.MarkupContainer('a')
+        mc.add(Component('b'))
+        self.assert_equal(mc.render(root), '')
+
+    def test_render_replace_root_element_by_list(self):
+        class Component(ayame.Component):
+            def on_render(self, element):
+                return ['>', '!', '<']
+
+        root = markup.Element(markup.QName('', 'root'),
+                              attrib={markup.AYAME_ID: 'b'})
+        mc = ayame.MarkupContainer('a')
+        mc.add(Component('b'))
+        self.assert_equal(mc.render(root), ['>', '!', '<'])
+
     def test_render_remove_element(self):
         class Component(ayame.Component):
             def on_render(self, element):
@@ -292,7 +314,7 @@ class CoreTestCase(AyameTestCase):
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
         self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, ['>', '<'])
+        self.assert_equal(root.children, ['>', '', '<'])
 
     def test_render_replace_element_by_list(self):
         class Component(ayame.Component):
@@ -307,6 +329,84 @@ class CoreTestCase(AyameTestCase):
         root.append('<')
         mc = ayame.MarkupContainer('a')
         mc.add(Component('b'))
+
+        root = mc.render(root)
+        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.attrib, {})
+        self.assert_equal(root.children, ['>', '>>', '!', '<<', '<'])
+
+    def test_render_replace_root_ayame_element(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return None
+
+        root = markup.Element(self.ayame_of('root'))
+        mc = MarkupContainer('a')
+        self.assert_equal(mc.render(root), '')
+
+    def test_render_replace_root_ayame_element_by_string(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return ''
+
+        root = markup.Element(self.ayame_of('root'))
+        mc = MarkupContainer('a')
+        self.assert_equal(mc.render(root), '')
+
+    def test_render_replace_root_ayame_element_by_list(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return ['>', '!', '<']
+
+        root = markup.Element(self.ayame_of('root'))
+        mc = MarkupContainer('a')
+        self.assert_equal(mc.render(root), ['>', '!', '<'])
+
+    def test_render_remove_ayame_element(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return None
+
+        root = markup.Element(markup.QName('', 'root'))
+        root.append('>')
+        a = markup.Element(self.ayame_of('a'))
+        root.append(a)
+        root.append('<')
+        mc = MarkupContainer('a')
+
+        root = mc.render(root)
+        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.attrib, {})
+        self.assert_equal(root.children, ['>', '<'])
+
+    def test_render_replace_ayame_element_by_string(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return ''
+
+        root = markup.Element(markup.QName('', 'root'))
+        root.append('>')
+        a = markup.Element(self.ayame_of('a'))
+        root.append(a)
+        root.append('<')
+        mc = MarkupContainer('a')
+
+        root = mc.render(root)
+        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.attrib, {})
+        self.assert_equal(root.children, ['>', '', '<'])
+
+    def test_render_replace_ayame_element_by_list(self):
+        class MarkupContainer(ayame.MarkupContainer):
+            def render_ayame_element(self, element):
+                return ['>>', '!', '<<']
+
+        root = markup.Element(markup.QName('', 'root'))
+        root.append('>')
+        a = markup.Element(self.ayame_of('a'))
+        root.append(a)
+        root.append('<')
+        mc = MarkupContainer('a')
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))

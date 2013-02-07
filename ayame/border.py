@@ -1,7 +1,7 @@
 #
 # ayame.border
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -94,10 +94,8 @@ class Border(ayame.core.MarkupContainer):
 
     def render_ayame_element(self, element):
         if element.qname == ayame.markup.AYAME_BORDER:
-            element.qname = ayame.markup.DIV
             return element
         elif element.qname == ayame.markup.AYAME_BODY:
-            element.qname = ayame.markup.DIV
             element.attrib[ayame.markup.AYAME_ID] = self.body.id
             return element
         return super(Border, self).render_ayame_element(element)
@@ -107,6 +105,11 @@ class _BorderBodyContainer(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(_BorderBodyContainer, self).__init__(id + u'_body', model)
+
+    def render_ayame_element(self, element):
+        if element.qname == ayame.markup.AYAME_BODY:
+            return element
+        return super(_BorderBodyContainer, self).render_ayame_element(element)
 
     def tr(self, key, component=None):
         # retrieve message from parent of Border
