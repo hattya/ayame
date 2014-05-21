@@ -1,10 +1,12 @@
-=====
 ayame
 =====
 
-
 ayame is a component based WSGI framework. It is inspired by
 `Apache Wicket`_, `Apache Click`_ and Flask_.
+
+.. _Apache Wicket: http://wicket.apache.org/
+.. _Apache Click: http://click.apache.org/
+.. _Flask: http://flask.pocoo.org/
 
 
 Requirements
@@ -12,11 +14,6 @@ Requirements
 
 - Python 2.7 or 3.2
 - Beaker
-
-for testing
-
-- nose
-- coverage
 
 
 Example Application
@@ -76,8 +73,3 @@ License
 -------
 
 ayame is distributed under the terms of the MIT License.
-
-
-.. _Apache Wicket: http://wicket.apache.org/
-.. _Apache Click: http://click.apache.org/
-.. _Flask: http://flask.pocoo.org/

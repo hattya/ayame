@@ -124,7 +124,7 @@ class clean(_clean):
 
 class test(Command, Mixin2to3):
 
-    description = 'run unit tests using nose'
+    description = 'run unit tests'
     user_options = [('build-tests=', 'd', 'directory to "test" (copy) to')]
 
     def initialize_options(self):
@@ -140,6 +140,8 @@ class test(Command, Mixin2to3):
             self.build_tests = os.path.join(self.build_base, 'tests')
 
     def run(self):
+        import unittest
+
         if setuptools:
             if self.distribution.install_requires:
                 self.distribution.fetch_build_eggs(
@@ -148,10 +150,6 @@ class test(Command, Mixin2to3):
                 self.distribution.fetch_build_eggs(
                     self.distribution.tests_require)
             self.run_command('egg_info')
-        try:
-            import nose
-        except ImportError:
-            return self.warn('nose is required for unit testing')
 
         self.run_command('build')
         # load modules from build-lib
@@ -173,8 +171,11 @@ class test(Command, Mixin2to3):
                     ext == '.py'):
                     test_files.append(rv[0])
         self.run_2to3(test_files)
-        # run nose
-        nose.run(argv=['test', '-w', self.build_tests])
+        # run unittest discover
+        argv = [sys.argv[0], 'discover', '--start-directory', self.build_tests]
+        if self.verbose:
+            argv.append('--verbose')
+        unittest.main(None, argv=argv)
 
 
 try:
@@ -193,9 +194,7 @@ cmdclass = {'build_py': build_py,
 kwargs = {}
 if setuptools:
     kwargs.update(zip_safe=False,
-                  install_requires=['Beaker'],
-                  tests_require=['nose',
-                                 'coverage'])
+                  install_requires=['Beaker'])
 
 setup(name='ayame',
       version=version,
