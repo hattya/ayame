@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,8 +26,8 @@
 
 import collections
 import re
-import urllib
 
+from ayame import _compat as five
 from ayame.exception import _RequestSlash, RouteError, ValidationError
 import ayame.http
 import ayame.uri
@@ -241,7 +241,7 @@ class Rule(object):
                     break
                 elif type == 'str':
                     q = value[0]
-                    value = unicode(value[1:-1].replace('\\' + q, q))
+                    value = five.str(value[1:-1].replace('\\' + q, q))
                     break
             if name is None:
                 args.append(value)
@@ -307,7 +307,7 @@ class Rule(object):
             if query:
                 query = sorted(query, key=self.map.sort_key)
                 buf.append('?')
-                buf.append(urllib.urlencode(query, doseq=True))
+                buf.append(five.urlencode(query, doseq=True))
         # anchor
         if anchor:
             buf.append('#')
@@ -391,7 +391,7 @@ class Router(object):
                 allow.update(rule.methods)
                 continue
             elif rule.has_redirect():
-                if isinstance(rule.object, basestring):
+                if isinstance(rule.object, five.string_type):
                     def repl(m):
                         var = m.group(1)
                         converter = rule._converters[var]
@@ -503,4 +503,4 @@ class _IntegerConverter(Converter):
             if self.digits < len(value):
                 raise ValidationError()
             return value
-        return unicode(value)
+        return five.str(value)

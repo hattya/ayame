@@ -107,9 +107,7 @@ _TYPE = ayame.markup.QName(ayame.markup.XHTML_NS, 'type')
 _MAXLENGTH = ayame.markup.QName(ayame.markup.XHTML_NS, 'maxlength')
 
 
-class Validator(ayame.core.Behavior):
-
-    __metaclass__ = abc.ABCMeta
+class Validator(five.with_metaclass(abc.ABCMeta, ayame.core.Behavior)):
 
     @abc.abstractmethod
     def validate(self, object):
@@ -122,7 +120,7 @@ class RegexValidator(Validator):
         self.regex = re.compile(pattern, flags)
 
     def validate(self, object):
-        if not (isinstance(object, basestring) and
+        if not (isinstance(object, five.string_type) and
                 self.regex.match(object)):
             raise ValidationError()
 
@@ -160,8 +158,8 @@ class RangeValidator(Validator):
         def typeof(self, object):
             if isinstance(object, five.integer_types):
                 return five.integer_types
-            elif isinstance(object, basestring):
-                return basestring
+            elif isinstance(object, five.string_type):
+                return five.string_type
             return object.__class__
     else:
         def typeof(self, object):
@@ -171,14 +169,14 @@ class RangeValidator(Validator):
 class StringValidator(RangeValidator):
 
     def validate(self, object):
-        if not isinstance(object, basestring):
+        if not isinstance(object, five.string_type):
             raise ValidationError()
         super(StringValidator, self).validate(len(object))
 
     def on_component(self, component, element):
         if (self.max is not None and
             self.is_text_input(element)):
-            element.attrib[_MAXLENGTH] = unicode(self.max)
+            element.attrib[_MAXLENGTH] = five.str(self.max)
 
     def is_text_input(self, element):
         return (element.qname == _INPUT and

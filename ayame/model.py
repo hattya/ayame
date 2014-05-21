@@ -1,7 +1,7 @@
 #
 # ayame.model
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,6 +26,8 @@
 
 import abc
 
+from ayame import _compat as five
+
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
 
@@ -49,18 +51,14 @@ class Model(object):
     object = property(**object())
 
 
-class InheritableModel(Model):
-
-    __metaclass__ = abc.ABCMeta
+class InheritableModel(five.with_metaclass(abc.ABCMeta, Model)):
 
     @abc.abstractmethod
     def wrap(self, component):
         pass
 
 
-class WrapModel(Model):
-
-    __metaclass__ = abc.ABCMeta
+class WrapModel(five.with_metaclass(abc.ABCMeta, Model)):
 
     def __init__(self, model):
         super(WrapModel, self).__init__(None)

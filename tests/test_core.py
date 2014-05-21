@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -25,6 +25,7 @@
 #
 
 import ayame
+from ayame import _compat as five
 from ayame import basic, http, markup, model
 from base import AyameTestCase
 
@@ -443,7 +444,8 @@ class CoreTestCase(AyameTestCase):
         mc = ayame.MarkupContainer('a')
         def populate_item(li):
             li.add(basic.Label('c', li.model_object))
-        mc.add(basic.ListView('b', [str(i) for i in xrange(3)], populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in five.range(3)],
+                              populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))

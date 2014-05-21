@@ -164,7 +164,7 @@ class Component(object):
     def model_object_as_string(self):
         object = self.model_object
         if object is not None:
-            if not isinstance(object, basestring):
+            if not isinstance(object, five.string_type):
                 converter = self.converter_for(object)
                 object = converter.to_string(object)
             if self.escape_model_string:
@@ -275,7 +275,7 @@ class MarkupContainer(Component):
     def on_render(self, element):
         def push(queue, node):
             if isinstance(node, ayame.markup.Element):
-                for index in xrange(len(node) - 1, -1, -1):
+                for index in five.range(len(node) - 1, -1, -1):
                     child = node[index]
                     if isinstance(child, ayame.markup.Element):
                         queue.append((node, index, child))
@@ -294,7 +294,7 @@ class MarkupContainer(Component):
                 # render ayame element
                 value = self.render_ayame_element(element)
                 if (isinstance(value, collections.Iterable) and
-                    not isinstance(value, basestring)):
+                    not isinstance(value, five.string_type)):
                     # replace ayame element (parent)
                     if parent is None:
                         root = value
@@ -316,7 +316,7 @@ class MarkupContainer(Component):
                         total = len(elements)
                         last = index + total - 1
                         queue.extend((parent, last - i, elements[i])
-                                     for i in xrange(total))
+                                     for i in five.range(total))
                     continue
                 elif isinstance(value, ayame.markup.Element):
                     element = value
@@ -352,7 +352,7 @@ class MarkupContainer(Component):
                 # remove element
                 del parent[index]
             elif (isinstance(value, collections.Iterable) and
-                  not isinstance(value, basestring)):
+                  not isinstance(value, five.string_type)):
                 # replace element
                 parent[index:index + 1] = value
                 for v in value:

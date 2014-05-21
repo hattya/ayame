@@ -206,7 +206,7 @@ class FormComponent(ayame.core.MarkupContainer):
                     converter = self.converter_for(self.type)
                     object = converter.to_python(value)
                 except ConversionError as e:
-                    raise ValidationError(unicode(e))
+                    raise ValidationError(five.str(e))
             else:
                 object = value
             # validate
@@ -390,7 +390,7 @@ class ChoiceRenderer(object):
         return label if label is not None else u''
 
     def value_of(self, index, object):
-        return unicode(index)
+        return five.str(index)
 
 
 class RadioChoice(Choice):
@@ -410,7 +410,7 @@ class RadioChoice(Choice):
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
-                id = u'-'.join((id_prefix, unicode(index)))
+                id = u'-'.join((id_prefix, five.str(index)))
                 # append prefix
                 element.extend(self.prefix.copy())
                 # radio button
@@ -426,7 +426,7 @@ class RadioChoice(Choice):
                 element.append(input)
                 # label
                 text = self.renderer.label_for(choice)
-                if not isinstance(text, basestring):
+                if not isinstance(text, five.string_type):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
                 label = ayame.markup.Element(_LABEL,
@@ -460,7 +460,7 @@ class CheckBoxChoice(Choice):
             id_prefix = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for index, choice in enumerate(self.choices):
-                id = u'-'.join((id_prefix, unicode(index)))
+                id = u'-'.join((id_prefix, five.str(index)))
                 # append prefix
                 element.extend(self.prefix.copy())
                 # checkbox
@@ -477,7 +477,7 @@ class CheckBoxChoice(Choice):
                 element.append(input)
                 # label
                 text = self.renderer.label_for(choice)
-                if not isinstance(text, basestring):
+                if not isinstance(text, five.string_type):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
                 label = ayame.markup.Element(_LABEL,
@@ -528,7 +528,7 @@ class SelectChoice(Choice):
                 option = self.render_element(option, index, choice)
                 # label
                 text = self.renderer.label_for(choice)
-                if not isinstance(text, basestring):
+                if not isinstance(text, five.string_type):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
                 option.append(five.html_escape(text))

@@ -1,9 +1,9 @@
 *.egg
-*.py[co]
+*.py?
 *.sw?
 .coverage
 MANIFEST
 ayame/__version__.py
-ayame.egg-info/
+*.egg-info/
 build/
 dist/

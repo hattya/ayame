@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -31,6 +31,7 @@ import sys
 
 import beaker.middleware
 
+from ayame import _compat as five
 import ayame.converter
 import ayame.core
 from ayame.exception import AyameError, _Redirect
@@ -107,7 +108,7 @@ class Ayame(object):
             # dispatch
             object, values = context._router.match()
             context.request = self.config['ayame.request'](environ, values)
-            for _ in xrange(self.config['ayame.max.redirect']):
+            for _ in five.range(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(object)
                 except _Redirect as r:

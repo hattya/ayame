@@ -64,13 +64,13 @@ class ConverterTestCase(AyameTestCase):
             def type(self):
                 return O
             def to_python(self, value):
-                return unicode(value)
+                return five.str(value)
         class NConverter(object):
             @property
             def type(self):
                 return N
             def to_python(self, value):
-                return unicode(value)
+                return five.str(value)
 
         registry = converter.ConverterRegistry()
         oc = OConverter()
@@ -190,8 +190,8 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is(c.to_python(n), n)
 
         self.assert_equal(c.to_string(None), 'None')
-        self.assert_equal(c.to_string(o), unicode(o))
-        self.assert_equal(c.to_string(n), unicode(n))
+        self.assert_equal(c.to_string(o), five.str(o))
+        self.assert_equal(c.to_string(n), five.str(n))
 
     def test_boolean(self):
         c = converter.BooleanConverter()
@@ -267,26 +267,23 @@ class ConverterTestCase(AyameTestCase):
     def test_int(self):
         c = converter.IntegerConverter()
         self.assert_equal(c.type, five.integer_types)
-        self.assert_is_instance(int(0), c.type)
-        self.assert_is_instance(long(0), c.type)
+        for t in five.integer_types:
+            self.assert_is_instance(t(0), c.type)
 
-        self.assert_equal(c.to_python(unicode(-8192)), -8192)
+        self.assert_equal(c.to_python(five.str(-8192)), -8192)
         self.assert_equal(c.to_python('0'), 0)
         self.assert_equal(c.to_python(None), 0)
-        self.assert_equal(c.to_python(unicode(8192)), 8192)
+        self.assert_equal(c.to_python(five.str(8192)), 8192)
         with self.assert_raises(ayame.ConversionError):
             c.to_python('')
         with self.assert_raises(ayame.ConversionError):
             c.to_python(object())
 
-        self.assert_equal(c.to_string(int(-8192)), unicode(-8192))
-        self.assert_equal(c.to_string(long(-8192)), unicode(-8192))
-        self.assert_equal(c.to_string(int(0)), '0')
-        self.assert_equal(c.to_string(long(0)), '0')
-        self.assert_equal(c.to_string(int(-0)), '0')
-        self.assert_equal(c.to_string(long(-0)), '0')
-        self.assert_equal(c.to_string(int(8192)), unicode(8192))
-        self.assert_equal(c.to_string(long(8192)), unicode(8192))
+        for t in five.integer_types:
+            self.assert_equal(c.to_string(t(-8192)), five.str(-8192))
+            self.assert_equal(c.to_string(t(0)), '0')
+            self.assert_equal(c.to_string(t(-0)), '0')
+            self.assert_equal(c.to_string(t(8192)), five.str(8192))
         with self.assert_raises(ayame.ConversionError):
             c.to_string(None)
         with self.assert_raises(ayame.ConversionError):

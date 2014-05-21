@@ -1,7 +1,7 @@
 #
 # ayame.basic
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,6 +26,7 @@
 
 import collections
 
+from ayame import _compat as five
 import ayame.core
 import ayame.markup
 import ayame.model
@@ -39,7 +40,7 @@ __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
 class Label(ayame.core.Component):
 
     def __init__(self, id, model=None):
-        if isinstance(model, basestring):
+        if isinstance(model, five.string_type):
             model = ayame.model.Model(model)
         super(Label, self).__init__(id, model)
 
@@ -59,7 +60,7 @@ class ListView(ayame.core.MarkupContainer):
     def on_before_render(self):
         object = self.model_object
         if object is not None:
-            for i in xrange(len(object)):
+            for i in five.range(len(object)):
                 li = self.new_item(i)
                 self.add(li)
                 self.populate_item(li)
@@ -87,7 +88,7 @@ class ListView(ayame.core.MarkupContainer):
 class _ListItem(ayame.core.MarkupContainer):
 
     def __init__(self, index, model):
-        super(_ListItem, self).__init__(unicode(index), model)
+        super(_ListItem, self).__init__(five.str(index), model)
         self.__index = index
 
     @property

@@ -1,7 +1,7 @@
 #
 # ayame.link
 #
-#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,8 +24,7 @@
 #   SOFTWARE.
 #
 
-import urllib
-
+from ayame import _compat as five
 import ayame.core
 from ayame.exception import ComponentError
 import ayame.markup
@@ -51,7 +50,7 @@ _SRC = ayame.markup.QName(ayame.markup.XHTML_NS, u'src')
 class Link(ayame.core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        if isinstance(model, basestring):
+        if isinstance(model, five.string_type):
             model = ayame.model.Model(model)
         super(Link, self).__init__(id, model)
 
@@ -91,7 +90,7 @@ class ActionLink(Link):
         query = self.request.query.copy()
         query[ayame.core.AYAME_PATH] = [self.path()]
         environ = self.environ.copy()
-        environ['QUERY_STRING'] = urllib.urlencode(query, doseq=True)
+        environ['QUERY_STRING'] = five.urlencode(query, doseq=True)
         return ayame.uri.request_uri(environ, True)
 
     def on_click(self):

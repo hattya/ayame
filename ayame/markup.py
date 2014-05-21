@@ -181,8 +181,12 @@ class Element(object):
         return '<{} {} at 0x{:x}>'.format(ayame.util.fqon_of(self),
                                           repr(self.qname), id(self))
 
-    def __nonzero__(self):
-        return True
+    if five.PY2:
+        def __nonzero__(self):
+            return True
+    else:
+        def __bool__(self):
+            return True
 
     def __len__(self):
         return self.children.__len__()
@@ -225,7 +229,7 @@ class Element(object):
         beg = end = 0
         children = []
         for i, node in enumerate(self):
-            if isinstance(node, basestring):
+            if isinstance(node, five.string_type):
                 end = i + 1
             else:
                 if beg < end:
@@ -244,7 +248,7 @@ class _AttributeDict(ayame.util.FilterDict):
     def __convert__(self, key):
         if isinstance(key, QName):
             return QName(key.ns_uri, key.name.lower())
-        elif isinstance(key, basestring):
+        elif isinstance(key, five.string_type):
             return key.lower()
         return key
 
@@ -278,10 +282,10 @@ class MarkupLoader(five.HTMLParser):
         self._remove = False
 
     def load(self, object, src, encoding='utf-8', lang=u'xhtml1'):
-        if isinstance(src, basestring):
+        if isinstance(src, five.string_type):
             try:
                 fp = io.open(src, encoding=encoding)
-            except (IOError, OSError):
+            except (OSError, IOError):
                 fp = None
         else:
             fp = src
@@ -303,7 +307,7 @@ class MarkupLoader(five.HTMLParser):
             if data == '':
                 break
             self.feed(data)
-        if isinstance(src, basestring):
+        if isinstance(src, five.string_type):
             fp.close()
         self.close()
         return self._markup
@@ -392,7 +396,7 @@ class MarkupLoader(five.HTMLParser):
                                   'malformed XML declaration')
             self._markup.lang = u'xml'
 
-            for k, v in m.groupdict().iteritems():
+            for k, v in five.items(m.groupdict()):
                 if not v:
                     continue
                 elif v[0] != v[-1]:
@@ -417,7 +421,7 @@ class MarkupLoader(five.HTMLParser):
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(prefix):
-            for i in xrange(self._ptr() - 1, -1, -1):
+            for i in five.range(self._ptr() - 1, -1, -1):
                 element = self._at(i)
                 if (element.ns and
                     prefix in element.ns):
@@ -606,8 +610,8 @@ class MarkupRenderer(object):
                 else:
                     # push children
                     queue.extend((i, element[i])
-                                 for i in xrange(len(element) - 1, -1, -1))
-            elif isinstance(node, basestring):
+                                 for i in five.range(len(element) - 1, -1, -1))
+            elif isinstance(node, five.string_type):
                 # render text
                 self.render_text(index, node)
             else:
@@ -696,7 +700,7 @@ class MarkupRenderer(object):
         def _write(self, *args):
             write = self._buffer.write
             for s in args:
-                write(s if isinstance(s, unicode) else unicode(s))
+                write(s if isinstance(s, five.str) else five.str(s))
     else:
         def _write(self, *args):
             write = self._buffer.write
@@ -738,14 +742,14 @@ class MarkupRenderer(object):
 
     def _count(self, ptr):
         count = 0
-        for i in xrange(ptr):
+        for i in five.range(ptr):
             if self._at(i).element.type == Element.OPEN:
                 count += 1
         return count
 
     def _prefix_for(self, ns_uri):
         known_prefixes = []
-        for i in xrange(self._ptr() - 1, -1, -1):
+        for i in five.range(self._ptr() - 1, -1, -1):
             element = self._at(i).element
             if element.ns:
                 for prefix in element.ns:
@@ -767,7 +771,7 @@ class MarkupRenderer(object):
             if isinstance(node, Element):
                 if element:
                     children.append(node)
-            elif isinstance(node, basestring):
+            elif isinstance(node, five.string_type):
                 if (text and
                     node):
                     # normalize newlines
@@ -895,7 +899,7 @@ class MarkupRenderer(object):
                 self._write(u'="', ns_uri, u'"')
         # attributes
         attrib = [(prefix_for(a.ns_uri), a.name, v)
-                  for a, v in element.attrib.iteritems()]
+                  for a, v in five.items(element.attrib)]
         default_ns = False
         for prefix, name, value in sorted(attrib):
             self._write(u' ')
@@ -958,7 +962,8 @@ class MarkupRenderer(object):
             elif name not in ('img', 'input'):
                 newline = _ElementState.NEWLINE_AROUND
         elif name not in _pcdata:
-            element[:] = (n for n in element if not isinstance(n, basestring))
+            element[:] = (n for n in element
+                          if not isinstance(n, five.string_type))
             newline = (_ElementState.NEWLINE_AROUND |
                        _ElementState.NEWLINE_INSIDE)
         elif name in ('title', 'style', 'script', 'option', 'textarea'):

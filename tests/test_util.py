@@ -315,7 +315,7 @@ class UtilTestCase(AyameTestCase):
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):
             def __convert__(self, key):
-                if isinstance(key, basestring):
+                if isinstance(key, five.string_type):
                     return key.lower()
                 return super(LowerDict, self).__convert__(key)
 

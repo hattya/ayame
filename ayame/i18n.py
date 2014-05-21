@@ -1,7 +1,7 @@
 #
 # ayame.i18n
 #
-#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -81,7 +81,7 @@ class Localizer(object):
             try:
                 with ayame.util.load_data(module, name + self.extension) as fp:
                     return self._load(fp)
-            except (IOError, ResourceError):
+            except (OSError, IOError, ResourceError):
                 pass
 
         for class_, prefix in self._iter_class(component):

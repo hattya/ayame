@@ -1,7 +1,7 @@
 #
 # test_basic
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -25,6 +25,7 @@
 #
 
 import ayame
+from ayame import _compat as five
 from ayame import basic, markup, model
 from base import AyameTestCase
 
@@ -92,7 +93,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
-        m = model.Model([str(i) for i in xrange(3)])
+        m = model.Model([str(i) for i in five.range(3)])
         mc.add(basic.ListView('b', m, None))
 
         with self.assert_raises_regex(ayame.ComponentError,
@@ -106,7 +107,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
-        m = model.Model([str(i) for i in xrange(3)])
+        m = model.Model([str(i) for i in five.range(3)])
         def populate_item(li):
             li.add(basic.Label('c', li.model.object))
         mc.add(basic.ListView('b', m, populate_item))
@@ -160,7 +161,8 @@ class BasicTestCase(AyameTestCase):
         def populate_item(li):
             li.add(basic.Label('c', li.model.object))
             li.find('c').render_body_only = True
-        mc.add(basic.ListView('b', [str(i) for i in xrange(3)], populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in five.range(3)],
+                              populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
@@ -175,7 +177,7 @@ class BasicTestCase(AyameTestCase):
         label = markup.Element(markup.QName('', 'label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
-        m = model.CompoundModel({'b': [str(i) for i in xrange(3)]})
+        m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
         mc = ayame.MarkupContainer('a', m)
         def populate_item(li):
             li.add(basic.Label('c', li.model.object))
@@ -226,7 +228,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         root.append(']')
-        m = model.CompoundModel({'b': [str(i) for i in xrange(3)]})
+        m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
         mc = ayame.MarkupContainer('a', m)
         def populate_item(li):
             li.add(basic.Label('c', li.model.object))

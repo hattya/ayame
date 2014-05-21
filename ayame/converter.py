@@ -28,7 +28,6 @@ import abc
 import collections
 import datetime
 import sys
-import types
 
 from ayame import _compat as five
 from ayame.exception import ConversionError
@@ -57,7 +56,7 @@ class ConverterRegistry(object):
             return self.__registry[type]
 
     def converter_for(self, value):
-        if isinstance(value, (type, types.ClassType)):
+        if isinstance(value, five.class_types):
             class_ = value
         else:
             class_ = value.__class__
@@ -83,9 +82,7 @@ class ConverterRegistry(object):
             del self.__registry[type]
 
 
-class Converter(object):
-
-    __metaclass__ = abc.ABCMeta
+class Converter(five.with_metaclass(abc.ABCMeta, object)):
 
     @abc.abstractproperty
     def type(self):
@@ -100,7 +97,7 @@ class Converter(object):
         if error is not None:
             raise error
 
-        return unicode(value)
+        return five.str(value)
 
     def _check_type(self, value):
         if not (self.type is None or
@@ -145,7 +142,7 @@ class BooleanConverter(Converter):
         return bool
 
     def to_python(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, five.string_type):
             s = value.lower()
             if s in ('false', 'off', 'no', 'n'):
                 return False
@@ -181,9 +178,9 @@ class IntegerConverter(Converter):
 
     def to_python(self, value):
         try:
-            return long(value) if value is not None else long()
+            return five.int(value) if value is not None else five.int()
         except (TypeError, ValueError):
-            raise self._new_error(value, type=long)
+            raise self._new_error(value, type=five.int)
 
 
 class DateConverter(Converter):
@@ -206,9 +203,9 @@ class DateConverter(Converter):
             raise error
 
         try:
-            return unicode(value.strftime(self._format))
+            return five.str(value.strftime(self._format))
         except ValueError as e:
-            raise ConversionError(unicode(e))
+            raise ConversionError(five.str(e))
 
 
 class TimeConverter(Converter):
@@ -230,7 +227,7 @@ class TimeConverter(Converter):
         if error is not None:
             raise error
 
-        return unicode(value.strftime(self._format))
+        return five.str(value.strftime(self._format))
 
 
 class DateTimeConverter(Converter):
@@ -240,7 +237,7 @@ class DateTimeConverter(Converter):
         return datetime.datetime
 
     def to_python(self, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, five.string_type):
             raise self._new_error(value)
 
         ds = value
@@ -288,7 +285,7 @@ class DateTimeConverter(Converter):
         try:
             utcoffset = value.utcoffset()
         except TypeError as e:
-            raise ConversionError(unicode(e))
+            raise ConversionError(five.str(e))
         if utcoffset is None:
             z = 'Z'
         else:

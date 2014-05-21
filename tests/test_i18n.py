@@ -1,7 +1,7 @@
 #
 # test_i18n
 #
-#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -67,7 +67,7 @@ class I18nTestCase(AyameTestCase):
                                (ayame.Ayame, '')])
 
     def test_load(self):
-        data = ur"""
+        data = br"""
 # comment
 spam : spam
 ! comment
@@ -92,7 +92,7 @@ lobster\: :: lobster
 lobster\   \  lobster
 """
         l = i18n.Localizer()
-        self.assert_equal(l._load(io.StringIO(data)),
+        self.assert_equal(l._load(io.StringIO(data.decode())),
                           {'spam': 'spam',
                            'eggs': 'eggs',
                            'ham': 'ham',

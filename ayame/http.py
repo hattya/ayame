@@ -45,11 +45,6 @@ _accept_re = re.compile(r"""
     )?
 """, re.VERBOSE)
 
-if five.PY2:
-    _decode = lambda s: unicode(s, 'utf-8', 'replace')
-else:
-    _decode = None
-
 
 def parse_accept(value):
     if not value:
@@ -77,26 +72,23 @@ def parse_form_data(environ):
                           keep_blank_values=True)
 
     form_data = {}
-    if fs.list:
-        for field in fs.list:
-            if (isinstance(field, cgi.FieldStorage) and
-                field.done == -1):
-                raise RequestTimeout()
-            if _decode is not None:
-                field.name = _decode(field.name)
+    for field in fs.list:
+        if (isinstance(field, cgi.FieldStorage) and
+            field.done == -1):
+            raise RequestTimeout()
+        if five.PY2:
+            field.name = unicode(field.name, 'utf-8', 'replace')
             if field.filename:
-                if _decode is not None:
-                    field.filename = _decode(field.filename)
+                field.filename = unicode(field.filename, 'utf-8', 'replace')
                 value = field
             else:
-                if _decode is not None:
-                    value = _decode(field.value)
-                else:
-                    value = field.value
-            if field.name in form_data:
-                form_data[field.name].append(value)
-            else:
-                form_data[field.name] = [value]
+                value = unicode(field.value, 'utf-8', 'replace')
+        else:
+            value = field if field.filename else field.value
+        if field.name in form_data:
+            form_data[field.name].append(value)
+        else:
+            form_data[field.name] = [value]
     return form_data
 
 
@@ -126,9 +118,7 @@ class _HTTPStatusMetaclass(type):
         return type.__new__(cls, name, bases, dict)
 
 
-class HTTPStatus(AyameError):
-
-    __metaclass__ = _HTTPStatusMetaclass
+class HTTPStatus(five.with_metaclass(_HTTPStatusMetaclass, AyameError)):
 
     def __init__(self, description='', headers=None):
         super(HTTPStatus, self).__init__(self.status)

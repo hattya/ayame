@@ -24,9 +24,6 @@
 #   SOFTWARE.
 #
 
-import urllib
-import urlparse
-
 from ayame import _compat as five
 import ayame.util
 
@@ -36,31 +33,20 @@ __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
 
 _safe = "/-._~!$&'()*+,;=:@"
 
-if five.PY2:
-    _decode = lambda s: unicode(s, 'utf-8', 'replace')
-else:
-    _decode = None
-
 
 def parse_qs(environ):
     qs = environ.get('QUERY_STRING')
-    if not qs:
-        return {}
-
-    qs = urlparse.parse_qs(qs, keep_blank_values=True)
-    if _decode is not None:
-        return {_decode(k): [_decode(s) for s in v] for k, v in qs.iteritems()}
-    return qs
+    return five.urlparse_qs(qs, keep_blank_values=True) if qs else {}
 
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return urllib.quote(ayame.util.to_bytes(s, encoding, errors),
-                        ayame.util.to_bytes(safe, 'ascii', 'ignore'))
+    return five.urlquote(ayame.util.to_bytes(s, encoding, errors),
+                         ayame.util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return urllib.quote_plus(ayame.util.to_bytes(s, encoding, errors),
-                             ayame.util.to_bytes(safe, 'ascii', 'ignore'))
+    return five.urlquote_plus(ayame.util.to_bytes(s, encoding, errors),
+                              ayame.util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def application_uri(environ):
@@ -125,7 +111,7 @@ def is_relative_uri(uri):
     elif (uri is None or
           uri[0] in ('/', '#')):
         return False
-    return not urlparse.urlsplit(uri).scheme
+    return not five.urlsplit(uri).scheme
 
 
 def relative_uri(environ, uri):

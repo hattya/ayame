@@ -93,29 +93,29 @@ def load_data(object, path, encoding='utf-8'):
     if loader:
         try:
             data = loader.get_data(path)
-        except (AttributeError, IOError):
+        except (AttributeError, OSError, IOError):
             raise ResourceError(
                 "could not load '{}' from loader {!r}".format(path, loader))
-        return io.StringIO(unicode(data, encoding))
+        return io.StringIO(five.str(data, encoding))
     try:
         return io.open(path, encoding=encoding)
-    except (IOError, OSError):
+    except (OSError, IOError):
         raise ResourceError("could not load '{}'".format(path))
 
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
         return s
-    elif not isinstance(s, basestring):
-        s = unicode(s)
+    elif not isinstance(s, five.string_type):
+        s = five.str(s)
     return s.encode(encoding, errors)
 
 
 def to_list(o):
     if o is None:
         return []
-    elif (not isinstance(o, basestring) and
-          isinstance(o, collections.Iterable)):
+    elif (isinstance(o, collections.Iterable) and
+          not isinstance(o, five.string_type)):
         return list(o)
     return [o]
 

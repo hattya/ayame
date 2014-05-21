@@ -30,6 +30,7 @@ import unittest
 import wsgiref.util
 
 import ayame
+from ayame import _compat as five
 from ayame import local, markup, uri, util
 
 
@@ -86,7 +87,7 @@ class AyameTestCase(unittest.TestCase):
         pass
 
     def assert_ws(self, sequence, index):
-        self.assert_is_instance(sequence[index], basestring)
+        self.assert_is_instance(sequence[index], five.string_type)
         self.assert_regex(sequence[index], '^\s*$')
 
     @contextlib.contextmanager
@@ -115,7 +116,7 @@ class AyameTestCase(unittest.TestCase):
             environ['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
             data = data.format(path=ayame.AYAME_PATH)
         elif body is not None:
-            self.assert_is_instance(self.boundary, basestring)
+            self.assert_is_instance(self.boundary, five.string_type)
             self.assert_true(self.boundary)
             environ['CONTENT_TYPE'] = ('multipart/form-data; '
                                        'boundary={}').format(self.boundary)
@@ -147,7 +148,7 @@ class AyameTestCase(unittest.TestCase):
                       xml=markup.XML_NS,
                       ayame=markup.AYAME_NS,
                       path=ayame.AYAME_PATH)
-        for k, v in getattr(class_, 'kwargs', {}).iteritems():
+        for k, v in five.items(getattr(class_, 'kwargs', {})):
             if callable(v):
                 kwargs[k] = v(*[kwargs[k]] if k in kwargs else [])
             else:
