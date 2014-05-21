@@ -1,0 +1,58 @@
+#
+# ayame._compat
+#
+#   Copyright (c) 2014 Akinori Hattori <hattya@gmail.com>
+#
+#   Permission is hereby granted, free of charge, to any person
+#   obtaining a copy of this software and associated documentation files
+#   (the "Software"), to deal in the Software without restriction,
+#   including without limitation the rights to use, copy, modify, merge,
+#   publish, distribute, sublicense, and/or sell copies of the Software,
+#   and to permit persons to whom the Software is furnished to do so,
+#   subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be
+#   included in all copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+#   BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+#   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+#   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
+#
+
+import sys
+
+
+__all__ = ['PY2', 'integer_types', 'html_escape', 'HTMLParser']
+
+PY2 = sys.version_info[0] == 2
+if PY2:
+    from HTMLParser import HTMLParser as _HTMLParser
+    import cgi
+
+    integer_types = (long, int)
+
+    def html_escape(s, quote=True):
+        return cgi.escape(s, quote)
+
+    class HTMLParser(_HTMLParser, object):
+
+        def __init__(self, strict=False, convert_charrefs=False):
+            _HTMLParser.__init__(self)
+else:
+    from html import escape as html_escape
+    from html.parser import HTMLParser as _HTMLParser
+
+    integer_types = (int,)
+
+    if sys.version_info < (3, 4):
+        class HTMLParser(_HTMLParser):
+
+            def __init__(self, strict=False, convert_charrefs=False):
+                super().__init__(strict)
+    else:
+        HTMLParser = _HTMLParser

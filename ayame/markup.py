@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,12 +24,11 @@
 #   SOFTWARE.
 #
 
-import HTMLParser
 import collections
 import io
 import re
-import sys
 
+from ayame import _compat as five
 from ayame.exception import MarkupError, RenderingError
 import ayame.util
 
@@ -261,7 +260,7 @@ class Fragment(list):
     copy = __copy__
 
 
-class MarkupLoader(HTMLParser.HTMLParser, object):
+class MarkupLoader(five.HTMLParser):
 
     _decl = {'new_element': 'new_{}_element',
              'push': '{}_push',
@@ -269,7 +268,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
              'finish': '{}_finish'}
 
     def __init__(self):
-        HTMLParser.HTMLParser.__init__(self)
+        super(MarkupLoader, self).__init__(convert_charrefs=False)
         self.__stack = collections.deque()
         self._cache = {}
 
@@ -310,7 +309,7 @@ class MarkupLoader(HTMLParser.HTMLParser, object):
         return self._markup
 
     def close(self):
-        HTMLParser.HTMLParser.close(self)
+        super(MarkupLoader, self).close()
         self._impl_of('finish')()
 
     def handle_starttag(self, name, attrs):
@@ -693,7 +692,7 @@ class MarkupRenderer(object):
             self._impl_of('render_text')(index, text)
             self._bol = False
 
-    if sys.hexversion < 0x03000000:
+    if five.PY2:
         def _write(self, *args):
             write = self._buffer.write
             for s in args:

@@ -1,7 +1,7 @@
 #
 # ayame.util
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -32,13 +32,14 @@ import random
 import sys
 import types
 
+from ayame import _compat as five
 from ayame.exception import ResourceError
 
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
            'FilterDict']
 
-if sys.hexversion < 0x03000000:
+if five.PY2:
     _builtins = '__builtin__'
 else:
     _builtins = 'builtins'
@@ -159,9 +160,6 @@ class FilterDict(dict):
 
     def get(self, key, *args):
         return super(FilterDict, self).get(self.__convert__(key), *args)
-
-    if sys.hexversion < 0x03000000:
-        has_key = __contains__
 
     def pop(self, key, *args):
         return super(FilterDict, self).pop(self.__convert__(key), *args)

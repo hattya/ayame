@@ -1,7 +1,7 @@
 #
 # ayame.validator
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,8 +26,8 @@
 
 import abc
 import re
-import sys
 
+from ayame import _compat as five
 import ayame.core
 from ayame.exception import ValidationError
 import ayame.markup
@@ -156,10 +156,10 @@ class RangeValidator(Validator):
                    object <= self.max)):
             raise ValidationError()
 
-    if sys.hexversion < 0x03000000:
+    if five.PY2:
         def typeof(self, object):
-            if isinstance(object, (long, int)):
-                return (long, int)
+            if isinstance(object, five.integer_types):
+                return five.integer_types
             elif isinstance(object, basestring):
                 return basestring
             return object.__class__

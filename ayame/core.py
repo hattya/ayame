@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,10 +24,10 @@
 #   SOFTWARE.
 #
 
-import cgi
 import collections
 import wsgiref.headers
 
+from ayame import _compat as five
 from ayame.exception import AyameError, ComponentError, RenderingError
 import ayame.http
 import ayame.local
@@ -168,7 +168,7 @@ class Component(object):
                 converter = self.converter_for(object)
                 object = converter.to_string(object)
             if self.escape_model_string:
-                return cgi.escape(object, True)
+                return five.html_escape(object)
             return object
         return u''
 

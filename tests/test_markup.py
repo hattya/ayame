@@ -1,7 +1,7 @@
 #
 # test_markup
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -284,14 +284,13 @@ class MarkupTestCase(AyameTestCase):
         self.assert_is_none(m.root)
 
         # load from file
-        fp = tempfile.NamedTemporaryFile()
-        src = fp.name
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src)
-        self.assert_equal(m.xml_decl, {})
-        self.assert_equal(m.lang, 'xhtml1')
-        self.assert_is_none(m.doctype)
-        self.assert_is_none(m.root)
+        with tempfile.NamedTemporaryFile('w+') as fp:
+            loader = markup.MarkupLoader()
+            m = loader.load(self, fp)
+            self.assert_equal(m.xml_decl, {})
+            self.assert_equal(m.lang, 'xhtml1')
+            self.assert_is_none(m.doctype)
+            self.assert_is_none(m.root)
 
     def test_load_unsupported_html(self):
         # xhtml1 frameset

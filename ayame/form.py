@@ -1,7 +1,7 @@
 #
 # ayame.form
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,10 +24,10 @@
 #   SOFTWARE.
 #
 
-import cgi
 import collections
 import operator
 
+from ayame import _compat as five
 import ayame.core
 from ayame.exception import (ComponentError, ConversionError, RenderingError,
                              ValidationError)
@@ -432,7 +432,7 @@ class RadioChoice(Choice):
                 label = ayame.markup.Element(_LABEL,
                                              type=ayame.markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.append(cgi.escape(text, True))
+                label.append(five.html_escape(text))
                 label = self.render_element(label, index, choice)
                 element.append(label)
                 # append suffix
@@ -483,7 +483,7 @@ class CheckBoxChoice(Choice):
                 label = ayame.markup.Element(_LABEL,
                                              type=ayame.markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.append(cgi.escape(text, True))
+                label.append(five.html_escape(text))
                 label = self.render_element(label, index, choice)
                 element.append(label)
                 # append suffix
@@ -531,7 +531,7 @@ class SelectChoice(Choice):
                 if not isinstance(text, basestring):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
-                option.append(cgi.escape(text, True))
+                option.append(five.html_escape(text))
                 element.append(option)
                 # append suffix
                 if index < last:

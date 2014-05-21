@@ -1,7 +1,7 @@
 #
 # test_converter
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -28,6 +28,7 @@ import datetime
 import sys
 
 import ayame
+from ayame import _compat as five
 from ayame import converter
 from base import AyameTestCase
 
@@ -265,10 +266,7 @@ class ConverterTestCase(AyameTestCase):
 
     def test_int(self):
         c = converter.IntegerConverter()
-        if sys.hexversion < 0x03000000:
-            self.assert_equal(c.type, (long, int))
-        else:
-            self.assert_is(c.type, int)
+        self.assert_equal(c.type, five.integer_types)
         self.assert_is_instance(int(0), c.type)
         self.assert_is_instance(long(0), c.type)
 
@@ -312,8 +310,9 @@ class ConverterTestCase(AyameTestCase):
             c.to_python(object())
 
         self.assert_equal(c.to_string(datetime.date(2011, 1, 1)), '2011-01-01')
-        with self.assert_raises(ayame.ConversionError):
-            c.to_string(datetime.date(1, 1, 1))
+        if sys.version_info < (3, 3):
+            with self.assert_raises(ayame.ConversionError):
+                c.to_string(datetime.date(1, 1, 1))
         with self.assert_raises(ayame.ConversionError):
             c.to_string(None)
         with self.assert_raises(ayame.ConversionError):

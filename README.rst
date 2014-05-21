@@ -12,7 +12,7 @@ ayame is a component based WSGI framework. It is inspired by
 Requirements
 ------------
 
-- Python 2.7 or 3.2
+- Python 2.7 or 3.3+
 - Beaker
 
 

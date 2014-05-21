@@ -1,7 +1,7 @@
 #
 # base
 #
-#   Copyright (c) 2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2013-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -55,7 +55,7 @@ _ASSERT_MAP = {a: _method_of(a)
                          'assert_regex', 'assert_not_regex',
                          'assert_items_equal')}
 
-if sys.hexversion < 0x03020000:
+if sys.version_info < (3, 2):
     _ASSERT_MAP.update(
         assert_raises_regex='assertRaisesRegexp',
         assert_regex='assertRegexpMatches',

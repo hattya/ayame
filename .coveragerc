@@ -9,4 +9,5 @@ exclude_lines =
     except ImportError:
 partial_branches =
     pragma: no partial
-    if sys.hexversion
+    if sys.version_info
+    PY2:

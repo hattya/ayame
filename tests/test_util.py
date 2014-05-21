@@ -1,7 +1,7 @@
 #
 # test_util
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -30,6 +30,7 @@ import sys
 import types
 
 import ayame
+from ayame import _compat as five
 from ayame import util
 from base import AyameTestCase
 
@@ -62,7 +63,7 @@ class UtilTestCase(AyameTestCase):
         O.__module__ = None
         self.assert_equal(util.fqon_of(O), '<unknown>.O')
         self.assert_equal(util.fqon_of(O()), '<unknown>.O')
-        if sys.hexversion < 0x03000000:
+        if five.PY2:
             del O.__module__
             self.assert_equal(util.fqon_of(O), 'O')
             self.assert_equal(util.fqon_of(O()), 'O')
@@ -128,7 +129,7 @@ class UtilTestCase(AyameTestCase):
             pass
 
         def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+            with self.assert_raises_regex(ayame.ResourceError, " load '"):
                 util.load_data(*args)
         assert_load(Eggs, 'Eggs.txt')
         assert_load(Eggs, '.txt')
@@ -136,39 +137,39 @@ class UtilTestCase(AyameTestCase):
         assert_load(Eggs(), '.txt')
 
     def test_load_data_function(self):
-        def spam():
+        def ham():
             pass
 
         def assert_load(*args):
             with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/spam.txt')
-        assert_load(spam, 'spam.txt')
-        assert_load(spam, '.txt')
+                self.assert_equal(fp.read().strip(), 'test_util/ham.txt')
+        assert_load(ham, 'ham.txt')
+        assert_load(ham, '.txt')
 
         def assert_load(*args):
             with self.assert_raises_regex(ayame.ResourceError,
                                           "^invalid path '"):
                 util.load_data(*args)
-        assert_load(spam, os.path.pardir)
-        assert_load(spam, os.path.join(*(os.path.pardir,) * 2))
-        assert_load(spam, os.path.sep)
+        assert_load(ham, os.path.pardir)
+        assert_load(ham, os.path.join(*(os.path.pardir,) * 2))
+        assert_load(ham, os.path.sep)
 
-        del spam.__module__
+        del ham.__module__
         def assert_load(*args):
             with self.assert_raises_regex(ayame.ResourceError,
                                           ' find module '):
                 util.load_data(*args)
-        assert_load(spam, 'spam.txt')
-        assert_load(spam, '.txt')
+        assert_load(ham, 'ham.txt')
+        assert_load(ham, '.txt')
 
-        def eggs():
+        def toast():
             pass
 
         def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+            with self.assert_raises_regex(ayame.ResourceError, " load '"):
                 util.load_data(*args)
-        assert_load(eggs, 'eggs.txt')
-        assert_load(eggs, '.txt')
+        assert_load(toast, 'toast.txt')
+        assert_load(toast, '.txt')
 
     def test_load_data_module(self):
         module = sys.modules[__name__]
@@ -184,19 +185,17 @@ class UtilTestCase(AyameTestCase):
         assert_load(module, os.path.join(*(os.path.pardir,) * 2))
         assert_load(module, os.path.sep)
 
-        with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
+        with self.assert_raises_regex(ayame.ResourceError, " load '"):
             util.load_data(ayame, '.txt')
 
     def test_load_data_no___file__(self):
-        class Module(types.ModuleType):
-            pass
-
         class Spam(object):
             pass
-        def spam():
+        def ham():
             pass
 
-        sys.modules[__name__] = Module(__name__)
+        sys.modules[__name__] = types.ModuleType(__name__)
+
         def assert_load(*args):
             with self.assert_raises_regex(ayame.ResourceError,
                                           "' module location$"):
@@ -205,31 +204,35 @@ class UtilTestCase(AyameTestCase):
         assert_load(Spam, '.txt')
         assert_load(Spam(), 'Spam.txt')
         assert_load(Spam(), '.txt')
-        assert_load(spam, 'spam.txt')
-        assert_load(spam, '.txt')
+        assert_load(ham, 'ham.txt')
+        assert_load(ham, '.txt')
         assert_load(sys.modules[__name__], '.txt')
 
     def test_load_data_no___loader__(self):
         class Module(types.ModuleType):
-            __file__ = __file__
-            __loader__ = True
+            def __init__(self):
+                super(Module, self).__init__(__name__)
+                self.__file__ = __file__
+                self.__loader__ = True
 
         class Spam(object):
             pass
-        def spam():
+        def ham():
             pass
 
-        sys.modules[__name__] = Module(__name__)
+        sys.modules[__name__] = Module()
+
         def assert_load(*args):
             with self.assert_raises_regex(ayame.ResourceError,
                                           " load '.*' from loader "):
-                util.load_data(*args)
+                with util.load_data(*args):
+                    pass
         assert_load(Spam, 'Spam.txt')
         assert_load(Spam, '.txt')
         assert_load(Spam(), 'Spam.txt')
         assert_load(Spam(), '.txt')
-        assert_load(spam, 'spam.txt')
-        assert_load(spam, '.txt')
+        assert_load(ham, 'ham.txt')
+        assert_load(ham, '.txt')
         assert_load(sys.modules[__name__], '.txt')
 
     def test_load_data___loader__(self):
@@ -238,15 +241,17 @@ class UtilTestCase(AyameTestCase):
                 with io.open(path, 'rb') as fp:
                     return fp.read().strip() + b' from Loader'
         class Module(types.ModuleType):
-            __file__ = __file__
-            __loader__ = Loader()
+            def __init__(self):
+                super(Module, self).__init__(__name__)
+                self.__file__ = __file__
+                self.__loader__ = Loader()
 
         class Spam(object):
             pass
-        def spam():
+        def ham():
             pass
 
-        sys.modules[__name__] = Module(__name__)
+        sys.modules[__name__] = Module()
 
         def assert_load(*args):
             with util.load_data(*args) as fp:
@@ -260,9 +265,9 @@ class UtilTestCase(AyameTestCase):
         def assert_load(*args):
             with util.load_data(*args) as fp:
                 self.assert_equal(fp.read().strip(),
-                                  'test_util/spam.txt from Loader')
-        assert_load(spam, 'spam.txt')
-        assert_load(spam, '.txt')
+                                  'test_util/ham.txt from Loader')
+        assert_load(ham, 'ham.txt')
+        assert_load(ham, '.txt')
 
         with util.load_data(sys.modules[__name__], '.txt') as fp:
             self.assert_equal(fp.read().strip(), 'test_util/.txt from Loader')
@@ -321,8 +326,6 @@ class UtilTestCase(AyameTestCase):
         self.assert_in('a', d)
         self.assert_equal(d.get('A'), 0)
         self.assert_equal(d.get('a'), 0)
-        self.assert_true(d.has_key('A'))
-        self.assert_true(d.has_key('a'))
         d.setdefault('a', -1)
         self.assert_equal(d, {'a': 0})
 
@@ -333,8 +336,6 @@ class UtilTestCase(AyameTestCase):
         self.assert_in('b', d)
         self.assert_equal(d.get('B'), 1)
         self.assert_equal(d.get('b'), 1)
-        self.assert_true(d.has_key('B'))
-        self.assert_true(d.has_key('b'))
         d.setdefault('b', -1)
         self.assert_equal(d, {'a': 0, 'b': 1})
 

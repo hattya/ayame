@@ -1,7 +1,7 @@
 #
 # ayame.converter
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -30,6 +30,7 @@ import datetime
 import sys
 import types
 
+from ayame import _compat as five
 from ayame.exception import ConversionError
 
 
@@ -157,7 +158,7 @@ class FloatConverter(Converter):
     def type(self):
         return float
 
-    if sys.hexversion < 0x03020000:
+    if sys.version_info < (3, 2):
         def to_string(self, value):
             error = self._check_type(value)
             if error is not None:
@@ -174,14 +175,9 @@ class FloatConverter(Converter):
 
 class IntegerConverter(Converter):
 
-    if sys.hexversion < 0x03000000:
-        @property
-        def type(self):
-            return (long, int)
-    else:
-        @property
-        def type(self):
-            return int
+    @property
+    def type(self):
+        return five.integer_types
 
     def to_python(self, value):
         try:

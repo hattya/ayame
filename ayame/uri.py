@@ -1,7 +1,7 @@
 #
 # ayame.uri
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,10 +24,10 @@
 #   SOFTWARE.
 #
 
-import sys
 import urllib
 import urlparse
 
+from ayame import _compat as five
 import ayame.util
 
 
@@ -36,7 +36,7 @@ __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
 
 _safe = "/-._~!$&'()*+,;=:@"
 
-if sys.hexversion < 0x03000000:
+if five.PY2:
     _decode = lambda s: unicode(s, 'utf-8', 'replace')
 else:
     _decode = None

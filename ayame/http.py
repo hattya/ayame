@@ -1,7 +1,7 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,8 +26,8 @@
 
 import cgi
 import re
-import sys
 
+from ayame import _compat as five
 from ayame.exception import AyameError
 
 
@@ -45,7 +45,7 @@ _accept_re = re.compile(r"""
     )?
 """, re.VERBOSE)
 
-if sys.hexversion < 0x03000000:
+if five.PY2:
     _decode = lambda s: unicode(s, 'utf-8', 'replace')
 else:
     _decode = None
@@ -173,7 +173,7 @@ class _HTTPMove(HTTPRedirection):
         if headers is None:
             headers = []
         super(_HTTPMove, self).__init__(
-            self._template.format(location=cgi.escape(location, True)),
+            self._template.format(location=five.html_escape(location)),
             headers + [('Location', location)])
 
 
