@@ -28,6 +28,7 @@ import collections
 import hashlib
 import io
 import os
+import pkgutil
 import random
 import sys
 import types
@@ -68,39 +69,36 @@ def load_data(object, path, encoding='utf-8'):
             module = sys.modules[object.__module__]
             is_module = False
         except (AttributeError, KeyError):
-            raise ResourceError('could not find module of {!r}'.format(object))
+            raise ResourceError('cannot find module of {!r}'.format(object))
     try:
         parent, name = os.path.split(module.__file__)
+        name = os.path.splitext(name)[0]
     except AttributeError:
         raise ResourceError(
-            "could not determine '{}' module location".format(module.__name__))
-    name = os.path.splitext(name)[0]
-    if name.lower() != '__init__':
-        parent = os.path.join(parent, name)
+            "cannot determine '{}' module location".format(module.__name__))
 
     new_path = os.path.normpath(path)
     if (os.path.isabs(new_path) or
         new_path.split(os.path.sep, 1)[0] == os.path.pardir):
         raise ResourceError("invalid path '{}'".format(path))
     path = new_path
-    if (is_module or
-        not path.startswith('.')):
-        path = os.path.join(parent, path)
-    else:
-        path = os.path.join(parent, object.__name__ + path)
+    if (not is_module and
+        path.startswith('.')):
+        path = object.__name__ + path
+    if name.lower() != '__init__':
+        path = os.path.join(name, path)
 
-    loader = getattr(module, '__loader__', None)
-    if loader:
-        try:
-            data = loader.get_data(path)
-        except (AttributeError, OSError, IOError):
-            raise ResourceError(
-                "could not load '{}' from loader {!r}".format(path, loader))
-        return io.StringIO(five.str(data, encoding))
+    try:
+        data = pkgutil.get_data(module.__name__, path)
+        if data is not None:
+            return io.StringIO(five.str(data, encoding))
+    except (OSError, IOError):
+        raise ResourceError("cannot load '{}' from loader".format(path))
+    path = os.path.join(parent, path)
     try:
         return io.open(path, encoding=encoding)
     except (OSError, IOError):
-        raise ResourceError("could not load '{}'".format(path))
+        raise ResourceError("cannot load '{}'".format(path))
 
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
