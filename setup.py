@@ -4,6 +4,7 @@
 #
 
 from __future__ import print_function
+from distutils.command.check import check as _check
 import os
 import subprocess
 import sys
@@ -97,6 +98,16 @@ else:
         pass
 
 
+class check(_check):
+
+    def check_restructuredtext(self):
+        from docutils.frontend import OptionParser
+
+        # for code directive
+        OptionParser.settings_defaults['syntax_highlight'] = None
+        _check.check_restructuredtext(self)
+
+
 class test(Command):
 
     description = 'run unit tests'
@@ -135,7 +146,8 @@ except:
 packages = ['ayame']
 package_data = {'ayame': ['*/*.html']}
 
-cmdclass = {'test': test}
+cmdclass = {'check': check,
+            'test': test}
 
 kwargs = {}
 if setuptools:
