@@ -111,8 +111,7 @@ def to_bytes(s, encoding='utf-8', errors='strict'):
 def to_list(o):
     if o is None:
         return []
-    elif (isinstance(o, collections.Iterable) and
-          not isinstance(o, five.string_type)):
+    elif iterable(o):
         return list(o)
     return [o]
 
@@ -121,6 +120,11 @@ def new_token(algorithm='sha1'):
     m = hashlib.new(algorithm)
     m.update(to_bytes(random.random()))
     return m.hexdigest()
+
+
+def iterable(o):
+    return (isinstance(o, collections.Iterable) and
+            not isinstance(o, five.string_type))
 
 
 class FilterDict(dict):

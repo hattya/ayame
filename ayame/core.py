@@ -282,8 +282,7 @@ class MarkupContainer(Component):
             if element.qname.ns_uri == markup.AYAME_NS:
                 # render ayame element
                 value = self.render_ayame_element(element)
-                if (isinstance(value, collections.Iterable) and
-                    not isinstance(value, five.string_type)):
+                if util.iterable(value):
                     # replace ayame element (parent)
                     if parent is None:
                         root = value
@@ -340,8 +339,7 @@ class MarkupContainer(Component):
             elif value is None:
                 # remove element
                 del parent[index]
-            elif (isinstance(value, collections.Iterable) and
-                  not isinstance(value, five.string_type)):
+            elif util.iterable(value):
                 # replace element
                 parent[index:index + 1] = value
                 for v in value:

@@ -335,6 +335,13 @@ class UtilTestCase(AyameTestCase):
         b = util.new_token()
         self.assert_not_equal(a, b)
 
+    def test_iterable(self):
+        self.assert_true(util.iterable(()))
+        self.assert_true(util.iterable([]))
+        self.assert_true(util.iterable({}))
+
+        self.assert_false(util.iterable(''))
+
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):
             def __convert__(self, key):
