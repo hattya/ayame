@@ -28,11 +28,9 @@ import collections
 import re
 import sys
 
-import ayame.app
-import ayame.core
-from ayame.exception import ResourceError
-import ayame.local
-import ayame.util
+import ayame
+from . import core, local, util
+from .exception import ResourceError
 
 
 __all__ = ['Localizer']
@@ -54,10 +52,12 @@ _kv_re = re.compile(r"""
 """, re.VERBOSE)
 _backslash_re = re.compile(r'\\(.)')
 _lcont_re = re.compile(r'(?<!\\)(?:\\\\)*\\$')
-_ctrl_chr = {'f': '\f',
-             'n': '\n',
-             'r': '\r',
-             't': '\t'}
+_ctrl_chr = {
+    'f': '\f',
+    'n': '\n',
+    'r': '\r',
+    't': '\t'
+}
 
 
 class Localizer(object):
@@ -79,7 +79,7 @@ class Localizer(object):
         def load(module, *args):
             name = '_'.join(args)
             try:
-                with ayame.util.load_data(module, name + self.extension) as fp:
+                with util.load_data(module, name + self.extension) as fp:
                     return self._load(fp)
             except (OSError, IOError, ResourceError):
                 pass
@@ -95,8 +95,8 @@ class Localizer(object):
                 yield load(module, class_.__name__), prefix
 
     def _iter_class(self, component):
-        queue = collections.deque(((ayame.local.app().__class__, ''),))
-        if isinstance(component, ayame.core.Component):
+        queue = collections.deque(((local.app().__class__, ''),))
+        if isinstance(component, core.Component):
             path = component.path().split(':')
             index = len(path)
             join = '.'.join
@@ -114,23 +114,23 @@ class Localizer(object):
                              if self.is_target_class(c))
 
     def is_target_class(self, class_):
-        return issubclass(class_, (ayame.core.Component, ayame.app.Ayame))
+        return issubclass(class_, (core.Component, ayame.Ayame))
 
     def is_base_class(self, class_):
-        return class_ in (ayame.core.Page, ayame.core.MarkupContainer,
-                          ayame.core.Component, ayame.app.Ayame)
+        return class_ in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
 
     def _load(self, fp):
+        match = _kv_re.match
+        sub = _backslash_re.sub
+        has_lcont = _lcont_re.search
+        ctrl_get = _ctrl_chr.get
+
         def repl(m):
             ch = m.group(1)
             return ctrl_get(ch, ch)
 
         bundle = {}
         ll = []
-        match = _kv_re.match
-        sub = _backslash_re.sub
-        has_lcont = _lcont_re.search
-        ctrl_get = _ctrl_chr.get
         for l in fp:
             l = l.lstrip().rstrip('\n\r')
             if (not l or

@@ -1,7 +1,7 @@
 #
 # ayame.local
 #
-#   Copyright (c) 2011-2012 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -26,7 +26,7 @@
 
 import threading
 
-from ayame.exception import AyameError
+from .exception import AyameError
 
 
 __all__ = ['push', 'pop', 'context', 'app']
@@ -64,8 +64,7 @@ def context():
     try:
         return _local.stack[-1]
     except (AttributeError, IndexError):
-        raise AyameError(u"there is no application attached to '{}'".format(
-            threading.current_thread().name))
+        raise AyameError(u"there is no application attached to '{}'".format(threading.current_thread().name))
 
 
 def app():

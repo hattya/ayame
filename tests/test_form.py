@@ -1,7 +1,7 @@
 #
 # test_form
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -39,8 +39,10 @@ class FormTestCase(AyameTestCase):
         self.boundary = 'ayame.form'
 
     def new_environ(self, method='GET', query='', body=None):
-        return super(FormTestCase, self).new_environ(
-            method=method, path='/form', query=query, body=body)
+        return super(FormTestCase, self).new_environ(method=method,
+                                                     path='/form',
+                                                     query=query,
+                                                     body=body)
 
     def test_form_invalid_markup(self):
         # not form element
@@ -291,12 +293,9 @@ Content-Disposition: form-data; name="button"
                                            'checkbox': False,
                                            'file': 'a.txt'})
         self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('text').error,
-                                ayame.ValidationError)
-        self.assert_is_instance(f.find('password').error,
-                                ayame.ValidationError)
-        self.assert_is_instance(f.find('hidden').error,
-                                ayame.ValidationError)
+        self.assert_is_instance(f.find('text').error, ayame.ValidationError)
+        self.assert_is_instance(f.find('password').error, ayame.ValidationError)
+        self.assert_is_instance(f.find('hidden').error, ayame.ValidationError)
         self.assert_is_none(f.find('area').error)
         self.assert_is_none(f.find('checkbox').error)
         self.assert_is_none(f.find('file').error)
@@ -773,8 +772,7 @@ form
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error,
-                                ayame.ValidationError)
+        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
 
     def test_check_box_choice_validation_error_out_of_range(self):
         data = """\
@@ -803,8 +801,7 @@ Content-Disposition: form-data; name="checkbox"
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error,
-                                ayame.ValidationError)
+        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
 
     def test_check_box_choice_validation_error_no_value(self):
         data = """\
@@ -825,8 +822,7 @@ Content-Disposition: form-data; name="checkbox"
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error,
-                                ayame.ValidationError)
+        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
 
     def test_check_box_choice_validation_error_no_values(self):
         data = """\
@@ -863,8 +859,7 @@ Content-Disposition: form-data; name="checkbox"
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error,
-                                ayame.ValidationError)
+        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
 
     def test_select_choice_invalid_markup(self):
         fc = form.SelectChoice('a')
@@ -1082,8 +1077,7 @@ form
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
             self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error,
-                                    ayame.ValidationError)
+            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
 
     def test_select_choice_validation_error_out_of_range(self):
         data = """\
@@ -1113,8 +1107,7 @@ Content-Disposition: form-data; name="select"
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
             self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error,
-                                    ayame.ValidationError)
+            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
 
     def test_select_choice_validation_error_no_value(self):
         data = """\
@@ -1136,8 +1129,7 @@ Content-Disposition: form-data; name="select"
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
             self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error,
-                                    ayame.ValidationError)
+            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
 
     def test_select_choice_validation_error_no_values(self):
         data = """\
@@ -1175,8 +1167,7 @@ Content-Disposition: form-data; name="select"
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
             self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error,
-                                    ayame.ValidationError)
+            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
 
 
 class SpamPage(ayame.Page):
@@ -1190,8 +1181,7 @@ class SpamPage(ayame.Page):
   </head>
   <body>
     <form action="/form" method="post">
-      <div class="ayame-hidden"><input name="{path}" type="hidden" \
-value="form" /></div>
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
       <fieldset>
         <legend>form</legend>
         <input name="text" type="text" value="" /><br />
@@ -1200,8 +1190,7 @@ value="form" /></div>
         <textarea name="area">
           Hello World!
         </textarea>
-        <input checked="checked" name="checkbox" type="checkbox" value="on" />\
-<br />
+        <input checked="checked" name="checkbox" type="checkbox" value="on" /><br />
         <input name="file" type="file" /><br />
         <input name="button" type="submit" />
       </fieldset>
@@ -1252,8 +1241,7 @@ class EggsPage(ayame.Page):
   </head>
   <body>
     <form action="/form" method="post">
-      <div class="ayame-hidden"><input name="{path}" type="hidden" \
-value="form" /></div>
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
       <fieldset>
         <legend>radio</legend>
         <div id="radio">{choices}</div>
@@ -1263,14 +1251,10 @@ value="form" /></div>
 </html>
 """
     kwargs = {'choices': lambda v=True: """
-          <input checked="checked" id="radio-0" name="radio" type="radio" \
-value="0" /><label for="radio-0">2012-01-01</label><br />
-          <input id="radio-1" name="radio" type="radio" value="1" /><label \
-for="radio-1">2012-01-02</label><br />
-          <input id="radio-2" name="radio" type="radio" value="2" /><label \
-for="radio-2">2012-01-03</label>
-        \
-""" if v else ''}
+          <input checked="checked" id="radio-0" name="radio" type="radio" value="0" /><label for="radio-0">2012-01-01</label><br />
+          <input id="radio-1" name="radio" type="radio" value="1" /><label for="radio-1">2012-01-02</label><br />
+          <input id="radio-2" name="radio" type="radio" value="2" /><label for="radio-2">2012-01-03</label>
+        """ if v else ''}
 
     def __init__(self):
         super(EggsPage, self).__init__()
@@ -1293,8 +1277,7 @@ class HamPage(ayame.Page):
   </head>
   <body>
     <form action="/form" method="post">
-      <div class="ayame-hidden"><input name="{path}" type="hidden" \
-value="form" /></div>
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
       <fieldset>
         <legend>checkbox</legend>
         <div id="checkbox">{choices}</div>
@@ -1304,24 +1287,17 @@ value="form" /></div>
 </html>
 """
     kwargs = {'choices': lambda v=2: """
-          <input {}id="checkbox-0" name="checkbox" type="checkbox" \
-value="0" /><label for="checkbox-0">2012-01-01</label><br />
-          <input {}id="checkbox-1" name="checkbox" type="checkbox" \
-value="1" /><label for="checkbox-1">2012-01-02</label><br />
-          <input {}id="checkbox-2" name="checkbox" type="checkbox" \
-value="2" /><label for="checkbox-2">2012-01-03</label>
-        \
-""".format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''}
+          <input {}id="checkbox-0" name="checkbox" type="checkbox" value="0" /><label for="checkbox-0">2012-01-01</label><br />
+          <input {}id="checkbox-1" name="checkbox" type="checkbox" value="1" /><label for="checkbox-1">2012-01-02</label><br />
+          <input {}id="checkbox-2" name="checkbox" type="checkbox" value="2" /><label for="checkbox-2">2012-01-03</label>
+        """.format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''}
 
     def __init__(self, multiple=True):
         super(HamPage, self).__init__()
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.CheckBoxChoice('checkbox',
                                                   choices=self.choices))
-        if multiple:
-            self.find('form:checkbox').model_object = self.choices[:2]
-        else:
-            self.find('form:checkbox').model_object = self.choices[0]
+        self.find('form:checkbox').model_object = self.choices[:2] if multiple else self.choices[0]
         self.find('form:checkbox').multiple = multiple
 
 
@@ -1339,8 +1315,7 @@ class SelectChoicePage(ayame.Page):
   </head>
   <body>
     <form action="/form" method="post">
-      <div class="ayame-hidden"><input name="{path}" type="hidden" \
-value="form" /></div>
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
       <fieldset>
         <legend>select</legend>
         <select {multiple}name="select">{choices}
@@ -1363,10 +1338,7 @@ value="form" /></div>
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.SelectChoice('select',
                                                 choices=self.choices))
-        if multiple:
-            self.find('form:select').model_object = self.choices[:2]
-        else:
-            self.find('form:select').model_object = self.choices[0]
+        self.find('form:select').model_object = self.choices[:2] if multiple else self.choices[0]
         self.find('form:select').multiple = multiple
 
 

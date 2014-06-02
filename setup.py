@@ -55,9 +55,7 @@ if os.path.isdir('.git'):
     env = {'LANGUAGE': 'C'}
     if 'SystemRoot' in os.environ:
         env['SystemRoot'] = os.environ['SystemRoot']
-    out = runcmd([whence('git'), 'describe', '--tags',
-                  '--dirty=+', '--long', '--always'],
-                 env)
+    out = runcmd([whence('git'), 'describe', '--tags', '--dirty=+', '--long', '--always'], env)
     v = out.strip().rsplit('-', 2)
     if len(v) == 3:
         v[0] = v[0][1:]
@@ -124,11 +122,9 @@ class test(Command):
 
         if setuptools:
             if self.distribution.install_requires:
-                self.distribution.fetch_build_eggs(
-                    self.distribution.install_requires)
+                self.distribution.fetch_build_eggs(self.distribution.install_requires)
             if self.distribution.tests_require:
-                self.distribution.fetch_build_eggs(
-                    self.distribution.tests_require)
+                self.distribution.fetch_build_eggs(self.distribution.tests_require)
             self.run_command('egg_info')
         # run unittest discover
         argv = [sys.argv[0], 'discover', '--start-directory', 'tests']
@@ -146,8 +142,10 @@ except:
 packages = ['ayame']
 package_data = {'ayame': ['*/*.html']}
 
-cmdclass = {'check': check,
-            'test': test}
+cmdclass = {
+    'check': check,
+    'test': test
+}
 
 kwargs = {}
 if setuptools:

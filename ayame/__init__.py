@@ -1,7 +1,7 @@
 #
 # ayame
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -27,10 +27,10 @@
 __author__ = 'Akinori Hattori <hattya@gmail.com>'
 
 try:
-    from ayame.__version__ import version as __version__
+    from .__version__ import version as __version__
 except ImportError:
     __version__ = 'unknown'
 
-from ayame.app import *
-from ayame.core import *
-from ayame.exception import *
+from .app import *
+from .core import *
+from .exception import *

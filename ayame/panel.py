@@ -1,7 +1,7 @@
 #
 # ayame.panel
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,15 +24,14 @@
 #   SOFTWARE.
 #
 
-import ayame.core
-from ayame.exception import RenderingError
-import ayame.markup
+from . import core, markup
+from .exception import RenderingError
 
 
 __all__ = ['Panel']
 
 
-class Panel(ayame.core.MarkupContainer):
+class Panel(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Panel, self).__init__(id, model)
@@ -40,8 +39,7 @@ class Panel(ayame.core.MarkupContainer):
 
     def on_render(self, element):
         def step(element, depth):
-            return element.qname not in (ayame.markup.AYAME_PANEL,
-                                         ayame.markup.AYAME_HEAD)
+            return element.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -49,25 +47,24 @@ class Panel(ayame.core.MarkupContainer):
             # markup is empty
             return element
 
-        html = 'html' in m.lang
         ayame_panel = ayame_head = None
         for element, depth in m.root.walk(step=step):
-            if element.qname == ayame.markup.AYAME_PANEL:
+            if element.qname == markup.AYAME_PANEL:
                 if ayame_panel is None:
                     ayame_panel = element
-            elif element.qname == ayame.markup.AYAME_HEAD:
-                if (html and
+            elif element.qname == markup.AYAME_HEAD:
+                if ('html' in m.lang and
                     ayame_head is None):
                     ayame_head = element
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
-        # push ayame:head to parent component
+        # push ayame:head element to parent component
         if ayame_head is not None:
             self.push_ayame_head(ayame_head)
-        # render ayame:panel
+        # render ayame:panel element
         return super(Panel, self).on_render(ayame_panel)
 
     def render_ayame_element(self, element):
-        if element.qname == ayame.markup.AYAME_PANEL:
+        if element.qname == markup.AYAME_PANEL:
             return element
         return super(Panel, self).render_ayame_element(element)

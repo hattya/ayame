@@ -33,8 +33,8 @@ import random
 import sys
 import types
 
-from ayame import _compat as five
-from ayame.exception import ResourceError
+from . import _compat as five
+from .exception import ResourceError
 
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
@@ -74,8 +74,7 @@ def load_data(object, path, encoding='utf-8'):
         parent, name = os.path.split(module.__file__)
         name = os.path.splitext(name)[0]
     except AttributeError:
-        raise ResourceError(
-            "cannot determine '{}' module location".format(module.__name__))
+        raise ResourceError("cannot determine '{}' module location".format(module.__name__))
 
     new_path = os.path.normpath(path)
     if (os.path.isabs(new_path) or
@@ -142,8 +141,7 @@ class FilterDict(dict):
         return super(FilterDict, self).__getitem__(self.__convert__(key))
 
     def __setitem__(self, key, value):
-        return super(FilterDict, self).__setitem__(self.__convert__(key),
-                                                   value)
+        return super(FilterDict, self).__setitem__(self.__convert__(key), value)
 
     def __delitem__(self, key):
         super(FilterDict, self).__delitem__(self.__convert__(key))

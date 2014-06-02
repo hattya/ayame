@@ -27,14 +27,10 @@
 import collections
 import operator
 
-from ayame import _compat as five
-import ayame.core
-from ayame.exception import (ComponentError, ConversionError, RenderingError,
-                             ValidationError)
-import ayame.markup
-import ayame.uri
-import ayame.util
-import ayame.validator
+from . import _compat as five
+from . import core, markup, uri, util, validator
+from .exception import (ComponentError, ConversionError, RenderingError,
+                        ValidationError)
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
@@ -42,32 +38,32 @@ __all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
            'ChoiceRenderer', 'RadioChoice', 'CheckBoxChoice', 'SelectChoice']
 
 # HTML elements
-_BR = ayame.markup.QName(ayame.markup.XHTML_NS, u'br')
+_BR = markup.QName(markup.XHTML_NS, u'br')
 
-_FORM = ayame.markup.QName(ayame.markup.XHTML_NS, u'form')
-_INPUT = ayame.markup.QName(ayame.markup.XHTML_NS, u'input')
-_BUTTON = ayame.markup.QName(ayame.markup.XHTML_NS, u'button')
-_TEXTAREA = ayame.markup.QName(ayame.markup.XHTML_NS, u'textarea')
-_LABEL = ayame.markup.QName(ayame.markup.XHTML_NS, u'label')
-_SELECT = ayame.markup.QName(ayame.markup.XHTML_NS, u'select')
-_OPTION = ayame.markup.QName(ayame.markup.XHTML_NS, u'option')
+_FORM = markup.QName(markup.XHTML_NS, u'form')
+_INPUT = markup.QName(markup.XHTML_NS, u'input')
+_BUTTON = markup.QName(markup.XHTML_NS, u'button')
+_TEXTAREA = markup.QName(markup.XHTML_NS, u'textarea')
+_LABEL = markup.QName(markup.XHTML_NS, u'label')
+_SELECT = markup.QName(markup.XHTML_NS, u'select')
+_OPTION = markup.QName(markup.XHTML_NS, u'option')
 
 # HTML attributes
-_ID = ayame.markup.QName(ayame.markup.XHTML_NS, u'id')
-_CLASS = ayame.markup.QName(ayame.markup.XHTML_NS, u'class')
+_ID = markup.QName(markup.XHTML_NS, u'id')
+_CLASS = markup.QName(markup.XHTML_NS, u'class')
 
-_ACTION = ayame.markup.QName(ayame.markup.XHTML_NS, u'action')
-_METHOD = ayame.markup.QName(ayame.markup.XHTML_NS, u'method')
-_TYPE = ayame.markup.QName(ayame.markup.XHTML_NS, u'type')
-_NAME = ayame.markup.QName(ayame.markup.XHTML_NS, u'name')
-_VALUE = ayame.markup.QName(ayame.markup.XHTML_NS, u'value')
-_CHECKED = ayame.markup.QName(ayame.markup.XHTML_NS, u'checked')
-_FOR = ayame.markup.QName(ayame.markup.XHTML_NS, u'for')
-_MULTIPLE = ayame.markup.QName(ayame.markup.XHTML_NS, u'multiple')
-_SELECTED = ayame.markup.QName(ayame.markup.XHTML_NS, u'selected')
+_ACTION = markup.QName(markup.XHTML_NS, u'action')
+_METHOD = markup.QName(markup.XHTML_NS, u'method')
+_TYPE = markup.QName(markup.XHTML_NS, u'type')
+_NAME = markup.QName(markup.XHTML_NS, u'name')
+_VALUE = markup.QName(markup.XHTML_NS, u'value')
+_CHECKED = markup.QName(markup.XHTML_NS, u'checked')
+_FOR = markup.QName(markup.XHTML_NS, u'for')
+_MULTIPLE = markup.QName(markup.XHTML_NS, u'multiple')
+_SELECTED = markup.QName(markup.XHTML_NS, u'selected')
 
 
-class Form(ayame.core.MarkupContainer):
+class Form(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Form, self).__init__(id, model)
@@ -79,18 +75,18 @@ class Form(ayame.core.MarkupContainer):
         if element.qname != _FORM:
             raise RenderingError(self, "'form' element is expected")
         elif _METHOD not in element.attrib:
-            raise RenderingError(
-                self, "'method' attribute is required for 'form' element")
+            raise RenderingError(self,
+                                 "'method' attribute is required for 'form' element")
 
         # modify attributes
-        element.attrib[_ACTION] = ayame.uri.request_path(self.environ)
+        element.attrib[_ACTION] = uri.request_path(self.environ)
         element.attrib[_METHOD] = element.attrib[_METHOD].lower()
         # insert hidden field for marking
-        div = ayame.markup.Element(ayame.markup.DIV)
+        div = markup.Element(markup.DIV)
         div.attrib[_CLASS] = u'ayame-hidden'
-        input = ayame.markup.Element(_INPUT, type=ayame.markup.Element.EMPTY)
+        input = markup.Element(_INPUT, type=markup.Element.EMPTY)
         input.attrib[_TYPE] = u'hidden'
-        input.attrib[_NAME] = ayame.core.AYAME_PATH
+        input.attrib[_NAME] = core.AYAME_PATH
         input.attrib[_VALUE] = self.path()
         div.append(input)
         element.insert(0, div)
@@ -98,8 +94,8 @@ class Form(ayame.core.MarkupContainer):
         return super(Form, self).on_render(element)
 
     def submit(self):
-        if (self.request.method != self._method and
-            not self.on_method_mismatch()):
+        if not (self.request.method == self._method or
+                self.on_method_mismatch()):
             # abort
             return
         elif self.request.method == 'GET':
@@ -140,7 +136,7 @@ class Form(ayame.core.MarkupContainer):
                 if valid:
                     valid = component.error is None
             # push children
-            if isinstance(component, ayame.core.MarkupContainer):
+            if isinstance(component, core.MarkupContainer):
                 queue.extend(reversed(component.children))
         if not valid:
             if button is not None:
@@ -168,18 +164,20 @@ class Form(ayame.core.MarkupContainer):
         return False
 
 
-class _FormActionBehavior(ayame.core.IgnitionBehavior):
+class _FormActionBehavior(core.IgnitionBehavior):
 
     def on_component(self, component, element):
         component._method = element.attrib.get(_METHOD, '').upper()
-        self.fire()
-        component._method = None
+        try:
+            self.fire()
+        finally:
+            component._method = None
 
     def on_fire(self, component):
         component.submit()
 
 
-class FormComponent(ayame.core.MarkupContainer):
+class FormComponent(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(FormComponent, self).__init__(id, model)
@@ -211,7 +209,7 @@ class FormComponent(ayame.core.MarkupContainer):
                 object = value
             # validate
             for behavior in self.behaviors:
-                if isinstance(behavior, ayame.validator.Validator):
+                if isinstance(behavior, validator.Validator):
                     behavior.validate(object)
         except ValidationError as e:
             self.error = e
@@ -233,10 +231,9 @@ class Button(FormComponent):
     def on_render(self, element):
         if element.qname == _INPUT:
             if element.attrib[_TYPE] not in ('submit', 'button', 'image'):
-                raise RenderingError(
-                    self,
-                    "'input' element with 'type' attribute of 'submit', "
-                    "'button' or 'image' is expected")
+                raise RenderingError(self,
+                                     "'input' element with 'type' attribute of "
+                                     "'submit', 'button' or 'image' is expected")
         elif element.qname != _BUTTON:
             raise RenderingError(self,
                                  "'input' or 'button' element is expected")
@@ -338,8 +335,8 @@ class Choice(FormComponent):
         self.choices = choices if choices is not None else []
         self.renderer = renderer if renderer is not None else ChoiceRenderer()
         self.multiple = False
-        self.prefix = ayame.markup.Fragment()
-        self.suffix = ayame.markup.Fragment()
+        self.prefix = markup.Fragment()
+        self.suffix = markup.Fragment()
 
     def validate(self, value):
         try:
@@ -377,7 +374,7 @@ class Choice(FormComponent):
 
     def _id_prefix_for(self, element):
         id = element.attrib.get(_ID)
-        return id if id else u'ayame-' + ayame.util.new_token()[:7]
+        return id if id else u'ayame-' + util.new_token()[:7]
 
     def render_element(self, element, index, choice):
         return element
@@ -397,8 +394,7 @@ class RadioChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(RadioChoice, self).__init__(id, model, choices, renderer)
-        self.suffix[:] = (
-            ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY),)
+        self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
 
     def on_render(self, element):
         # clear children
@@ -414,8 +410,7 @@ class RadioChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # radio button
-                input = ayame.markup.Element(_INPUT,
-                                             type=ayame.markup.Element.EMPTY)
+                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = u'radio'
                 input.attrib[_NAME] = name
@@ -429,8 +424,7 @@ class RadioChoice(Choice):
                 if not isinstance(text, five.string_type):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
-                label = ayame.markup.Element(_LABEL,
-                                             type=ayame.markup.Element.EMPTY)
+                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
                 label.append(five.html_escape(text))
                 label = self.render_element(label, index, choice)
@@ -446,8 +440,7 @@ class CheckBoxChoice(Choice):
 
     def __init__(self, id, model=None, choices=None, renderer=None):
         super(CheckBoxChoice, self).__init__(id, model, choices, renderer)
-        self.suffix[:] = (
-            ayame.markup.Element(_BR, type=ayame.markup.Element.EMPTY),)
+        self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
 
     def on_render(self, element):
         # clear children
@@ -464,8 +457,7 @@ class CheckBoxChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # checkbox
-                input = ayame.markup.Element(_INPUT,
-                                             type=ayame.markup.Element.EMPTY)
+                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = u'checkbox'
                 input.attrib[_NAME] = name
@@ -480,8 +472,7 @@ class CheckBoxChoice(Choice):
                 if not isinstance(text, five.string_type):
                     converter = self.converter_for(text)
                     text = converter.to_string(text)
-                label = ayame.markup.Element(_LABEL,
-                                             type=ayame.markup.Element.EMPTY)
+                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
                 label.append(five.html_escape(text))
                 label = self.render_element(label, index, choice)
@@ -519,8 +510,7 @@ class SelectChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # option
-                option = ayame.markup.Element(_OPTION,
-                                              type=ayame.markup.Element.EMPTY)
+                option = markup.Element(_OPTION, type=markup.Element.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(index, choice)
                 if (selected is not None and
                     is_selected(selected, choice)):

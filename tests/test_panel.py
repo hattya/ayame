@@ -1,7 +1,7 @@
 #
 # test_panel
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -437,9 +437,8 @@ class PanelTestCase(AyameTestCase):
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib,
-                          {self.html_of('name'): 'class',
-                           self.html_of('content'): 'LobsterPanel'})
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'LobsterPanel'})
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -495,8 +494,7 @@ class PanelTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
             status, headers, content = p.render()
-        html = self.format(
-            TomatoPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
+        html = self.format(TomatoPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),

@@ -27,8 +27,8 @@
 import cgi
 import re
 
-from ayame import _compat as five
-from ayame.exception import AyameError
+from . import _compat as five
+from .exception import AyameError
 
 
 __all__ = ['parse_accept', 'parse_form_data', 'HTTPStatus', 'HTTPSuccessful',
@@ -94,11 +94,11 @@ def parse_form_data(environ):
 
 class _HTTPStatusMetaclass(type):
 
-    def __new__(cls, name, bases, dict):
-        if 'code' not in dict:
-            dict['code'] = 0
-        if 'reason' not in dict:
-            if dict['code']:
+    def __new__(cls, name, bases, ns):
+        if 'code' not in ns:
+            ns['code'] = 0
+        if 'reason' not in ns:
+            if ns['code']:
                 prev = ''
                 buf = []
                 for c in name:
@@ -107,15 +107,12 @@ class _HTTPStatusMetaclass(type):
                         buf.append(' ')
                     buf.append(c)
                     prev = c
-                dict['reason'] = ''.join(buf)
+                ns['reason'] = ''.join(buf)
             else:
-                dict['reason'] = ''
-        if 'status' not in dict:
-            if dict['code']:
-                dict['status'] = '{code} {reason}'.format(**dict)
-            else:
-                dict['status'] = ''
-        return type.__new__(cls, name, bases, dict)
+                ns['reason'] = ''
+        if 'status' not in ns:
+            ns['status'] = '{code} {reason}'.format(**ns) if ns['code'] else ''
+        return type.__new__(cls, name, bases, ns)
 
 
 class HTTPStatus(five.with_metaclass(_HTTPStatusMetaclass, AyameError)):
@@ -162,9 +159,8 @@ class _HTTPMove(HTTPRedirection):
     def __init__(self, location, headers=None):
         if headers is None:
             headers = []
-        super(_HTTPMove, self).__init__(
-            self._template.format(location=five.html_escape(location)),
-            headers + [('Location', location)])
+        super(_HTTPMove, self).__init__(self._template.format(location=five.html_escape(location)),
+                                        headers + [('Location', location)])
 
 
 class MovedPermanently(_HTTPMove):
@@ -207,10 +203,9 @@ class Unauthrized(HTTPClientError):
     code = 401
 
     def __init__(self, headers=None):
-        super(Unauthrized, self).__init__(
-            'This server could not verify that you are authorized to access '
-            'the requested resource.',
-            headers)
+        super(Unauthrized, self).__init__('This server could not verify that you are '
+                                          'authorized to access the requested resource.',
+                                          headers)
 
 
 class Forbidden(HTTPClientError):
@@ -218,10 +213,9 @@ class Forbidden(HTTPClientError):
     code = 403
 
     def __init__(self, uri, headers=None):
-        super(Forbidden, self).__init__(
-            'You do not have permission to access <code>{uri}</code> on this '
-            'server.'.format(uri=uri),
-            headers)
+        super(Forbidden, self).__init__('You do not have permission to access <code>{uri}</code> on '
+                                        'this server.'.format(uri=uri),
+                                        headers)
 
 
 class NotFound(HTTPClientError):
@@ -229,10 +223,9 @@ class NotFound(HTTPClientError):
     code = 404
 
     def __init__(self, uri, headers=None):
-        super(NotFound, self).__init__(
-            'The requested URI <code>{uri}</code> was not found on this '
-            'server'.format(uri=uri),
-            headers)
+        super(NotFound, self).__init__('The requested URI <code>{uri}</code> was not found on '
+                                       'this server'.format(uri=uri),
+                                       headers)
 
 
 class MethodNotAllowed(HTTPClientError):
@@ -242,10 +235,9 @@ class MethodNotAllowed(HTTPClientError):
     def __init__(self, method, uri, allow, headers=None):
         if headers is None:
             headers = []
-        super(MethodNotAllowed, self).__init__(
-            'The requested method <code>{method}</code> is not allowed for '
-            'the URI <code>{uri}</code>.'.format(method=method, uri=uri),
-            headers + [('Allow', ', '.join(allow))])
+        super(MethodNotAllowed, self).__init__('The requested method <code>{method}</code> is not allowed for '
+                                               'the URI <code>{uri}</code>.'.format(method=method, uri=uri),
+                                               headers + [('Allow', ', '.join(allow))])
 
 
 class RequestTimeout(HTTPClientError):
@@ -253,10 +245,9 @@ class RequestTimeout(HTTPClientError):
     code = 408
 
     def __init__(self, headers=None):
-        super(RequestTimeout, self).__init__(
-            'This server timed out while waiting for the request from the '
-            'client.',
-            headers)
+        super(RequestTimeout, self).__init__('This server timed out while waiting for '
+                                             'the request from the client.',
+                                             headers)
 
 
 class HTTPServerError(HTTPError):
@@ -273,7 +264,6 @@ class NotImplemented(HTTPServerError):
     code = 501
 
     def __init__(self, method, uri, headers=None):
-        super(NotImplemented, self).__init__(
-            'The requested method <code>{method}</code> is not implemented '
-            'for the URI <code>{uri}</code>'.format(method=method, uri=uri),
-            headers)
+        super(NotImplemented, self).__init__('The requested method <code>{method}</code> is not implemented for '
+                                             'the URI <code>{uri}</code>'.format(method=method, uri=uri),
+                                             headers)

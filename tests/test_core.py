@@ -444,8 +444,7 @@ class CoreTestCase(AyameTestCase):
         mc = ayame.MarkupContainer('a')
         def populate_item(li):
             li.add(basic.Label('c', li.model_object))
-        mc.add(basic.ListView('b', [str(i) for i in five.range(3)],
-                              populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
@@ -593,8 +592,7 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = BeansPage()
             status, headers, content = p.render()
-        html = self.format(
-            BeansPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
+        html = self.format(BeansPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),

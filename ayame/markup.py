@@ -28,9 +28,9 @@ import collections
 import io
 import re
 
-from ayame import _compat as five
-from ayame.exception import MarkupError, RenderingError
-import ayame.util
+from . import _compat as five
+from . import util
+from .exception import MarkupError, RenderingError
 
 
 __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
@@ -135,8 +135,7 @@ AYAME_KEY = QName(AYAME_NS, u'key')
 #AYAME_MESSAGE = QName(AYAME_NS, u'message')
 
 
-MarkupType = collections.namedtuple('MarkupType',
-                                    'extension, mime_type, scope')
+MarkupType = collections.namedtuple('MarkupType', 'extension, mime_type, scope')
 
 
 class Markup(object):
@@ -178,8 +177,7 @@ class Element(object):
         return element
 
     def __repr__(self):
-        return '<{} {} at 0x{:x}>'.format(ayame.util.fqon_of(self),
-                                          repr(self.qname), id(self))
+        return '<{} {!r} at 0x{:x}>'.format(util.fqon_of(self), self.qname, id(self))
 
     if five.PY2:
         def __nonzero__(self):
@@ -241,7 +239,7 @@ class Element(object):
         self[:] = children
 
 
-class _AttributeDict(ayame.util.FilterDict):
+class _AttributeDict(util.FilterDict):
 
     __slots__ = ()
 
@@ -266,10 +264,12 @@ class Fragment(list):
 
 class MarkupLoader(five.HTMLParser):
 
-    _decl = {'new_element': 'new_{}_element',
-             'push': '{}_push',
-             'pop': '{}_pop',
-             'finish': '{}_finish'}
+    _decl = {
+        'new_element': 'new_{}_element',
+        'push': '{}_push',
+        'pop': '{}_pop',
+        'finish': '{}_finish'
+    }
 
     def __init__(self):
         super(MarkupLoader, self).__init__(convert_charrefs=False)
@@ -290,7 +290,7 @@ class MarkupLoader(five.HTMLParser):
         else:
             fp = src
         if fp is None:
-            raise MarkupError(object, (0, 0), 'could not load markup')
+            raise MarkupError(object, (0, 0), 'cannot load markup')
 
         self.reset()
         self.__stack.clear()
@@ -302,13 +302,15 @@ class MarkupLoader(five.HTMLParser):
         self._text = None
         self._remove = False
 
-        while True:
-            data = fp.read(8192)
-            if data == '':
-                break
-            self.feed(data)
-        if isinstance(src, five.string_type):
-            fp.close()
+        try:
+            while True:
+                data = fp.read(8192)
+                if data == '':
+                    break
+                self.feed(data)
+        finally:
+            if isinstance(src, five.string_type):
+                fp.close()
         self.close()
         return self._markup
 
@@ -318,7 +320,7 @@ class MarkupLoader(five.HTMLParser):
 
     def handle_starttag(self, name, attrs):
         if self._remove:
-            # children of ayame:remove
+            # children of ayame:remove element
             return
         # new element
         element = self._impl_of('new_element')(name, attrs)
@@ -339,7 +341,7 @@ class MarkupLoader(five.HTMLParser):
 
     def handle_startendtag(self, name, attrs):
         if self._remove:
-            # children of ayame:remove
+            # children of ayame:remove element
             return
         # new element
         element = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
@@ -358,10 +360,10 @@ class MarkupLoader(five.HTMLParser):
     def handle_endtag(self, name):
         qname = self._new_qname(name)
         if qname == AYAME_REMOVE:
-            # end tag of ayame:remove
+            # end tag of ayame:remove element
             self._remove = False
         if self._remove:
-            # children of ayame:remove
+            # children of ayame:remove element
             return
         # pop element
         pos, element = self._impl_of('pop')(qname)
@@ -415,9 +417,8 @@ class MarkupLoader(five.HTMLParser):
             impl = getattr(self, decl.format(self._markup.lang), None)
             if impl is not None:
                 return self._cache.setdefault(name, impl)
-        msg = u"'{}' for '{}' document is not implemented".format(
-            name, self._markup.lang)
-        raise MarkupError(self._object, self.getpos(), msg)
+        raise MarkupError(self._object, self.getpos(),
+                          u"'{}' for '{}' document is not implemented".format(name, self._markup.lang))
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(prefix):
@@ -434,9 +435,8 @@ class MarkupLoader(five.HTMLParser):
             prefix, name = name.split(':', 1)
             uri = ns.get(prefix, ns_uri_of(prefix))
             if uri is None:
-                raise MarkupError(
-                    self._object, self.getpos(),
-                    u"unknown namespace prefix '{}'".format(prefix))
+                raise MarkupError(self._object, self.getpos(),
+                                  u"unknown namespace prefix '{}'".format(prefix))
         else:
             uri = ns.get('', ns_uri_of(''))
             if uri is None:
@@ -446,7 +446,7 @@ class MarkupLoader(five.HTMLParser):
 
     def _append_text(self, text):
         if self._remove:
-            # children of ayame:remove
+            # children of ayame:remove element
             return
         elif self._text is None:
             self._text = [text]
@@ -504,9 +504,8 @@ class MarkupLoader(five.HTMLParser):
         for n, v in attrs:
             qname = new_qname(n, xmlns)
             if qname in element.attrib:
-                raise MarkupError(
-                    self._object, self.getpos(),
-                    u"attribute '{}' already exists".format(qname))
+                raise MarkupError(self._object, self.getpos(),
+                                  u"attribute '{}' already exists".format(qname))
             element.attrib[qname] = v
         return element
 
@@ -519,16 +518,14 @@ class MarkupLoader(five.HTMLParser):
     def xml_pop(self, qname):
         if (self._ptr() == 0 or
             self._peek().qname != qname):
-            raise MarkupError(
-                self._object, self.getpos(),
-                u"end tag for element '{}' which is not open".format(qname))
+            raise MarkupError(self._object, self.getpos(),
+                              u"end tag for element '{}' which is not open".format(qname))
         return self._pop()
 
     def xml_finish(self):
         if 0 < self._ptr():
-            raise MarkupError(
-                self._object, self.getpos(),
-                u"end tag for element '{}' omitted".format(self._peek().qname))
+            raise MarkupError(self._object, self.getpos(),
+                              u"end tag for element '{}' omitted".format(self._peek().qname))
 
     def new_xhtml1_element(self, name, attrs, type=None):
         return self.new_xml_element(name, attrs,
@@ -542,11 +539,13 @@ class MarkupLoader(five.HTMLParser):
 
 class MarkupRenderer(object):
 
-    _decl = {'compile_element': 'compile_{}_element',
-             'indent': 'indent_{}',
-             'render_start_tag': 'render_{}_start_tag',
-             'render_end_tag': 'render_{}_end_tag',
-             'render_text': 'render_{}_text'}
+    _decl = {
+        'compile_element': 'compile_{}_element',
+        'indent': 'indent_{}',
+        'render_start_tag': 'render_{}_start_tag',
+        'render_end_tag': 'render_{}_end_tag',
+        'render_text': 'render_{}_text'
+    }
 
     def __init__(self):
         self.__stack = collections.deque()
@@ -599,10 +598,7 @@ class MarkupRenderer(object):
                     element, newline = self._impl_of('compile_element')(node)
                 else:
                     element, newline = node, 0
-                if self.is_empty_element(element):
-                    element.type = Element.EMPTY
-                else:
-                    element.type = Element.OPEN
+                element.type = Element.EMPTY if self.is_empty_element(element) else Element.OPEN
                 self._push(index, element, newline)
                 self.render_start_tag()
                 if element.type == Element.EMPTY:
@@ -664,10 +660,7 @@ class MarkupRenderer(object):
         self._bol = False
         # indent after empty tag or inside of start tag
         if self._pretty:
-            if current.element.type == Element.EMPTY:
-                mode = 'after'
-            else:
-                mode = 'inside'
+            mode = 'after' if current.element.type == Element.EMPTY else 'inside'
             if self._impl_of('indent')(mode):
                 self._bol = True
 
@@ -721,9 +714,8 @@ class MarkupRenderer(object):
             impl = getattr(self, decl.format(self._lang), None)
             if impl is not None:
                 return self._cache.setdefault(name, impl)
-        msg = u"'{}' for '{}' document is not implemented".format(name,
-                                                                  self._lang)
-        raise RenderingError(self._object, msg)
+        raise RenderingError(self._object,
+                             u"'{}' for '{}' document is not implemented".format(name, self._lang))
 
     def _push(self, index, element, newline=0):
         self.__stack.append(_ElementState(index, element, newline))
@@ -751,15 +743,13 @@ class MarkupRenderer(object):
         known_prefixes = []
         for i in five.range(self._ptr() - 1, -1, -1):
             element = self._at(i).element
-            if element.ns:
-                for prefix in element.ns:
-                    if prefix in known_prefixes:
-                        raise RenderingError(self._object,
-                                             u"namespace URI for '{}' was "
-                                             u"overwritten".format(prefix))
-                    elif element.ns[prefix] == ns_uri:
-                        return prefix
-                    known_prefixes.append(prefix)
+            for prefix in element.ns:
+                if prefix in known_prefixes:
+                    raise RenderingError(self._object,
+                                         u"namespace URI for '{}' was overwritten".format(prefix))
+                elif element.ns[prefix] == ns_uri:
+                    return prefix
+                known_prefixes.append(prefix)
         raise RenderingError(self._object,
                              u"unknown namespace URI '{}'".format(ns_uri))
 
@@ -789,8 +779,8 @@ class MarkupRenderer(object):
                                  children[-1] == '')
                         s = l.lstrip()
                         if s:
-                            if (not found and
-                                s != l):
+                            if not (found or
+                                    s == l):
                                 children.append(u'')
                             t = s.rstrip()
                             children.append(t)

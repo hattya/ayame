@@ -24,8 +24,8 @@
 #   SOFTWARE.
 #
 
-from ayame import _compat as five
-import ayame.util
+from . import _compat as five
+from . import util
 
 
 __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
@@ -40,13 +40,13 @@ def parse_qs(environ):
 
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return five.urlquote(ayame.util.to_bytes(s, encoding, errors),
-                         ayame.util.to_bytes(safe, 'ascii', 'ignore'))
+    return five.urlquote(util.to_bytes(s, encoding, errors),
+                         util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return five.urlquote_plus(ayame.util.to_bytes(s, encoding, errors),
-                              ayame.util.to_bytes(safe, 'ascii', 'ignore'))
+    return five.urlquote_plus(util.to_bytes(s, encoding, errors),
+                              util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def application_uri(environ):
@@ -55,9 +55,10 @@ def application_uri(environ):
     # HTTP_HOST or SERVER_NAME + SERVER_PORT
     host = environ.get('HTTP_HOST')
     if host:
-        port = ''
         if ':' in host:
             host, port = host.split(':', 1)
+        else:
+            port = ''
     else:
         host = environ['SERVER_NAME']
         port = environ['SERVER_PORT']

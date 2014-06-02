@@ -57,11 +57,9 @@ _ASSERT_MAP = {a: _method_of(a)
                          'assert_items_equal')}
 
 if sys.version_info < (3, 2):
-    _ASSERT_MAP.update(
-        assert_raises_regex='assertRaisesRegexp',
-        assert_regex='assertRegexpMatches',
-        assert_not_regex='assertNotRegexpMatches'
-    )
+    _ASSERT_MAP.update(assert_raises_regex='assertRaisesRegexp',
+                       assert_regex='assertRegexpMatches',
+                       assert_not_regex='assertNotRegexpMatches')
 
 
 class AyameTestCase(unittest.TestCase):
@@ -70,8 +68,7 @@ class AyameTestCase(unittest.TestCase):
         try:
             return getattr(self, _ASSERT_MAP[name])
         except KeyError:
-            raise AttributeError("'{}' object has no attribute {!r}".format(
-                util.fqon_of(self.__class__), name))
+            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self.__class__), name))
 
     def setUp(self):
         self.setup()
@@ -93,8 +90,8 @@ class AyameTestCase(unittest.TestCase):
     @contextlib.contextmanager
     def application(self, environ=None):
         app = self.app
+        context = local.push(app, environ)
         try:
-            context = local.push(app, environ)
             if environ is not None:
                 context.request = app.config['ayame.request'](environ, {})
                 context._router = app.config['ayame.route.map'].bind(environ)
@@ -105,11 +102,13 @@ class AyameTestCase(unittest.TestCase):
     def new_environ(self, method='GET', path='', query='', data=None,
                     body=None, accept=None):
         query = uri.quote(query.format(path=ayame.AYAME_PATH))
-        environ = {'SERVER_NAME': 'localhost',
-                   'REQUEST_METHOD': method,
-                   'PATH_INFO': path,
-                   'QUERY_STRING': query,
-                   'ayame.session': {}}
+        environ = {
+            'SERVER_NAME': 'localhost',
+            'REQUEST_METHOD': method,
+            'PATH_INFO': path,
+            'QUERY_STRING': query,
+            'ayame.session': {}
+        }
         wsgiref.util.setup_testing_defaults(environ)
 
         if data is not None:

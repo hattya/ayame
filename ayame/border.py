@@ -1,7 +1,7 @@
 #
 # ayame.border
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,20 +24,19 @@
 #   SOFTWARE.
 #
 
-import ayame.core
-from ayame.exception import RenderingError
-import ayame.markup
+from . import core, markup
+from .exception import RenderingError
 
 
 __all__ = ['Border']
 
 
-class Border(ayame.core.MarkupContainer):
+class Border(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Border, self).__init__(id, model)
         self.render_body_only = True
-        # ayame:body
+        # ayame:body element
         self.body = _BorderBodyContainer(id)
         self.body.render_body_only = True
         self.add_to_border(self.body)
@@ -47,7 +46,7 @@ class Border(ayame.core.MarkupContainer):
 
     def add(self, *args):
         for object in args:
-            if isinstance(object, ayame.core._MessageContainer):
+            if isinstance(object, core._MessageContainer):
                 self.add_to_border(object)
             else:
                 self.body.add(object)
@@ -55,8 +54,7 @@ class Border(ayame.core.MarkupContainer):
 
     def on_render(self, element):
         def step(element, depth):
-            return element.qname not in (ayame.markup.AYAME_BODY,
-                                         ayame.markup.AYAME_HEAD)
+            return element.qname not in (markup.AYAME_BODY, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -65,49 +63,48 @@ class Border(ayame.core.MarkupContainer):
             return element
 
         body = element
-        html = 'html' in m.lang
         ayame_border = ayame_body = ayame_head = None
         for element, depth in m.root.walk(step=step):
-            if element.qname == ayame.markup.AYAME_BORDER:
+            if element.qname == markup.AYAME_BORDER:
                 if ayame_border is None:
                     ayame_border = element
-            elif element.qname == ayame.markup.AYAME_BODY:
+            elif element.qname == markup.AYAME_BODY:
                 if (ayame_border is not None and
                     ayame_body is None):
-                    # replace ayame:body
+                    # replace children of ayame:body element
                     ayame_body = element
-                    ayame_body.type = ayame.markup.Element.OPEN
+                    ayame_body.type = markup.Element.OPEN
                     ayame_body[:] = body.children
-            elif element.qname == ayame.markup.AYAME_HEAD:
-                if (html and
+            elif element.qname == markup.AYAME_HEAD:
+                if ('html' in m.lang and
                     ayame_head is None):
                     ayame_head = element
         if ayame_border is None:
             raise RenderingError(self, "'ayame:border' element is not found")
         elif ayame_body is None:
             raise RenderingError(self, "'ayame:body' element is not found")
-        # push ayame:head to parent component
+        # push ayame:head element to parent component
         if ayame_head is not None:
             self.push_ayame_head(ayame_head)
-        # render ayame:border
+        # render ayame:border element
         return super(Border, self).on_render(ayame_border)
 
     def render_ayame_element(self, element):
-        if element.qname == ayame.markup.AYAME_BORDER:
+        if element.qname == markup.AYAME_BORDER:
             return element
-        elif element.qname == ayame.markup.AYAME_BODY:
-            element.attrib[ayame.markup.AYAME_ID] = self.body.id
+        elif element.qname == markup.AYAME_BODY:
+            element.attrib[markup.AYAME_ID] = self.body.id
             return element
         return super(Border, self).render_ayame_element(element)
 
 
-class _BorderBodyContainer(ayame.core.MarkupContainer):
+class _BorderBodyContainer(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(_BorderBodyContainer, self).__init__(id + u'_body', model)
 
     def render_ayame_element(self, element):
-        if element.qname == ayame.markup.AYAME_BODY:
+        if element.qname == markup.AYAME_BODY:
             return element
         return super(_BorderBodyContainer, self).render_ayame_element(element)
 

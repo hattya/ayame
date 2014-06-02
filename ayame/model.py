@@ -26,7 +26,7 @@
 
 import abc
 
-from ayame import _compat as five
+from . import _compat as five
 
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
@@ -39,9 +39,7 @@ class Model(object):
 
     def object():
         def fget(self):
-            if isinstance(self.__object, Model):
-                return self.__object.object
-            return self.__object
+            return self.__object.object if isinstance(self.__object, Model) else self.__object
 
         def fset(self, object):
             self.__object = object

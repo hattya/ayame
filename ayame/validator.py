@@ -27,10 +27,9 @@
 import abc
 import re
 
-from ayame import _compat as five
-import ayame.core
-from ayame.exception import ValidationError
-import ayame.markup
+from . import _compat as five
+from . import core, markup
+from .exception import ValidationError
 
 
 __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
@@ -101,13 +100,13 @@ _url = r"""
            pchar=_pchar)
 
 # HTML elements
-_INPUT = ayame.markup.QName(ayame.markup.XHTML_NS, 'input')
+_INPUT = markup.QName(markup.XHTML_NS, 'input')
 # HTML attributes
-_TYPE = ayame.markup.QName(ayame.markup.XHTML_NS, 'type')
-_MAXLENGTH = ayame.markup.QName(ayame.markup.XHTML_NS, 'maxlength')
+_TYPE = markup.QName(markup.XHTML_NS, 'type')
+_MAXLENGTH = markup.QName(markup.XHTML_NS, 'maxlength')
 
 
-class Validator(five.with_metaclass(abc.ABCMeta, ayame.core.Behavior)):
+class Validator(five.with_metaclass(abc.ABCMeta, core.Behavior)):
 
     @abc.abstractmethod
     def validate(self, object):
@@ -128,8 +127,7 @@ class RegexValidator(Validator):
 class EmailValidator(RegexValidator):
 
     def __init__(self):
-        super(EmailValidator, self).__init__(_email,
-                                             re.IGNORECASE | re.VERBOSE)
+        super(EmailValidator, self).__init__(_email, re.IGNORECASE | re.VERBOSE)
 
 
 class URLValidator(RegexValidator):

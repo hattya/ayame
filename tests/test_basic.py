@@ -161,8 +161,7 @@ class BasicTestCase(AyameTestCase):
         def populate_item(li):
             li.add(basic.Label('c', li.model.object))
             li.find('c').render_body_only = True
-        mc.add(basic.ListView('b', [str(i) for i in five.range(3)],
-                              populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))

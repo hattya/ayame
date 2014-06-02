@@ -1,7 +1,7 @@
 #
 # test_app
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -40,10 +40,7 @@ class AppTestCase(AyameTestCase):
         self.locale = locale.getdefaultlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
-            if 1 < len(v):
-                self.locale = (v[0].lower(), v[1].upper())
-            else:
-                self.locale = (v[0].lower() if len(v) == 1 else None, None)
+            self.locale = (v[0].lower(), v[1].upper()) if 1 < len(v) else (v[0].lower() if len(v) == 1 else None, None)
         else:
             self.locale = (None,) * 2
         self._getdefaultlocale = locale.getdefaultlocale
@@ -333,8 +330,7 @@ class SimplePage(ayame.Page):
         super(SimplePage, self).__init__()
         class SessionLabel(basic.Label):
             def __init__(self, id, default):
-                super(SessionLabel, self).__init__(
-                    id, self.session.get(id, default))
+                super(SessionLabel, self).__init__(id, self.session.get(id, default))
         self.add(SessionLabel('message', self.kwargs['message']))
 
 

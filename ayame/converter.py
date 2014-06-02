@@ -29,8 +29,8 @@ import collections
 import datetime
 import sys
 
-from ayame import _compat as five
-from ayame.exception import ConversionError
+from . import _compat as five
+from .exception import ConversionError
 
 
 __all__ = ['ConverterRegistry', 'Converter', 'BooleanConverter',
@@ -56,12 +56,9 @@ class ConverterRegistry(object):
             return self.__registry[type]
 
     def converter_for(self, value):
-        if isinstance(value, five.class_types):
-            class_ = value
-        else:
-            class_ = value.__class__
+        class_ = value if isinstance(value, five.class_types) else value.__class__
 
-        queue = collections.deque((object, class_))
+        queue = collections.deque((class_,))
         while queue:
             class_ = queue.pop()
             converter = self.get(class_)
@@ -69,6 +66,7 @@ class ConverterRegistry(object):
                 return converter
             queue.extend(c for c in reversed(class_.__bases__)
                          if c is not object)
+        return self.get(object)
 
     def add(self, converter):
         if isinstance(converter.type, collections.Iterable):
@@ -114,15 +112,12 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
                 et = ''.join(et)
             else:
                 et = q(self.type)
-            return ConversionError(
-                "expected {} but got '{}'".format(et, type(value)))
+            return ConversionError("expected {} but got '{}'".format(et, type(value)))
 
     def _new_error(self, value, type=None):
         if type is None:
             type = self.type
-
-        return ConversionError(u"could not convert '{}' to '{}'".format(value,
-                                                                        type))
+        return ConversionError(u"cannot convert '{}' to '{}'".format(value, type))
 
 
 class _ObjectConverter(Converter):
@@ -143,8 +138,7 @@ class BooleanConverter(Converter):
 
     def to_python(self, value):
         if isinstance(value, five.string_type):
-            s = value.lower()
-            if s in ('false', 'off', 'no', 'n'):
+            if value.lower() in ('false', 'off', 'no', 'n'):
                 return False
         return bool(value)
 

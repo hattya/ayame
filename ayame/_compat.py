@@ -80,8 +80,7 @@ if PY2:
     def urlparse_qs(qs, keep_blank_values=False, strict_parsing=False,
                     encoding='utf-8', errors='replace'):
         qs = urlparse.parse_qs(qs, keep_blank_values)
-        return {unicode(k, encoding, errors): [unicode(s, encoding, errors)
-                                               for s in v]
+        return {unicode(k, encoding, errors): [unicode(s, encoding, errors) for s in v]
                 for k, v in qs.iteritems()}
 
     class HTMLParser(_HTMLParser, object):

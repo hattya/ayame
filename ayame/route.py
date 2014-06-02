@@ -27,11 +27,9 @@
 import collections
 import re
 
-from ayame import _compat as five
-from ayame.exception import _RequestSlash, RouteError, ValidationError
-import ayame.http
-import ayame.uri
-import ayame.util
+from . import _compat as five
+from . import http, uri, util
+from .exception import _RequestSlash, RouteError, ValidationError
 
 
 __all__ = ['Rule', 'Map', 'Router', 'Converter']
@@ -109,10 +107,7 @@ class Rule(object):
         self.__path = path
         self.__leaf = not path.endswith('/')
         self.__object = object
-        if methods:
-            self.__methods = tuple(set(m.upper() for m in methods))
-        else:
-            self.__methods = ('GET', 'POST')
+        self.__methods = tuple(set(m.upper() for m in methods)) if methods else ('GET', 'POST')
         self.__redirection = redirection
 
         self._regex = None
@@ -144,8 +139,7 @@ class Rule(object):
 
     def bind(self, map):
         if self.map is not None:
-            raise RouteError(
-                'rule {!r} already bound to map {!r}'.format(self, self.map))
+            raise RouteError('rule {!r} already bound to map {!r}'.format(self, self.map))
         self.__map = map
         self._compile()
 
@@ -163,8 +157,7 @@ class Rule(object):
                 buf.append(re.escape(var))
                 self._segments.append((False, var))
             elif var in self._variables:
-                raise RouteError(
-                    "variable name '{}' already in use".format(var))
+                raise RouteError("variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
                 buf.append('(?P<{}>{})'.format(var, conv.pattern))
@@ -198,9 +191,8 @@ class Rule(object):
 
         if args:
             args, kwargs = self._parse_args(args)
-        else:
-            args, kwargs = (), {}
-        return converter(self.map, *args, **kwargs)
+            return converter(self.map, *args, **kwargs)
+        return converter(self.map)
 
     def _parse_args(self, expr):
         info = lambda offset, expr: ('<args>', 1, offset, expr)
@@ -232,17 +224,14 @@ class Rule(object):
                         value = False
                     else:
                         value = None
-                    break
                 elif type == 'int':
                     value = int(value, 0)
-                    break
                 elif type == 'float':
                     value = float(value)
-                    break
                 elif type == 'str':
                     q = value[0]
                     value = five.str(value[1:-1].replace('\\' + q, q))
-                    break
+                break
             if name is None:
                 args.append(value)
             else:
@@ -276,8 +265,8 @@ class Rule(object):
 
     def build(self, values, anchor=None, method=None, query=True):
         assert self.map is not None, 'rule not bound to map'
-        if (method is not None and
-            method not in self.methods):
+        if not (method is None or
+                method in self.methods):
             return
         for var in self._variables:
             if var not in values:
@@ -287,7 +276,7 @@ class Rule(object):
         cache = {}
         for dyn, var in self._segments:
             if dyn:
-                cache[var] = ayame.util.to_list(values[var])
+                cache[var] = util.to_list(values[var])
                 if not cache[var]:
                     return
                 data = cache[var].pop(0)
@@ -301,8 +290,8 @@ class Rule(object):
         if query:
             query = []
             for var in values:
-                data = cache.get(var, ayame.util.to_list(values[var]))
-                var = ayame.util.to_bytes(var, self.map.encoding)
+                data = cache.get(var, util.to_list(values[var]))
+                var = util.to_bytes(var, self.map.encoding)
                 query.extend((var, x) for x in data)
             if query:
                 query = sorted(query, key=self.map.sort_key)
@@ -311,7 +300,7 @@ class Rule(object):
         # anchor
         if anchor:
             buf.append('#')
-            buf.append(ayame.uri.quote(anchor, encoding=self.map.encoding))
+            buf.append(uri.quote(anchor, encoding=self.map.encoding))
         return u''.join(buf)
 
 
@@ -321,10 +310,12 @@ class Map(object):
                  sort_key=None):
         self.encoding = encoding
         self.slash = slash
-        self.converters = {'default': _StringConverter,
-                           'string': _StringConverter,
-                           'path': _PathConverter,
-                           'int': _IntegerConverter}
+        self.converters = {
+            'default': _StringConverter,
+            'string': _StringConverter,
+            'path': _PathConverter,
+            'int': _IntegerConverter
+        }
         if converters:
             self.converters.update(converters)
         self.sort_key = sort_key
@@ -357,8 +348,7 @@ class _Submap(object):
         self.path = path
 
     def add(self, rule):
-        self.map.add(Rule(self.path + rule.path, rule.object, rule.methods,
-                          rule.has_redirect()))
+        self.map.add(Rule(self.path + rule.path, rule.object, rule.methods, rule.has_redirect()))
 
     def connect(self, path, object, methods=None):
         self.map.add(Rule(self.path + path, object, methods))
@@ -383,8 +373,7 @@ class Router(object):
             except _RequestSlash:
                 environ = self.environ.copy()
                 environ['PATH_INFO'] += '/'
-                raise ayame.http.MovedPermanently(
-                    ayame.uri.request_uri(environ, True))
+                raise http.MovedPermanently(uri.request_uri(environ, True))
             if values is None:
                 continue
             elif method not in rule.methods:
@@ -402,13 +391,11 @@ class Router(object):
                     location = rule.object(**values)
                 environ = self.environ.copy()
                 environ['PATH_INFO'] = location
-                raise ayame.http.MovedPermanently(
-                    ayame.uri.request_uri(environ, True))
+                raise http.MovedPermanently(uri.request_uri(environ, True))
             return rule if as_rule else rule.object, values
         if allow:
-            raise ayame.http.NotImplemented(
-                method, ayame.uri.request_path(self.environ))
-        raise ayame.http.NotFound(ayame.uri.request_path(self.environ))
+            raise http.NotImplemented(method, uri.request_path(self.environ))
+        raise http.NotFound(uri.request_path(self.environ))
 
     def build(self, object, values=None, anchor=None, method=None, query=True,
               relative=False):
@@ -421,7 +408,7 @@ class Router(object):
                 continue
             elif relative:
                 return path
-            return ayame.uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
+            return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
         raise RouteError('no rule for building URI')
 
 
@@ -436,7 +423,7 @@ class Converter(object):
         return value
 
     def to_uri(self, value):
-        return ayame.uri.quote(value, encoding=self.map.encoding)
+        return uri.quote(value, encoding=self.map.encoding)
 
 
 class _StringConverter(Converter):

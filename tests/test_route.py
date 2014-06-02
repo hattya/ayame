@@ -1,7 +1,7 @@
 #
 # test_route
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -221,8 +221,7 @@ class RouteTestCase(AyameTestCase):
                           '/2011/')
         self.assert_equal(router.build(0, {'y': ['2010', '2011']}),
                           '/2010/?y=2011')
-        self.assert_equal(router.build(0, {'y': ['2010', '2011']},
-                                       query=False),
+        self.assert_equal(router.build(0, {'y': ['2010', '2011']}, query=False),
                           '/2010/')
 
         with self.assert_raises(ayame.RouteError):
@@ -405,9 +404,8 @@ class RouteTestCase(AyameTestCase):
                           ((0, 1, 2, 8, 16), {}))
         self.assert_equal(rule._parse_args('0, -1, -0b10, -0o10, -0x10'),
                           ((0, -1, -2, -8, -16), {}))
-        self.assert_equal(
-            rule._parse_args('3.14, 10., .001, 1e100, 3.14e-10, 0e0'),
-            ((3.14, 10.0, 0.001, 1e+100, 3.14e-10, 0.0), {}))
+        self.assert_equal(rule._parse_args('3.14, 10., .001, 1e100, 3.14e-10, 0e0'),
+                          ((3.14, 10.0, 0.001, 1e+100, 3.14e-10, 0.0), {}))
         self.assert_equal(rule._parse_args(r'"spam", "eggs\"ham", "toast\\"'),
                           (('spam', 'eggs"ham', r'toast\\'), {}))
 

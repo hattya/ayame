@@ -1,7 +1,7 @@
 #
 # test_border
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -473,9 +473,8 @@ class BorderTestCase(AyameTestCase):
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib,
-                          {self.html_of('name'): 'class',
-                           self.html_of('content'): 'LobsterBorder'})
+        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
+                                        self.html_of('content'): 'LobsterBorder'})
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])

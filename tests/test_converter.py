@@ -346,11 +346,11 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is_instance(datetime.datetime.now(), c.type)
 
         self.assert_equal(c.to_python('2011-01-01T00:00:00-05:00'),
-                          datetime.datetime(2011, 1, 1, 0, 0, 0))
+                          datetime.datetime(2011, 1, 1))
         self.assert_equal(c.to_python('2011-01-01T00:00:00Z'),
-                          datetime.datetime(2011, 1, 1, 0, 0, 0))
+                          datetime.datetime(2011, 1, 1))
         self.assert_equal(c.to_python('2011-01-01 00:00:00+09:00'),
-                          datetime.datetime(2011, 1, 1, 0, 0, 0))
+                          datetime.datetime(2011, 1, 1))
         with self.assert_raises(ayame.ConversionError):
             c.to_python('2011-01-01T00:00:00')
         with self.assert_raises(ayame.ConversionError):
@@ -380,8 +380,8 @@ class ConverterTestCase(AyameTestCase):
             def tzname(self, dt):
                 return 'EDT' if self.dst(dt) else 'EST'
             def dst(self, dt):
-                start = datetime.datetime(2011, 3, 13, 2, 0, 0, tzinfo=None)
-                end = datetime.datetime(2011, 11, 6, 2, 0, 0, tzinfo=None)
+                start = datetime.datetime(2011, 3, 13, 2, tzinfo=None)
+                end = datetime.datetime(2011, 11, 6, 2, tzinfo=None)
                 if start <= dt.replace(tzinfo=None) < end:
                     return datetime.timedelta(hours=1)
                 return datetime.timedelta(0)
@@ -406,20 +406,16 @@ class ConverterTestCase(AyameTestCase):
                 return 'INVALID'
             def dst(self, dt):
                 return 0
-        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, 0, 0, 0)),
+        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1)),
                           '2011-01-01 00:00:00Z')
-        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, 0, 0, 0,
-                                                        tzinfo=Eastern())),
+        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, tzinfo=Eastern())),
                           '2011-01-01 00:00:00-05:00')
-        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, 0, 0, 0,
-                                                        tzinfo=UTC())),
+        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, tzinfo=UTC())),
                           '2011-01-01 00:00:00Z')
-        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, 0, 0, 0,
-                                                        tzinfo=JST())),
+        self.assert_equal(c.to_string(datetime.datetime(2011, 1, 1, tzinfo=JST())),
                           '2011-01-01 00:00:00+09:00')
         with self.assert_raises(ayame.ConversionError):
-            c.to_string(datetime.datetime(2011, 1, 1, 0, 0, 0,
-                                          tzinfo=Invalid()))
+            c.to_string(datetime.datetime(2011, 1, 1, tzinfo=Invalid()))
         with self.assert_raises(ayame.ConversionError):
             c.to_string(None)
         with self.assert_raises(ayame.ConversionError):

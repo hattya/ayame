@@ -1,7 +1,7 @@
 #
 # test_validator
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -75,8 +75,7 @@ class ValidatorTestCase(AyameTestCase):
         self.assert_false(v.validate('http://example.com/?query#fragment'))
         self.assert_false(v.validate('http://example.com/segment/?query'))
         self.assert_false(v.validate('http://example.com/segment/#fragment'))
-        self.assert_false(
-            v.validate('http://example.com/segment/?query#fragment'))
+        self.assert_false(v.validate('http://example.com/segment/?query#fragment'))
 
         with self.assert_raises(ayame.ValidationError):
             v.validate(None)

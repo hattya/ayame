@@ -1,7 +1,7 @@
 #
 # test_uri
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -113,8 +113,7 @@ class URITestCase(AyameTestCase):
         environ = {'wsgi.url_scheme': 'http',
                    'SERVER_NAME': 'localhost',
                    'SERVER_PORT': '8080'}
-        self.assert_equal(uri.application_uri(environ),
-                          'http://localhost:8080/')
+        self.assert_equal(uri.application_uri(environ), 'http://localhost:8080/')
 
         environ = {'wsgi.url_scheme': 'https',
                    'SERVER_NAME': 'localhost',
@@ -124,8 +123,7 @@ class URITestCase(AyameTestCase):
         environ = {'wsgi.url_scheme': 'https',
                    'SERVER_NAME': 'localhost',
                    'SERVER_PORT': '8008'}
-        self.assert_equal(uri.application_uri(environ),
-                          'https://localhost:8008/')
+        self.assert_equal(uri.application_uri(environ), 'https://localhost:8008/')
 
     def test_application_uri_http_host(self):
         environ = {'wsgi.url_scheme': 'http',
@@ -138,8 +136,7 @@ class URITestCase(AyameTestCase):
                    'SERVER_NAME': '127.0.0.1',
                    'SERVER_PORT': '80',
                    'HTTP_HOST': 'localhost:8080'}
-        self.assert_equal(uri.application_uri(environ),
-                          'http://localhost:8080/')
+        self.assert_equal(uri.application_uri(environ), 'http://localhost:8080/')
 
         environ = {'wsgi.url_scheme': 'https',
                    'SERVER_NAME': '127.0.0.1',
@@ -151,8 +148,7 @@ class URITestCase(AyameTestCase):
                    'SERVER_NAME': '127.0.0.1',
                    'SERVER_PORT': '443',
                    'HTTP_HOST': 'localhost:8008'}
-        self.assert_equal(uri.application_uri(environ),
-                          'https://localhost:8008/')
+        self.assert_equal(uri.application_uri(environ), 'https://localhost:8008/')
 
     def test_application_uri_script_name(self):
         environ = {'wsgi.url_scheme': 'https',
@@ -167,8 +163,7 @@ class URITestCase(AyameTestCase):
         environ = {'wsgi.url_scheme': 'https',
                    'HTTP_HOST': 'localhost',
                    'SCRIPT_NAME': '/ayame'}
-        self.assert_equal(uri.application_uri(environ),
-                          'https://localhost/ayame')
+        self.assert_equal(uri.application_uri(environ), 'https://localhost/ayame')
 
     def test_request_uri(self):
         # SCRIPT_NAME and PATH_INFO are empty
@@ -213,24 +208,21 @@ class URITestCase(AyameTestCase):
                    'HTTP_HOST': 'localhost',
                    'SCRIPT_NAME': '/ayame',
                    'PATH_INFO': '/'}
-        self.assert_equal(uri.request_uri(environ, True),
-                          'http://localhost/ayame/')
+        self.assert_equal(uri.request_uri(environ, True), 'http://localhost/ayame/')
 
         environ = {'wsgi.url_scheme': 'http',
                    'HTTP_HOST': 'localhost',
                    'SCRIPT_NAME': '/ayame',
                    'PATH_INFO': '/',
                    'QUERY_STRING': ''}
-        self.assert_equal(uri.request_uri(environ, True),
-                          'http://localhost/ayame/')
+        self.assert_equal(uri.request_uri(environ, True), 'http://localhost/ayame/')
 
         environ = {'wsgi.url_scheme': 'http',
                    'HTTP_HOST': 'localhost',
                    'SCRIPT_NAME': '/ayame',
                    'PATH_INFO': '/',
                    'QUERY_STRING': 'FrontPage'}
-        self.assert_equal(uri.request_uri(environ, True),
-                          'http://localhost/ayame/?FrontPage')
+        self.assert_equal(uri.request_uri(environ, True), 'http://localhost/ayame/?FrontPage')
 
     def test_request_path(self):
         # SCRIPT_NAME and PATH_INFO are empty
@@ -272,35 +264,26 @@ class URITestCase(AyameTestCase):
 
     def test_relative_uri(self):
         environ = {}
-        self.assert_equal(uri.relative_uri(environ, '/spam.html'),
-                          '/spam.html')
-        self.assert_equal(uri.relative_uri(environ, 'spam.html'),
-                          'spam.html')
+        self.assert_equal(uri.relative_uri(environ, '/spam.html'), '/spam.html')
+        self.assert_equal(uri.relative_uri(environ, 'spam.html'), 'spam.html')
 
         environ = {'PATH_INFO': '/'}
-        self.assert_equal(uri.relative_uri(environ, 'spam.html'),
-                          'spam.html')
+        self.assert_equal(uri.relative_uri(environ, 'spam.html'), 'spam.html')
 
         environ = {'PATH_INFO': '/spam'}
-        self.assert_equal(uri.relative_uri(environ, 'eggs.html'),
-                          'eggs.html')
+        self.assert_equal(uri.relative_uri(environ, 'eggs.html'), 'eggs.html')
 
         environ = {'PATH_INFO': '//spam'}
-        self.assert_equal(uri.relative_uri(environ, 'eggs.html'),
-                          'eggs.html')
+        self.assert_equal(uri.relative_uri(environ, 'eggs.html'), 'eggs.html')
 
         environ = {'PATH_INFO': '/spam/'}
-        self.assert_equal(uri.relative_uri(environ, 'eggs.html'),
-                          '../eggs.html')
+        self.assert_equal(uri.relative_uri(environ, 'eggs.html'), '../eggs.html')
 
         environ = {'PATH_INFO': '/spam/eggs'}
-        self.assert_equal(uri.relative_uri(environ, 'ham.html'),
-                          '../ham.html')
+        self.assert_equal(uri.relative_uri(environ, 'ham.html'), '../ham.html')
 
         environ = {'PATH_INFO': '/spam/eggs/'}
-        self.assert_equal(uri.relative_uri(environ, 'ham.html'),
-                          '../../ham.html')
+        self.assert_equal(uri.relative_uri(environ, 'ham.html'), '../../ham.html')
 
         environ = {'PATH_INFO': '/spam/eggs/ham'}
-        self.assert_equal(uri.relative_uri(environ, 'toast.html'),
-                          '../../toast.html')
+        self.assert_equal(uri.relative_uri(environ, 'toast.html'), '../../toast.html')

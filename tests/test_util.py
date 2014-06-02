@@ -277,8 +277,7 @@ class UtilTestCase(AyameTestCase):
 
         def assert_load(*args):
             with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(),
-                                  'test_util/Spam.txt from Loader')
+                self.assert_equal(fp.read().strip(), 'test_util/Spam.txt from Loader')
         assert_load(Spam, 'Spam.txt')
         assert_load(Spam, '.txt')
         assert_load(Spam(), 'Spam.txt')
@@ -289,8 +288,7 @@ class UtilTestCase(AyameTestCase):
 
         def assert_load(*args):
             with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(),
-                                  'test_util/ham.txt from Loader')
+                self.assert_equal(fp.read().strip(), 'test_util/ham.txt from Loader')
         assert_load(ham, 'ham.txt')
         assert_load(ham, '.txt')
 
