@@ -345,12 +345,12 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is(c.type, datetime.datetime)
         self.assert_is_instance(datetime.datetime.now(), c.type)
 
-        self.assert_equal(c.to_python('2011-01-01T00:00:00-05:00'),
-                          datetime.datetime(2011, 1, 1))
+        self.assert_equal(c.to_python('2010-12-31T19:00:00-05:00'),
+                          datetime.datetime(2011, 1, 1, tzinfo=five.UTC))
         self.assert_equal(c.to_python('2011-01-01T00:00:00Z'),
-                          datetime.datetime(2011, 1, 1))
-        self.assert_equal(c.to_python('2011-01-01 00:00:00+09:00'),
-                          datetime.datetime(2011, 1, 1))
+                          datetime.datetime(2011, 1, 1, tzinfo=five.UTC))
+        self.assert_equal(c.to_python('2011-01-01 09:00:00+09:00'),
+                          datetime.datetime(2011, 1, 1, tzinfo=five.UTC))
         with self.assert_raises(ayame.ConversionError):
             c.to_python('2011-01-01T00:00:00')
         with self.assert_raises(ayame.ConversionError):

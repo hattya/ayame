@@ -253,7 +253,7 @@ class DateTimeConverter(Converter):
                     minutes = int(h) * 60 + int(m)
                     if sign == '+':
                         if minutes <= 840:  # UTC+14:00
-                            offset = minutes
+                            offset = -minutes
                     else:
                         if minutes <= 720:  # UTC-12:00
                             offset = minutes
@@ -267,9 +267,10 @@ class DateTimeConverter(Converter):
                 raise self._new_error(value)
         # datetime
         try:
-            return datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
+            dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             raise self._new_error(value)
+        return dt.replace(tzinfo=five.UTC) + datetime.timedelta(minutes=offset)
 
     def to_string(self, value):
         error = self._check_type(value)
@@ -277,16 +278,13 @@ class DateTimeConverter(Converter):
             raise error
 
         try:
-            utcoffset = value.utcoffset()
+            offset = value.utcoffset()
         except TypeError as e:
             raise ConversionError(five.str(e))
-        if utcoffset is None:
+        if not offset:
             z = 'Z'
         else:
-            seconds = utcoffset.total_seconds()
-            if seconds == 0:
-                z = 'Z'
-            else:
-                minutes = seconds / 60
-                z = '{:+03.0f}:{:02.0f}'.format(minutes / 60, minutes % 60)
+            seconds = offset.total_seconds()
+            minutes = seconds / 60
+            z = '{:+03.0f}:{:02.0f}'.format(minutes / 60, minutes % 60)
         return u'{:%Y-%m-%d %H:%M:%S}{Z}'.format(value, Z=z)
