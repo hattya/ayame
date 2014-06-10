@@ -219,13 +219,6 @@ class CoreTestCase(AyameTestCase):
                                       r"\bunknown element 'ayame:spam'"):
             mc.render(root)
 
-    def test_render_unknown_element(self):
-        root = markup.Element(markup.QName('', 'root'))
-        mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"\bunknown element '{}root'"):
-            mc.render_ayame_element(root)
-
     def test_render_unknown_ayame_attribute(self):
         root = markup.Element(markup.QName('', 'root'),
                               attrib={markup.AYAME_ID: 'b',
@@ -338,7 +331,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_replace_root_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
+            def on_render_element(self, element):
                 return None
 
         root = markup.Element(self.ayame_of('root'))
@@ -347,7 +340,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_replace_root_ayame_element_by_string(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
+            def on_render_element(self, element):
                 return ''
 
         root = markup.Element(self.ayame_of('root'))
@@ -356,7 +349,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_replace_root_ayame_element_by_list(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
+            def on_render_element(self, element):
                 return ['>', '!', '<']
 
         root = markup.Element(self.ayame_of('root'))
@@ -365,8 +358,8 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_remove_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
-                return None
+            def on_render_element(self, element):
+                return None if element == a else element
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
@@ -382,8 +375,8 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_replace_ayame_element_by_string(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
-                return ''
+            def on_render_element(self, element):
+                return '' if element == a else element
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
@@ -399,8 +392,8 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_replace_ayame_element_by_list(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def render_ayame_element(self, element):
-                return ['>>', '!', '<<']
+            def on_render_element(self, element):
+                return ['>>', '!', '<<'] if element == a else element
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')

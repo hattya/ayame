@@ -89,13 +89,15 @@ class Border(core.MarkupContainer):
         # render ayame:border element
         return super(Border, self).on_render(ayame_border)
 
-    def render_ayame_element(self, element):
-        if element.qname == markup.AYAME_BORDER:
+    def on_render_element(self, element):
+        if element.qname.ns_uri != markup.AYAME_NS:
+            return element
+        elif element.qname == markup.AYAME_BORDER:
             return element
         elif element.qname == markup.AYAME_BODY:
             element.attrib[markup.AYAME_ID] = self.body.id
             return element
-        return super(Border, self).render_ayame_element(element)
+        return super(Border, self).on_render_element(element)
 
 
 class _BorderBodyContainer(core.MarkupContainer):
@@ -103,10 +105,12 @@ class _BorderBodyContainer(core.MarkupContainer):
     def __init__(self, id, model=None):
         super(_BorderBodyContainer, self).__init__(id + u'_body', model)
 
-    def render_ayame_element(self, element):
-        if element.qname == markup.AYAME_BODY:
+    def on_render_element(self, element):
+        if element.qname.ns_uri != markup.AYAME_NS:
             return element
-        return super(_BorderBodyContainer, self).render_ayame_element(element)
+        elif element.qname == markup.AYAME_BODY:
+            return element
+        return super(_BorderBodyContainer, self).on_render_element(element)
 
     def tr(self, key, component=None):
         # retrieve message from parent of Border

@@ -64,7 +64,9 @@ class Panel(core.MarkupContainer):
         # render ayame:panel element
         return super(Panel, self).on_render(ayame_panel)
 
-    def render_ayame_element(self, element):
-        if element.qname == markup.AYAME_PANEL:
+    def on_render_element(self, element):
+        if element.qname.ns_uri != markup.AYAME_NS:
             return element
-        return super(Panel, self).render_ayame_element(element)
+        elif element.qname == markup.AYAME_PANEL:
+            return element
+        return super(Panel, self).on_render_element(element)

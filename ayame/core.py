@@ -279,9 +279,12 @@ class MarkupContainer(Component):
             queue.append((None, -1, root))
         while queue:
             parent, index, element = queue.pop()
-            if element.qname.ns_uri == markup.AYAME_NS:
-                # render ayame element
-                value = self.render_ayame_element(element)
+            value = self.on_render_element(element)
+            if isinstance(value, markup.Element):
+                ayame_id, value = self.on_render_attrib(value)
+            else:
+                ayame_id = None
+            if ayame_id is None:
                 if util.iterable(value):
                     # replace ayame element (parent)
                     if parent is None:
@@ -307,24 +310,6 @@ class MarkupContainer(Component):
                                      for i in five.range(total))
                     continue
                 elif isinstance(value, markup.Element):
-                    element = value
-                else:
-                    element = None
-            if element is not None:
-                # render ayame attribute
-                ayame_id = element.attrib.get(markup.AYAME_ID)
-                if markup.AYAME_MESSAGE in element.attrib:
-                    # prepare AttributeLocalizer
-                    if ayame_id is not None:
-                        self.find(ayame_id).add(_AttributeLocalizer())
-                    else:
-                        ayame_id = util.new_token()[:7]
-                        self.add(_MessageContainer(ayame_id))
-                        element.attrib[markup.AYAME_ID] = ayame_id
-                # render component
-                if ayame_id is not None:
-                    ayame_id, value = self.render_component(element)
-                else:
                     # there is no associated component
                     push(queue, element)
                     continue
@@ -352,7 +337,7 @@ class MarkupContainer(Component):
         self.merge_ayame_head(root)
         return root
 
-    def render_ayame_element(self, element):
+    def on_render_element(self, element):
         def get(element, attr, keep=True):
             if attr in element.attrib:
                 return element.attrib[attr] if keep else element.attrib.pop(attr)
@@ -367,7 +352,9 @@ class MarkupContainer(Component):
             raise ComponentError(self,
                                  u"component for '{}' is not found".format(path))
 
-        if element.qname == markup.AYAME_CONTAINER:
+        if element.qname.ns_uri != markup.AYAME_NS:
+            return element
+        elif element.qname == markup.AYAME_CONTAINER:
             find(get(element, markup.AYAME_ID)).render_body_only = True
             return element
         elif element.qname == markup.AYAME_ENCLOSURE:
@@ -379,12 +366,23 @@ class MarkupContainer(Component):
             self.add(message)
             element.attrib[markup.AYAME_ID] = message.id
             return element
-
-        if element.qname.ns_uri == markup.AYAME_NS:
-            raise RenderingError(self,
-                                 u"unknown element 'ayame:{}'".format(element.qname.name))
         raise RenderingError(self,
-                             u"unknown element '{}'".format(element.qname))
+                             u"unknown element 'ayame:{}'".format(element.qname.name))
+
+    def on_render_attrib(self, element):
+        ayame_id = element.attrib.get(markup.AYAME_ID)
+        if markup.AYAME_MESSAGE in element.attrib:
+            # prepare AttributeModifier
+            if ayame_id is not None:
+                self.find(ayame_id).add(_AttributeLocalizer())
+            else:
+                ayame_id = util.new_token()[:7]
+                self.add(_MessageContainer(ayame_id))
+                element.attrib[markup.AYAME_ID] = ayame_id
+        # render component
+        if ayame_id is not None:
+            return self.render_component(element)
+        return None, element
 
     def push_ayame_head(self, ayame_head):
         current = self
