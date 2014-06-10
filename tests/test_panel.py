@@ -32,7 +32,7 @@ from base import AyameTestCase
 class PanelTestCase(AyameTestCase):
 
     def test_panel(self):
-        class Spam(ayame.MarkupContainer):
+        class Spam(MarkupContainer):
             def __init__(self, id):
                 super(Spam, self).__init__(id)
                 self.add(SpamPanel('panel'))
@@ -42,8 +42,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Spam('a')
-            m = mc.load_markup()
-            html = mc.render(m.root)
+            m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -132,7 +131,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(p.children, ['after panel (Spam)'])
 
     def test_panel_with_markup_inheritance(self):
-        class Eggs(ayame.MarkupContainer):
+        class Eggs(MarkupContainer):
             def __init__(self, id):
                 super(Eggs, self).__init__(id)
                 self.add(HamPanel('panel'))
@@ -144,8 +143,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Eggs('a')
-            m = mc.load_markup()
-            html = mc.render(m.root)
+            m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -244,7 +242,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(p.children, ['after panel (Eggs)'])
 
     def test_invalid_markup_no_ayame_panel(self):
-        class Toast(ayame.MarkupContainer):
+        class Toast(MarkupContainer):
             def __init__(self, id):
                 super(Toast, self).__init__(id)
                 self.add(ToastPanel('panel'))
@@ -254,13 +252,12 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Toast('a')
-            m = mc.load_markup()
             with self.assert_raises_regex(ayame.RenderingError,
                                           r"'ayame:panel' .* not found\b"):
-                mc.render(m.root)
+                mc.render()
 
     def test_invalid_markup_no_head(self):
-        class Beans(ayame.MarkupContainer):
+        class Beans(MarkupContainer):
             def __init__(self, id):
                 super(Beans, self).__init__(id)
                 self.add(BeansPanel('panel'))
@@ -270,13 +267,12 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Beans('a')
-            m = mc.load_markup()
             with self.assert_raises_regex(ayame.RenderingError,
                                           r"'head' .* not found\b"):
-                mc.render(m.root)
+                mc.render()
 
     def test_invalid_markup_unknown_ayame_element(self):
-        class Bacon(ayame.MarkupContainer):
+        class Bacon(MarkupContainer):
             def __init__(self, id):
                 super(Bacon, self).__init__(id)
                 self.add(BaconPanel('panel'))
@@ -286,13 +282,12 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Bacon('a')
-            m = mc.load_markup()
             with self.assert_raises_regex(ayame.RenderingError,
                                           r"\bunknown .* 'ayame:bacon'"):
-                mc.render(m.root)
+                mc.render()
 
     def test_empty_markup(self):
-        class Sausage(ayame.MarkupContainer):
+        class Sausage(MarkupContainer):
             def __init__(self, id):
                 super(Sausage, self).__init__(id)
                 self.add(SausagePanel('panel'))
@@ -302,8 +297,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            m = mc.load_markup()
-            html = mc.render(m.root)
+            m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -380,7 +374,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(p.children, ['after panel (Sausage)'])
 
     def test_duplicate_ayame_elements(self):
-        class Lobster(ayame.MarkupContainer):
+        class Lobster(MarkupContainer):
             def __init__(self, id):
                 super(Lobster, self).__init__(id)
                 self.add(LobsterPanel('panel'))
@@ -390,8 +384,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Lobster('a')
-            m = mc.load_markup()
-            html = mc.render(m.root)
+            m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -502,12 +495,26 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(content, html)
 
 
+class MarkupContainer(ayame.MarkupContainer):
+
+    def render(self):
+        m = self.load_markup()
+        self.head = self.find_head(m.root)
+        html = super(MarkupContainer, self).render(m.root)
+        return m, html
+
+
 class Panel(panel.Panel):
 
     def __init__(self, id, model=None):
         super(Panel, self).__init__(id, model)
         self.add(basic.Label('class', self.__class__.__name__))
         self.find('class').render_body_only = True
+
+    def page(self):
+        for parent in self.iter_parent():
+            pass
+        return parent
 
 
 class TomatoPage(ayame.Page):

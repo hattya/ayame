@@ -221,7 +221,20 @@ class MarkupContainer(Component):
         super(MarkupContainer, self).__init__(id, model)
         self.children = []
         self._ref = {}
-        self._extra_head = None
+        self.__head = None
+
+    def head():
+        def fget(self):
+            if self.__head is None:
+                raise RenderingError(self, "'head' element is not found")
+            return self.__head
+
+        def fset(self, head):
+            self.__head = head
+
+        return locals()
+
+    head = property(**head())
 
     def add(self, *args):
         for object in args:
@@ -273,7 +286,6 @@ class MarkupContainer(Component):
         # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
 
-        self._extra_head = []
         queue = collections.deque()
         if isinstance(root, markup.Element):
             queue.append((None, -1, root))
@@ -333,8 +345,6 @@ class MarkupContainer(Component):
                 # replace element
                 parent[index] = value
                 push(queue, value)
-        # merge ayame:head
-        self.merge_ayame_head(root)
         return root
 
     def on_render_element(self, element):
@@ -383,29 +393,6 @@ class MarkupContainer(Component):
         if ayame_id is not None:
             return self.render_component(element)
         return None, element
-
-    def push_ayame_head(self, ayame_head):
-        current = self
-        for current in self.iter_parent():
-            pass
-        current._extra_head += ayame_head.children
-
-    def merge_ayame_head(self, root):
-        if not self._extra_head:
-            return
-        elif not (isinstance(root, markup.Element) and
-                  root.qname == markup.HTML):
-            raise RenderingError(self, "root element is not 'html'")
-
-        for node in root:
-            if (isinstance(node, markup.Element) and
-                node.qname == markup.HEAD):
-                node.type = markup.Element.OPEN
-                node.extend(self._extra_head)
-                self._extra_head = None
-                break
-        if self._extra_head is not None:
-            raise RenderingError(self, "'head' element is not found")
 
     def render_component(self, element):
         # retrieve ayame:id attribute
@@ -512,6 +499,7 @@ class MarkupContainer(Component):
                 for node in m.root:
                     if (isinstance(node, markup.Element) and
                         node.qname == markup.HEAD):
+                        node.type = markup.Element.OPEN
                         node.extend(extra_head)
                         extra_head = None
                         break
@@ -522,6 +510,17 @@ class MarkupContainer(Component):
             if extra_head is not None:
                 raise RenderingError(class_, "'head' element is not found")
         return m
+
+    def find_head(self, root):
+        if not (isinstance(root, markup.Element) and
+                root.qname == markup.HTML):
+            raise RenderingError(self, "root element is not 'html'")
+
+        for node in root:
+            if (isinstance(node, markup.Element) and
+                node.qname == markup.HEAD):
+                node.type = markup.Element.OPEN
+                return node
 
 
 class _MessageContainer(MarkupContainer):
@@ -564,6 +563,8 @@ class Page(MarkupContainer):
             # markup is empty
             content = b''
         else:
+            # find head element for ayame:head element
+            self.head = self.find_head(m.root)
             m.root = super(Page, self).render(m.root)
             # remove ayame namespace from root element
             for prefix in tuple(m.root.ns):

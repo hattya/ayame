@@ -634,7 +634,7 @@ class CoreTestCase(AyameTestCase):
         mc.add(AyameHeadContainer('b'))
         with self.assert_raises_regex(ayame.RenderingError,
                                       r"\broot element is not 'html'"):
-            mc.render(root)
+            mc.find_head(root)
 
     def test_render_ayame_head_no_head(self):
         root = markup.Element(markup.HTML)
@@ -656,6 +656,7 @@ class CoreTestCase(AyameTestCase):
         root.append(a)
         h = markup.Element(markup.QName('', 'h'))
         mc = ayame.MarkupContainer('a')
+        mc.head = mc.find_head(root)
         mc.add(AyameHeadContainer('b', h))
 
         root = mc.render(root)
@@ -1418,9 +1419,9 @@ class AyameHeadContainer(ayame.MarkupContainer):
         self._element = element
 
     def on_render(self, element):
-        ayame_head = markup.Element(markup.AYAME_HEAD)
-        ayame_head.append(self._element)
-        self.push_ayame_head(ayame_head)
+        for parent in self.iter_parent():
+            pass
+        parent.head.children.append(self._element)
         return element
 
 

@@ -58,9 +58,9 @@ class Panel(core.MarkupContainer):
                     ayame_head = element
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
-        # push ayame:head element to parent component
+        # append ayame:head element to Page
         if ayame_head is not None:
-            self.push_ayame_head(ayame_head)
+            self.page().head.extend(ayame_head.children)
         # render ayame:panel element
         return super(Panel, self).on_render(ayame_panel)
 

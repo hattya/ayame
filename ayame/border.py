@@ -83,9 +83,9 @@ class Border(core.MarkupContainer):
             raise RenderingError(self, "'ayame:border' element is not found")
         elif ayame_body is None:
             raise RenderingError(self, "'ayame:body' element is not found")
-        # push ayame:head element to parent component
+        # append ayame:head element to Page
         if ayame_head is not None:
-            self.push_ayame_head(ayame_head)
+            self.page().head.extend(ayame_head.children)
         # render ayame:border element
         return super(Border, self).on_render(ayame_border)
 
