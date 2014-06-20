@@ -29,7 +29,7 @@ import re
 
 from . import _compat as five
 from . import http, uri, util
-from .exception import _RequestSlash, RouteError, ValidationError
+from .exception import _RequestSlash, RouteError
 
 
 __all__ = ['Rule', 'Map', 'Router', 'Converter']
@@ -259,7 +259,7 @@ class Rule(object):
         for var in g:
             try:
                 values[var] = self._converters[var].to_python(g[var])
-            except ValidationError:
+            except ValueError:
                 return
         return values
 
@@ -282,7 +282,7 @@ class Rule(object):
                 data = cache[var].pop(0)
                 try:
                     buf.append(self._converters[var].to_uri(data))
-                except ValidationError:
+                except ValueError:
                     return
             else:
                 buf.append(var)
@@ -447,10 +447,10 @@ class _StringConverter(Converter):
             if (len(value) < self.min or
                 (self.length and
                  self.length < len(value))):
-                raise ValidationError()
+                raise ValueError()
         elif (self.length and
               len(value) != self.length):
-            raise ValidationError()
+            raise ValueError()
         return value
 
 
@@ -477,17 +477,14 @@ class _IntegerConverter(Converter):
              value < self.min) or
             (self.max is not None and
              self.max < value)):
-            raise ValidationError()
+            raise ValueError()
         return value
 
     def to_uri(self, value):
-        try:
-            value = self.to_python(value)
-        except ValueError:
-            raise ValidationError()
+        value = self.to_python(value)
         if self.digits:
             value = '{:0{}d}'.format(value, self.digits)
             if self.digits < len(value):
-                raise ValidationError()
+                raise ValueError()
             return value
         return five.str(value)
