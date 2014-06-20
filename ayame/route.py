@@ -289,10 +289,13 @@ class Rule(object):
         # query
         if query:
             query = []
-            for var in values:
-                data = cache.get(var, util.to_list(values[var]))
+            for var, val in five.items(values):
+                val = [util.to_bytes(v, self.map.encoding)
+                       for v in (cache[var] if var in cache else util.to_list(val))]
+                if not val:
+                    continue
                 var = util.to_bytes(var, self.map.encoding)
-                query.extend((var, x) for x in data)
+                query.append((var, val))
             if query:
                 query = sorted(query, key=self.map.sort_key)
                 buf.append('?')

@@ -105,10 +105,11 @@ class RouteTestCase(AyameTestCase):
         self.assert_equal(router.build(0, {'a': 1, 'z': 3, 'm': 2}),
                           '/?a=1&m=2&z=3')
         self.assert_equal(router.build(0, {'a': [3, 2, 1]}),
-                          '/?a=1&a=2&a=3')
+                          '/?a=3&a=2&a=1')
 
-        map.sort_key = lambda o: o[0]
-        self.assert_equal(router.build(0, {'a': [3, 2, 1]}), '/?a=3&a=2&a=1')
+        map.sort_key = lambda o: -ord(o[0])
+        self.assert_equal(router.build(0, {'a': 1, 'z': [3, 2], 'm': [1, 2]}),
+                          '/?z=3&z=2&m=1&m=2&a=1')
 
         # build URI (without SCRIPT_NAME)
         environ = self.new_environ(path='/')
