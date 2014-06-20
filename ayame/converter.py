@@ -91,13 +91,13 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
         return value
 
     def to_string(self, value):
-        error = self._check_type(value)
+        error = self.check_type(value)
         if error is not None:
             raise error
 
         return five.str(value)
 
-    def _check_type(self, value):
+    def check_type(self, value):
         if not (self.type is None or
                 isinstance(value, self.type)):
             q = "'{}'".format
@@ -112,12 +112,18 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
                 et = ''.join(et)
             else:
                 et = q(self.type)
-            return ConversionError("expected {} but got '{}'".format(et, type(value)))
+            return self.error(value, message="expected {} but got '{}'".format(et, type(value)))
 
-    def _new_error(self, value, type=None):
+    def error(self, value, type=None, message=None):
         if type is None:
             type = self.type
-        return ConversionError(u"cannot convert '{}' to '{}'".format(value, type))
+        if message is None:
+            message = u"cannot convert '{}' to '{}'".format(value, type)
+
+        return ConversionError(message,
+                               converter=self,
+                               value=value,
+                               type=type)
 
 
 class _ObjectConverter(Converter):
@@ -151,7 +157,7 @@ class FloatConverter(Converter):
 
     if sys.version_info < (3, 2):
         def to_string(self, value):
-            error = self._check_type(value)
+            error = self.check_type(value)
             if error is not None:
                 raise error
 
@@ -161,7 +167,7 @@ class FloatConverter(Converter):
         try:
             return float(value) if value is not None else float()
         except (TypeError, ValueError):
-            raise self._new_error(value)
+            raise self.error(value)
 
 
 class IntegerConverter(Converter):
@@ -174,7 +180,7 @@ class IntegerConverter(Converter):
         try:
             return five.int(value) if value is not None else five.int()
         except (TypeError, ValueError):
-            raise self._new_error(value, type=five.int)
+            raise self.error(value, type=five.int)
 
 
 class DateConverter(Converter):
@@ -189,17 +195,17 @@ class DateConverter(Converter):
         try:
             return datetime.datetime.strptime(value, self._format).date()
         except (TypeError, ValueError):
-            raise self._new_error(value)
+            raise self.error(value)
 
     def to_string(self, value):
-        error = self._check_type(value)
+        error = self.check_type(value)
         if error is not None:
             raise error
 
         try:
             return five.str(value.strftime(self._format))
         except ValueError as e:
-            raise ConversionError(five.str(e))
+            raise self.error(value, message=five.str(e))
 
 
 class TimeConverter(Converter):
@@ -214,10 +220,10 @@ class TimeConverter(Converter):
         try:
             return datetime.datetime.strptime(value, self._format).time()
         except (TypeError, ValueError):
-            raise self._new_error(value)
+            raise self.error(value)
 
     def to_string(self, value):
-        error = self._check_type(value)
+        error = self.check_type(value)
         if error is not None:
             raise error
 
@@ -232,7 +238,7 @@ class DateTimeConverter(Converter):
 
     def to_python(self, value):
         if not isinstance(value, five.string_type):
-            raise self._new_error(value)
+            raise self.error(value)
 
         ds = value
         # parse time zone
@@ -258,29 +264,29 @@ class DateTimeConverter(Converter):
                         if minutes <= 720:  # UTC-12:00
                             offset = minutes
             if not isinstance(offset, int):
-                raise self._new_error(value)
+                raise self.error(value)
         # parse date and time
         if 'T' not in ds:
             if ' ' in ds:
                 ds = ds.replace(' ', 'T')
             else:
-                raise self._new_error(value)
+                raise self.error(value)
         # datetime
         try:
             dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
-            raise self._new_error(value)
+            raise self.error(value)
         return dt.replace(tzinfo=five.UTC) + datetime.timedelta(minutes=offset)
 
     def to_string(self, value):
-        error = self._check_type(value)
+        error = self.check_type(value)
         if error is not None:
             raise error
 
         try:
             offset = value.utcoffset()
         except TypeError as e:
-            raise ConversionError(five.str(e))
+            raise self.error(value, message=five.str(e))
         if not offset:
             z = 'Z'
         else:

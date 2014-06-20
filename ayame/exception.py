@@ -1,7 +1,7 @@
 #
 # ayame.exception
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -37,7 +37,12 @@ class ComponentError(AyameError):
 
 
 class ConversionError(AyameError):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        super(ConversionError, self).__init__(*args)
+        self.converter = kwargs.get('converter')
+        self.value = kwargs.get('value')
+        self.type = kwargs.get('type')
 
 
 class MarkupError(AyameError):
