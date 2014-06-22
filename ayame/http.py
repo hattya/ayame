@@ -41,7 +41,7 @@ __all__ = ['parse_accept', 'parse_form_data', 'HTTPStatus', 'HTTPSuccessful',
 _accept_re = re.compile(r"""
     (?P<param>[^\s,;]+)
     (?:
-        [^,;]*; \s* q= (?P<qvalue>\d+ (?:\. \d+)?)
+        [^,;]* ; \s* q= (?P<qvalue>\d+ (?:\. \d+)?)
     )?
 """, re.VERBOSE)
 

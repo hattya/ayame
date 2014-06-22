@@ -116,6 +116,7 @@ class Validator(five.with_metaclass(abc.ABCMeta, core.Behavior)):
 class RegexValidator(Validator):
 
     def __init__(self, pattern, flags=0):
+        super(RegexValidator, self).__init__()
         self.regex = re.compile(pattern, flags)
 
     def validate(self, object):
@@ -139,6 +140,7 @@ class URLValidator(RegexValidator):
 class RangeValidator(Validator):
 
     def __init__(self, min=None, max=None):
+        super(RangeValidator, self).__init__()
         self.min = min
         self.max = max
 

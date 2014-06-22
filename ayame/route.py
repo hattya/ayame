@@ -37,10 +37,10 @@ __all__ = ['Rule', 'Map', 'Router', 'Converter']
 _rule_re = re.compile(r"""
     (?P<static>[^<]*)
     <
-        (?P<variable>[a-zA-Z][a-zA-Z0-9_-]*)
+        (?P<variable>[a-zA-Z] [a-zA-Z0-9_-]*)
         (?:
             :
-            (?P<converter>[a-zA-Z_][a-zA-Z0-9_-]*)
+            (?P<converter>[a-zA-Z_] [a-zA-Z0-9_-]*)
             (?:
                 \( (?P<args>.*?) \)
             )?
@@ -93,7 +93,7 @@ _args_re = re.compile(r"""
     (?P<error>[^,]*?)
     \s*
     (?P<sep>
-        , \s*|
+        , \s* |
         \Z
     )
 """, re.VERBOSE)
@@ -195,23 +195,22 @@ class Rule(object):
         return converter(self.map)
 
     def _parse_args(self, expr):
-        info = lambda offset, expr: ('<args>', 1, offset, expr)
+        def error(msg, offset):
+            return SyntaxError(msg, ('<args>', 1, offset, expr))
+
         pos = 0
         args = []
         kwargs = {}
         for m in _args_re.finditer(expr):
             if m.group('error'):
-                raise SyntaxError('invalid syntax',
-                                  info(m.start('error') + 1, expr))
+                raise error('invalid syntax', m.start('error') + 1)
 
             name = m.group('name')
             if kwargs:
                 if name is None:
-                    raise SyntaxError('non-keyword arg after keyword arg',
-                                      info(m.endpos - 1, expr))
+                    raise error('non-keyword arg after keyword arg', m.endpos)
                 elif name in kwargs:
-                    raise SyntaxError('keyword argument repeated',
-                                      info(m.start('name') + 1, expr))
+                    raise error('keyword argument repeated', m.start('name') + 1)
 
             for type in ('const', 'int', 'float', 'str'):
                 value = m.group(type)
@@ -240,7 +239,7 @@ class Rule(object):
 
         if (pos != len(expr) and
             _sep_re.sub('', expr)):
-            raise SyntaxError('invalid syntax', info(max(pos, 1), expr))
+            raise error('invalid syntax', max(pos, 1))
         return tuple(args), kwargs
 
     def match(self, path):
@@ -256,9 +255,9 @@ class Rule(object):
             raise _RequestSlash()
 
         values = {}
-        for var in g:
+        for var, val in five.items(g):
             try:
-                values[var] = self._converters[var].to_python(g[var])
+                values[var] = self._converters[var].to_python(val)
             except ValueError:
                 return
         return values
@@ -279,9 +278,9 @@ class Rule(object):
                 cache[var] = util.to_list(values[var])
                 if not cache[var]:
                     return
-                data = cache[var].pop(0)
+                val = cache[var].pop(0)
                 try:
-                    buf.append(self._converters[var].to_uri(data))
+                    buf.append(self._converters[var].to_uri(val))
                 except ValueError:
                     return
             else:
@@ -436,22 +435,22 @@ class _StringConverter(Converter):
         self.length = length
         self.min = min
         if min is not None:
-            max = '' if length is None else int(length)
-            count = '{:d},{}'.format(int(min), max)
+            max = length if length is not None else ''
+            count = '{},{}'.format(min, max)
         elif length is not None:
-            count = int(length)
+            count = length
         else:
             count = '1,'
         self.pattern = '[^/]{{{}}}'.format(count)
 
     def to_uri(self, value):
         value = super(_StringConverter, self).to_uri(value)
-        if self.min:
+        if self.min is not None:
             if (len(value) < self.min or
-                (self.length and
+                (self.length is not None and
                  self.length < len(value))):
                 raise ValueError()
-        elif (self.length and
+        elif (self.length is not None and
               len(value) != self.length):
             raise ValueError()
         return value
@@ -472,7 +471,7 @@ class _IntegerConverter(Converter):
         self.min = min
         self.max = max
         if digits is not None:
-            self.pattern = '\d{{{}}}'.format(int(digits))
+            self.pattern = '\d{{{}}}'.format(digits)
 
     def to_python(self, value):
         value = int(value)
@@ -485,7 +484,7 @@ class _IntegerConverter(Converter):
 
     def to_uri(self, value):
         value = self.to_python(value)
-        if self.digits:
+        if self.digits is not None:
             value = '{:0{}d}'.format(value, self.digits)
             if self.digits < len(value):
                 raise ValueError()

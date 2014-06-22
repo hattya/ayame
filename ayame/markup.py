@@ -55,7 +55,7 @@ _xml_decl_re = re.compile(r"""
     # EncodingDecl
     (?:
         \s*
-        encoding \s* = \s* (?P<encoding>["'] [a-zA-Z][a-zA-Z0-9._-]* ["'])
+        encoding \s* = \s* (?P<encoding>["'] [a-zA-Z] [a-zA-Z0-9._-]* ["'])
     )?
     # SDDecl
     (?:
