@@ -24,6 +24,9 @@
 #   SOFTWARE.
 #
 
+from . import _compat as five
+
+
 __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
            'RenderingError', 'ResourceError', 'RouteError', 'ValidationError']
 
@@ -76,4 +79,32 @@ class _RequestSlash(RouteError):
 
 
 class ValidationError(AyameError):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        super(ValidationError, self).__init__(*args)
+        self.component = kwargs.get('component')
+        self.keys = []
+        self.variables = {}
+
+        validator = kwargs.get('validator')
+        if validator:
+            key = validator.__class__.__name__
+            variation = kwargs.get('variation')
+            if variation:
+                key += '.' + variation
+            self.keys.append(key)
+
+    def __repr__(self):
+        args = (repr(self.args)[1:-1].rstrip(',') + ', ') if self.args else ''
+        return '{}({}keys={}, variables={})'.format(self.__class__.__name__,
+                                                    args,
+                                                    self.keys,
+                                                    list(self.variables))
+
+    def __str__(self):
+        if self.component:
+            for key in self.keys:
+                msg = self.component.tr(key)
+                if msg is not None:
+                    return msg.format(**self.variables)
+        return five.str(self.args[0]) if 0 < len(self.args) else u''

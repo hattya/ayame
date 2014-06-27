@@ -124,15 +124,9 @@ class Form(core.MarkupContainer):
                         button is None):
                         button = component
                 elif isinstance(component, Choice):
-                    value = values.get(name)
-                    if component.multiple:
-                        value = value if value is not None else []
-                    else:
-                        value = value[0] if value is not None else None
-                    component.validate(value)
+                    component.validate(values[name] if name in values else [])
                 else:
-                    value = values.get(name)
-                    component.validate(value[0] if value is not None else None)
+                    component.validate(values[name][0] if name in values else None)
                 if valid:
                     valid = component.error is None
             # push children
@@ -197,21 +191,19 @@ class FormComponent(core.MarkupContainer):
             # check required
             if (self.required and
                 not value):
-                raise ValidationError()
+                raise self.required_error()
             # convert to object
-            if self.type is not None:
-                try:
-                    converter = self.converter_for(self.type)
-                    object = converter.to_python(value)
-                except ConversionError as e:
-                    raise ValidationError(five.str(e))
-            else:
-                object = value
+            object = self.convert(value)
             # validate
             for behavior in self.behaviors:
                 if isinstance(behavior, validator.Validator):
                     behavior.validate(object)
         except ValidationError as e:
+            label = self.tr(self.id, self.parent)
+            e.component = self
+            e.variables.update(input=value,
+                               name=self.id,
+                               label=label if label is not None else self.id)
             self.error = e
             self.on_invalid()
         else:
@@ -224,6 +216,29 @@ class FormComponent(core.MarkupContainer):
 
     def on_invalid(self):
         pass
+
+    def convert(self, value):
+        if self.type is None:
+            return value
+
+        converter = self.converter_for(self.type)
+        try:
+            return converter.to_python(value)
+        except ConversionError as e:
+            raise self.conversion_error(e)
+
+    def required_error(self):
+        e = ValidationError()
+        e.keys.append('Required')
+        return e
+
+    def conversion_error(self, ce):
+        name = self.type.__name__
+        e = ValidationError(five.str(ce))
+        e.keys.append('Converter.' + name)
+        e.keys.append('Converter')
+        e.variables['type'] = name
+        return e
 
 
 class Button(FormComponent):
@@ -339,38 +354,32 @@ class Choice(FormComponent):
         self.suffix = markup.Fragment()
 
     def validate(self, value):
-        try:
-            if not self.choices:
-                return
-            elif self.multiple:
-                # convert to object
-                values = set(value)
-                selected = []
-                for index, choice in enumerate(self.choices):
-                    value = self.renderer.value_of(index, choice)
-                    if value in values:
-                        values.remove(value)
-                        selected.append(choice)
-                if not values:
-                    # check required
-                    if (self.required and
-                        not selected):
-                        raise ValidationError()
+        if self.choices:
+            super(Choice, self).validate(value)
 
-                    if self.model is not None:
-                        self.model.object = selected
-                    return self.on_valid()
-            else:
-                if value is None:
-                    return super(Choice, self).validate(value)
-                for index, choice in enumerate(self.choices):
-                    if self.renderer.value_of(index, choice) == value:
-                        return super(Choice, self).validate(choice)
-        except ValidationError as e:
-            self.error = e
-        else:
-            self.error = ValidationError()
-        self.on_invalid()
+    def convert(self, value):
+        if self.multiple:
+            values = set(value)
+            selected = []
+            for index, choice in enumerate(self.choices):
+                value = self.renderer.value_of(index, choice)
+                if value in values:
+                    values.remove(value)
+                    selected.append(choice)
+            if values:
+                raise self.choice_error()
+            return selected
+        elif value:
+            value = value[0]
+            for index, choice in enumerate(self.choices):
+                if self.renderer.value_of(index, choice) == value:
+                    return choice
+            raise self.choice_error()
+
+    def choice_error(self):
+        e = ValidationError()
+        e.keys.append('Choice.' + ('multiple' if self.multiple else 'single'))
+        return e
 
     def _id_prefix_for(self, element):
         id = element.attrib.get(_ID)

@@ -112,6 +112,9 @@ class Validator(five.with_metaclass(abc.ABCMeta, core.Behavior)):
     def validate(self, object):
         pass
 
+    def error(self, **kwargs):
+        return ValidationError(validator=self, **kwargs)
+
 
 class RegexValidator(Validator):
 
@@ -122,7 +125,9 @@ class RegexValidator(Validator):
     def validate(self, object):
         if not (isinstance(object, five.string_type) and
                 self.regex.match(object)):
-            raise ValidationError()
+            e = self.error()
+            e.variables['pattern'] = self.regex.pattern
+            raise e
 
 
 class EmailValidator(RegexValidator):
@@ -145,14 +150,32 @@ class RangeValidator(Validator):
         self.max = max
 
     def validate(self, object):
-        if (self.min is not None and
-            not (isinstance(object, self.typeof(self.min)) and
-                 self.min <= object)):
-            raise ValidationError()
-        elif (self.max is not None and
-              not (isinstance(object, self.typeof(self.max)) and
-                   object <= self.max)):
-            raise ValidationError()
+        if ((self.min is not None and
+             not isinstance(object, self.typeof(self.min))) or
+            (self.max is not None and
+             not isinstance(object, self.typeof(self.max)))):
+            raise self.error(variation='type')
+        elif ((self.min is not None and
+               object < self.min) or
+              (self.max is not None and
+               self.max < object)):
+            vars = {}
+            if self.max is None:
+                mode = 'minimum'
+                vars['min'] = self.min
+            elif self.min is None:
+                mode = 'maximum'
+                vars['max'] = self.max
+            elif self.min == self.max:
+                mode = 'exact'
+                vars['exact'] = self.max
+            else:
+                mode = 'range'
+                vars.update(min=self.min,
+                            max=self.max)
+            e = self.error(variation=mode)
+            e.variables.update(vars)
+            raise e
 
     if five.PY2:
         def typeof(self, object):
@@ -170,7 +193,7 @@ class StringValidator(RangeValidator):
 
     def validate(self, object):
         if not isinstance(object, five.string_type):
-            raise ValidationError()
+            raise self.error(variation='type')
         super(StringValidator, self).validate(len(object))
 
     def on_component(self, component, element):

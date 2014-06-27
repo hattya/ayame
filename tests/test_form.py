@@ -27,6 +27,7 @@
 import datetime
 
 import ayame
+from ayame import _compat as five
 from ayame import basic, form, http, markup, model, validator
 from base import AyameTestCase
 
@@ -37,6 +38,28 @@ class FormTestCase(AyameTestCase):
         super(FormTestCase, self).setup()
         self.app.config['ayame.markup.pretty'] = True
         self.boundary = 'ayame.form'
+
+    def assert_required_error(self, fc, input):
+        e = fc.error
+        self.assert_is_instance(e, ayame.ValidationError)
+        self.assert_equal(five.str(e), "'{}' is required".format(fc.id))
+        self.assert_equal(e.keys, ['Required'])
+        self.assert_equal(e.variables, {'input': input,
+                                        'name': fc.id,
+                                        'label': fc.id})
+
+    def assert_choice_error(self, fc, input):
+        e = fc.error
+        self.assert_is_instance(e, ayame.ValidationError)
+        if fc.multiple:
+            self.assert_regex(five.str(e), "'{}' contain invalid choices$".format(fc.id))
+            self.assert_equal(e.keys, ['Choice.multiple'])
+        else:
+            self.assert_regex(five.str(e), "'{}' is not a valid choice$".format(fc.id))
+            self.assert_equal(e.keys, ['Choice.single'])
+        self.assert_equal(e.variables, {'input': input,
+                                        'name': fc.id,
+                                        'label': fc.id})
 
     def new_environ(self, method='GET', query='', body=None):
         return super(FormTestCase, self).new_environ(method=method,
@@ -285,20 +308,20 @@ Content-Disposition: form-data; name="button"
             p.find('form:hidden').required = True
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'text': '',
-                                           'password': '',
-                                           'hidden': '',
-                                           'area': 'area',
-                                           'checkbox': False,
-                                           'file': 'a.txt'})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('text').error, ayame.ValidationError)
-        self.assert_is_instance(f.find('password').error, ayame.ValidationError)
-        self.assert_is_instance(f.find('hidden').error, ayame.ValidationError)
-        self.assert_is_none(f.find('area').error)
-        self.assert_is_none(f.find('checkbox').error)
-        self.assert_is_none(f.find('file').error)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'text': '',
+                                               'password': '',
+                                               'hidden': '',
+                                               'area': 'area',
+                                               'checkbox': False,
+                                               'file': 'a.txt'})
+            self.assert_true(f.has_error())
+            self.assert_required_error(f.find('text'), None)
+            self.assert_required_error(f.find('password'), None)
+            self.assert_required_error(f.find('hidden'), None)
+            self.assert_is_none(f.find('area').error)
+            self.assert_is_none(f.find('checkbox').error)
+            self.assert_is_none(f.find('file').error)
 
     def test_form_component_relative_path(self):
         f = form.Form('a')
@@ -313,30 +336,221 @@ Content-Disposition: form-data; name="button"
             form.FormComponent('a').relative_path()
 
     def test_form_component_required_error(self):
-        fc = form.FormComponent('a')
-        fc.required = True
-        self.assert_is_none(fc.error)
+        with self.application(self.new_environ()):
+            fc = form.FormComponent('a')
+            fc.required = True
+            self.assert_is_none(fc.error)
 
-        fc.validate(None)
-        self.assert_is_instance(fc.error, ayame.ValidationError)
-        fc.validate('')
-        self.assert_is_instance(fc.error, ayame.ValidationError)
+            fc.validate(None)
+            self.assert_required_error(fc, None)
+            fc.validate('')
+            self.assert_required_error(fc, '')
 
     def test_form_component_conversion_error(self):
-        with self.application():
+        with self.application(self.new_environ()):
             fc = form.FormComponent('a')
             fc.type = int
             self.assert_is_none(fc.error)
-            fc.validate('a')
-            self.assert_is_instance(fc.error, ayame.ValidationError)
 
-    def test_form_component_validation_error(self):
-        with self.application():
+            fc.validate('a')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' is not a valid type 'int'")
+            self.assert_equal(e.keys, ['Converter.int',
+                                       'Converter'])
+            self.assert_equal(e.variables, {'input': 'a',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'type': 'int'})
+
+    def test_form_component_validation_error_range(self):
+        with self.application(self.new_environ()):
             fc = form.FormComponent('a')
-            fc.add(validator.StringValidator(max=4))
+            v = validator.RangeValidator()
+            fc.add(v)
             self.assert_is_none(fc.error)
+
+            def assert_type_error(min, max, o):
+                v.min = min
+                v.max = max
+                fc.validate(o)
+                e = fc.error
+                self.assert_is_instance(e, ayame.ValidationError)
+                self.assert_regex(five.str(e), "'a' cannot validate$")
+                self.assert_equal(e.keys, ['RangeValidator.type'])
+                self.assert_equal(e.variables, {'input': o,
+                                                'name': 'a',
+                                                'label': 'a'})
+            assert_type_error(0.0, None, 0)
+            assert_type_error(None, 0.0, 0)
+
+            v.min = 5
+            v.max = None
+            fc.validate(0)
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be at least 5$")
+            self.assert_equal(e.keys, ['RangeValidator.minimum'])
+            self.assert_equal(e.variables, {'input': 0,
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'min': 5})
+
+            v.min = None
+            v.max = 3
+            fc.validate(5)
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be at most 3$")
+            self.assert_equal(e.keys, ['RangeValidator.maximum'])
+            self.assert_equal(e.variables, {'input': 5,
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'max': 3})
+
+            v.min = 3
+            v.max = 5
+            fc.validate(0)
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be between 3 and 5$")
+            self.assert_equal(e.keys, ['RangeValidator.range'])
+            self.assert_equal(e.variables, {'input': 0,
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'min': 3,
+                                            'max': 5})
+
+            v.min = v.max = 3
+            fc.validate(5)
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be exactly 3$")
+            self.assert_equal(e.keys, ['RangeValidator.exact'])
+            self.assert_equal(e.variables, {'input': 5,
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'exact': 3})
+
+    def test_form_component_validation_error_string(self):
+        with self.application(self.new_environ()):
+            fc = form.FormComponent('a')
+            v = validator.StringValidator()
+            fc.add(v)
+            self.assert_is_none(fc.error)
+
+            def assert_type_error(min, max, o):
+                v.min = min
+                v.max = max
+                fc.validate(o)
+                e = fc.error
+                self.assert_is_instance(e, ayame.ValidationError)
+                self.assert_regex(five.str(e), "'a' cannot validate$")
+                self.assert_equal(e.keys, ['StringValidator.type'])
+                self.assert_equal(e.variables, {'input': o,
+                                                'name': 'a',
+                                                'label': 'a'})
+            assert_type_error(None, None, 0)
+            assert_type_error(0.0, None, '')
+            assert_type_error(None, 0.0, '')
+
+            v.min = 4
+            v.max = None
+            fc.validate('.jp')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be at least 4 ")
+            self.assert_equal(e.keys, ['StringValidator.minimum'])
+            self.assert_equal(e.variables, {'input': '.jp',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'min': 4})
+
+            v.min = None
+            v.max = 4
             fc.validate('.info')
-            self.assert_is_instance(fc.error, ayame.ValidationError)
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be at most 4 ")
+            self.assert_equal(e.keys, ['StringValidator.maximum'])
+            self.assert_equal(e.variables, {'input': '.info',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'max': 4})
+
+            v.min = 4
+            v.max = 5
+            fc.validate('.jp')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be between 4 and 5 ")
+            self.assert_equal(e.keys, ['StringValidator.range'])
+            self.assert_equal(e.variables, {'input': '.jp',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'min': 4,
+                                            'max': 5})
+
+            v.min = v.max = 4
+            fc.validate('.info')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' must be exactly 4 ")
+            self.assert_equal(e.keys, ['StringValidator.exact'])
+            self.assert_equal(e.variables, {'input': '.info',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'exact': 4})
+
+    def test_form_component_validation_error_regex(self):
+        with self.application(self.new_environ()):
+            fc = form.FormComponent('a')
+            fc.add(validator.RegexValidator('\d+$'))
+            self.assert_is_none(fc.error)
+
+            fc.validate('a')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' does not match pattern ")
+            self.assert_equal(e.keys, ['RegexValidator'])
+            self.assert_equal(e.variables, {'input': 'a',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'pattern': '\d+$'})
+
+    def test_form_component_validation_error_email(self):
+        with self.application(self.new_environ()):
+            fc = form.FormComponent('a')
+            v = validator.EmailValidator()
+            fc.add(v)
+            self.assert_is_none(fc.error)
+
+            fc.validate('a')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' is not a valid email address$")
+            self.assert_equal(e.keys, ['EmailValidator'])
+            self.assert_equal(e.variables, {'input': 'a',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'pattern': v.regex.pattern})
+
+    def test_form_component_validation_error_url(self):
+        with self.application(self.new_environ()):
+            fc = form.FormComponent('a')
+            v = validator.URLValidator()
+            fc.add(v)
+            self.assert_is_none(fc.error)
+
+            fc.validate('a')
+            e = fc.error
+            self.assert_is_instance(e, ayame.ValidationError)
+            self.assert_regex(five.str(e), "'a' is not a valid URL$")
+            self.assert_equal(e.keys, ['URLValidator'])
+            self.assert_equal(e.variables, {'input': 'a',
+                                            'name': 'a',
+                                            'label': 'a',
+                                            'pattern': v.regex.pattern})
 
     def test_form_component_no_model(self):
         with self.application():
@@ -478,7 +692,7 @@ form
 {__}
 Content-Disposition: form-data; name="radio"
 
-2
+1
 {____}
 """
         with self.application(self.new_environ(method='POST', body=data)):
@@ -486,7 +700,7 @@ Content-Disposition: form-data; name="radio"
             with self.assert_raises(Valid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'radio': p.choices[2]})
+        self.assert_equal(f.model_object, {'radio': p.choices[1]})
         self.assert_false(f.has_error())
 
     def test_radio_choice_post_no_choices(self):
@@ -526,6 +740,24 @@ form
         self.assert_equal(f.model_object, {'radio': None})
         self.assert_false(f.has_error())
 
+    def test_radio_choice_required_error(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+form
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = EggsPage()
+            p.find('form:radio').required = True
+            with self.assert_raises(Invalid):
+                p.render()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'radio': p.choices[0]})
+            self.assert_true(f.has_error())
+            self.assert_required_error(f.find('radio'), [])
+
     def test_radio_choice_validation_error_out_of_range(self):
         data = """\
 {__}
@@ -542,10 +774,10 @@ Content-Disposition: form-data; name="radio"
             p = EggsPage()
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'radio': p.choices[0]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('radio').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'radio': p.choices[0]})
+            self .assert_true(f.has_error())
+            self.assert_choice_error(f.find('radio'), ['-1'])
 
     def test_radio_choice_validation_error_no_value(self):
         data = """\
@@ -563,10 +795,10 @@ Content-Disposition: form-data; name="radio"
             p = EggsPage()
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'radio': p.choices[0]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('radio').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'radio': p.choices[0]})
+            self.assert_true(f.has_error())
+            self.assert_choice_error(f.find('radio'), [''])
 
     def test_check_box_choice(self):
         with self.application(self.new_environ()):
@@ -671,7 +903,7 @@ form
 {__}
 Content-Disposition: form-data; name="checkbox"
 
-2
+1
 {____}
 """
         with self.application(self.new_environ(method='POST', body=data)):
@@ -679,7 +911,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.assert_raises(Valid):
                 p.render()
         f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': p.choices[2]})
+        self.assert_equal(f.model_object, {'checkbox': p.choices[1]})
         self.assert_false(f.has_error())
 
     def test_check_box_choice_post_no_choices(self):
@@ -769,10 +1001,10 @@ form
             p.find('form:checkbox').required = True
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_required_error(f.find('checkbox'), [])
 
     def test_check_box_choice_validation_error_out_of_range(self):
         data = """\
@@ -798,10 +1030,10 @@ Content-Disposition: form-data; name="checkbox"
             p = HamPage()
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_choice_error(f.find('checkbox'), ['-1', '0', '3'])
 
     def test_check_box_choice_validation_error_no_value(self):
         data = """\
@@ -819,10 +1051,10 @@ Content-Disposition: form-data; name="checkbox"
             p = HamPage()
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_choice_error(f.find('checkbox'), [''])
 
     def test_check_box_choice_validation_error_no_values(self):
         data = """\
@@ -856,10 +1088,10 @@ Content-Disposition: form-data; name="checkbox"
             p = HamPage()
             with self.assert_raises(Invalid):
                 p.render()
-        f = p.find('form')
-        self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
-        self.assert_true(f.has_error())
-        self.assert_is_instance(f.find('checkbox').error, ayame.ValidationError)
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
+            self.assert_true(f.has_error())
+            self.assert_choice_error(f.find('checkbox'), ['0', '', '1', '', '2'])
 
     def test_select_choice_invalid_markup(self):
         fc = form.SelectChoice('a')
@@ -972,6 +1204,10 @@ Content-Disposition: form-data; name="select"
 Content-Disposition: form-data; name="{path}"
 
 form
+{__}
+Content-Disposition: form-data; name="select"
+
+1
 {____}
 """
         for class_ in (ToastPage, BeansPage):
@@ -980,7 +1216,7 @@ form
                 with self.assert_raises(Valid):
                     p.render()
             f = p.find('form')
-            self.assert_equal(f.model_object, {'select': None})
+            self.assert_equal(f.model_object, {'select': p.choices[1]})
             self.assert_false(f.has_error())
 
     def test_select_choice_post_no_choices(self):
@@ -1074,10 +1310,10 @@ form
                 p.find('form:select').required = True
                 with self.assert_raises(Invalid):
                     p.render()
-            f = p.find('form')
-            self.assert_equal(f.model_object, {'select': p.choices[:2]})
-            self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+                f = p.find('form')
+                self.assert_equal(f.model_object, {'select': p.choices[:2]})
+                self.assert_true(f.has_error())
+                self.assert_required_error(f.find('select'), [])
 
     def test_select_choice_validation_error_out_of_range(self):
         data = """\
@@ -1104,10 +1340,10 @@ Content-Disposition: form-data; name="select"
                 p = class_()
                 with self.assert_raises(Invalid):
                     p.render()
-            f = p.find('form')
-            self.assert_equal(f.model_object, {'select': p.choices[:2]})
-            self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+                f = p.find('form')
+                self.assert_equal(f.model_object, {'select': p.choices[:2]})
+                self.assert_true(f.has_error())
+                self.assert_choice_error(f.find('select'), ['-1', '0', '3'])
 
     def test_select_choice_validation_error_no_value(self):
         data = """\
@@ -1126,10 +1362,10 @@ Content-Disposition: form-data; name="select"
                 p = class_()
                 with self.assert_raises(Invalid):
                     p.render()
-            f = p.find('form')
-            self.assert_equal(f.model_object, {'select': p.choices[:2]})
-            self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+                f = p.find('form')
+                self.assert_equal(f.model_object, {'select': p.choices[:2]})
+                self.assert_true(f.has_error())
+                self.assert_choice_error(f.find('select'), [''])
 
     def test_select_choice_validation_error_no_values(self):
         data = """\
@@ -1164,10 +1400,10 @@ Content-Disposition: form-data; name="select"
                 p = class_()
                 with self.assert_raises(Invalid):
                     p.render()
-            f = p.find('form')
-            self.assert_equal(f.model_object, {'select': p.choices[:2]})
-            self.assert_true(f.has_error())
-            self.assert_is_instance(f.find('select').error, ayame.ValidationError)
+                f = p.find('form')
+                self.assert_equal(f.model_object, {'select': p.choices[:2]})
+                self.assert_true(f.has_error())
+                self.assert_choice_error(f.find('select'), ['0', '', '1', '', '2'])
 
 
 class SpamPage(ayame.Page):
