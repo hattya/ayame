@@ -43,7 +43,7 @@ __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
 # namespace URI
 XML_NS = u'http://www.w3.org/XML/1998/namespace'
 XHTML_NS = u'http://www.w3.org/1999/xhtml'
-AYAME_NS = u'http://hattya.github.com/ayame'
+AYAME_NS = u'http://hattya.github.io/ayame'
 
 # XML declaration
 _xml_decl_re = re.compile(r"""
