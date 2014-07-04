@@ -35,6 +35,7 @@ class Panel(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Panel, self).__init__(id, model)
+        self.has_markup = True
         self.render_body_only = True
 
     def on_render(self, element):

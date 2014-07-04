@@ -1,7 +1,7 @@
 #
 # test_page
 #
-#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -32,9 +32,9 @@ class PageTestCase(AyameTestCase):
 
     def test_http_302(self):
         location = 'http://localhost/'
-        with self.application():
+        with self.application(self.new_environ()):
             p = page.HTTPStatusPage(http.Found(location))
-            status, headers, content = p.render()
+            status, headers, content = p()
         self.assert_equal(status, http.Found.status)
         self.assert_equal(headers,
                           [('Location', location),
@@ -44,9 +44,9 @@ class PageTestCase(AyameTestCase):
         self.assert_regex(content, b'<p>.*</p>')
 
     def test_http_304(self):
-        with self.application():
+        with self.application(self.new_environ()):
             p = page.HTTPStatusPage(http.NotModified())
-            status, headers, content = p.render()
+            status, headers, content = p()
         self.assert_equal(status, http.NotModified.status)
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),

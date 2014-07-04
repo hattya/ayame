@@ -128,13 +128,18 @@ class Ayame(object):
     def handle_request(self, object):
         if isinstance(object, type):
             if issubclass(object, core.Page):
-                return object().render()
+                object = object()
+            else:
+                # type is callable, so it might cause unexpected error
+                object = None
+        if callable(object):
+            return object()
         raise http.NotFound(uri.request_path(self.environ))
 
     def handle_error(self, error):
         if isinstance(error, http.HTTPStatus):
             page = self.config['ayame.page.http'](error)
-            status, headers, content = page.render()
+            status, headers, content = page()
             exc_info = None
         else:
             status, headers, content = http.InternalServerError.status, [], []

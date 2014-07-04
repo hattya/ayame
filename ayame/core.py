@@ -34,7 +34,7 @@ from .exception import AyameError, ComponentError, RenderingError
 
 
 __all__ = ['AYAME_PATH', 'Component', 'MarkupContainer', 'Page', 'Behavior',
-           'AttributeModifier', 'IgnitionBehavior', 'nested']
+           'AttributeModifier', 'nested']
 
 # marker for firing component
 AYAME_PATH = u'ayame:path'
@@ -140,6 +140,31 @@ class Component(object):
     def converter_for(self, value):
         return self.config['ayame.converter.registry'].converter_for(value)
 
+    def element(self):
+        # find MarkupContainer which has markup
+        path = [self.id]
+        for parent in self.iter_parent():
+            if parent.has_markup:
+                break
+            path.append(parent.id)
+        else:
+            return
+        path.reverse()
+        # find form element
+        m = parent.load_markup()
+        if m.root is None:
+            # markup is empty
+            return
+        element = m.root
+        while path:
+            for element, _ in element.walk():
+                if element.attrib.get(markup.AYAME_ID) == path[0]:
+                    break
+            else:
+                return
+            del path[0]
+        return element
+
     def forward(self, *args, **kwargs):
         return self.app.forward(*args, **kwargs)
 
@@ -185,6 +210,13 @@ class Component(object):
     def redirect(self, *args, **kwargs):
         return self.app.redirect(*args, **kwargs)
 
+    def fire(self):
+        if self.request.path == self.path():
+            self.on_fire()
+
+    def on_fire(self):
+        pass
+
     def render(self, element):
         self.on_before_render()
         element = self.on_render(element)
@@ -220,6 +252,7 @@ class MarkupContainer(Component):
     def __init__(self, id, model=None):
         super(MarkupContainer, self).__init__(id, model)
         self.children = []
+        self.has_markup = False
         self._ref = {}
         self.__head = None
 
@@ -268,6 +301,13 @@ class MarkupContainer(Component):
                  step(component, depth))):
                 queue.extend((c, depth + 1)
                              for c in reversed(component.children))
+
+    def fire(self):
+        if self.request.path:
+            # fire component
+            component = self.find(self.request.path)
+            if component is not None:
+                component.on_fire()
 
     def on_before_render(self):
         super(MarkupContainer, self).on_before_render()
@@ -552,9 +592,14 @@ class Page(MarkupContainer):
 
     def __init__(self):
         super(Page, self).__init__(None)
+        self.has_markup = True
         self.status = http.OK.status
         self.__headers = []
         self.headers = wsgiref.headers.Headers(self.__headers)
+
+    def __call__(self):
+        self.fire()
+        return self.render()
 
     def render(self):
         # load markup and render components
@@ -645,17 +690,6 @@ class AttributeModifier(Behavior):
 
     def new_value(self, value, new_value):
         return new_value
-
-
-class IgnitionBehavior(Behavior):
-
-    def fire(self):
-        # fire component
-        if self.component.path() == self.request.path:
-            self.on_fire(self.component)
-
-    def on_fire(self, component):
-        pass
 
 
 class _AttributeLocalizer(Behavior):

@@ -78,10 +78,8 @@ class Link(core.MarkupContainer):
 
 class ActionLink(Link):
 
-    def __init__(self, id, model=None):
-        super(ActionLink, self).__init__(id, model)
-
-        self.add(_ActionLinkBehavior())
+    def on_fire(self):
+        self.on_click()
 
     def new_uri(self, _):
         query = self.request.query.copy()
@@ -92,15 +90,6 @@ class ActionLink(Link):
 
     def on_click(self):
         pass
-
-
-class _ActionLinkBehavior(core.IgnitionBehavior):
-
-    def on_component(self, component, element):
-        self.fire()
-
-    def on_fire(self, component):
-        component.on_click()
 
 
 class PageLink(Link):

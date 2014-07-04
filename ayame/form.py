@@ -69,7 +69,16 @@ class Form(core.MarkupContainer):
         super(Form, self).__init__(id, model)
         self._method = None
 
-        self.add(_FormActionBehavior())
+    def on_fire(self):
+        form = self.element()
+        if form is None:
+            return
+        # submit
+        self._method = form.attrib.get(_METHOD, 'post').upper()
+        try:
+            self.submit()
+        finally:
+            self._method = None
 
     def on_render(self, element):
         if element.qname != _FORM:
@@ -156,19 +165,6 @@ class Form(core.MarkupContainer):
                 component.error):
                 return True
         return False
-
-
-class _FormActionBehavior(core.IgnitionBehavior):
-
-    def on_component(self, component, element):
-        component._method = element.attrib.get(_METHOD, '').upper()
-        try:
-            self.fire()
-        finally:
-            component._method = None
-
-    def on_fire(self, component):
-        component.submit()
 
 
 class FormComponent(core.MarkupContainer):

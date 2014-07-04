@@ -35,6 +35,7 @@ class Border(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(Border, self).__init__(id, model)
+        self.has_markup = True
         self.render_body_only = True
         # ayame:body element
         self.body = _BorderBodyContainer(id)

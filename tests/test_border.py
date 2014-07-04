@@ -42,6 +42,8 @@ class BorderTestCase(AyameTestCase):
 
         with self.application():
             mc = Spam('a')
+            self.assert_true(mc.find('border').render_body_only)
+            self.assert_true(mc.find('border').has_markup)
             m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
@@ -536,7 +538,7 @@ class BorderTestCase(AyameTestCase):
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(TomatoPage, message='before, body, after')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -547,7 +549,7 @@ class BorderTestCase(AyameTestCase):
     def test_render_ayame_message_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(TomatoPage, message=u'\u524d, \u4e2d, \u5f8c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,

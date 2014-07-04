@@ -42,6 +42,8 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Spam('a')
+            self.assert_true(mc.find('panel').render_body_only)
+            self.assert_true(mc.find('panel').has_markup)
             m, html = mc.render()
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
@@ -475,7 +477,7 @@ class PanelTestCase(AyameTestCase):
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(TomatoPage, message='Hello World!')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -486,7 +488,7 @@ class PanelTestCase(AyameTestCase):
     def test_render_ayame_message_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(TomatoPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,

@@ -573,7 +573,7 @@ class CoreTestCase(AyameTestCase):
     def test_render_ayame_message_element(self):
         with self.application(self.new_environ(accept='en')):
             p = BeansPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(BeansPage, message='Hello World!')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -584,7 +584,7 @@ class CoreTestCase(AyameTestCase):
     def test_render_ayame_message_element_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
             p = BeansPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(BeansPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -606,7 +606,7 @@ class CoreTestCase(AyameTestCase):
     def test_render_ayame_message_attribute(self):
         with self.application(self.new_environ(accept='en')):
             p = BaconPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(BaconPage, message='Submit')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -617,7 +617,7 @@ class CoreTestCase(AyameTestCase):
     def test_render_ayame_message_attribute_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
             p = BaconPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(BaconPage, message=u'\u9001\u4fe1')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1050,7 +1050,7 @@ class CoreTestCase(AyameTestCase):
             pass
         with self.application(self.new_environ()):
             p = Lobster()
-            status, headers, content = p.render()
+            status, headers, content = p()
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
@@ -1172,7 +1172,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application(self.new_environ()):
             p = SpamPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1270,11 +1270,11 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(root.attrib, {markup.QName('', 'c'): ''})
         self.assert_equal(root.children, [])
 
-    def test_ignition_behavior_get(self):
+    def test_fire_get(self):
         query = '{path}=clay1'
         with self.application(self.new_environ(query=query)):
             p = EggsPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1285,12 +1285,12 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(p.model_object, {'clay1': 1,
                                            'clay2': 0})
 
-    def test_ignition_behavior_get_duplicate_ayame_path(self):
+    def test_fire_get_duplicate_ayame_path(self):
         query = ('{path}=clay1&'
                  '{path}=obstacle:clay2')
         with self.application(self.new_environ(query=query)):
             p = EggsPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1301,7 +1301,22 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(p.model_object, {'clay1': 1,
                                            'clay2': 0})
 
-    def test_ignition_behavior_post(self):
+    def test_fire_get_nonexistent_path(self):
+        query = '{path}=clay2'
+        with self.application(self.new_environ(query=query)):
+            p = EggsPage()
+            status, headers, content = p()
+        html = self.format(EggsPage)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        self.assert_equal(p.model_object, {'clay1': 0,
+                                           'clay2': 0})
+
+    def test_fire_post(self):
         data = """\
 {__}
 Content-Disposition: form-data; name="{path}"
@@ -1311,7 +1326,7 @@ obstacle:clay2
 """
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1322,7 +1337,7 @@ obstacle:clay2
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 1})
 
-    def test_ignition_behavior_post_duplicate_ayame_path(self):
+    def test_fire_post_duplicate_ayame_path(self):
         data = """\
 {__}
 Content-Disposition: form-data; name="{path}"
@@ -1336,7 +1351,7 @@ clay1
 """
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1346,6 +1361,49 @@ clay1
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 1})
+
+    def test_fire_post_nonexistent_path(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
+
+clay2
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = EggsPage()
+            status, headers, content = p()
+        html = self.format(EggsPage)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        self.assert_equal(p.model_object, {'clay1': 0,
+                                           'clay2': 0})
+
+    def test_fire_component(self):
+        class Component(ayame.Component):
+            def on_fire(self):
+                self.model_object += 1
+
+        query = '{path}=c'
+        with self.application(self.new_environ(query=query)):
+            c = Component('c', model.Model(0))
+            c.fire()
+        self.assert_equal(c.model_object, 1)
+
+    def test_fire_component_uknown_path(self):
+        class Component(ayame.Component):
+            def on_fire(self):
+                self.model_object += 1
+
+        query = '{path}=g'
+        with self.application(self.new_environ(query=query)):
+            c = Component('c', model.Model(0))
+            c.fire()
+        self.assert_equal(c.model_object, 0)
 
     def test_nested(self):
         regex = r" is not a subclass of MarkupContainer\b"
@@ -1393,7 +1451,7 @@ clay1
 
         with self.application(self.new_environ()):
             p = ToastPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(ToastPage, name='ToastPage')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -1403,13 +1461,37 @@ clay1
 
         with self.application(self.new_environ()):
             p = ToastPage.NestedPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(ToastPage, name='ToastPage.NestedPage')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
         self.assert_equal(content, html)
+
+    def test_element(self):
+        class Lobster(ayame.MarkupContainer):
+            pass
+        with self.application():
+            mc = Lobster('a')
+            mc.add(ayame.MarkupContainer('b'))
+            mc.has_markup = False
+            self.assert_is_none(mc.find('b').element())
+            mc.has_markup = True
+            self.assert_is_none(mc.find('b').element())
+
+        class Toast(ayame.MarkupContainer):
+            pass
+        with self.application():
+            mc = Toast('a')
+            mc.add(ayame.MarkupContainer('b'))
+            mc.has_markup = True
+            mc.find('b').element()
+
+        with self.application():
+            p = EggsPage()
+            self.assert_is_instance(p.find('clay1').element(), markup.Element)
+            self.assert_is_instance(p.find('obstacle:clay2').element(), markup.Element)
 
 
 class AyameHeadContainer(ayame.MarkupContainer):
@@ -1449,14 +1531,10 @@ class EggsPage(ayame.Page):
                                           'clay2': 0})
         class Clay(ayame.Component):
             def __init__(self, id, model=None):
-                super(self.__class__, self).__init__(id, model)
-                class Counter(ayame.IgnitionBehavior):
-                    def on_component(self, component, element):
-                        self.fire()
-                    def on_fire(self, component):
-                        super(self.__class__, self).on_fire(component)
-                        component.model_object += 1
-                self.add(Counter())
+                super(Clay, self).__init__(id, model)
+            def on_fire(self):
+                super(Clay, self).on_fire()
+                self.model_object += 1
         self.add(Clay('clay1'))
         self.add(ayame.MarkupContainer('obstacle'))
         self.find('obstacle').add(Clay('clay2'))

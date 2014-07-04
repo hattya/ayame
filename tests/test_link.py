@@ -1,7 +1,7 @@
 #
 # test_link
 #
-#   Copyright (c) 2012-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -101,7 +101,7 @@ class LinkTestCase(AyameTestCase):
 
         with self.application(self.new_environ()):
             p = SpamPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -114,7 +114,7 @@ class LinkTestCase(AyameTestCase):
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
             with self.assert_raises(Clicked):
-                p.render()
+                p()
 
     def test_page_link(self):
         map = self.app.config['ayame.route.map']

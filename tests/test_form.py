@@ -128,7 +128,7 @@ class FormTestCase(AyameTestCase):
     def test_form(self):
         with self.application(self.new_environ()):
             p = SpamPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -155,7 +155,7 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^form$'):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object,
                           {'text': 'text',
@@ -176,7 +176,7 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^button$'):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object,
                           {'text': 'text',
@@ -223,7 +223,7 @@ ham
         with self.application(self.new_environ(method='POST', body=data)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^form$'):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
         self.assert_equal(f.model_object['password'], 'password')
@@ -278,7 +278,7 @@ Content-Disposition: form-data; name="button"
         with self.application(self.new_environ(method='POST', body=data)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^button$'):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
         self.assert_equal(f.model_object['password'], 'password')
@@ -307,7 +307,7 @@ Content-Disposition: form-data; name="button"
             p.find('form:password').required = True
             p.find('form:hidden').required = True
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'text': '',
                                                'password': '',
@@ -322,6 +322,14 @@ Content-Disposition: form-data; name="button"
             self.assert_is_none(f.find('area').error)
             self.assert_is_none(f.find('checkbox').error)
             self.assert_is_none(f.find('file').error)
+
+    def test_form_no_element(self):
+        query = '{path}=__form__&'
+        with self.application(self.new_environ(query=query)):
+            p = SpamPage()
+            p.add(Form('__form__'))
+            p()
+        self.assert_is_none(p.find('__form__').model_object)
 
     def test_form_component_relative_path(self):
         f = form.Form('a')
@@ -642,7 +650,7 @@ Content-Disposition: form-data; name="button"
     def test_radio_choice(self):
         with self.application(self.new_environ()):
             p = EggsPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -657,7 +665,7 @@ Content-Disposition: form-data; name="button"
         with self.application(self.new_environ()):
             p = EggsPage()
             p.find('form:radio').renderer = ChoiceRenderer()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -672,7 +680,7 @@ Content-Disposition: form-data; name="button"
         with self.application(self.new_environ()):
             p = EggsPage()
             p.find('form:radio').choices = []
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(EggsPage, choices=False)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -698,7 +706,7 @@ Content-Disposition: form-data; name="radio"
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[1]})
         self.assert_false(f.has_error())
@@ -719,7 +727,7 @@ Content-Disposition: form-data; name="radio"
             p = EggsPage()
             p.find('form:radio').choices = []
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
         self.assert_false(f.has_error())
@@ -735,7 +743,7 @@ form
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': None})
         self.assert_false(f.has_error())
@@ -752,7 +760,7 @@ form
             p = EggsPage()
             p.find('form:radio').required = True
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'radio': p.choices[0]})
             self.assert_true(f.has_error())
@@ -773,7 +781,7 @@ Content-Disposition: form-data; name="radio"
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'radio': p.choices[0]})
             self .assert_true(f.has_error())
@@ -794,7 +802,7 @@ Content-Disposition: form-data; name="radio"
         with self.application(self.new_environ(method='POST', body=data)):
             p = EggsPage()
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'radio': p.choices[0]})
             self.assert_true(f.has_error())
@@ -803,7 +811,7 @@ Content-Disposition: form-data; name="radio"
     def test_check_box_choice(self):
         with self.application(self.new_environ()):
             p = HamPage()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(HamPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -817,7 +825,7 @@ Content-Disposition: form-data; name="radio"
     def test_check_box_choice_single(self):
         with self.application(self.new_environ()):
             p = HamPage(multiple=False)
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(HamPage, choices=1)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -832,7 +840,7 @@ Content-Disposition: form-data; name="radio"
         with self.application(self.new_environ()):
             p = HamPage()
             p.find('form:checkbox').renderer = ChoiceRenderer()
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(HamPage)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -847,7 +855,7 @@ Content-Disposition: form-data; name="radio"
         with self.application(self.new_environ()):
             p = HamPage()
             p.find('form:checkbox').choices = []
-            status, headers, content = p.render()
+            status, headers, content = p()
         html = self.format(HamPage, choices=0)
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers,
@@ -889,7 +897,7 @@ Content-Disposition: form-data; name="checkbox"
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage()
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices})
         self.assert_false(f.has_error())
@@ -909,7 +917,7 @@ Content-Disposition: form-data; name="checkbox"
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage(multiple=False)
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[1]})
         self.assert_false(f.has_error())
@@ -938,7 +946,7 @@ Content-Disposition: form-data; name="checkbox"
             p = HamPage()
             p.find('form:checkbox').choices = []
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
         self.assert_false(f.has_error())
@@ -967,7 +975,7 @@ Content-Disposition: form-data; name="checkbox"
             p = HamPage()
             p.find('form').model = None
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_is_none(f.model_object)
         self.assert_false(f.has_error())
@@ -983,7 +991,7 @@ form
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage()
             with self.assert_raises(Valid):
-                p.render()
+                p()
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': []})
         self.assert_false(f.has_error())
@@ -1000,7 +1008,7 @@ form
             p = HamPage()
             p.find('form:checkbox').required = True
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
             self.assert_true(f.has_error())
@@ -1029,7 +1037,7 @@ Content-Disposition: form-data; name="checkbox"
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
             self.assert_true(f.has_error())
@@ -1050,7 +1058,7 @@ Content-Disposition: form-data; name="checkbox"
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
             self.assert_true(f.has_error())
@@ -1087,7 +1095,7 @@ Content-Disposition: form-data; name="checkbox"
         with self.application(self.new_environ(method='POST', body=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
-                p.render()
+                p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
             self.assert_true(f.has_error())
@@ -1103,7 +1111,7 @@ Content-Disposition: form-data; name="checkbox"
         for class_ in (ToastPage, BeansPage):
             with self.application(self.new_environ()):
                 p = class_()
-                status, headers, content = p.render()
+                status, headers, content = p()
             html = self.format(class_)
             self.assert_equal(status, http.OK.status)
             self.assert_equal(headers,
@@ -1118,7 +1126,7 @@ Content-Disposition: form-data; name="checkbox"
         for class_ in (ToastPage, BeansPage):
             with self.application(self.new_environ()):
                 p = class_(multiple=False)
-                status, headers, content = p.render()
+                status, headers, content = p()
             html = self.format(class_, multiple=False, choices=1)
             self.assert_equal(status, http.OK.status)
             self.assert_equal(headers,
@@ -1134,7 +1142,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.application(self.new_environ()):
                 p = class_()
                 p.find('form:select').renderer = ChoiceRenderer()
-                status, headers, content = p.render()
+                status, headers, content = p()
             html = self.format(class_)
             self.assert_equal(status, http.OK.status)
             self.assert_equal(headers,
@@ -1150,7 +1158,7 @@ Content-Disposition: form-data; name="checkbox"
             with self.application(self.new_environ()):
                 p = class_()
                 p.find('form:select').choices = []
-                status, headers, content = p.render()
+                status, headers, content = p()
             html = self.format(class_, choices=False)
             self.assert_equal(status, http.OK.status)
             self.assert_equal(headers,
@@ -1193,7 +1201,7 @@ Content-Disposition: form-data; name="select"
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_()
                 with self.assert_raises(Valid):
-                    p.render()
+                    p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices})
             self.assert_false(f.has_error())
@@ -1214,7 +1222,7 @@ Content-Disposition: form-data; name="select"
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_(multiple=False)
                 with self.assert_raises(Valid):
-                    p.render()
+                    p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[1]})
             self.assert_false(f.has_error())
@@ -1244,7 +1252,7 @@ Content-Disposition: form-data; name="select"
                 p = class_()
                 p.find('form:select').choices = []
                 with self.assert_raises(Valid):
-                    p.render()
+                    p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
             self.assert_false(f.has_error())
@@ -1274,7 +1282,7 @@ Content-Disposition: form-data; name="select"
                 p = class_()
                 p.find('form').model = None
                 with self.assert_raises(Valid):
-                    p.render()
+                    p()
             f = p.find('form')
             self.assert_is_none(f.model_object)
             self.assert_false(f.has_error())
@@ -1291,7 +1299,7 @@ form
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_()
                 with self.assert_raises(Valid):
-                    p.render()
+                    p()
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': []})
             self.assert_false(f.has_error())
@@ -1309,7 +1317,7 @@ form
                 p = class_()
                 p.find('form:select').required = True
                 with self.assert_raises(Invalid):
-                    p.render()
+                    p()
                 f = p.find('form')
                 self.assert_equal(f.model_object, {'select': p.choices[:2]})
                 self.assert_true(f.has_error())
@@ -1339,7 +1347,7 @@ Content-Disposition: form-data; name="select"
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
-                    p.render()
+                    p()
                 f = p.find('form')
                 self.assert_equal(f.model_object, {'select': p.choices[:2]})
                 self.assert_true(f.has_error())
@@ -1361,7 +1369,7 @@ Content-Disposition: form-data; name="select"
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
-                    p.render()
+                    p()
                 f = p.find('form')
                 self.assert_equal(f.model_object, {'select': p.choices[:2]})
                 self.assert_true(f.has_error())
@@ -1399,7 +1407,7 @@ Content-Disposition: form-data; name="select"
             with self.application(self.new_environ(method='POST', body=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
-                    p.render()
+                    p()
                 f = p.find('form')
                 self.assert_equal(f.model_object, {'select': p.choices[:2]})
                 self.assert_true(f.has_error())
