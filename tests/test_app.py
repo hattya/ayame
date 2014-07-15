@@ -324,7 +324,9 @@ class SimplePage(ayame.Page):
   </body>
 </html>
 """
-    kwargs = {'message': 'Hello World!'}
+    kwargs = {
+        'message': 'Hello World!'
+    }
 
     def __init__(self):
         super(SimplePage, self).__init__()

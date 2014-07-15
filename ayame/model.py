@@ -82,46 +82,46 @@ class CompoundModel(InheritableModel):
 
             def object():
                 def fget(self):
-                    wrapped_object = self.wrapped_model.object
+                    o = self.wrapped_model.object
                     name = self._component.id
                     # instance variable
                     try:
-                        return getattr(wrapped_object, name)
+                        return getattr(o, name)
                     except AttributeError:
                         pass
                     # getter method
                     try:
-                        getter = getattr(wrapped_object, 'get_' + name)
+                        getter = getattr(o, 'get_' + name)
                         if callable(getter):
                             return getter()
                     except AttributeError:
                         pass
                     # __getitem__
                     try:
-                        return wrapped_object.__getitem__(name)
+                        return o.__getitem__(name)
                     except (AttributeError, LookupError):
                         pass
 
                 def fset(self, object):
-                    wrapped_object = self.wrapped_model.object
+                    o = self.wrapped_model.object
                     name = self._component.id
                     # instance variable
                     try:
-                        getattr(wrapped_object, name)
+                        getattr(o, name)
                     except AttributeError:
                         pass
                     else:
-                        return setattr(wrapped_object, name, object)
+                        return setattr(o, name, object)
                     # setter method
                     try:
-                        setter = getattr(wrapped_object, 'set_' + name)
+                        setter = getattr(o, 'set_' + name)
                         if callable(setter):
                             return setter(object)
                     except AttributeError:
                         pass
                     # __setitem__
                     try:
-                        return wrapped_object.__setitem__(name, object)
+                        return o.__setitem__(name, object)
                     except AttributeError:
                         pass
 

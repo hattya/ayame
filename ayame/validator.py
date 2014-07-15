@@ -126,7 +126,7 @@ class RegexValidator(Validator):
         if not (isinstance(object, five.string_type) and
                 self.regex.match(object)):
             e = self.error()
-            e.variables['pattern'] = self.regex.pattern
+            e.vars['pattern'] = self.regex.pattern
             raise e
 
 
@@ -174,7 +174,7 @@ class RangeValidator(Validator):
                 vars.update(min=self.min,
                             max=self.max)
             e = self.error(variation=mode)
-            e.variables.update(vars)
+            e.vars.update(vars)
             raise e
 
     if five.PY2:

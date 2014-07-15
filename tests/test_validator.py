@@ -34,29 +34,29 @@ class ValidatorTestCase(AyameTestCase):
 
     def test_validation_error(self):
         e = ayame.ValidationError()
-        self.assert_equal(repr(e), 'ValidationError(keys=[], variables=[])')
+        self.assert_equal(repr(e), 'ValidationError(keys=[], vars=[])')
         self.assert_equal(str(e), '')
         e.component = True
         self.assert_equal(str(e), '')
 
         e = ayame.ValidationError('a')
-        self.assert_equal(repr(e), "ValidationError('a', keys=[], variables=[])")
+        self.assert_equal(repr(e), "ValidationError('a', keys=[], vars=[])")
         self.assert_equal(str(e), 'a')
         e.component = True
         self.assert_equal(str(e), 'a')
         e = ayame.ValidationError('a', 'b')
-        self.assert_equal(repr(e), "ValidationError('a', 'b', keys=[], variables=[])")
+        self.assert_equal(repr(e), "ValidationError('a', 'b', keys=[], vars=[])")
         self.assert_equal(str(e), 'a')
         e.component = True
         self.assert_equal(str(e), 'a')
 
         e = ayame.ValidationError(0)
-        self.assert_equal(repr(e), 'ValidationError(0, keys=[], variables=[])')
+        self.assert_equal(repr(e), 'ValidationError(0, keys=[], vars=[])')
         self.assert_equal(str(e), '0')
         e.component = True
         self.assert_equal(str(e), '0')
         e = ayame.ValidationError(0, 1)
-        self.assert_equal(repr(e), 'ValidationError(0, 1, keys=[], variables=[])')
+        self.assert_equal(repr(e), 'ValidationError(0, 1, keys=[], vars=[])')
         self.assert_equal(str(e), '0')
         e.component = True
         self.assert_equal(str(e), '0')
@@ -80,7 +80,7 @@ class ValidatorTestCase(AyameTestCase):
             e = cm.exception
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['EmailValidator'])
-            self.assert_equal(e.variables, {'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {'pattern': v.regex.pattern})
         assert_error(None)
         assert_error('')
         assert_error('a@b@example.com')
@@ -116,7 +116,7 @@ class ValidatorTestCase(AyameTestCase):
             e = cm.exception
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['URLValidator'])
-            self.assert_equal(e.variables, {'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {'pattern': v.regex.pattern})
         assert_error(None)
         assert_error('')
         assert_error('mailto:a@example.com')
@@ -135,7 +135,7 @@ class ValidatorTestCase(AyameTestCase):
             e = cm.exception
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['RangeValidator.type'])
-            self.assert_equal(e.variables, {})
+            self.assert_equal(e.vars, {})
         v.min = v.max = 0
         assert_type_error(None)
         assert_type_error('a')
@@ -157,7 +157,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.minimum'])
-        self.assert_equal(e.variables, {'min': 0})
+        self.assert_equal(e.vars, {'min': 0})
 
         v.min = None
         v.max = 9
@@ -167,7 +167,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.maximum'])
-        self.assert_equal(e.variables, {'max': 9})
+        self.assert_equal(e.vars, {'max': 9})
 
         v.min = 0
         v.max = 9
@@ -177,8 +177,8 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.range'])
-        self.assert_equal(e.variables, {'min': 0,
-                                        'max': 9})
+        self.assert_equal(e.vars, {'min': 0,
+                                   'max': 9})
 
         v.min = v.max = 9
         self.assert_false(v.validate(9))
@@ -187,7 +187,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.exact'])
-        self.assert_equal(e.variables, {'exact': 9})
+        self.assert_equal(e.vars, {'exact': 9})
 
     def test_string_validator(self):
         v = validator.StringValidator()
@@ -202,7 +202,7 @@ class ValidatorTestCase(AyameTestCase):
             e = cm.exception
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['StringValidator.type'])
-            self.assert_equal(e.variables, {})
+            self.assert_equal(e.vars, {})
         assert_type_error(None, None, 0)
         assert_type_error(0.0, None, '')
         assert_type_error(None, 0.0, '')
@@ -215,7 +215,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['StringValidator.minimum'])
-        self.assert_equal(e.variables, {'min': 4})
+        self.assert_equal(e.vars, {'min': 4})
 
         v.min = None
         v.max = 4
@@ -225,7 +225,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['StringValidator.maximum'])
-        self.assert_equal(e.variables, {'max': 4})
+        self.assert_equal(e.vars, {'max': 4})
 
         v.min = 4
         v.max = 5
@@ -235,8 +235,8 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['StringValidator.range'])
-        self.assert_equal(e.variables, {'min': 4,
-                                        'max': 5})
+        self.assert_equal(e.vars, {'min': 4,
+                                   'max': 5})
 
         v.min = v.max = 4
         self.assert_false(v.validate('.com'))
@@ -245,7 +245,7 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['StringValidator.exact'])
-        self.assert_equal(e.variables, {'exact': 4})
+        self.assert_equal(e.vars, {'exact': 4})
 
     def test_string_validator_maxlength(self):
         root = markup.Element(validator._INPUT,

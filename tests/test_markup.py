@@ -442,9 +442,9 @@ x\
         # no default namespace
         class Loader(markup.MarkupLoader):
             def new_xml_element(self, *args, **kwargs):
-                element = super(Loader, self).new_xml_element(*args, **kwargs)
-                element.ns.pop('', None)
-                return element
+                elem = super(Loader, self).new_xml_element(*args, **kwargs)
+                elem.ns.pop('', None)
+                return elem
         src = io.StringIO(xml)
         self.assert_markup_error((1, 70), ' no default namespace$',
                                  src, lang='xml',
@@ -453,9 +453,9 @@ x\
         # no eggs namespace
         class Loader(markup.MarkupLoader):
             def new_xml_element(self, *args, **kwargs):
-                element = super(Loader, self).new_xml_element(*args, **kwargs)
-                element.ns.pop('eggs', None)
-                return element
+                elem = super(Loader, self).new_xml_element(*args, **kwargs)
+                elem.ns.pop('eggs', None)
+                return elem
         src = io.StringIO(xml)
         self.assert_markup_error((1, 58), "^unknown .* prefix 'eggs'$",
                                  src, lang='xml',
@@ -638,8 +638,10 @@ after html\
     def test_render_error(self):
         def new_markup(lang):
             m = markup.Markup()
-            m.xml_decl = {'version': u'1.0',
-                          'standalone': u'yes'}
+            m.xml_decl = {
+                'version': u'1.0',
+                'standalone': u'yes'
+            }
             m.lang = lang
             spam = markup.Element(markup.QName(u'spam', u'spam'),
                                   attrib={markup.QName(u'spam', u'id'): u'a'},
@@ -732,8 +734,10 @@ after html\
 """.encode('iso-8859-1')
 
         m = markup.Markup()
-        m.xml_decl = {'version': u'1.0',
-                      'encoding': u'iso-8859-1'}
+        m.xml_decl = {
+            'version': u'1.0',
+            'encoding': u'iso-8859-1'
+        }
         m.lang = 'xml'
         m.doctype = u'<!DOCTYPE spam SYSTEM "spam.dtd">'
         m.root = markup.Element(markup.QName(u'spam', u'spam'),
@@ -766,8 +770,10 @@ after html\
 
         # raw output
         m = markup.Markup()
-        m.xml_decl = {'version': u'1.0',
-                      'encoding': u'iso-8859-1'}
+        m.xml_decl = {
+            'version': u'1.0',
+            'encoding': u'iso-8859-1'
+        }
         m.lang = 'xml'
         m.doctype = u'<!DOCTYPE spam SYSTEM "spam.dtd">'
         m.root = markup.Element(markup.QName(u'spam', u'spam'),
@@ -925,8 +931,10 @@ after html\
 """).encode('iso-8859-1')
 
         m = markup.Markup()
-        m.xml_decl = {'version': u'1.0',
-                      'encoding': u'iso-8859-1'}
+        m.xml_decl = {
+            'version': u'1.0',
+            'encoding': u'iso-8859-1'
+        }
         m.lang = 'xhtml1'
         m.doctype = markup.XHTML1_STRICT
         m.root = new_element(u'html',

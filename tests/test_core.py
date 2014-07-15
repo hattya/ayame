@@ -1596,14 +1596,14 @@ class Component(ayame.Component):
 
 class AyameHeadContainer(ayame.MarkupContainer):
 
-    def __init__(self, id, element=None):
+    def __init__(self, id, elem=None):
         super(AyameHeadContainer, self).__init__(id)
-        self._element = element
+        self._elem = elem
 
     def on_render(self, element):
-        for parent in self.iter_parent():
+        for par in self.iter_parent():
             pass
-        parent.head.children.append(self._element)
+        par.head.children.append(self._elem)
         return element
 
 
@@ -1630,8 +1630,10 @@ class EggsPage(ayame.Page):
 
     def __init__(self):
         super(EggsPage, self).__init__()
-        self.model = model.CompoundModel({'clay1': 0,
-                                          'clay2': 0})
+        self.model = model.CompoundModel({
+            'clay1': 0,
+            'clay2': 0
+        })
         class Clay(ayame.Component):
             def __init__(self, id, model=None):
                 super(Clay, self).__init__(id, model)

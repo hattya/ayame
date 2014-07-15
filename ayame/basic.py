@@ -56,9 +56,9 @@ class ListView(core.MarkupContainer):
         self._populate_item = populate_item
 
     def on_before_render(self):
-        object = self.model_object
-        if object is not None:
-            for i in five.range(len(object)):
+        o = self.model_object
+        if o is not None:
+            for i in five.range(len(o)):
                 li = self.new_item(i)
                 self.add(li)
                 self.populate_item(li)
@@ -68,8 +68,8 @@ class ListView(core.MarkupContainer):
         skel = element.copy()
         skel.qname = markup.DIV
         del element[:]
-        for component in self.children:
-            element.extend(component.on_render(skel.copy()).children)
+        for c in self.children:
+            element.extend(c.on_render(skel.copy()).children)
         return element
 
     def populate_item(self, item):

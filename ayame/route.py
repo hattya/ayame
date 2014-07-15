@@ -111,9 +111,9 @@ class Rule(object):
         self.__redirection = redirection
 
         self._regex = None
-        self._segments = []
-        self._converters = {}
-        self._variables = set()
+        self._segs = []
+        self._convs = {}
+        self._vars = set()
 
     @property
     def map(self):
@@ -147,25 +147,25 @@ class Rule(object):
         assert self.map is not None, 'rule not bound to map'
         path = self.path if self.is_leaf() else self.path.rstrip('/')
 
-        self._segments = []
-        self._converters.clear()
-        self._variables.clear()
+        self._segs = []
+        self._convs.clear()
+        self._vars.clear()
 
         buf = [r'\A']
         for var, conv, args in self._parse(path):
             if conv is None:
                 buf.append(re.escape(var))
-                self._segments.append((False, var))
-            elif var in self._variables:
+                self._segs.append((False, var))
+            elif var in self._vars:
                 raise RouteError("variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
                 buf.append('(?P<{}>{})'.format(var, conv.pattern))
-                self._segments.append((True, var))
-                self._converters[var] = conv
-                self._variables.add(var)
+                self._segs.append((True, var))
+                self._convs[var] = conv
+                self._vars.add(var)
         if not self.is_leaf():
-            self._segments.append((False, '/'))
+            self._segs.append((False, '/'))
         buf.append('(?P<__slash__>/?)')
         buf.append(r'\Z')
 
@@ -185,14 +185,14 @@ class Rule(object):
             yield path[pos:], None, None
 
     def _new_converter(self, name, args):
-        converter = self.map.converters.get(name)
-        if converter is None:
+        conv = self.map.converters.get(name)
+        if conv is None:
             raise RouteError("converter '{}' not found".format(name))
 
         if args:
             args, kwargs = self._parse_args(args)
-            return converter(self.map, *args, **kwargs)
-        return converter(self.map)
+            return conv(self.map, *args, **kwargs)
+        return conv(self.map)
 
     def _parse_args(self, expr):
         def error(msg, offset):
@@ -212,29 +212,29 @@ class Rule(object):
                 elif name in kwargs:
                     raise error('keyword argument repeated', m.start('name') + 1)
 
-            for type in ('const', 'int', 'float', 'str'):
-                value = m.group(type)
-                if value is None:
+            for t in ('const', 'int', 'float', 'str'):
+                v = m.group(t)
+                if v is None:
                     continue
-                elif type == 'const':
-                    if value == 'True':
-                        value = True
-                    elif value == 'False':
-                        value = False
+                elif t == 'const':
+                    if v == 'True':
+                        v = True
+                    elif v == 'False':
+                        v = False
                     else:
-                        value = None
-                elif type == 'int':
-                    value = int(value, 0)
-                elif type == 'float':
-                    value = float(value)
-                elif type == 'str':
-                    q = value[0]
-                    value = five.str(value[1:-1].replace('\\' + q, q))
+                        v = None
+                elif t == 'int':
+                    v = int(v, 0)
+                elif t == 'float':
+                    v = float(v)
+                elif t == 'str':
+                    q = v[0]
+                    v = five.str(v[1:-1].replace('\\' + q, q))
                 break
             if name is None:
-                args.append(value)
+                args.append(v)
             else:
-                kwargs[name] = value
+                kwargs[name] = v
             pos = m.endpos
 
         if (pos != len(expr) and
@@ -257,7 +257,7 @@ class Rule(object):
         values = {}
         for var, val in five.items(g):
             try:
-                values[var] = self._converters[var].to_python(val)
+                values[var] = self._convs[var].to_python(val)
             except ValueError:
                 return
         return values
@@ -267,20 +267,20 @@ class Rule(object):
         if not (method is None or
                 method in self.methods):
             return
-        for var in self._variables:
+        for var in self._vars:
             if var not in values:
                 return
         # path
         buf = []
         cache = {}
-        for dyn, var in self._segments:
+        for dyn, var in self._segs:
             if dyn:
                 cache[var] = util.to_list(values[var])
                 if not cache[var]:
                     return
                 val = cache[var].pop(0)
                 try:
-                    buf.append(self._converters[var].to_uri(val))
+                    buf.append(self._convs[var].to_uri(val))
                 except ValueError:
                     return
             else:
@@ -385,8 +385,8 @@ class Router(object):
                 if isinstance(rule.object, five.string_type):
                     def repl(m):
                         var = m.group(1)
-                        converter = rule._converters[var]
-                        return converter.to_uri(values[var])
+                        conv = rule._convs[var]
+                        return conv.to_uri(values[var])
 
                     location = _simple_rule_re.sub(repl, rule.object)
                 else:
@@ -430,28 +430,28 @@ class Converter(object):
 
 class _StringConverter(Converter):
 
-    def __init__(self, map, length=None, min=None):
+    def __init__(self, map, len=None, min=None):
         super(_StringConverter, self).__init__(map)
-        self.length = length
+        self.len = len
         self.min = min
         if min is not None:
-            max = length if length is not None else ''
-            count = '{},{}'.format(min, max)
-        elif length is not None:
-            count = length
+            max = len if len is not None else ''
+            cnt = '{},{}'.format(min, max)
+        elif len is not None:
+            cnt = len
         else:
-            count = '1,'
-        self.pattern = '[^/]{{{}}}'.format(count)
+            cnt = '1,'
+        self.pattern = '[^/]{{{}}}'.format(cnt)
 
     def to_uri(self, value):
         value = super(_StringConverter, self).to_uri(value)
         if self.min is not None:
             if (len(value) < self.min or
-                (self.length is not None and
-                 self.length < len(value))):
+                (self.len is not None and
+                 self.len < len(value))):
                 raise ValueError()
-        elif (self.length is not None and
-              len(value) != self.length):
+        elif (self.len is not None and
+              len(value) != self.len):
             raise ValueError()
         return value
 

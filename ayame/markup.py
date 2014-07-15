@@ -168,13 +168,13 @@ class Element(object):
         self.children = []
 
     def __copy__(self):
-        element = self.__class__(self.qname)
-        element.attrib = self.attrib.copy()
-        element.type = self.type
-        element.ns = self.ns.copy()
-        element.children = [n.copy() if isinstance(n, Element) else n
-                            for n in self.children]
-        return element
+        elem = self.__class__(self.qname)
+        elem.attrib = self.attrib.copy()
+        elem.type = self.type
+        elem.ns = self.ns.copy()
+        elem.children = [n.copy() if isinstance(n, Element) else n
+                         for n in self.children]
+        return elem
 
     def __repr__(self):
         return '<{} {!r} at 0x{:x}>'.format(util.fqon_of(self), self.qname, id(self))
@@ -256,8 +256,8 @@ class Fragment(list):
     __slots__ = ()
 
     def __copy__(self):
-        return self.__class__(n.copy() if isinstance(n, Element) else n
-                              for n in self)
+        return self.__class__(node.copy() if isinstance(node, Element) else node
+                              for node in self)
 
     copy = __copy__
 
@@ -323,39 +323,39 @@ class MarkupLoader(five.HTMLParser):
             # children of ayame:remove element
             return
         # new element
-        element = self._impl_of('new_element')(name, attrs)
+        elem = self._impl_of('new_element')(name, attrs)
         if (self._ptr() == 0 and
             self._markup.root is not None and
-            element.qname != AYAME_REMOVE):
+            elem.qname != AYAME_REMOVE):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push element
-        self._impl_of('push')(element)
-        if element.qname == AYAME_REMOVE:
+        self._impl_of('push')(elem)
+        if elem.qname == AYAME_REMOVE:
             self._remove = True
             if 1 < self._ptr():
-                # remove from parent element
+                # remove from parent elem
                 del self._at(-2)[-1]
         elif self._markup.root is None:
-            self._markup.root = element
+            self._markup.root = elem
 
     def handle_startendtag(self, name, attrs):
         if self._remove:
             # children of ayame:remove element
             return
         # new element
-        element = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
-        if element.qname == AYAME_REMOVE:
+        elem = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
+        if elem.qname == AYAME_REMOVE:
             return
         elif (self._ptr() == 0 and
               self._markup.root is not None):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push and pop element
-        self._impl_of('push')(element)
-        self._impl_of('pop')(element.qname)
+        self._impl_of('push')(elem)
+        self._impl_of('pop')(elem.qname)
         if self._markup.root is None:
-            self._markup.root = element
+            self._markup.root = elem
 
     def handle_endtag(self, name):
         qname = self._new_qname(name)
@@ -366,7 +366,7 @@ class MarkupLoader(five.HTMLParser):
             # children of ayame:remove element
             return
         # pop element
-        pos, element = self._impl_of('pop')(qname)
+        pos, elem = self._impl_of('pop')(qname)
 
     def handle_data(self, data):
         if 0 < self._ptr():
@@ -421,12 +421,12 @@ class MarkupLoader(five.HTMLParser):
                           u"'{}' for '{}' document is not implemented".format(name, self._markup.lang))
 
     def _new_qname(self, name, ns=None):
-        def ns_uri_of(prefix):
+        def ns_uri_of(pfx):
             for i in five.range(self._ptr() - 1, -1, -1):
-                element = self._at(i)
-                if (element.ns and
-                    prefix in element.ns):
-                    return element.ns[prefix]
+                elem = self._at(i)
+                if (elem.ns and
+                    pfx in elem.ns):
+                    return elem.ns[pfx]
 
         if ns is None:
             ns = {}
@@ -496,18 +496,18 @@ class MarkupLoader(five.HTMLParser):
                 xmlns[u''] = default_ns
 
         new_qname = self._new_qname
-        element = Element(qname=new_qname(name, xmlns),
-                          type=type if type is not None else Element.OPEN,
-                          ns=xmlns.copy())
+        elem = Element(qname=new_qname(name, xmlns),
+                       type=type if type is not None else Element.OPEN,
+                       ns=xmlns.copy())
         # convert attr name to qname
-        xmlns[u''] = element.qname.ns_uri
+        xmlns[u''] = elem.qname.ns_uri
         for n, v in attrs:
             qname = new_qname(n, xmlns)
-            if qname in element.attrib:
+            if qname in elem.attrib:
                 raise MarkupError(self._object, self.getpos(),
                                   u"attribute '{}' already exists".format(qname))
-            element.attrib[qname] = v
-        return element
+            elem.attrib[qname] = v
+        return elem
 
     def xml_push(self, element):
         if not self._markup.xml_decl:
@@ -595,18 +595,18 @@ class MarkupRenderer(object):
             if isinstance(node, Element):
                 # render start or empty tag
                 if pretty:
-                    element, newline = self._impl_of('compile_element')(node)
+                    elem, newline = self._impl_of('compile_element')(node)
                 else:
-                    element, newline = node, 0
-                element.type = Element.EMPTY if self.is_empty_element(element) else Element.OPEN
-                self._push(index, element, newline)
+                    elem, newline = node, 0
+                elem.type = Element.EMPTY if self.is_empty_element(elem) else Element.OPEN
+                self._push(index, elem, newline)
                 self.render_start_tag()
-                if element.type == Element.EMPTY:
+                if elem.type == Element.EMPTY:
                     self._pop()
                 else:
                     # push children
-                    queue.extend((i, element[i])
-                                 for i in five.range(len(element) - 1, -1, -1))
+                    queue.extend((i, elem[i])
+                                 for i in five.range(len(elem) - 1, -1, -1))
             elif isinstance(node, five.string_type):
                 # render text
                 self.render_text(index, node)
@@ -650,32 +650,32 @@ class MarkupRenderer(object):
                 self._writeln(XHTML1_STRICT)
 
     def render_start_tag(self):
-        current = self._peek()
+        curr = self._peek()
         # indent start tag
         if self._pretty:
             if self._impl_of('indent')('before'):
                 self._bol = True
         # render start tag
-        self._impl_of('render_start_tag')(current.index, current.element)
+        self._impl_of('render_start_tag')(curr.index, curr.element)
         self._bol = False
         # indent after empty tag or inside of start tag
         if self._pretty:
-            mode = 'after' if current.element.type == Element.EMPTY else 'inside'
+            mode = 'after' if curr.element.type == Element.EMPTY else 'inside'
             if self._impl_of('indent')(mode):
                 self._bol = True
 
     def render_end_tag(self):
-        current = self._peek()
+        curr = self._peek()
         # indent end tag
         if self._pretty:
             if self._impl_of('indent')('inside'):
                 self._bol = True
         # render end tag
-        self._impl_of('render_end_tag')(current.element)
+        self._impl_of('render_end_tag')(curr.element)
         self._bol = False
         # indent after end tag
         if self._pretty:
-            if current.element.type == Element.OPEN:
+            if curr.element.type == Element.OPEN:
                 if self._impl_of('indent')('after'):
                     self._bol = True
 
@@ -733,23 +733,23 @@ class MarkupRenderer(object):
         return len(self.__stack)
 
     def _count(self, ptr):
-        count = 0
+        cnt = 0
         for i in five.range(ptr):
             if self._at(i).element.type == Element.OPEN:
-                count += 1
-        return count
+                cnt += 1
+        return cnt
 
     def _prefix_for(self, ns_uri):
-        known_prefixes = []
+        known = []
         for i in five.range(self._ptr() - 1, -1, -1):
-            element = self._at(i).element
-            for prefix in element.ns:
-                if prefix in known_prefixes:
+            elem = self._at(i).element
+            for pfx in elem.ns:
+                if pfx in known:
                     raise RenderingError(self._object,
-                                         u"namespace URI for '{}' was overwritten".format(prefix))
-                elif element.ns[prefix] == ns_uri:
-                    return prefix
-                known_prefixes.append(prefix)
+                                         u"namespace URI for '{}' was overwritten".format(pfx))
+                elif elem.ns[pfx] == ns_uri:
+                    return pfx
+                known.append(pfx)
         raise RenderingError(self._object,
                              u"unknown namespace URI '{}'".format(ns_uri))
 
@@ -824,8 +824,8 @@ class MarkupRenderer(object):
         return element, _ElementState.NEWLINE_ALL
 
     def indent_xml(self, name, *args):
-        def next_nonblank(element, beg):
-            for node in element[beg:]:
+        def next_nonblank(elem, beg):
+            for node in elem[beg:]:
                 if node != '':
                     return node
 
@@ -838,35 +838,35 @@ class MarkupRenderer(object):
             # beginning of line
             return
 
-        current = self._peek()
+        curr = self._peek()
         if name == 'before':
-            if current.newline & _ElementState.NEWLINE_BEFORE:
+            if curr.newline & _ElementState.NEWLINE_BEFORE:
                 if 1 < self._ptr():
                     return indent(-1)
         elif name == 'inside':
-            if current.newline & _ElementState.NEWLINE_INSIDE:
-                if 0 < current.pending:
+            if curr.newline & _ElementState.NEWLINE_INSIDE:
+                if 0 < curr.pending:
                     # after start tag
                     return indent(0)
                 else:
                     # before end tag
                     return indent(-1)
         elif name == 'after':
-            if current.newline & _ElementState.NEWLINE_AFTER:
+            if curr.newline & _ElementState.NEWLINE_AFTER:
                 if self._ptr() < 2:
                     return
                 parent = self._at(self._ptr() - 2)
-                if next_nonblank(parent.element, current.index + 1):
+                if next_nonblank(parent.element, curr.index + 1):
                     return indent(-1)
         elif name == 'text':
             index, text = args
             if text != '':
                 return
-            elif (current.newline & _ElementState.NEWLINE_INSIDE and
-                  not next_nonblank(current.element, index + 1)):
+            elif (curr.newline & _ElementState.NEWLINE_INSIDE and
+                  not next_nonblank(curr.element, index + 1)):
                 return
 
-            if current.newline & _ElementState.NEWLINE_TEXT:
+            if curr.newline & _ElementState.NEWLINE_TEXT:
                 return indent(0)
             else:
                 self._write(u' ')
@@ -880,35 +880,35 @@ class MarkupRenderer(object):
             self._write(element_prefix, u':')
         self._write(element.qname.name)
         # xmlns attributes
-        for prefix in sorted(element.ns):
-            ns_uri = element.ns[prefix]
+        for pfx in sorted(element.ns):
+            ns_uri = element.ns[pfx]
             if ns_uri != XML_NS:
                 self._write(u' xmlns')
-                if prefix != '':
-                    self._write(u':', prefix)
+                if pfx != '':
+                    self._write(u':', pfx)
                 self._write(u'="', ns_uri, u'"')
         # attributes
         attrib = [(prefix_for(a.ns_uri), a.name, v)
                   for a, v in five.items(element.attrib)]
         default_ns = False
-        for prefix, name, value in sorted(attrib):
+        for pfx, n, v in sorted(attrib):
             self._write(u' ')
-            if prefix == '':
+            if pfx == '':
                 default_ns = True
-            elif prefix != element_prefix:
-                self._write(prefix, u':')
+            elif pfx != element_prefix:
+                self._write(pfx, u':')
             elif (default_ns and
-                  prefix == element_prefix):
+                  pfx == element_prefix):
                 raise RenderingError(self._object,
                                      'cannot combine with default namespace')
-            self._write(name, u'="', value, u'"')
+            self._write(n, u'="', v, u'"')
         self._write(empty if element.type == Element.EMPTY else u'>')
 
     def render_xml_end_tag(self, element):
-        prefix = self._prefix_for(element.qname.ns_uri)
+        pfx = self._prefix_for(element.qname.ns_uri)
         self._write(u'</')
-        if prefix != '':
-            self._write(prefix, u':')
+        if pfx != '':
+            self._write(pfx, u':')
         self._write(element.qname.name, u'>')
 
     def render_xml_text(self, index, text):
@@ -917,9 +917,9 @@ class MarkupRenderer(object):
     def compile_xhtml1_element(self, element):
         # reset XML and XHTML namespaces
         if element.qname == HTML:
-            for prefix in tuple(element.ns):
-                if element.ns[prefix] in (XML_NS, XHTML_NS):
-                    del element.ns[prefix]
+            for pfx in tuple(element.ns):
+                if element.ns[pfx] in (XML_NS, XHTML_NS):
+                    del element.ns[pfx]
             element.ns[u'xml'] = XML_NS
             element.ns[u''] = XHTML_NS
         # force element type as OPEN
@@ -952,16 +952,13 @@ class MarkupRenderer(object):
             elif name not in ('img', 'input'):
                 newline = _ElementState.NEWLINE_AROUND
         elif name not in _pcdata:
-            element[:] = (n for n in element
-                          if not isinstance(n, five.string_type))
+            element[:] = (node for node in element
+                          if not isinstance(node, five.string_type))
             newline = (_ElementState.NEWLINE_AROUND |
                        _ElementState.NEWLINE_INSIDE)
         elif name in ('title', 'style', 'script', 'option', 'textarea'):
             self._compile_children(element, element=False)
-            if name not in ('title', 'option'):
-                newline = _ElementState.NEWLINE_ALL
-            else:
-                newline = _ElementState.NEWLINE_AROUND
+            newline = _ElementState.NEWLINE_AROUND if name in ('title', 'option') else _ElementState.NEWLINE_ALL
         elif name == 'blockquote':
             self._compile_children(element, text=False)
             newline = (_ElementState.NEWLINE_AROUND |
@@ -994,21 +991,21 @@ class MarkupRenderer(object):
                     (element.qname.ns_uri == XHTML_NS and
                      element.qname.name in ('ins', 'del', 'button')))
 
-        for element, depth in root.walk(step=step):
+        for elem, depth in root.walk(step=step):
             if 0 < depth:
-                if element.qname.ns_uri != XHTML_NS:
+                if elem.qname.ns_uri != XHTML_NS:
                     return True
-                elif (element.qname.name not in ('ins', 'del', 'button') and
-                      element.qname.name in _block_ex):
+                elif (elem.qname.name not in ('ins', 'del', 'button') and
+                      elem.qname.name in _block_ex):
                     return True
 
     def _has_html4_br_element(self, root):
         def step(element, depth):
             return element.qname.ns_uri == XHTML_NS
 
-        for element, depth in root.walk(step=step):
+        for elem, depth in root.walk(step=step):
             if 0 < depth:
-                if element.qname.name == 'br':
+                if elem.qname.name == 'br':
                     return True
 
 

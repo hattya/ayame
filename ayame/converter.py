@@ -61,9 +61,9 @@ class ConverterRegistry(object):
         queue = collections.deque((class_,))
         while queue:
             class_ = queue.pop()
-            converter = self.get(class_)
-            if converter is not None:
-                return converter
+            conv = self.get(class_)
+            if conv is not None:
+                return conv
             queue.extend(c for c in reversed(class_.__bases__)
                          if c is not object)
         return self.get(object)
@@ -91,9 +91,9 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
         return value
 
     def to_string(self, value):
-        error = self.check_type(value)
-        if error is not None:
-            raise error
+        e = self.check_type(value)
+        if e is not None:
+            raise e
 
         return five.str(value)
 
@@ -157,9 +157,9 @@ class FloatConverter(Converter):
 
     if sys.version_info < (3, 2):
         def to_string(self, value):
-            error = self.check_type(value)
-            if error is not None:
-                raise error
+            e = self.check_type(value)
+            if e is not None:
+                raise e
 
             return repr(value)
 
@@ -198,9 +198,9 @@ class DateConverter(Converter):
             raise self.error(value)
 
     def to_string(self, value):
-        error = self.check_type(value)
-        if error is not None:
-            raise error
+        e = self.check_type(value)
+        if e is not None:
+            raise e
 
         try:
             return five.str(value.strftime(self._format))
@@ -223,9 +223,9 @@ class TimeConverter(Converter):
             raise self.error(value)
 
     def to_string(self, value):
-        error = self.check_type(value)
-        if error is not None:
-            raise error
+        e = self.check_type(value)
+        if e is not None:
+            raise e
 
         return five.str(value.strftime(self._format))
 
@@ -245,25 +245,25 @@ class DateTimeConverter(Converter):
         if ds.endswith('Z'):
             # UTC
             ds = ds[:-1]
-            offset = 0
+            off = 0
         else:
             # local time
             pos = max(ds.rfind('-'), ds.rfind('+'))
-            ds, offset = ds[:pos], ds[pos:]
+            ds, off = ds[:pos], ds[pos:]
             # check time zone range
-            if ':' in offset:
-                sign = offset[0]
-                h, m = offset[1:].split(':', 1)
+            if ':' in off:
+                sign = off[0]
+                h, m = off[1:].split(':', 1)
                 if (h.isdigit() and
                     m.isdigit()):
                     minutes = int(h) * 60 + int(m)
                     if sign == '+':
                         if minutes <= 840:  # UTC+14:00
-                            offset = -minutes
+                            off = -minutes
                     else:
                         if minutes <= 720:  # UTC-12:00
-                            offset = minutes
-            if not isinstance(offset, int):
+                            off = minutes
+            if not isinstance(off, int):
                 raise self.error(value)
         # parse date and time
         if 'T' not in ds:
@@ -276,21 +276,20 @@ class DateTimeConverter(Converter):
             dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             raise self.error(value)
-        return dt.replace(tzinfo=five.UTC) + datetime.timedelta(minutes=offset)
+        return dt.replace(tzinfo=five.UTC) + datetime.timedelta(minutes=off)
 
     def to_string(self, value):
-        error = self.check_type(value)
-        if error is not None:
-            raise error
+        e = self.check_type(value)
+        if e is not None:
+            raise e
 
         try:
-            offset = value.utcoffset()
+            off = value.utcoffset()
         except TypeError as e:
             raise self.error(value, message=five.str(e))
-        if not offset:
+        if not off:
             z = 'Z'
         else:
-            seconds = offset.total_seconds()
-            minutes = seconds / 60
-            z = '{:+03.0f}:{:02.0f}'.format(minutes / 60, minutes % 60)
+            mins = off.total_seconds() / 60
+            z = '{:+03.0f}:{:02.0f}'.format(mins / 60, mins % 60)
         return u'{:%Y-%m-%d %H:%M:%S}{Z}'.format(value, Z=z)

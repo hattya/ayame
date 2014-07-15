@@ -84,7 +84,7 @@ class ValidationError(AyameError):
         super(ValidationError, self).__init__(*args)
         self.component = kwargs.get('component')
         self.keys = []
-        self.variables = {}
+        self.vars = {}
 
         validator = kwargs.get('validator')
         if validator:
@@ -96,15 +96,15 @@ class ValidationError(AyameError):
 
     def __repr__(self):
         args = (repr(self.args)[1:-1].rstrip(',') + ', ') if self.args else ''
-        return '{}({}keys={}, variables={})'.format(self.__class__.__name__,
-                                                    args,
-                                                    self.keys,
-                                                    list(self.variables))
+        return '{}({}keys={}, vars={})'.format(self.__class__.__name__,
+                                               args,
+                                               self.keys,
+                                               list(self.vars))
 
     def __str__(self):
         if self.component:
             for key in self.keys:
                 msg = self.component.tr(key)
                 if msg is not None:
-                    return msg.format(**self.variables)
+                    return msg.format(**self.vars)
         return five.str(self.args[0]) if 0 < len(self.args) else u''

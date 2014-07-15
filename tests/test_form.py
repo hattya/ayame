@@ -44,9 +44,9 @@ class FormTestCase(AyameTestCase):
         self.assert_is_instance(e, ayame.ValidationError)
         self.assert_equal(five.str(e), "'{}' is required".format(fc.id))
         self.assert_equal(e.keys, ['Required'])
-        self.assert_equal(e.variables, {'input': input,
-                                        'name': fc.id,
-                                        'label': fc.id})
+        self.assert_equal(e.vars, {'input': input,
+                                   'name': fc.id,
+                                   'label': fc.id})
 
     def assert_choice_error(self, fc, input):
         e = fc.error
@@ -57,9 +57,9 @@ class FormTestCase(AyameTestCase):
         else:
             self.assert_regex(five.str(e), "'{}' is not a valid choice$".format(fc.id))
             self.assert_equal(e.keys, ['Choice.single'])
-        self.assert_equal(e.variables, {'input': input,
-                                        'name': fc.id,
-                                        'label': fc.id})
+        self.assert_equal(e.vars, {'input': input,
+                                   'name': fc.id,
+                                   'label': fc.id})
 
     def new_environ(self, method='GET', query='', body=None):
         return super(FormTestCase, self).new_environ(method=method,
@@ -391,10 +391,10 @@ Content-Disposition: form-data; name="button"
             self.assert_regex(five.str(e), "'a' is not a valid type 'int'")
             self.assert_equal(e.keys, ['Converter.int',
                                        'Converter'])
-            self.assert_equal(e.variables, {'input': 'a',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'type': 'int'})
+            self.assert_equal(e.vars, {'input': 'a',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'type': 'int'})
 
     def test_form_component_validation_error_range(self):
         with self.application(self.new_environ()):
@@ -411,9 +411,9 @@ Content-Disposition: form-data; name="button"
                 self.assert_is_instance(e, ayame.ValidationError)
                 self.assert_regex(five.str(e), "'a' cannot validate$")
                 self.assert_equal(e.keys, ['RangeValidator.type'])
-                self.assert_equal(e.variables, {'input': o,
-                                                'name': 'a',
-                                                'label': 'a'})
+                self.assert_equal(e.vars, {'input': o,
+                                           'name': 'a',
+                                           'label': 'a'})
             assert_type_error(0.0, None, 0)
             assert_type_error(None, 0.0, 0)
 
@@ -424,10 +424,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be at least 5$")
             self.assert_equal(e.keys, ['RangeValidator.minimum'])
-            self.assert_equal(e.variables, {'input': 0,
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'min': 5})
+            self.assert_equal(e.vars, {'input': 0,
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'min': 5})
 
             v.min = None
             v.max = 3
@@ -436,10 +436,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be at most 3$")
             self.assert_equal(e.keys, ['RangeValidator.maximum'])
-            self.assert_equal(e.variables, {'input': 5,
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'max': 3})
+            self.assert_equal(e.vars, {'input': 5,
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'max': 3})
 
             v.min = 3
             v.max = 5
@@ -448,11 +448,11 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be between 3 and 5$")
             self.assert_equal(e.keys, ['RangeValidator.range'])
-            self.assert_equal(e.variables, {'input': 0,
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'min': 3,
-                                            'max': 5})
+            self.assert_equal(e.vars, {'input': 0,
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'min': 3,
+                                       'max': 5})
 
             v.min = v.max = 3
             fc.validate(5)
@@ -460,10 +460,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be exactly 3$")
             self.assert_equal(e.keys, ['RangeValidator.exact'])
-            self.assert_equal(e.variables, {'input': 5,
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'exact': 3})
+            self.assert_equal(e.vars, {'input': 5,
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'exact': 3})
 
     def test_form_component_validation_error_string(self):
         with self.application(self.new_environ()):
@@ -480,9 +480,9 @@ Content-Disposition: form-data; name="button"
                 self.assert_is_instance(e, ayame.ValidationError)
                 self.assert_regex(five.str(e), "'a' cannot validate$")
                 self.assert_equal(e.keys, ['StringValidator.type'])
-                self.assert_equal(e.variables, {'input': o,
-                                                'name': 'a',
-                                                'label': 'a'})
+                self.assert_equal(e.vars, {'input': o,
+                                           'name': 'a',
+                                           'label': 'a'})
             assert_type_error(None, None, 0)
             assert_type_error(0.0, None, '')
             assert_type_error(None, 0.0, '')
@@ -494,10 +494,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be at least 4 ")
             self.assert_equal(e.keys, ['StringValidator.minimum'])
-            self.assert_equal(e.variables, {'input': '.jp',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'min': 4})
+            self.assert_equal(e.vars, {'input': '.jp',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'min': 4})
 
             v.min = None
             v.max = 4
@@ -506,10 +506,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be at most 4 ")
             self.assert_equal(e.keys, ['StringValidator.maximum'])
-            self.assert_equal(e.variables, {'input': '.info',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'max': 4})
+            self.assert_equal(e.vars, {'input': '.info',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'max': 4})
 
             v.min = 4
             v.max = 5
@@ -518,11 +518,11 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be between 4 and 5 ")
             self.assert_equal(e.keys, ['StringValidator.range'])
-            self.assert_equal(e.variables, {'input': '.jp',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'min': 4,
-                                            'max': 5})
+            self.assert_equal(e.vars, {'input': '.jp',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'min': 4,
+                                       'max': 5})
 
             v.min = v.max = 4
             fc.validate('.info')
@@ -530,10 +530,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' must be exactly 4 ")
             self.assert_equal(e.keys, ['StringValidator.exact'])
-            self.assert_equal(e.variables, {'input': '.info',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'exact': 4})
+            self.assert_equal(e.vars, {'input': '.info',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'exact': 4})
 
     def test_form_component_validation_error_regex(self):
         with self.application(self.new_environ()):
@@ -546,10 +546,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' does not match pattern ")
             self.assert_equal(e.keys, ['RegexValidator'])
-            self.assert_equal(e.variables, {'input': 'a',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'pattern': '\d+$'})
+            self.assert_equal(e.vars, {'input': 'a',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'pattern': '\d+$'})
 
     def test_form_component_validation_error_email(self):
         with self.application(self.new_environ()):
@@ -563,10 +563,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' is not a valid email address$")
             self.assert_equal(e.keys, ['EmailValidator'])
-            self.assert_equal(e.variables, {'input': 'a',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {'input': 'a',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'pattern': v.regex.pattern})
 
     def test_form_component_validation_error_url(self):
         with self.application(self.new_environ()):
@@ -580,10 +580,10 @@ Content-Disposition: form-data; name="button"
             self.assert_is_instance(e, ayame.ValidationError)
             self.assert_regex(five.str(e), "'a' is not a valid URL$")
             self.assert_equal(e.keys, ['URLValidator'])
-            self.assert_equal(e.variables, {'input': 'a',
-                                            'name': 'a',
-                                            'label': 'a',
-                                            'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {'input': 'a',
+                                       'name': 'a',
+                                       'label': 'a',
+                                       'pattern': v.regex.pattern})
 
     def test_form_component_no_model(self):
         with self.application():
@@ -1519,11 +1519,13 @@ class EggsPage(ayame.Page):
   </body>
 </html>
 """
-    kwargs = {'choices': lambda v=True: """
+    kwargs = {
+        'choices': lambda v=True: """
           <input checked="checked" id="radio-0" name="radio" type="radio" value="0" /><label for="radio-0">2012-01-01</label><br />
           <input id="radio-1" name="radio" type="radio" value="1" /><label for="radio-1">2012-01-02</label><br />
           <input id="radio-2" name="radio" type="radio" value="2" /><label for="radio-2">2012-01-03</label>
-        """ if v else ''}
+        """ if v else ''
+    }
 
     def __init__(self):
         super(EggsPage, self).__init__()
@@ -1555,11 +1557,13 @@ class HamPage(ayame.Page):
   </body>
 </html>
 """
-    kwargs = {'choices': lambda v=2: """
+    kwargs = {
+        'choices': lambda v=2: """
           <input {}id="checkbox-0" name="checkbox" type="checkbox" value="0" /><label for="checkbox-0">2012-01-01</label><br />
           <input {}id="checkbox-1" name="checkbox" type="checkbox" value="1" /><label for="checkbox-1">2012-01-02</label><br />
           <input {}id="checkbox-2" name="checkbox" type="checkbox" value="2" /><label for="checkbox-2">2012-01-03</label>
-        """.format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''}
+        """.format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''
+    }
 
     def __init__(self, multiple=True):
         super(HamPage, self).__init__()
@@ -1594,12 +1598,14 @@ class SelectChoicePage(ayame.Page):
   </body>
 </html>
 """
-    kwargs = {'multiple': lambda v=True: 'multiple="multiple" ' if v else '',
-              'choices': lambda v=2: """
+    kwargs = {
+        'multiple': lambda v=True: 'multiple="multiple" ' if v else '',
+        'choices': lambda v=2: """
           <option {}value="0">2013-01-01</option>
           <option {}value="1">2013-01-02</option>
           <option {}value="2">2013-01-03</option>\
-""".format(*('selected="selected" ',) * v + ('',) * (3 - v)) if v else ''}
+""".format(*('selected="selected" ',) * v + ('',) * (3 - v)) if v else ''
+    }
 
     def __init__(self, multiple=True):
         super(SelectChoicePage, self).__init__()

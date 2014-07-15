@@ -44,8 +44,7 @@ class Ayame(object):
     def __init__(self, name):
         self._name = name
         try:
-            module = sys.modules[name]
-            self._root = os.path.abspath(os.path.dirname(module.__file__))
+            self._root = os.path.abspath(os.path.dirname(sys.modules[name].__file__))
         except (AttributeError, KeyError):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
@@ -95,14 +94,14 @@ class Ayame(object):
 
     def __call__(self, environ, start_response):
         try:
-            context = local.push(self, environ)
-            context._router = self.config['ayame.route.map'].bind(environ)
+            ctx = local.push(self, environ)
+            ctx._router = self.config['ayame.route.map'].bind(environ)
             # dispatch
-            object, values = context._router.match()
-            context.request = self.config['ayame.request'](environ, values)
+            o, values = ctx._router.match()
+            ctx.request = self.config['ayame.request'](environ, values)
             for _ in five.range(self.config['ayame.max.redirect']):
                 try:
-                    status, headers, content = self.handle_request(object)
+                    status, headers, content = self.handle_request(o)
                 except _Redirect as r:
                     if r.args[3] == _Redirect.PERMANENT:
                         raise http.MovedPermanently(uri.application_uri(environ) +
@@ -110,8 +109,8 @@ class Ayame(object):
                     elif r.args[3] != _Redirect.INTERNAL:
                         raise http.Found(uri.application_uri(environ) +
                                          self.uri_for(*r.args[:3], relative=True)[1:])
-                    object = r.args[0]
-                    context.request.path = None
+                    o = r.args[0]
+                    ctx.request.path = None
                     continue
                 break
             else:
@@ -181,13 +180,13 @@ class Request(object):
     def _parse_locales(self, environ):
         values = http.parse_accept(environ.get('HTTP_ACCEPT_LANGUAGE'))
         if values:
-            value = values[0][0]
+            v = values[0][0]
             sep = '-'
         else:
-            value = locale.getdefaultlocale()[0]
+            v = locale.getdefaultlocale()[0]
             sep = '_'
-        if value:
-            v = value.split(sep, 1)
+        if v:
+            v = v.split(sep, 1)
             return (v[0].lower(), v[1].upper() if 1 < len(v) else None)
         return (None,) * 2
 

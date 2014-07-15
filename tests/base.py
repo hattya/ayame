@@ -90,11 +90,11 @@ class AyameTestCase(unittest.TestCase):
     @contextlib.contextmanager
     def application(self, environ=None):
         app = self.app
-        context = local.push(app, environ)
+        ctx = local.push(app, environ)
         try:
             if environ is not None:
-                context.request = app.config['ayame.request'](environ, {})
-                context._router = app.config['ayame.route.map'].bind(environ)
+                ctx.request = app.config['ayame.request'](environ, {})
+                ctx._router = app.config['ayame.route.map'].bind(environ)
             yield
         finally:
             local.pop()
@@ -152,5 +152,4 @@ class AyameTestCase(unittest.TestCase):
                 kwargs[k] = v(*[kwargs[k]] if k in kwargs else [])
             else:
                 kwargs.setdefault(k, v)
-        encoding = kwargs.pop('encoding', 'utf-8')
-        return class_.html_t.format(*args, **kwargs).encode(encoding)
+        return class_.html_t.format(*args, **kwargs).encode(kwargs.pop('encoding', 'utf-8'))

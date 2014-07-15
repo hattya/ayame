@@ -36,9 +36,9 @@ class BasicTestCase(AyameTestCase):
         c = basic.Label('a')
         self.assert_is_none(c.model)
 
-        element = c.render(markup.Element(None))
-        self.assert_equal(element.attrib, {})
-        self.assert_equal(element.children, [''])
+        elem = c.render(markup.Element(None))
+        self.assert_equal(elem.attrib, {})
+        self.assert_equal(elem.children, [''])
 
     def test_label_with_object_model(self):
         with self.application():
@@ -46,9 +46,9 @@ class BasicTestCase(AyameTestCase):
             c = basic.Label('a', m)
             self.assert_is(c.model, m)
 
-            element = c.render(markup.Element(None))
-            self.assert_equal(element.attrib, {})
-            self.assert_equal(element.children, ['[]'])
+            elem = c.render(markup.Element(None))
+            self.assert_equal(elem.attrib, {})
+            self.assert_equal(elem.children, ['[]'])
 
     def test_label_with_string_model(self):
         with self.application():
@@ -56,18 +56,18 @@ class BasicTestCase(AyameTestCase):
             c = basic.Label('a', m)
             self.assert_is(c.model, m)
 
-            element = c.render(markup.Element(None))
-            self.assert_equal(element.attrib, {})
-            self.assert_equal(element.children, ['&lt;tag&gt;'])
+            elem = c.render(markup.Element(None))
+            self.assert_equal(elem.attrib, {})
+            self.assert_equal(elem.children, ['&lt;tag&gt;'])
 
     def test_label_with_string(self):
         with self.application():
             c = basic.Label('a', '<tag>')
             self.assert_equal(c.model.object, '<tag>')
 
-            element = c.render(markup.Element(None))
-            self.assert_equal(element.attrib, {})
-            self.assert_equal(element.children, ['&lt;tag&gt;'])
+            elem = c.render(markup.Element(None))
+            self.assert_equal(elem.attrib, {})
+            self.assert_equal(elem.children, ['&lt;tag&gt;'])
 
     def test_list_view_empty_model(self):
         root = markup.Element(markup.QName('', 'root'),

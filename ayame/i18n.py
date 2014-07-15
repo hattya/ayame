@@ -68,12 +68,12 @@ class Localizer(object):
         for bundle, prefix in self._iter_resource(component, locale):
             if bundle:
                 if prefix:
-                    value = bundle.get(prefix + '.' + key)
-                    if value is not None:
-                        return value
-                value = bundle.get(key)
-                if value is not None:
-                    return value
+                    v = bundle.get(prefix + '.' + key)
+                    if v is not None:
+                        return v
+                v = bundle.get(key)
+                if v is not None:
+                    return v
 
     def _iter_resource(self, component, locale):
         def load(module, *args):
@@ -85,25 +85,24 @@ class Localizer(object):
                 pass
 
         for class_, prefix in self._iter_class(component):
-            module = sys.modules.get(class_.__module__)
-            if module:
+            m = sys.modules.get(class_.__module__)
+            if m:
                 lc, cc = locale[:2]
                 if lc:
                     if cc:
-                        yield load(module, class_.__name__, lc, cc), prefix
-                    yield load(module, class_.__name__, lc), prefix
-                yield load(module, class_.__name__), prefix
+                        yield load(m, class_.__name__, lc, cc), prefix
+                    yield load(m, class_.__name__, lc), prefix
+                yield load(m, class_.__name__), prefix
 
     def _iter_class(self, component):
         queue = collections.deque(((local.app().__class__, ''),))
         if isinstance(component, core.Component):
-            path = component.path().split(':')
-            index = len(path)
-            join = '.'.join
             queue.append((component.__class__, ''))
-            for component in component.iter_parent():
-                index -= 1
-                queue.append((component.__class__, join(path[index:])))
+            path = component.path().split(':')
+            i = len(path)
+            for c in component.iter_parent():
+                i -= 1
+                queue.append((c.__class__, '.'.join(path[i:])))
 
         while queue:
             class_, prefix = queue.pop()

@@ -166,7 +166,9 @@ class SpamPage(ayame.Page):
   </body>
 </html>
 """
-    kwargs = {'query': uri.quote('{}=link'.format(ayame.AYAME_PATH), '/=')}
+    kwargs = {
+        'query': uri.quote('{}=link'.format(ayame.AYAME_PATH), '/=')
+    }
 
     def __init__(self):
         super(SpamPage, self).__init__()

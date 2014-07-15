@@ -64,9 +64,9 @@ class Component(object):
             if self.__model is not None:
                 return self.__model
 
-            for current in self.iter_parent():
-                if isinstance(current.model, mm.InheritableModel):
-                    self.__model = current.model.wrap(self)
+            for curr in self.iter_parent():
+                if isinstance(curr.model, mm.InheritableModel):
+                    self.__model = curr.model.wrap(self)
                     return self.__model
 
         def fset(self, model):
@@ -84,14 +84,14 @@ class Component(object):
                  isinstance(prev, mm.InheritableModel))):
                 queue = collections.deque((self,))
                 while queue:
-                    component = queue.pop()
+                    c = queue.pop()
                     # reset model
-                    if (isinstance(component.model, mm.WrapModel) and
-                        component.model.wrapped_model == prev):
-                        component.model = None
+                    if (isinstance(c.model, mm.WrapModel) and
+                        c.model.wrapped_model == prev):
+                        c.model = None
                     # push children
-                    if isinstance(component, MarkupContainer):
-                        queue.extend(reversed(component.children))
+                    if isinstance(c, MarkupContainer):
+                        queue.extend(reversed(c.children))
 
         return locals()
 
@@ -131,10 +131,10 @@ class Component(object):
         return self.app.session
 
     def add(self, *args):
-        for object in args:
-            if isinstance(object, Behavior):
-                self.behaviors.append(object)
-                object.component = self
+        for o in args:
+            if isinstance(o, Behavior):
+                self.behaviors.append(o)
+                o.component = self
         return self
 
     def converter_for(self, value):
@@ -143,65 +143,64 @@ class Component(object):
     def element(self):
         # find MarkupContainer which has markup
         path = [self.id]
-        for parent in self.iter_parent():
-            if parent.has_markup:
+        for par in self.iter_parent():
+            if par.has_markup:
                 break
-            path.append(parent.id)
+            path.append(par.id)
         else:
             return
         path.reverse()
         # find form element
-        m = parent.load_markup()
+        m = par.load_markup()
         if m.root is None:
             # markup is empty
             return
-        element = m.root
+        elem = m.root
         while path:
-            for element, _ in element.walk():
-                if element.attrib.get(markup.AYAME_ID) == path[0]:
+            for elem, _ in elem.walk():
+                if elem.attrib.get(markup.AYAME_ID) == path[0]:
                     break
             else:
                 return
             del path[0]
-        return element
+        return elem
 
     def forward(self, *args, **kwargs):
         return self.app.forward(*args, **kwargs)
 
     def iter_parent(self, class_=None):
-        current = self.parent
+        curr = self.parent
         if class_ is None:
-            while current is not None:
-                yield current
-                current = current.parent
+            while curr is not None:
+                yield curr
+                curr = curr.parent
         else:
-            while current is not None:
-                yield current
-                if isinstance(current, class_):
+            while curr is not None:
+                yield curr
+                if isinstance(curr, class_):
                     return
-                current = current.parent
+                curr = curr.parent
             raise ComponentError(self,
                                  "component is not attached to '{}'".format(util.fqon_of(class_)))
 
     def model_object_as_string(self):
-        object = self.model_object
-        if object is not None:
-            if not isinstance(object, five.string_type):
-                converter = self.converter_for(object)
-                object = converter.to_string(object)
-            return five.html_escape(object) if self.escape_model_string else object
+        o = self.model_object
+        if o is not None:
+            if not isinstance(o, five.string_type):
+                o = self.converter_for(o).to_string(o)
+            return five.html_escape(o) if self.escape_model_string else o
         return u''
 
     def page(self):
-        current = self
-        if not isinstance(current, Page):
-            for current in self.iter_parent(Page):
+        curr = self
+        if not isinstance(curr, Page):
+            for curr in self.iter_parent(Page):
                 pass
-        return current
+        return curr
 
     def path(self):
         lis = [self]
-        lis.extend(c for c in self.iter_parent())
+        lis.extend(self.iter_parent())
         if (isinstance(lis[-1], Page) and
             lis[-1].id is None):
             del lis[-1]
@@ -226,21 +225,22 @@ class Component(object):
             return element
 
     def on_before_render(self):
-        for behavior in self.behaviors:
-            behavior.on_before_render(self)
+        for b in self.behaviors:
+            b.on_before_render(self)
 
     def on_render(self, element):
-        for behavior in self.behaviors:
-            behavior.on_component(self, element)
+        for b in self.behaviors:
+            b.on_component(self, element)
         return element
 
     def on_after_render(self):
-        for behavior in self.behaviors:
-            behavior.on_after_render(self)
+        for b in self.behaviors:
+            b.on_after_render(self)
 
     def tr(self, key, component=None):
         if component is None:
             component = self
+
         return self.config['ayame.i18n.localizer'].get(component, self.request.locale, key)
 
     def uri_for(self, *args, **kwargs):
@@ -272,16 +272,16 @@ class MarkupContainer(Component):
     head = property(**head())
 
     def add(self, *args):
-        for object in args:
-            if isinstance(object, Component):
-                if object.id in self._ref:
+        for o in args:
+            if isinstance(o, Component):
+                if o.id in self._ref:
                     raise ComponentError(self,
-                                         u"component for '{}' already exists".format(object.id))
-                self.children.append(object)
-                self._ref[object.id] = object
-                object.parent = self
+                                         u"component for '{}' already exists".format(o.id))
+                self.children.append(o)
+                self._ref[o.id] = o
+                o.parent = self
             else:
-                super(MarkupContainer, self).add(object)
+                super(MarkupContainer, self).add(o)
         return self
 
     def find(self, path):
@@ -289,8 +289,8 @@ class MarkupContainer(Component):
             return self
         p = path.split(':', 1)
         id, tail = p[0], p[1] if 1 < len(p) else None
-        child = self._ref.get(id)
-        return child.find(tail) if isinstance(child, MarkupContainer) else child
+        c = self._ref.get(id)
+        return c.find(tail) if isinstance(c, MarkupContainer) else c
 
     def walk(self, step=None):
         queue = collections.deque(((self, 0),))
@@ -307,16 +307,16 @@ class MarkupContainer(Component):
     def fire(self):
         if self.request.path:
             # fire component
-            component = self.find(self.request.path)
-            if (component is not None and
-                component.visible):
-                component.on_fire()
+            c = self.find(self.request.path)
+            if (c is not None and
+                c.visible):
+                c.on_fire()
 
     def on_before_render(self):
         super(MarkupContainer, self).on_before_render()
-        for child in self.children:
-            if child.visible:
-                child.on_before_render()
+        for c in self.children:
+            if c.visible:
+                c.on_before_render()
 
     def on_render(self, element):
         def push(queue, node):
@@ -348,21 +348,21 @@ class MarkupContainer(Component):
                     else:
                         parent[index:index + 1] = value
                     # save same parent elements
-                    elements = []
+                    elems = []
                     while queue:
                         q = queue.pop()
                         if q[0] != parent:
                             queue.append(q)
                             break
-                        elements.append(q[2])
-                    # append rendered children
-                    elements.extend(v for v in value
-                                    if isinstance(v, markup.Element))
-                    if elements:
-                        # replace ayame element (queue)
-                        total = len(elements)
+                        elems.append(q[2])
+                    # append rendered elements
+                    elems.extend(v for v in value
+                                 if isinstance(v, markup.Element))
+                    # replace ayame element (queue)
+                    if elems:
+                        total = len(elems)
                         last = index + total - 1
-                        queue.extend((parent, last - i, elements[i])
+                        queue.extend((parent, last - i, elems[i])
                                      for i in five.range(total))
                     continue
                 elif isinstance(value, markup.Element):
@@ -381,14 +381,14 @@ class MarkupContainer(Component):
                 # remove element
                 del parent[index]
                 # shrink indices
-                elements = []
+                elems = []
                 while queue:
                     q = queue.pop()
                     if q[0] != parent:
                         queue.append(q)
                         break
-                    elements.append((q[0], q[1] - 1, q[2]))
-                queue.extend(reversed(elements))
+                    elems.append((q[0], q[1] - 1, q[2]))
+                queue.extend(reversed(elems))
             elif util.iterable(value):
                 # replace element
                 parent[index:index + 1] = value
@@ -401,17 +401,17 @@ class MarkupContainer(Component):
         return root
 
     def on_render_element(self, element):
-        def get(element, attr, keep=True):
-            if attr in element.attrib:
-                return element.attrib[attr] if keep else element.attrib.pop(attr)
+        def get(elem, attr, keep=True):
+            if attr in elem.attrib:
+                return elem.attrib[attr] if keep else elem.attrib.pop(attr)
             raise RenderingError(self,
                                  u"'ayame:{}' attribute is required for "
-                                 u"'ayame:{}' element".format(attr.name, element.qname.name))
+                                 u"'ayame:{}' element".format(attr.name, elem.qname.name))
 
         def find(path):
-            component = self.find(path)
-            if component is not None:
-                return component
+            c = self.find(path)
+            if c is not None:
+                return c
             raise ComponentError(self,
                                  u"component for '{}' is not found".format(path))
 
@@ -421,13 +421,13 @@ class MarkupContainer(Component):
             find(get(element, markup.AYAME_ID)).render_body_only = True
             return element
         elif element.qname == markup.AYAME_ENCLOSURE:
-            component = find(get(element, markup.AYAME_CHILD))
-            return element.children if component.visible else None
+            c = find(get(element, markup.AYAME_CHILD))
+            return element.children if c.visible else None
         elif element.qname == markup.AYAME_MESSAGE:
-            key = get(element, markup.AYAME_KEY, False)
-            message = _MessageContainer(util.new_token()[:7], key)
-            self.add(message)
-            element.attrib[markup.AYAME_ID] = message.id
+            k = get(element, markup.AYAME_KEY, False)
+            mc = _MessageContainer(util.new_token()[:7], k)
+            self.add(mc)
+            element.attrib[markup.AYAME_ID] = mc.id
             return element
         raise RenderingError(self,
                              u"unknown element 'ayame:{}'".format(element.qname.name))
@@ -461,21 +461,21 @@ class MarkupContainer(Component):
         if ayame_id is None:
             return None, element
         # find component
-        component = self.find(ayame_id)
-        if component is None:
+        c = self.find(ayame_id)
+        if c is None:
             raise ComponentError(self,
                                  u"component for '{}' is not found".format(ayame_id))
-        elif not component.visible:
+        elif not c.visible:
             return ayame_id, None
         # render component
-        element = component.on_render(element)
-        return ayame_id, element.children if component.render_body_only else element
+        element = c.on_render(element)
+        return ayame_id, element.children if c.render_body_only else element
 
     def on_after_render(self):
         super(MarkupContainer, self).on_after_render()
-        for child in self.children:
-            if child.visible:
-                child.on_after_render()
+        for c in self.children:
+            if c.visible:
+                c.on_after_render()
 
     def load_markup(self):
         def step(element, depth):
@@ -490,23 +490,23 @@ class MarkupContainer(Component):
             return markup_type.extension
 
         loader = self.config['ayame.markup.loader']()
-        encoding = self.config['ayame.markup.encoding']
+        enc = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
         class_ = self.__class__
         extra_head = []
         ayame_child = None
         while True:
             m = loader.load(class_,
-                            util.load_data(class_, path_of(class_), encoding))
+                            util.load_data(class_, path_of(class_), enc))
             if m.root is None:
                 # markup is empty
                 break
 
             stack = []
             ayame_extend = ayame_head = None
-            for element, depth in m.root.walk(step=step):
-                stack[depth:] = [element]
-                if element.qname == markup.AYAME_EXTEND:
+            for elem, depth in m.root.walk(step=step):
+                stack[depth:] = [elem]
+                if elem.qname == markup.AYAME_EXTEND:
                     if ayame_extend is None:
                         # resolve superclass
                         superclass = None
@@ -520,21 +520,21 @@ class MarkupContainer(Component):
                         if superclass is None:
                             raise AyameError("superclass of '{}' is not found".format(util.fqon_of(class_)))
                         class_ = superclass
-                        ayame_extend = element
-                elif element.qname == markup.AYAME_CHILD:
+                        ayame_extend = elem
+                elif elem.qname == markup.AYAME_CHILD:
                     if ayame_child is not None:
                         # merge submarkup into supermarkup
                         if len(stack) < 2:
                             raise RenderingError(self,
                                                  "'ayame:child' element cannot be the root element")
                         parent = stack[-2]
-                        index = parent.children.index(element)
-                        parent[index:index + 1] = ayame_child
+                        i = parent.children.index(elem)
+                        parent[i:i + 1] = ayame_child
                         ayame_child = None
-                elif element.qname == markup.AYAME_HEAD:
+                elif elem.qname == markup.AYAME_HEAD:
                     if ('html' in m.lang and
                         ayame_head is None):
-                        ayame_head = element
+                        ayame_head = elem
             if ayame_child is not None:
                 raise RenderingError(class_,
                                      "'ayame:child' element is not found")
@@ -590,13 +590,13 @@ class _MessageContainer(MarkupContainer):
             self.add(_AttributeLocalizer())
 
     def on_render(self, element):
-        key = self.model_object
-        if key is not None:
-            value = self.parent.tr(key)
-            if value is None:
+        k = self.model_object
+        if k is not None:
+            v = self.parent.tr(k)
+            if v is None:
                 raise RenderingError(self.parent,
-                                     "no value found for ayame:message with key '{}'".format(key))
-            element[:] = (value,)
+                                     "no value found for ayame:message with key '{}'".format(k))
+            element[:] = (v,)
             return element
         # notify behaviors and render components
         return super(_MessageContainer, self).on_render(element)
@@ -626,16 +626,15 @@ class Page(MarkupContainer):
             self.head = self.find_head(m.root)
             m.root = super(Page, self).render(m.root)
             # remove ayame namespace from root element
-            for prefix in tuple(m.root.ns):
-                if m.root.ns[prefix] == markup.AYAME_NS:
-                    del m.root.ns[prefix]
+            for pfx in tuple(m.root.ns):
+                if m.root.ns[pfx] == markup.AYAME_NS:
+                    del m.root.ns[pfx]
             # render markup
             renderer = self.config['ayame.markup.renderer']()
             pretty = self.config['ayame.markup.pretty']
             content = renderer.render(self, m, pretty=pretty)
         # HTTP headers
-        mime_type = self.markup_type.mime_type
-        self.headers['Content-Type'] = '{}; charset=UTF-8'.format(mime_type)
+        self.headers['Content-Type'] = '{}; charset=UTF-8'.format(self.markup_type.mime_type)
         self.headers['Content-Length'] = str(len(content))
         return self.status, self.__headers, content
 
@@ -686,21 +685,21 @@ class Behavior(object):
 
 class AttributeModifier(Behavior):
 
-    def __init__(self, attribute, model):
+    def __init__(self, attr, model):
         super(AttributeModifier, self).__init__()
-        self._attribute = attribute
+        self._attr = attr
         self._model = model
 
     def on_component(self, component, element):
-        attr = self._attribute if isinstance(self._attribute, markup.QName) else markup.QName(element.qname.ns_uri, self._attribute)
-        value = self._model.object if self._model is not None else None
+        attr = self._attr if isinstance(self._attr, markup.QName) else markup.QName(element.qname.ns_uri, self._attr)
+        v = self._model.object if self._model is not None else None
 
-        new_value = self.new_value(element.attrib.get(attr), value)
-        if new_value is None:
+        v = self.new_value(element.attrib.get(attr), v)
+        if v is None:
             if attr in element.attrib:
                 del element.attrib[attr]
         else:
-            element.attrib[attr] = new_value
+            element.attrib[attr] = v
 
     def new_value(self, value, new_value):
         return new_value
@@ -715,24 +714,24 @@ class _AttributeLocalizer(Behavior):
             except ValueError:
                 raise RenderingError(component,
                                      'invalid value is found in ayame:message attribute')
-            value = component.tr(key)
-            if value is not None:
+            v = component.tr(key)
+            if v is not None:
                 attr = markup.QName(element.qname.ns_uri, name)
-                element.attrib[attr] = value
+                element.attrib[attr] = v
 
 
 class nested(object):
 
-    def __init__(self, attribute):
-        if (not isinstance(attribute, type) or
-            not issubclass(attribute, MarkupContainer) or
-            attribute is MarkupContainer):
-            raise AyameError("'{}' is not a subclass of MarkupContainer".format(util.fqon_of(attribute)))
-        self._attribute = attribute
+    def __init__(self, attr):
+        if (not isinstance(attr, type) or
+            not issubclass(attr, MarkupContainer) or
+            attr is MarkupContainer):
+            raise AyameError("'{}' is not a subclass of MarkupContainer".format(util.fqon_of(attr)))
+        self._attr = attr
         self._arranged = False
 
     def __get__(self, instance, owner):
-        attr = self._attribute
+        attr = self._attr
         if (not self._arranged and
             issubclass(owner, MarkupContainer)):
             attr.markup_type = markup.MarkupType(attr.markup_type.extension,

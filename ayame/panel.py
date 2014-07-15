@@ -49,14 +49,14 @@ class Panel(core.MarkupContainer):
             return element
 
         ayame_panel = ayame_head = None
-        for element, depth in m.root.walk(step=step):
-            if element.qname == markup.AYAME_PANEL:
+        for elem, _ in m.root.walk(step=step):
+            if elem.qname == markup.AYAME_PANEL:
                 if ayame_panel is None:
-                    ayame_panel = element
-            elif element.qname == markup.AYAME_HEAD:
+                    ayame_panel = elem
+            elif elem.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang and
                     ayame_head is None):
-                    ayame_head = element
+                    ayame_head = elem
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
         # append ayame:head element to Page
@@ -66,8 +66,6 @@ class Panel(core.MarkupContainer):
         return super(Panel, self).on_render(ayame_panel)
 
     def on_render_element(self, element):
-        if element.qname.ns_uri != markup.AYAME_NS:
-            return element
-        elif element.qname == markup.AYAME_PANEL:
+        if element.qname == markup.AYAME_PANEL:
             return element
         return super(Panel, self).on_render_element(element)

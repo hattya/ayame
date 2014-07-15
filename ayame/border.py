@@ -46,11 +46,11 @@ class Border(core.MarkupContainer):
         return super(Border, self).add(*args)
 
     def add(self, *args):
-        for object in args:
-            if isinstance(object, core._MessageContainer):
-                self.add_to_border(object)
+        for o in args:
+            if isinstance(o, core._MessageContainer):
+                self.add_to_border(o)
             else:
-                self.body.add(object)
+                self.body.add(o)
         return self
 
     def on_render(self, element):
@@ -65,21 +65,21 @@ class Border(core.MarkupContainer):
 
         body = element
         ayame_border = ayame_body = ayame_head = None
-        for element, depth in m.root.walk(step=step):
-            if element.qname == markup.AYAME_BORDER:
+        for elem, _ in m.root.walk(step=step):
+            if elem.qname == markup.AYAME_BORDER:
                 if ayame_border is None:
-                    ayame_border = element
-            elif element.qname == markup.AYAME_BODY:
+                    ayame_border = elem
+            elif elem.qname == markup.AYAME_BODY:
                 if (ayame_border is not None and
                     ayame_body is None):
                     # replace children of ayame:body element
-                    ayame_body = element
+                    ayame_body = elem
                     ayame_body.type = markup.Element.OPEN
                     ayame_body[:] = body.children
-            elif element.qname == markup.AYAME_HEAD:
+            elif elem.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang and
                     ayame_head is None):
-                    ayame_head = element
+                    ayame_head = elem
         if ayame_border is None:
             raise RenderingError(self, "'ayame:border' element is not found")
         elif ayame_body is None:
@@ -91,9 +91,7 @@ class Border(core.MarkupContainer):
         return super(Border, self).on_render(ayame_border)
 
     def on_render_element(self, element):
-        if element.qname.ns_uri != markup.AYAME_NS:
-            return element
-        elif element.qname == markup.AYAME_BORDER:
+        if element.qname == markup.AYAME_BORDER:
             return element
         elif element.qname == markup.AYAME_BODY:
             element.attrib[markup.AYAME_ID] = self.body.id
@@ -107,9 +105,7 @@ class _BorderBodyContainer(core.MarkupContainer):
         super(_BorderBodyContainer, self).__init__(id + u'_body', model)
 
     def on_render_element(self, element):
-        if element.qname.ns_uri != markup.AYAME_NS:
-            return element
-        elif element.qname == markup.AYAME_BODY:
+        if element.qname == markup.AYAME_BODY:
             return element
         return super(_BorderBodyContainer, self).on_render_element(element)
 

@@ -119,31 +119,31 @@ class Form(core.MarkupContainer):
         form = button = None
         valid = True
         while queue:
-            component = queue.pop()
-            if not component.visible:
+            c = queue.pop()
+            if not c.visible:
                 # skip invisible component
                 continue
-            elif isinstance(component, Form):
+            elif isinstance(c, Form):
                 # check nested form
                 if form is not None:
                     raise ComponentError(self, "Form is nested")
-                form = component
-            elif isinstance(component, FormComponent):
+                form = c
+            elif isinstance(c, FormComponent):
                 # validate
-                name = component.relative_path()
-                if isinstance(component, Button):
+                name = c.relative_path()
+                if isinstance(c, Button):
                     if (name in values and
                         button is None):
-                        button = component
-                elif isinstance(component, Choice):
-                    component.validate(values[name] if name in values else [])
+                        button = c
+                elif isinstance(c, Choice):
+                    c.validate(values[name] if name in values else [])
                 else:
-                    component.validate(values[name][0] if name in values else None)
+                    c.validate(values[name][0] if name in values else None)
                 if valid:
-                    valid = component.error is None
+                    valid = c.error is None
             # push children
-            if isinstance(component, core.MarkupContainer):
-                queue.extend(reversed(component.children))
+            if isinstance(c, core.MarkupContainer):
+                queue.extend(reversed(c.children))
         if not valid:
             if button is not None:
                 button.on_error()
@@ -163,9 +163,9 @@ class Form(core.MarkupContainer):
         pass
 
     def has_error(self):
-        for component, depth in self.walk():
-            if (isinstance(component, FormComponent) and
-                component.error):
+        for c, _ in self.walk():
+            if (isinstance(c, FormComponent) and
+                c.error):
                 return True
         return False
 
@@ -192,22 +192,22 @@ class FormComponent(core.MarkupContainer):
                 not value):
                 raise self.required_error()
             # convert to object
-            object = self.convert(value)
+            o = self.convert(value)
             # validate
-            for behavior in self.behaviors:
-                if isinstance(behavior, validator.Validator):
-                    behavior.validate(object)
+            for b in self.behaviors:
+                if isinstance(b, validator.Validator):
+                    b.validate(o)
         except ValidationError as e:
             label = self.tr(self.id, self.parent)
             e.component = self
-            e.variables.update(input=value,
-                               name=self.id,
-                               label=label if label is not None else self.id)
+            e.vars.update(input=value,
+                          name=self.id,
+                          label=label if label is not None else self.id)
             self.error = e
             self.on_invalid()
         else:
             if self.model is not None:
-                self.model.object = object
+                self.model.object = o
             self.on_valid()
 
     def on_valid(self):
@@ -220,9 +220,8 @@ class FormComponent(core.MarkupContainer):
         if self.type is None:
             return value
 
-        converter = self.converter_for(self.type)
         try:
-            return converter.to_python(value)
+            return self.converter_for(self.type).to_python(value)
         except ConversionError as e:
             raise self.conversion_error(e)
 
@@ -232,11 +231,11 @@ class FormComponent(core.MarkupContainer):
         return e
 
     def conversion_error(self, ce):
-        name = self.type.__name__
+        n = self.type.__name__
         e = ValidationError(five.str(ce))
-        e.keys.append('Converter.' + name)
+        e.keys.append('Converter.' + n)
         e.keys.append('Converter')
-        e.variables['type'] = name
+        e.vars['type'] = n
         return e
 
 
@@ -331,8 +330,7 @@ class CheckBox(FormComponent):
                                  "'input' element with 'type' attribute of "
                                  "'checkbox' is expected")
 
-        converter = self.converter_for(self.type)
-        checked = converter.to_python(self.model_object)
+        checked = self.converter_for(self.type).to_python(self.model_object)
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
         element.attrib[_VALUE] = u'on'
@@ -360,18 +358,18 @@ class Choice(FormComponent):
         if self.multiple:
             values = set(value)
             selected = []
-            for index, choice in enumerate(self.choices):
-                value = self.renderer.value_of(index, choice)
-                if value in values:
-                    values.remove(value)
+            for i, choice in enumerate(self.choices):
+                v = self.renderer.value_of(i, choice)
+                if v in values:
+                    values.remove(v)
                     selected.append(choice)
             if values:
                 raise self.choice_error()
             return selected
         elif value:
-            value = value[0]
-            for index, choice in enumerate(self.choices):
-                if self.renderer.value_of(index, choice) == value:
+            v = value[0]
+            for i, choice in enumerate(self.choices):
+                if self.renderer.value_of(i, choice) == v:
                     return choice
             raise self.choice_error()
 
@@ -411,10 +409,10 @@ class RadioChoice(Choice):
         if self.choices:
             name = self.relative_path()
             selected = self.model_object
-            id_prefix = self._id_prefix_for(element)
+            pfx = self._id_prefix_for(element)
             last = len(self.choices) - 1
-            for index, choice in enumerate(self.choices):
-                id = u'-'.join((id_prefix, five.str(index)))
+            for i, choice in enumerate(self.choices):
+                id = u'-'.join((pfx, five.str(i)))
                 # append prefix
                 element.extend(self.prefix.copy())
                 # radio button
@@ -422,23 +420,22 @@ class RadioChoice(Choice):
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = u'radio'
                 input.attrib[_NAME] = name
-                input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                input.attrib[_VALUE] = self.renderer.value_of(i, choice)
                 if choice == selected:
                     input.attrib[_CHECKED] = u'checked'
-                input = self.render_element(input, index, choice)
+                input = self.render_element(input, i, choice)
                 element.append(input)
                 # label
-                text = self.renderer.label_for(choice)
-                if not isinstance(text, five.string_type):
-                    converter = self.converter_for(text)
-                    text = converter.to_string(text)
+                s = self.renderer.label_for(choice)
+                if not isinstance(s, five.string_type):
+                    s = self.converter_for(s).to_string(s)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.append(five.html_escape(text))
-                label = self.render_element(label, index, choice)
+                label.append(five.html_escape(s))
+                label = self.render_element(label, i, choice)
                 element.append(label)
                 # append suffix
-                if index < last:
+                if i < last:
                     element.extend(self.suffix.copy())
         # render radio choice
         return super(RadioChoice, self).on_render(element)
@@ -458,10 +455,10 @@ class CheckBoxChoice(Choice):
             name = self.relative_path()
             selected = self.model_object
             is_selected = operator.contains if self.multiple else operator.eq
-            id_prefix = self._id_prefix_for(element)
+            pfx = self._id_prefix_for(element)
             last = len(self.choices) - 1
-            for index, choice in enumerate(self.choices):
-                id = u'-'.join((id_prefix, five.str(index)))
+            for i, choice in enumerate(self.choices):
+                id = u'-'.join((pfx, five.str(i)))
                 # append prefix
                 element.extend(self.prefix.copy())
                 # checkbox
@@ -469,24 +466,23 @@ class CheckBoxChoice(Choice):
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = u'checkbox'
                 input.attrib[_NAME] = name
-                input.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                input.attrib[_VALUE] = self.renderer.value_of(i, choice)
                 if (selected is not None and
                     is_selected(selected, choice)):
                     input.attrib[_CHECKED] = u'checked'
-                input = self.render_element(input, index, choice)
+                input = self.render_element(input, i, choice)
                 element.append(input)
                 # label
-                text = self.renderer.label_for(choice)
-                if not isinstance(text, five.string_type):
-                    converter = self.converter_for(text)
-                    text = converter.to_string(text)
+                s = self.renderer.label_for(choice)
+                if not isinstance(s, five.string_type):
+                    s = self.converter_for(s).to_string(s)
                 label = markup.Element(_LABEL, type=markup.Element.EMPTY)
                 label.attrib[_FOR] = id
-                label.append(five.html_escape(text))
-                label = self.render_element(label, index, choice)
+                label.append(five.html_escape(s))
+                label = self.render_element(label, i, choice)
                 element.append(label)
                 # append suffix
-                if index < last:
+                if i < last:
                     element.extend(self.suffix.copy())
         # render checkbox choice
         return super(CheckBoxChoice, self).on_render(element)
@@ -514,25 +510,24 @@ class SelectChoice(Choice):
             selected = self.model_object
             is_selected = operator.contains if self.multiple else operator.eq
             last = len(self.choices) - 1
-            for index, choice in enumerate(self.choices):
+            for i, choice in enumerate(self.choices):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # option
                 option = markup.Element(_OPTION, type=markup.Element.EMPTY)
-                option.attrib[_VALUE] = self.renderer.value_of(index, choice)
+                option.attrib[_VALUE] = self.renderer.value_of(i, choice)
                 if (selected is not None and
                     is_selected(selected, choice)):
                     option.attrib[_SELECTED] = u'selected'
-                option = self.render_element(option, index, choice)
+                option = self.render_element(option, i, choice)
                 # label
-                text = self.renderer.label_for(choice)
-                if not isinstance(text, five.string_type):
-                    converter = self.converter_for(text)
-                    text = converter.to_string(text)
-                option.append(five.html_escape(text))
+                s = self.renderer.label_for(choice)
+                if not isinstance(s, five.string_type):
+                    s = self.converter_for(s).to_string(s)
+                option.append(five.html_escape(s))
                 element.append(option)
                 # append suffix
-                if index < last:
+                if i < last:
                     element.extend(self.suffix.copy())
         # render select choice
         return super(SelectChoice, self).on_render(element)

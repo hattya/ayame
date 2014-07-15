@@ -48,9 +48,9 @@ def push(app, environ):
     if stack is None:
         _local.stack = stack = []
 
-    context = _Context(app, environ)
-    stack.append(context)
-    return context
+    ctx = _Context(app, environ)
+    stack.append(ctx)
+    return ctx
 
 
 def pop():
