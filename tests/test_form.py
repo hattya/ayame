@@ -331,6 +331,31 @@ Content-Disposition: form-data; name="button"
             p()
         self.assert_is_none(p.find('__form__').model_object)
 
+    def test_form_invisible_form_component(self):
+        query = ('{path}=form&'
+                 'area=area&'
+                 'file=a.txt&'
+                 'button')
+        with self.application(self.new_environ(query=query)):
+            p = SpamPage()
+            p.find('form:text').visible = False
+            p.find('form:text').required = True
+            p.find('form:password').visible = False
+            p.find('form:password').required = True
+            p.find('form:hidden').visible = False
+            p.find('form:hidden').required = True
+            with self.assert_raises(Valid):
+                p()
+            f = p.find('form')
+            self.assert_equal(f.model_object, {'text': '',
+                                               'password': '',
+                                               'hidden': '',
+                                               'area': 'area',
+                                               'checkbox': False,
+                                               'file': 'a.txt',
+                                               'button': 'submitted'})
+            self.assert_false(f.has_error())
+
     def test_form_component_relative_path(self):
         f = form.Form('a')
         f.add(form.FormComponent('b1'))

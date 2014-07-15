@@ -73,6 +73,8 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.behaviors, [])
         self.assert_equal(c.path(), 'a')
         self.assert_equal(c.render(''), '')
+        c.visible = False
+        self.assert_is_none(c.render(''))
 
     def test_component_with_model(self):
         with self.assert_raises_regex(ayame.ComponentError,
@@ -119,6 +121,8 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.behaviors, [])
         self.assert_equal(c.path(), 'a')
         self.assert_equal(c.render(''), '')
+        c.visible = False
+        self.assert_is_none(c.render(''))
 
         m = model.Model('&<>')
         self.assert_equal(m.object, '&<>')
@@ -201,6 +205,8 @@ class CoreTestCase(AyameTestCase):
                                      (b2, 1)])
 
         self.assert_equal(mc.render(''), '')
+        mc.visible = False
+        self.assert_is_none(mc.render(''))
 
     def test_render_no_child_component(self):
         root = markup.Element(markup.QName('', 'root'))
@@ -683,6 +689,49 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(a.qname, markup.QName('', 'a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, [])
+
+    def test_render_invisible_child(self):
+        root = markup.Element(markup.QName('', 'root'))
+        a = markup.Element(markup.QName('', 'a'))
+        root.append(a)
+        b = markup.Element(markup.QName('', 'b'),
+                           attrib={markup.AYAME_ID: 'b1'})
+        a.append(b)
+        c = markup.Element(markup.QName('', 'c'),
+                           attrib={markup.AYAME_ID: 'c1'})
+        b.append(c)
+        b = markup.Element(markup.QName('', 'b'),
+                           attrib={markup.AYAME_ID: 'b2'})
+        a.append(b)
+        c = markup.Element(markup.QName('', 'c'),
+                           attrib={markup.AYAME_ID: 'c2'})
+        b.append(c)
+        mc = ayame.MarkupContainer('a')
+        mc.add(ayame.MarkupContainer('b1'))
+        mc.find('b1').add(ayame.Component('c1'))
+        mc.find('b1').visible = False
+        mc.add(ayame.MarkupContainer('b2'))
+        mc.find('b2').add(ayame.Component('c2'))
+
+        root = mc.render(root)
+        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.attrib, {})
+        self.assert_equal(len(root), 1)
+
+        a = root.children[0]
+        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.attrib, {})
+        self.assert_equal(len(a), 1)
+
+        b = a.children[0]
+        self.assert_equal(b.qname, markup.QName('', 'b'))
+        self.assert_equal(b.attrib, {})
+        self.assert_equal(len(b), 1)
+
+        c = b.children[0]
+        self.assert_equal(c.qname, markup.QName('', 'c'))
+        self.assert_equal(c.attrib, {})
+        self.assert_equal(c.children, [])
 
     def test_markup_inheritance(self):
         class Spam(ayame.MarkupContainer):
@@ -1320,6 +1369,22 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
 
+    def test_fire_get_invisible_component(self):
+        query = '{path}=clay1'
+        with self.application(self.new_environ(query=query)):
+            p = EggsPage()
+            p.find('clay1').visible = False
+            status, headers, content = p()
+        html = self.format(EggsPage, clay1=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        self.assert_equal(p.model_object, {'clay1': 0,
+                                           'clay2': 0})
+
     def test_fire_post(self):
         data = """\
 {__}
@@ -1387,25 +1452,47 @@ clay2
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
 
-    def test_fire_component(self):
-        class Component(ayame.Component):
-            def on_fire(self):
-                self.model_object += 1
+    def test_fire_post_invisible_component(self):
+        data = """\
+{__}
+Content-Disposition: form-data; name="{path}"
 
+clay1
+{____}
+"""
+        with self.application(self.new_environ(method='POST', body=data)):
+            p = EggsPage()
+            p.find('clay1').visible = False
+            status, headers, content = p()
+        html = self.format(EggsPage, clay1=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+        self.assert_equal(p.model_object, {'clay1': 0,
+                                           'clay2': 0})
+
+    def test_fire_component(self):
         query = '{path}=c'
         with self.application(self.new_environ(query=query)):
-            c = Component('c', model.Model(0))
+            c = Component('c')
             c.fire()
         self.assert_equal(c.model_object, 1)
 
     def test_fire_component_uknown_path(self):
-        class Component(ayame.Component):
-            def on_fire(self):
-                self.model_object += 1
-
         query = '{path}=g'
         with self.application(self.new_environ(query=query)):
-            c = Component('c', model.Model(0))
+            c = Component('c')
+            c.fire()
+        self.assert_equal(c.model_object, 0)
+
+    def test_fire_component_invisible(self):
+        query = '{path}=c'
+        with self.application(self.new_environ(query=query)):
+            c = Component('c')
+            c.visible = False
             c.fire()
         self.assert_equal(c.model_object, 0)
 
@@ -1498,6 +1585,15 @@ clay2
             self.assert_is_instance(p.find('obstacle:clay2').element(), markup.Element)
 
 
+class Component(ayame.Component):
+
+    def __init__(self, id):
+        super(Component, self).__init__(id, model.Model(0))
+
+    def on_fire(self):
+        self.model_object += 1
+
+
 class AyameHeadContainer(ayame.MarkupContainer):
 
     def __init__(self, id, element=None):
@@ -1521,13 +1617,16 @@ class EggsPage(ayame.Page):
     <title>EggsPage</title>
   </head>
   <body>
-    <p>clay1</p>
+    {clay1}
     <div>
       <p>clay2</p>
     </div>
   </body>
 </html>
 """
+    kwargs = {
+        'clay1': lambda v=True: '<p>clay1</p>' if v else ''
+    }
 
     def __init__(self):
         super(EggsPage, self).__init__()

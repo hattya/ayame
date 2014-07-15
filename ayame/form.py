@@ -120,7 +120,10 @@ class Form(core.MarkupContainer):
         valid = True
         while queue:
             component = queue.pop()
-            if isinstance(component, Form):
+            if not component.visible:
+                # skip invisible component
+                continue
+            elif isinstance(component, Form):
                 # check nested form
                 if form is not None:
                     raise ComponentError(self, "Form is nested")

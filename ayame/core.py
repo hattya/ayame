@@ -211,17 +211,19 @@ class Component(object):
         return self.app.redirect(*args, **kwargs)
 
     def fire(self):
-        if self.request.path == self.path():
+        if (self.request.path == self.path() and
+            self.visible):
             self.on_fire()
 
     def on_fire(self):
         pass
 
     def render(self, element):
-        self.on_before_render()
-        element = self.on_render(element)
-        self.on_after_render()
-        return element
+        if self.visible:
+            self.on_before_render()
+            element = self.on_render(element)
+            self.on_after_render()
+            return element
 
     def on_before_render(self):
         for behavior in self.behaviors:
@@ -306,13 +308,15 @@ class MarkupContainer(Component):
         if self.request.path:
             # fire component
             component = self.find(self.request.path)
-            if component is not None:
+            if (component is not None and
+                component.visible):
                 component.on_fire()
 
     def on_before_render(self):
         super(MarkupContainer, self).on_before_render()
         for child in self.children:
-            child.on_before_render()
+            if child.visible:
+                child.on_before_render()
 
     def on_render(self, element):
         def push(queue, node):
@@ -470,7 +474,8 @@ class MarkupContainer(Component):
     def on_after_render(self):
         super(MarkupContainer, self).on_after_render()
         for child in self.children:
-            child.on_after_render()
+            if child.visible:
+                child.on_after_render()
 
     def load_markup(self):
         def step(element, depth):
