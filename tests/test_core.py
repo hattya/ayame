@@ -275,21 +275,23 @@ class CoreTestCase(AyameTestCase):
     def test_render_remove_element(self):
         class Component(ayame.Component):
             def on_render(self, element):
-                return None
+                return None if int(self.id) % 2 else self.id
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
-        a = markup.Element(markup.QName('', 'a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
+        for i in five.range(1, 10):
+            a = markup.Element(markup.QName('', 'a'),
+                               attrib={markup.AYAME_ID: str(i)})
+            root.append(a)
         root.append('<')
         mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
+        for i in five.range(1, 10):
+            mc.add(Component(str(i)))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
         self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, ['>', '<'])
+        self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
     def test_render_replace_element_by_string(self):
         class Component(ayame.Component):
@@ -359,19 +361,21 @@ class CoreTestCase(AyameTestCase):
     def test_render_remove_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
-                return None if element == a else element
+                n = element.qname.name
+                return element if n == 'root' else None if n == 'a' else n
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
-        a = markup.Element(self.ayame_of('a'))
-        root.append(a)
+        for i in five.range(1, 10):
+            a = markup.Element(self.ayame_of('a' if i % 2 else str(i)))
+            root.append(a)
         root.append('<')
         mc = MarkupContainer('a')
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
         self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, ['>', '<'])
+        self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
     def test_render_replace_ayame_element_by_string(self):
         class MarkupContainer(ayame.MarkupContainer):

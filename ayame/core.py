@@ -376,6 +376,15 @@ class MarkupContainer(Component):
             elif value is None:
                 # remove element
                 del parent[index]
+                # shrink indices
+                elements = []
+                while queue:
+                    q = queue.pop()
+                    if q[0] != parent:
+                        queue.append(q)
+                        break
+                    elements.append((q[0], q[1] - 1, q[2]))
+                queue.extend(reversed(elements))
             elif util.iterable(value):
                 # replace element
                 parent[index:index + 1] = value
