@@ -39,8 +39,8 @@ class Border(core.MarkupContainer):
         self.render_body_only = True
         # ayame:body element
         self.body = _BorderBodyContainer(id)
-        self.body.render_body_only = True
         self.add_to_border(self.body)
+        self.__body = False
 
     def add_to_border(self, *args):
         return super(Border, self).add(*args)
@@ -94,7 +94,10 @@ class Border(core.MarkupContainer):
         if element.qname == markup.AYAME_BORDER:
             return element
         elif element.qname == markup.AYAME_BODY:
-            element.attrib[markup.AYAME_ID] = self.body.id
+            # skip duplicates
+            if not self.__body:
+                element.attrib[markup.AYAME_ID] = self.body.id
+                self.__body = True
             return element
         return super(Border, self).on_render_element(element)
 
@@ -103,6 +106,7 @@ class _BorderBodyContainer(core.MarkupContainer):
 
     def __init__(self, id, model=None):
         super(_BorderBodyContainer, self).__init__(id + u'_body', model)
+        self.render_body_only = True
 
     def on_render_element(self, element):
         if element.qname == markup.AYAME_BODY:

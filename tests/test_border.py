@@ -479,17 +479,18 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(body.attrib, {})
         self.assert_equal(body.type, markup.Element.OPEN)
         self.assert_equal(body.ns, {})
-        self.assert_equal(len(body), 16)
+        self.assert_equal(len(body), 17)
         self.assert_ws(body, 0)
         self.assert_ws(body, 2)
         self.assert_ws(body, 3)
         self.assert_ws(body, 5)
         self.assert_ws(body, 6)
         self.assert_ws(body, 8)
-        self.assert_ws(body, 10)
-        self.assert_ws(body, 12)
+        self.assert_ws(body, 9)
+        self.assert_ws(body, 11)
         self.assert_ws(body, 13)
-        self.assert_ws(body, 15)
+        self.assert_ws(body, 14)
+        self.assert_ws(body, 16)
 
         p = body[1]
         self.assert_equal(p.qname, self.html_of('p'))
@@ -514,22 +515,21 @@ class BorderTestCase(AyameTestCase):
         p.normalize()
         self.assert_equal(p.children, ['inside border (LobsterBorder)'])
 
-        self.assert_ws(body, 9)
-        # ayame_body = body[9]
-        # self.assert_equal(ayame_body.qname, self.ayame_of('body'))
-        # self.assert_equal(ayame_body.attrib, {})
-        # self.assert_equal(ayame_body.type, markup.Element.EMPTY)
-        # self.assert_equal(ayame_body.ns, {})
-        # self.assert_equal(ayame_body.children, [])
+        ayame_body = body[10]
+        self.assert_equal(ayame_body.qname, self.ayame_of('body'))
+        self.assert_equal(ayame_body.attrib, {})
+        self.assert_equal(ayame_body.type, markup.Element.EMPTY)
+        self.assert_equal(ayame_body.ns, {})
+        self.assert_equal(ayame_body.children, [])
 
-        p = body[11]
+        p = body[12]
         self.assert_equal(p.qname, self.html_of('p'))
         self.assert_equal(p.attrib, {})
         self.assert_equal(p.type, markup.Element.OPEN)
         self.assert_equal(p.ns, {})
         self.assert_equal(p.children, ['after ayame:body (LobsterBorder)'])
 
-        p = body[14]
+        p = body[15]
         self.assert_equal(p.qname, self.html_of('p'))
         self.assert_equal(p.attrib, {})
         self.assert_equal(p.type, markup.Element.OPEN)
