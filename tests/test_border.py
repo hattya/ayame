@@ -514,12 +514,13 @@ class BorderTestCase(AyameTestCase):
         p.normalize()
         self.assert_equal(p.children, ['inside border (LobsterBorder)'])
 
-        ayame_body = body[9]
-        self.assert_equal(ayame_body.qname, self.ayame_of('body'))
-        self.assert_equal(ayame_body.attrib, {})
-        self.assert_equal(ayame_body.type, markup.Element.EMPTY)
-        self.assert_equal(ayame_body.ns, {})
-        self.assert_equal(ayame_body.children, [])
+        self.assert_ws(body, 9)
+        # ayame_body = body[9]
+        # self.assert_equal(ayame_body.qname, self.ayame_of('body'))
+        # self.assert_equal(ayame_body.attrib, {})
+        # self.assert_equal(ayame_body.type, markup.Element.EMPTY)
+        # self.assert_equal(ayame_body.ns, {})
+        # self.assert_equal(ayame_body.children, [])
 
         p = body[11]
         self.assert_equal(p.qname, self.html_of('p'))

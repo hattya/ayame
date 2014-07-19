@@ -326,6 +326,14 @@ class MarkupContainer(Component):
                     if isinstance(child, markup.Element):
                         queue.append((node, index, child))
 
+        def pop_while(queue, parent):
+            while queue:
+                q = queue.pop()
+                if q[0] != parent:
+                    queue.append(q)
+                    break
+                yield q
+
         root = element
         # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
@@ -348,13 +356,7 @@ class MarkupContainer(Component):
                     else:
                         parent[index:index + 1] = value
                     # save same parent elements
-                    elems = []
-                    while queue:
-                        q = queue.pop()
-                        if q[0] != parent:
-                            queue.append(q)
-                            break
-                        elems.append(q[2])
+                    elems = [t[2] for t in pop_while(queue, parent)]
                     # append rendered elements
                     elems.extend(v for v in value
                                  if isinstance(v, markup.Element))
@@ -380,18 +382,16 @@ class MarkupContainer(Component):
             elif value is None:
                 # remove element
                 del parent[index]
-                # shrink indices
-                elems = []
-                while queue:
-                    q = queue.pop()
-                    if q[0] != parent:
-                        queue.append(q)
-                        break
-                    elems.append((q[0], q[1] - 1, q[2]))
-                queue.extend(reversed(elems))
+                # update indices (decrease)
+                queue.extend(reversed([(t[0], t[1] - 1, t[2])
+                                       for t in pop_while(queue, parent)]))
             elif util.iterable(value):
                 # replace element
                 parent[index:index + 1] = value
+                # update indices (increase)
+                amt = len(value) - 1
+                queue.extend(reversed([(t[0], t[1] + amt, t[2])
+                                       for t in pop_while(queue, parent)]))
                 for v in value:
                     push(queue, v)
             else:

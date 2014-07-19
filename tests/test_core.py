@@ -321,21 +321,23 @@ class CoreTestCase(AyameTestCase):
     def test_render_replace_element_by_list(self):
         class Component(ayame.Component):
             def on_render(self, element):
-                return ['>>', '!', '<<']
+                return [self.id, str(int(self.id) + 2)]
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
-        a = markup.Element(markup.QName('', 'a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
+        for i in five.range(2, 10, 4):
+            a = markup.Element(markup.QName('', 'a'),
+                               attrib={markup.AYAME_ID: str(i)})
+            root.append(a)
         root.append('<')
         mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
+        for i in five.range(2, 10, 4):
+            mc.add(Component(str(i)))
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
         self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, ['>', '>>', '!', '<<', '<'])
+        self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
     def test_render_replace_root_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
