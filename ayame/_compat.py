@@ -76,7 +76,8 @@ if PY2:
         return dict_items(d)
 
     def html_escape(s, quote=True):
-        return cgi.escape(s, quote)
+        s = cgi.escape(s, quote)
+        return s.replace("'", '&#x27;') if quote else s
 
     class UTC(datetime.tzinfo):
 

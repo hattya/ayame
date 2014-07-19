@@ -24,11 +24,13 @@
 #   SOFTWARE.
 #
 
-from . import core, markup
+from . import _compat as five
+from . import core, basic, form, markup
+from . import model as mm
 from .exception import RenderingError
 
 
-__all__ = ['Panel']
+__all__ = ['Panel', 'FeedbackPanel']
 
 
 class Panel(core.MarkupContainer):
@@ -69,3 +71,38 @@ class Panel(core.MarkupContainer):
         if element.qname == markup.AYAME_PANEL:
             return element
         return super(Panel, self).on_render_element(element)
+
+
+class FeedbackPanel(Panel):
+
+    def __init__(self, id):
+        super(FeedbackPanel, self).__init__(id)
+        self.__visible = None
+        self.__errors = []
+
+        self.add(self._ListView('feedback', mm.Model(self.__errors)))
+
+    def visible():
+        def fget(self):
+            if self.__visible is None:
+                if self.request.path:
+                    c = self.page().find(self.request.path)
+                    if isinstance(c, form.Form):
+                        for c, _ in c.walk():
+                            if (isinstance(c, form.FormComponent) and
+                                c.error):
+                                self.__errors.append(five.str(c.error))
+                self.__visible = bool(self.__errors)
+            return self.__visible
+
+        def fset(self, visible):
+            pass
+
+        return locals()
+
+    visible = property(**visible())
+
+    class _ListView(basic.ListView):
+
+        def populate_item(self, item):
+            item.add(basic.Label('message', item.model_object))

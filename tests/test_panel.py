@@ -25,11 +25,15 @@
 #
 
 import ayame
-from ayame import basic, http, markup, panel
+from ayame import basic, form, http, markup, panel
 from base import AyameTestCase
 
 
 class PanelTestCase(AyameTestCase):
+
+    def setup(self):
+        super(PanelTestCase, self).setup()
+        self.app.config['ayame.markup.pretty'] = True
 
     def test_panel(self):
         class Spam(MarkupContainer):
@@ -474,6 +478,55 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(p.ns, {})
         self.assert_equal(p.children, ['after panel (Lobster)'])
 
+    def test_feedback_panel(self):
+        with self.application(self.new_environ()):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_panel_valid(self):
+        query = ('{path}=form&'
+                 'text=text')
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_panel_invalid(self):
+        query = ('{path}=form&'
+                 'text=')
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=True)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_panel_nonexistent_path(self):
+        query = '{path}=panel'
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()
@@ -541,3 +594,38 @@ class TomatoPage(ayame.Page):
 
 class TomatoPanel(Panel):
     pass
+
+
+class ShallotsPage(ayame.Page):
+
+    html_t = u"""\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="{xhtml}">
+  <head>
+    <title>ShallotsPage</title>
+  </head>
+  <body>
+    <form action="/" method="post">
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
+      <fieldset>
+        <legend>form</legend>
+        <input name="text" type="text" value="" /><br />
+      </fieldset>
+    </form>{error}
+  </body>
+</html>
+"""
+    kwargs = {
+        'error': lambda v=False: """
+    <ul class="feedback-panel">
+      <li>&#x27;text&#x27; is required</li>
+    </ul>""" if v else ''
+    }
+
+    def __init__(self):
+        super(ShallotsPage, self).__init__()
+        self.add(form.Form('form'))
+        self.find('form').add(form.TextField('text'))
+        self.find('form:text').required = True
+        self.add(panel.FeedbackPanel('panel'))
