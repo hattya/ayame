@@ -355,17 +355,16 @@ class MarkupContainer(Component):
                         root = value
                     else:
                         parent[index:index + 1] = value
-                    # save same parent elements
-                    elems = [t[2] for t in pop_while(queue, parent)]
-                    # append rendered elements
-                    elems.extend(v for v in value
-                                 if isinstance(v, markup.Element))
+                    # assign indices to rendered elements
+                    elems = [(parent, index + i, v)
+                             for i, v in enumerate(value)
+                             if isinstance(v, markup.Element)]
+                    # update indices (increase)
+                    amt = len(value) - 1
+                    elems.extend((t[0], t[1] + amt, t[2])
+                                 for t in pop_while(queue, parent))
                     # replace ayame element (queue)
-                    if elems:
-                        total = len(elems)
-                        last = index + total - 1
-                        queue.extend((parent, last - i, elems[i])
-                                     for i in five.range(total))
+                    queue.extend(reversed(elems))
                     continue
                 elif isinstance(value, markup.Element):
                     # there is no associated component

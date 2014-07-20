@@ -405,19 +405,25 @@ class CoreTestCase(AyameTestCase):
     def test_render_replace_ayame_element_by_list(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
-                return ['>>', '!', '<<'] if element == a else element
+                n = element.qname.name
+                if n == 'root':
+                    return element
+                elif element.qname.ns_uri == '':
+                    return n
+                return [n, markup.Element(markup.QName('', str(int(n) + 2)))]
 
         root = markup.Element(markup.QName('', 'root'))
         root.append('>')
-        a = markup.Element(self.ayame_of('a'))
-        root.append(a)
+        for i in five.range(2, 10, 4):
+            a = markup.Element(self.ayame_of(str(i)))
+            root.append(a)
         root.append('<')
         mc = MarkupContainer('a')
 
         root = mc.render(root)
         self.assert_equal(root.qname, markup.QName('', 'root'))
         self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, ['>', '>>', '!', '<<', '<'])
+        self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
     def test_render_ayame_container_no_ayame_id(self):
         root = markup.Element(markup.QName('', 'root'))
