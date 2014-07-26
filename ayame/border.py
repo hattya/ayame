@@ -63,7 +63,6 @@ class Border(core.MarkupContainer):
             # markup is empty
             return element
 
-        body = element
         ayame_border = ayame_body = ayame_head = None
         for elem, _ in m.root.walk(step=step):
             if elem.qname == markup.AYAME_BORDER:
@@ -75,7 +74,7 @@ class Border(core.MarkupContainer):
                     # replace children of ayame:body element
                     ayame_body = elem
                     ayame_body.type = markup.Element.OPEN
-                    ayame_body[:] = body
+                    ayame_body[:] = element
             elif elem.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang and
                     ayame_head is None):
@@ -87,13 +86,12 @@ class Border(core.MarkupContainer):
         # append ayame:head element to Page
         if ayame_head is not None:
             self.page().head.extend(ayame_head)
-        # render ayame:border element
-        return super(Border, self).on_render(ayame_border)
+        # render border
+        element[:] = ayame_border
+        return super(Border, self).on_render(element)
 
     def on_render_element(self, element):
-        if element.qname == markup.AYAME_BORDER:
-            return element
-        elif element.qname == markup.AYAME_BODY:
+        if element.qname == markup.AYAME_BODY:
             # skip duplicates
             if not self.__body:
                 element.attrib[markup.AYAME_ID] = self.body.id
