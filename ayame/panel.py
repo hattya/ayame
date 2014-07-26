@@ -64,13 +64,9 @@ class Panel(core.MarkupContainer):
         # append ayame:head element to Page
         if ayame_head is not None:
             self.page().head.extend(ayame_head)
-        # render ayame:panel element
-        return super(Panel, self).on_render(ayame_panel)
-
-    def on_render_element(self, element):
-        if element.qname == markup.AYAME_PANEL:
-            return element
-        return super(Panel, self).on_render_element(element)
+        # render panel
+        element[:] = ayame_panel
+        return super(Panel, self).on_render(element)
 
 
 class FeedbackPanel(Panel):
