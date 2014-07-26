@@ -25,11 +25,15 @@
 #
 
 import ayame
-from ayame import basic, border, http, markup
+from ayame import basic, border, form, http, markup
 from base import AyameTestCase
 
 
 class BorderTestCase(AyameTestCase):
+
+    def setup(self):
+        super(BorderTestCase, self).setup()
+        self.app.config['ayame.markup.pretty'] = True
 
     def test_border(self):
         class Spam(MarkupContainer):
@@ -536,6 +540,55 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(p.ns, {})
         self.assert_equal(p.children, ['after border (Lobster)'])
 
+    def test_feedback_field_border(self):
+        with self.application(self.new_environ()):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_field_border_valid(self):
+        query = ('{path}=form&'
+                 'field:field_body:text=text')
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_field_border_invalid(self):
+        query = ('{path}=form&'
+                 'field:field_body:text=')
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=True)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
+    def test_feedback_field_border_nonexistent_path(self):
+        query = '{path}=border'
+        with self.application(self.new_environ(query=query)):
+            p = ShallotsPage()
+            status, headers, content = p()
+        html = self.format(ShallotsPage, error=False)
+        self.assert_equal(status, http.OK.status)
+        self.assert_equal(headers,
+                          [('Content-Type', 'text/html; charset=UTF-8'),
+                           ('Content-Length', str(len(html)))])
+        self.assert_equal(content, html)
+
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()
@@ -603,3 +656,44 @@ class TomatoPage(ayame.Page):
 
 class TomatoBorder(Border):
     pass
+
+
+class ShallotsPage(ayame.Page):
+
+    html_t = u"""\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="{xhtml}">
+  <head>
+    <title>ShallotsPage</title>
+  </head>
+  <body>
+    <form action="/" method="post">
+      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
+      <fieldset>
+        <legend>form</legend>
+{error}
+      </fieldset>
+    </form>
+  </body>
+</html>
+"""
+    kwargs = {
+        'error': lambda v=False: """\
+        <div class="field-error">
+          <input name="field:field_body:text" type="text" value="" /><br />
+          <p class="feedback">&#x27;text&#x27; is required</p>
+        </div>\
+""" if v else """\
+        <div class="field">
+          <input name="field:field_body:text" type="text" value="" /><br />
+        </div>\
+"""
+    }
+
+    def __init__(self):
+        super(ShallotsPage, self).__init__()
+        self.add(form.Form('form'))
+        self.find('form').add(border.FeedbackFieldBorder('field'))
+        self.find('form:field').add(form.TextField('text'))
+        self.find('form:field:field_body:text').required = True

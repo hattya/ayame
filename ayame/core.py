@@ -218,11 +218,16 @@ class Component(object):
         pass
 
     def render(self, element):
+        self.on_configure()
         if self.visible:
             self.on_before_render()
             element = self.on_render(element)
             self.on_after_render()
             return element
+
+    def on_configure(self):
+        for b in self.behaviors:
+            b.on_configure(self)
 
     def on_before_render(self):
         for b in self.behaviors:
@@ -311,6 +316,11 @@ class MarkupContainer(Component):
             if (c is not None and
                 c.visible):
                 c.on_fire()
+
+    def on_configure(self):
+        super(MarkupContainer, self).on_configure()
+        for c in self.children:
+            c.on_configure()
 
     def on_before_render(self):
         super(MarkupContainer, self).on_before_render()
@@ -664,6 +674,9 @@ class Behavior(object):
 
     def forward(self, *args, **kwargs):
         return self.app.forward(*args, **kwargs)
+
+    def on_configure(self, component):
+        pass
 
     def on_before_render(self, component):
         pass
