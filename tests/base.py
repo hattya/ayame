@@ -83,9 +83,9 @@ class AyameTestCase(unittest.TestCase):
     def teardown(self):
         pass
 
-    def assert_ws(self, sequence, index):
-        self.assert_is_instance(sequence[index], five.string_type)
-        self.assert_regex(sequence[index], '^\s*$')
+    def assert_ws(self, seq, i):
+        self.assert_is_instance(seq[i], five.string_type)
+        self.assert_regex(seq[i], '^\s*$')
 
     @contextlib.contextmanager
     def application(self, environ=None):
@@ -100,7 +100,7 @@ class AyameTestCase(unittest.TestCase):
             local.pop()
 
     def new_environ(self, method='GET', path='', query='', data=None,
-                    body=None, accept=None):
+                    form=None, accept=None):
         query = uri.quote(query.format(path=ayame.AYAME_PATH))
         environ = {
             'SERVER_NAME': 'localhost',
@@ -113,24 +113,36 @@ class AyameTestCase(unittest.TestCase):
 
         if data is not None:
             environ['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
-            data = data.format(path=ayame.AYAME_PATH)
-        elif body is not None:
-            self.assert_is_instance(self.boundary, five.string_type)
-            self.assert_true(self.boundary)
+        elif form is not None:
             environ['CONTENT_TYPE'] = ('multipart/form-data; '
                                        'boundary={}').format(self.boundary)
-            data = body.format(path=ayame.AYAME_PATH,
-                               __='--{}'.format(self.boundary),
-                               ____='--{}--'.format(self.boundary))
+            data = form
         else:
             data = ''
-        data = data.encode('utf-8')
+        data = data.format(path=ayame.AYAME_PATH).encode('utf-8')
         environ['wsgi.input'].write(data)
         environ['wsgi.input'].seek(0)
         environ['CONTENT_LENGTH'] = str(len(data))
         if accept is not None:
             environ['HTTP_ACCEPT_LANGUAGE'] = accept
         return environ
+
+    def form_data(self, *args):
+        self.assert_is_instance(self.boundary, five.string_type)
+        self.assert_true(self.boundary)
+        buf = []
+        for n, v in args:
+            buf.append('--' + self.boundary)
+            if isinstance(v, tuple):
+                buf.append(u'Content-Disposition: form-data; name="{}"; filename="{}"'.format(n, v[0]))
+                buf.append('Content-Type: ' + v[2])
+                v = v[1]
+            else:
+                buf.append(u'Content-Disposition: form-data; name="{}"'.format(n))
+            buf.append('')
+            buf.append(v)
+        buf.append('--' + self.boundary + '--')
+        return '\r\n'.join(buf)
 
     def xml_of(self, name):
         return markup.QName(markup.XML_NS, name)
@@ -141,6 +153,9 @@ class AyameTestCase(unittest.TestCase):
     def ayame_of(self, name):
         return markup.QName(markup.AYAME_NS, name)
 
+    def of(self, name):
+        return markup.QName('', name)
+
     def format(self, class_, *args, **kwargs):
         kwargs.update(doctype=markup.XHTML1_STRICT,
                       xhtml=markup.XHTML_NS,
@@ -149,7 +164,8 @@ class AyameTestCase(unittest.TestCase):
                       path=ayame.AYAME_PATH)
         for k, v in five.items(getattr(class_, 'kwargs', {})):
             if callable(v):
-                kwargs[k] = v(*[kwargs[k]] if k in kwargs else [])
-            else:
-                kwargs.setdefault(k, v)
+                v = v(*[kwargs[k]] if k in kwargs else [])
+            elif k in kwargs:
+                continue
+            kwargs[k] = v
         return class_.html_t.format(*args, **kwargs).encode(kwargs.pop('encoding', 'utf-8'))

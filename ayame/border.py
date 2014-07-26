@@ -75,7 +75,7 @@ class Border(core.MarkupContainer):
                     # replace children of ayame:body element
                     ayame_body = elem
                     ayame_body.type = markup.Element.OPEN
-                    ayame_body[:] = body.children
+                    ayame_body[:] = body
             elif elem.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang and
                     ayame_head is None):
@@ -86,7 +86,7 @@ class Border(core.MarkupContainer):
             raise RenderingError(self, "'ayame:body' element is not found")
         # append ayame:head element to Page
         if ayame_head is not None:
-            self.page().head.extend(ayame_head.children)
+            self.page().head.extend(ayame_head)
         # render ayame:border element
         return super(Border, self).on_render(ayame_border)
 

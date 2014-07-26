@@ -1,7 +1,7 @@
 #
 # test_model
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -157,8 +157,10 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(mc.find('mapping').model.object, 'new_value')
 
     def test_compound_model_replace(self):
-        o = {'b': 'b',
-             'c': 'c'}
+        o = {
+            'b': 'b',
+            'c': 'c'
+        }
         m = model.CompoundModel(o)
         mc = ayame.MarkupContainer('a', m)
         mc.add(ayame.MarkupContainer('b'))

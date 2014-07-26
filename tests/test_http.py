@@ -1,7 +1,7 @@
 #
 # test_http
 #
-#   Copyright (c) 2011-2013 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -49,10 +49,10 @@ class HTTPTestCase(AyameTestCase):
             self.assert_is_instance(st, type)
             self.assert_true(issubclass(st, superclass))
 
-    def new_environ(self, data=None, body=None):
+    def new_environ(self, data=None, form=None):
         return super(HTTPTestCase, self).new_environ(method='POST',
                                                      data=data,
-                                                     body=body)
+                                                     form=form)
 
     def test_parse_accept(self):
         self.assert_equal(http.parse_accept(''),
@@ -72,7 +72,7 @@ class HTTPTestCase(AyameTestCase):
     def test_parse_form_data_empty(self):
         self.assert_equal(http.parse_form_data(self.new_environ()), {})
         self.assert_equal(http.parse_form_data(self.new_environ(data='')), {})
-        self.assert_equal(http.parse_form_data(self.new_environ(body='')), {})
+        self.assert_equal(http.parse_form_data(self.new_environ(form='')), {})
 
     def test_parse_form_data_ascii(self):
         data = """\
@@ -88,97 +88,44 @@ z=-3\
                            'y': ['-1', '-2'],
                            'z': ['-1', '-2', '-3']})
 
-        data = """\
-{__}
-Content-Disposition: form-data; name="x"
-
--1
-{__}
-Content-Disposition: form-data; name="y"
-
--1
-{__}
-Content-Disposition: form-data; name="y"
-
--2
-{__}
-Content-Disposition: form-data; name="z"
-
--1
-{__}
-Content-Disposition: form-data; name="z"
-
--2
-{__}
-Content-Disposition: form-data; name="z"
-
--3
-{____}
-"""
-        self.assert_equal(http.parse_form_data(self.new_environ(body=data)),
+        data = self.form_data(('x', '-1'),
+                              ('y', '-1'),
+                              ('y', '-2'),
+                              ('z', '-1'),
+                              ('z', '-2'),
+                              ('z', '-3'))
+        self.assert_equal(http.parse_form_data(self.new_environ(form=data)),
                           {'x': ['-1'],
                            'y': ['-1', '-2'],
                            'z': ['-1', '-2', '-3']})
 
     def test_parse_form_data_utf_8(self):
-        data = u"""\
-\u3082=\u767e&\
-\u305b=\u767e&\
-\u305b=\u5343&\
-\u3059=\u767e&\
-\u3059=\u5343&\
-\u3059=\u4e07\
-"""
+        data = (u'\u3082=\u767e&'
+                u'\u305b=\u767e&'
+                u'\u305b=\u5343&'
+                u'\u3059=\u767e&'
+                u'\u3059=\u5343&'
+                u'\u3059=\u4e07')
         self.assert_equal(http.parse_form_data(self.new_environ(data=data)),
                           {u'\u3082': [u'\u767e'],
                            u'\u305b': [u'\u767e', u'\u5343'],
                            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
-        data = u"""\
-{__}
-Content-Disposition: form-data; name="\u3082"
-
-\u767e
-{__}
-Content-Disposition: form-data; name="\u305b"
-
-\u767e
-{__}
-Content-Disposition: form-data; name="\u305b"
-
-\u5343
-{__}
-Content-Disposition: form-data; name="\u3059"
-
-\u767e
-{__}
-Content-Disposition: form-data; name="\u3059"
-
-\u5343
-{__}
-Content-Disposition: form-data; name="\u3059"
-
-\u4e07
-{____}
-"""
-        self.assert_equal(http.parse_form_data(self.new_environ(body=data)),
+        data = self.form_data((u'\u3082', u'\u767e'),
+                              (u'\u305b', u'\u767e'),
+                              (u'\u305b', u'\u5343'),
+                              (u'\u3059', u'\u767e'),
+                              (u'\u3059', u'\u5343'),
+                              (u'\u3059', u'\u4e07'),
+                              )
+        self.assert_equal(http.parse_form_data(self.new_environ(form=data)),
                           {u'\u3082': [u'\u767e'],
                            u'\u305b': [u'\u767e', u'\u5343'],
                            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
 
     def test_parse_form_data_post(self):
-        data = u"""\
-{__}
-Content-Disposition: form-data; name="a"; filename="\u3044"
-Content-Type: text/plain
-
-spam
-eggs
-ham
-
-{____}
-"""
-        form_data = http.parse_form_data(self.new_environ(body=data))
+        data = self.form_data(('a', (u'\u3044', 'spam\neggs\nham\n', 'text/plain')))
+        form_data = http.parse_form_data(self.new_environ(form=data))
         self.assert_equal(tuple(form_data), ('a',))
         self.assert_equal(len(form_data['a']), 1)
         a = form_data['a'][0]
@@ -189,23 +136,15 @@ ham
                                     b'ham\n'))
 
     def test_parse_form_data_put(self):
-        data = """\
-spam
-eggs
-ham
-"""
+        data = 'spam\neggs\nham\n'
         environ = self.new_environ(data=data)
         environ.update(REQUEST_METHOD='PUT',
                        CONTENT_TYPE='text/plain')
         self.assert_equal(http.parse_form_data(environ), {})
 
     def test_parse_form_data_http_408(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="a"
-Content-Type: text/plain
-"""
-        environ = self.new_environ(body=data)
+        data = self.form_data(('a', ('a.txt', '', 'text/plain')))
+        environ = self.new_environ(form=data[:-20])
         environ['CONTENT_LENGTH'] = str(len(data) * 2)
         with self.assert_raises(http.RequestTimeout):
             http.parse_form_data(environ)

@@ -70,9 +70,9 @@ class BasicTestCase(AyameTestCase):
             self.assert_equal(elem.children, ['&lt;tag&gt;'])
 
     def test_list_view_empty_model(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
@@ -82,14 +82,14 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, [])
 
     def test_list_view_error(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
@@ -101,9 +101,9 @@ class BasicTestCase(AyameTestCase):
             mc.render(root)
 
     def test_list_view(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
@@ -113,22 +113,22 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 3)
 
         label = root[0]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['0'])
 
         label = root[1]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['1'])
 
         label = root[2]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['2'])
 
@@ -150,10 +150,10 @@ class BasicTestCase(AyameTestCase):
         self.assert_equal(lv.children[2].model.object, 12)
 
     def test_list_view_render_body_only(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         root.append('[')
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         root.append(']')
@@ -164,16 +164,16 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 9)
         root.normalize()
         self.assert_equal(root.children, ['[0][1][2]'])
 
     def test_property_list_view(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
@@ -183,22 +183,22 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 3)
 
         label = root[0]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['0'])
 
         label = root[1]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['1'])
 
         label = root[2]
-        self.assert_equal(label.qname, markup.QName('', 'label'))
+        self.assert_equal(label.qname, self.of('label'))
         self.assert_equal(label.attrib, {})
         self.assert_equal(label.children, ['2'])
 
@@ -220,10 +220,10 @@ class BasicTestCase(AyameTestCase):
         self.assert_equal(lv.children[2].model.object, 12)
 
     def test_property_list_view_render_body_only(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         root.append('[')
-        label = markup.Element(markup.QName('', 'label'),
+        label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         root.append(']')
@@ -235,7 +235,7 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 9)
         root.normalize()

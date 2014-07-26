@@ -209,12 +209,12 @@ class CoreTestCase(AyameTestCase):
         self.assert_is_none(mc.render(''))
 
     def test_render_no_child_component(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         mc = ayame.MarkupContainer('a')
         self.assert_equal(mc.render(root), root)
 
     def test_render_no_ayame_id(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         mc = ayame.MarkupContainer('a')
         self.assert_equal(mc.render_component(root), (None, root))
 
@@ -226,7 +226,7 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_unknown_ayame_attribute(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b',
                                       self.ayame_of('spam'): ''})
         mc = ayame.MarkupContainer('a')
@@ -236,43 +236,43 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_no_associated_component(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'c',
-                                      markup.QName('', 'id'): 'c'})
+                                      self.of('id'): 'c'})
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.Component('b'))
         with self.assert_raises_regex(ayame.ComponentError,
                                       r"\bcomponent .* 'c' .* not found\b"):
             mc.render(root)
 
-    def test_render_replace_root_element(self):
+    def test_render_replace_element_itself(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return None
 
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         mc = ayame.MarkupContainer('a')
         mc.add(Component('b'))
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_root_element_by_string(self):
+    def test_render_replace_element_itself_by_string(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return ''
 
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         mc = ayame.MarkupContainer('a')
         mc.add(Component('b'))
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_root_element_by_list(self):
+    def test_render_replace_element_itself_by_list(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return ['>', '!', '<']
 
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         mc = ayame.MarkupContainer('a')
         mc.add(Component('b'))
@@ -283,10 +283,10 @@ class CoreTestCase(AyameTestCase):
             def on_render(self, element):
                 return None if int(self.id) % 2 else self.id
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
         for i in five.range(1, 10):
-            a = markup.Element(markup.QName('', 'a'),
+            a = markup.Element(self.of('a'),
                                attrib={markup.AYAME_ID: str(i)})
             root.append(a)
         root.append('<')
@@ -295,7 +295,7 @@ class CoreTestCase(AyameTestCase):
             mc.add(Component(str(i)))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
@@ -304,9 +304,9 @@ class CoreTestCase(AyameTestCase):
             def on_render(self, element):
                 return ''
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b'})
         root.append(a)
         root.append('<')
@@ -314,7 +314,7 @@ class CoreTestCase(AyameTestCase):
         mc.add(Component('b'))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '', '<'])
 
@@ -323,10 +323,10 @@ class CoreTestCase(AyameTestCase):
             def on_render(self, element):
                 return [self.id, str(int(self.id) + 2)]
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
         for i in five.range(2, 10, 4):
-            a = markup.Element(markup.QName('', 'a'),
+            a = markup.Element(self.of('a'),
                                attrib={markup.AYAME_ID: str(i)})
             root.append(a)
         root.append('<')
@@ -335,11 +335,11 @@ class CoreTestCase(AyameTestCase):
             mc.add(Component(str(i)))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
-    def test_render_replace_root_ayame_element(self):
+    def test_render_replace_ayame_element_itself(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 return None
@@ -348,7 +348,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_root_ayame_element_by_string(self):
+    def test_render_replace_ayame_element_itself_by_string(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 return ''
@@ -357,7 +357,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_root_ayame_element_by_list(self):
+    def test_render_replace_ayame_element_itself_by_list(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 return ['>', '!', '<']
@@ -372,7 +372,7 @@ class CoreTestCase(AyameTestCase):
                 n = element.qname.name
                 return element if n == 'root' else None if n == 'a' else n
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
         for i in five.range(1, 10):
             a = markup.Element(self.ayame_of('a' if i % 2 else str(i)))
@@ -381,7 +381,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
@@ -390,7 +390,7 @@ class CoreTestCase(AyameTestCase):
             def on_render_element(self, element):
                 return '' if element == a else element
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
         a = markup.Element(self.ayame_of('a'))
         root.append(a)
@@ -398,7 +398,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '', '<'])
 
@@ -412,7 +412,7 @@ class CoreTestCase(AyameTestCase):
                     return n
                 return [n, markup.Element(markup.QName('', str(int(n) + 2)))]
 
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         root.append('>')
         for i in five.range(2, 10, 4):
             a = markup.Element(self.ayame_of(str(i)))
@@ -421,12 +421,12 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
     def test_render_ayame_container_no_ayame_id(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         container = markup.Element(markup.AYAME_CONTAINER)
         root.append(container)
         mc = ayame.MarkupContainer('a')
@@ -435,7 +435,7 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_ayame_container_no_associated_component(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         container = markup.Element(markup.AYAME_CONTAINER,
                                    attrib={markup.AYAME_ID: 'b'})
         root.append(container)
@@ -445,11 +445,11 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_ayame_container(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         container = markup.Element(markup.AYAME_CONTAINER,
                                    attrib={markup.AYAME_ID: 'b'})
         root.append(container)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'c'})
         container.append(a)
         mc = ayame.MarkupContainer('a')
@@ -458,27 +458,27 @@ class CoreTestCase(AyameTestCase):
         mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 3)
 
         a = root[0]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, ['0'])
 
         a = root[1]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, ['1'])
 
         a = root[2]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, ['2'])
 
     def test_render_ayame_enclosure_no_ayame_child(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         enclosure = markup.Element(markup.AYAME_ENCLOSURE)
         root.append(enclosure)
         mc = ayame.MarkupContainer('a')
@@ -487,11 +487,11 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_ayame_enclosure_no_associated_component(self):
-        root = markup.Element(markup.QName('', 'root'))
+        root = markup.Element(self.of('root'))
         enclosure = markup.Element(markup.AYAME_ENCLOSURE,
                                    attrib={markup.AYAME_CHILD: 'b'})
         root.append(enclosure)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b'})
         enclosure.append(a)
         mc = ayame.MarkupContainer('a')
@@ -500,18 +500,18 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_ayame_enclosure_with_visible_component(self):
-        root = markup.Element(markup.QName('', 'root'))
-        a = markup.Element(markup.QName('', 'a'))
+        root = markup.Element(self.of('root'))
+        a = markup.Element(self.of('a'))
         root.append(a)
         enclosure = markup.Element(markup.AYAME_ENCLOSURE,
                                    attrib={markup.AYAME_CHILD: 'b1'})
         a.append(enclosure)
-        b = markup.Element(markup.QName('', 'b'),
+        b = markup.Element(self.of('b'),
                            attrib={markup.AYAME_ID: 'b1'})
         enclosure.append(b)
-        b = markup.Element(markup.QName('', 'b'))
+        b = markup.Element(self.of('b'))
         a.append(b)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b2'})
         root.append(a)
         mc = ayame.MarkupContainer('a')
@@ -519,43 +519,43 @@ class CoreTestCase(AyameTestCase):
         mc.add(basic.Label('b2', 'eggs'))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 2)
 
         a = root[0]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(len(a), 2)
 
         b = a[0]
-        self.assert_equal(b.qname, markup.QName('', 'b'))
+        self.assert_equal(b.qname, self.of('b'))
         self.assert_equal(b.attrib, {})
         self.assert_equal(b.children, ['spam'])
 
         b = a[1]
-        self.assert_equal(b.qname, markup.QName('', 'b'))
+        self.assert_equal(b.qname, self.of('b'))
         self.assert_equal(b.attrib, {})
         self.assert_equal(b.children, [])
 
         a = root[1]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, ['eggs'])
 
     def test_render_ayame_enclosure_with_invisible_component(self):
-        root = markup.Element(markup.QName('', 'root'))
-        a = markup.Element(markup.QName('', 'a'))
+        root = markup.Element(self.of('root'))
+        a = markup.Element(self.of('a'))
         root.append(a)
         enclosure = markup.Element(markup.AYAME_ENCLOSURE,
                                    attrib={markup.AYAME_CHILD: 'b1'})
         a.append(enclosure)
-        b = markup.Element(markup.QName('', 'b'),
+        b = markup.Element(self.of('b'),
                            attrib={markup.AYAME_ID: 'b1'})
         enclosure.append(b)
-        b = markup.Element(markup.QName('', 'b'))
+        b = markup.Element(self.of('b'))
         a.append(b)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b2'})
         root.append(a)
         mc = ayame.MarkupContainer('a')
@@ -565,17 +565,17 @@ class CoreTestCase(AyameTestCase):
         mc.find('b2').visible = False
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 1)
 
         a = root[0]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(len(a), 1)
 
         b = a[0]
-        self.assert_equal(b.qname, markup.QName('', 'b'))
+        self.assert_equal(b.qname, self.of('b'))
         self.assert_equal(b.attrib, {})
         self.assert_equal(b.children, [])
 
@@ -612,7 +612,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_ayame_message_attribute_invalid_value(self):
         with self.application(self.new_environ()):
-            root = markup.Element(markup.QName('', 'root'),
+            root = markup.Element(self.of('root'),
                                   attrib={markup.AYAME_ID: 'b',
                                           markup.AYAME_MESSAGE: 'id'})
             mc = ayame.MarkupContainer('a')
@@ -644,8 +644,8 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(content, html)
 
     def test_render_ayame_head_unknown_root(self):
-        root = markup.Element(markup.QName('', 'root'))
-        a = markup.Element(markup.QName('', 'a'),
+        root = markup.Element(self.of('root'))
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b'})
         root.append(a)
         mc = ayame.MarkupContainer('a')
@@ -656,7 +656,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_render_ayame_head_no_head(self):
         root = markup.Element(markup.HTML)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b'})
         root.append(a)
         mc = ayame.MarkupContainer('a')
@@ -669,10 +669,10 @@ class CoreTestCase(AyameTestCase):
         root = markup.Element(markup.HTML)
         head = markup.Element(markup.HEAD)
         root.append(head)
-        a = markup.Element(markup.QName('', 'a'),
+        a = markup.Element(self.of('a'),
                            attrib={markup.AYAME_ID: 'b'})
         root.append(a)
-        h = markup.Element(markup.QName('', 'h'))
+        h = markup.Element(self.of('h'))
         mc = ayame.MarkupContainer('a')
         mc.head = mc.find_head(root)
         mc.add(AyameHeadContainer('b', h))
@@ -689,29 +689,29 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(len(head), 1)
 
         h = head[0]
-        self.assert_equal(h.qname, markup.QName('', 'h'))
+        self.assert_equal(h.qname, self.of('h'))
         self.assert_equal(h.attrib, {})
         self.assert_equal(h.children, [])
 
         a = root[1]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(a.children, [])
 
     def test_render_invisible_child(self):
-        root = markup.Element(markup.QName('', 'root'))
-        a = markup.Element(markup.QName('', 'a'))
+        root = markup.Element(self.of('root'))
+        a = markup.Element(self.of('a'))
         root.append(a)
-        b = markup.Element(markup.QName('', 'b'),
+        b = markup.Element(self.of('b'),
                            attrib={markup.AYAME_ID: 'b1'})
         a.append(b)
-        c = markup.Element(markup.QName('', 'c'),
+        c = markup.Element(self.of('c'),
                            attrib={markup.AYAME_ID: 'c1'})
         b.append(c)
-        b = markup.Element(markup.QName('', 'b'),
+        b = markup.Element(self.of('b'),
                            attrib={markup.AYAME_ID: 'b2'})
         a.append(b)
-        c = markup.Element(markup.QName('', 'c'),
+        c = markup.Element(self.of('c'),
                            attrib={markup.AYAME_ID: 'c2'})
         b.append(c)
         mc = ayame.MarkupContainer('a')
@@ -722,22 +722,22 @@ class CoreTestCase(AyameTestCase):
         mc.find('b2').add(ayame.Component('c2'))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
+        self.assert_equal(root.qname, self.of('root'))
         self.assert_equal(root.attrib, {})
         self.assert_equal(len(root), 1)
 
         a = root.children[0]
-        self.assert_equal(a.qname, markup.QName('', 'a'))
+        self.assert_equal(a.qname, self.of('a'))
         self.assert_equal(a.attrib, {})
         self.assert_equal(len(a), 1)
 
         b = a.children[0]
-        self.assert_equal(b.qname, markup.QName('', 'b'))
+        self.assert_equal(b.qname, self.of('b'))
         self.assert_equal(b.attrib, {})
         self.assert_equal(len(b), 1)
 
         c = b.children[0]
-        self.assert_equal(c.qname, markup.QName('', 'c'))
+        self.assert_equal(c.qname, self.of('c'))
         self.assert_equal(c.attrib, {})
         self.assert_equal(c.children, [])
 
@@ -1296,11 +1296,11 @@ class CoreTestCase(AyameTestCase):
                           ['before-render', 'component', 'after-render'])
 
     def test_attribute_modifier_on_component(self):
-        root = markup.Element(markup.QName('', 'root'),
-                              attrib={markup.QName('', 'a'): ''})
+        root = markup.Element(self.of('root'),
+                              attrib={self.of('a'): ''})
         c = ayame.Component('a')
         c.add(ayame.AttributeModifier('a', model.Model(None)))
-        c.add(ayame.AttributeModifier(markup.QName('', 'b'),
+        c.add(ayame.AttributeModifier(self.of('b'),
                                       model.Model(None)))
         c.add(ayame.AttributeModifier('c', model.Model('')))
         self.assert_equal(len(c.behaviors), 3)
@@ -1309,16 +1309,16 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.behaviors[2].component, c)
 
         root = c.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
-        self.assert_equal(root.attrib, {markup.QName('', 'c'): ''})
+        self.assert_equal(root.qname, self.of('root'))
+        self.assert_equal(root.attrib, {self.of('c'): ''})
         self.assert_equal(root.children, [])
 
     def test_attribute_modifier_on_markup_container(self):
-        root = markup.Element(markup.QName('', 'root'),
-                              attrib={markup.QName('', 'a'): ''})
+        root = markup.Element(self.of('root'),
+                              attrib={self.of('a'): ''})
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.AttributeModifier('a', model.Model(None)))
-        mc.add(ayame.AttributeModifier(markup.QName('', 'b'),
+        mc.add(ayame.AttributeModifier(self.of('b'),
                                        model.Model(None)))
         mc.add(ayame.AttributeModifier('c', model.Model('')))
         self.assert_equal(len(mc.behaviors), 3)
@@ -1327,8 +1327,8 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(mc.behaviors[2].component, mc)
 
         root = mc.render(root)
-        self.assert_equal(root.qname, markup.QName('', 'root'))
-        self.assert_equal(root.attrib, {markup.QName('', 'c'): ''})
+        self.assert_equal(root.qname, self.of('root'))
+        self.assert_equal(root.attrib, {self.of('c'): ''})
         self.assert_equal(root.children, [])
 
     def test_fire_get(self):
@@ -1394,14 +1394,8 @@ class CoreTestCase(AyameTestCase):
                                            'clay2': 0})
 
     def test_fire_post(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-obstacle:clay2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'obstacle:clay2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
         html = self.format(EggsPage)
@@ -1415,18 +1409,9 @@ obstacle:clay2
                                            'clay2': 1})
 
     def test_fire_post_duplicate_ayame_path(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-obstacle:clay2
-{__}
-Content-Disposition: form-data; name="{path}"
-
-clay1
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'obstacle:clay2'),
+                              ('{path}', 'clay1'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
         html = self.format(EggsPage)
@@ -1440,14 +1425,8 @@ clay1
                                            'clay2': 1})
 
     def test_fire_post_nonexistent_path(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-clay2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'clay2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
         html = self.format(EggsPage)
@@ -1461,14 +1440,8 @@ clay2
                                            'clay2': 0})
 
     def test_fire_post_invisible_component(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-clay1
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'clay1'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             p.find('clay1').visible = False
             status, headers, content = p()

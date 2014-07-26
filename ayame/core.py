@@ -321,10 +321,10 @@ class MarkupContainer(Component):
     def on_render(self, element):
         def push(queue, node):
             if isinstance(node, markup.Element):
-                for index in five.range(len(node) - 1, -1, -1):
-                    child = node[index]
-                    if isinstance(child, markup.Element):
-                        queue.append((node, index, child))
+                for i in five.range(len(node) - 1, -1, -1):
+                    n = node[i]
+                    if isinstance(n, markup.Element):
+                        queue.append((node, i, n))
 
         def pop_while(queue, parent):
             while queue:
@@ -334,16 +334,15 @@ class MarkupContainer(Component):
                     break
                 yield q
 
-        root = element
         # notify behaviors
         element = super(MarkupContainer, self).on_render(element)
 
         queue = collections.deque()
-        if isinstance(root, markup.Element):
-            queue.append((None, -1, root))
+        if isinstance(element, markup.Element):
+            queue.append((None, -1, element))
         while queue:
-            parent, index, element = queue.pop()
-            value = self.on_render_element(element)
+            parent, i, elem = queue.pop()
+            value = self.on_render_element(elem)
             if isinstance(value, markup.Element):
                 ayame_id, value = self.on_render_attrib(value)
             else:
@@ -352,12 +351,12 @@ class MarkupContainer(Component):
                 if util.iterable(value):
                     # replace ayame element (parent)
                     if parent is None:
-                        root = value
+                        element = value
                     else:
-                        parent[index:index + 1] = value
+                        parent[i:i + 1] = value
                     # assign indices to rendered elements
-                    elems = [(parent, index + i, v)
-                             for i, v in enumerate(value)
+                    elems = [(parent, i + j, v)
+                             for j, v in enumerate(value)
                              if isinstance(v, markup.Element)]
                     # update indices (increase)
                     amt = len(value) - 1
@@ -368,25 +367,25 @@ class MarkupContainer(Component):
                     continue
                 elif isinstance(value, markup.Element):
                     # there is no associated component
-                    push(queue, element)
+                    push(queue, elem)
                     continue
 
             if parent is None:
-                # replace root element
+                # replace element itself
                 if value is None:
-                    root = u''
+                    element = u''
                 else:
-                    root = value
-                    push(queue, root)
+                    element = value
+                    push(queue, element)
             elif value is None:
                 # remove element
-                del parent[index]
+                del parent[i]
                 # update indices (decrease)
                 queue.extend(reversed([(t[0], t[1] - 1, t[2])
                                        for t in pop_while(queue, parent)]))
             elif util.iterable(value):
                 # replace element
-                parent[index:index + 1] = value
+                parent[i:i + 1] = value
                 # update indices (increase)
                 amt = len(value) - 1
                 queue.extend(reversed([(t[0], t[1] + amt, t[2])
@@ -395,9 +394,9 @@ class MarkupContainer(Component):
                     push(queue, v)
             else:
                 # replace element
-                parent[index] = value
+                parent[i] = value
                 push(queue, value)
-        return root
+        return element
 
     def on_render_element(self, element):
         def get(elem, attr, keep=True):
@@ -504,7 +503,7 @@ class MarkupContainer(Component):
             stack = []
             ayame_extend = ayame_head = None
             for elem, depth in m.root.walk(step=step):
-                stack[depth:] = [elem]
+                stack[depth:] = (elem,)
                 if elem.qname == markup.AYAME_EXTEND:
                     if ayame_extend is None:
                         # resolve superclass

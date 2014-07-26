@@ -130,9 +130,9 @@ AYAME_REMOVE = QName(AYAME_NS, u'remove')
 
 # ayame attributes
 AYAME_ID = QName(AYAME_NS, u'id')
-#AYAME_CHILD = QName(AYAME_NS, u'child')
+# AYAME_CHILD = QName(AYAME_NS, u'child')
 AYAME_KEY = QName(AYAME_NS, u'key')
-#AYAME_MESSAGE = QName(AYAME_NS, u'message')
+# AYAME_MESSAGE = QName(AYAME_NS, u'message')
 
 
 MarkupType = collections.namedtuple('MarkupType', 'extension, mime_type, scope')

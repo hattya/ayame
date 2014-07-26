@@ -82,7 +82,7 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.session, {})
         self.assert_equal(request.locale, self.locale)
 
-        environ = self.new_environ(method='POST', body='')
+        environ = self.new_environ(method='POST', form='')
         request = ayame.Request(environ, {})
         self.assert_is(request.environ, environ)
         self.assert_equal(request.method, 'POST')
@@ -122,14 +122,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.locale, self.locale)
 
         query = '{path}=spam'
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-eggs
-{____}
-"""
-        environ = self.new_environ(method='POST', query=query, body=data)
+        data = self.form_data(('{path}', 'eggs'))
+        environ = self.new_environ(method='POST', query=query, form=data)
         request = ayame.Request(environ, {})
         self.assert_is(request.environ, environ)
         self.assert_equal(request.method, 'POST')
@@ -141,11 +135,7 @@ eggs
         self.assert_equal(request.locale, self.locale)
 
     def test_request_put(self):
-        data = """\
-spam
-eggs
-ham
-"""
+        data = 'spam\neggs\nham\n'
         environ = self.new_environ(method='PUT', data=data)
         environ['CONTENT_TYPE'] = 'text/plain'
         request = ayame.Request(environ, {})

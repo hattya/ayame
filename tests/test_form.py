@@ -61,11 +61,11 @@ class FormTestCase(AyameTestCase):
                                    'name': fc.id,
                                    'label': fc.id})
 
-    def new_environ(self, method='GET', query='', body=None):
+    def new_environ(self, method='GET', query='', form=None):
         return super(FormTestCase, self).new_environ(method=method,
                                                      path='/form',
                                                      query=query,
-                                                     body=body)
+                                                     form=form)
 
     def test_form_invalid_markup(self):
         # not form element
@@ -189,38 +189,13 @@ class FormTestCase(AyameTestCase):
         self.assert_false(f.has_error())
 
     def test_form_post(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="text"
-
-text
-{__}
-Content-Disposition: form-data; name="password"
-
-password
-{__}
-Content-Disposition: form-data; name="hidden"
-
-hidden
-{__}
-Content-Disposition: form-data; name="area"
-
-area
-{__}
-Content-Disposition: form-data; name="file"; filename="a.txt"
-Content-Type: text/plain
-
-spam
-eggs
-ham
-
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('text', 'text'),
+                              ('password', 'password'),
+                              ('hidden', 'hidden'),
+                              ('area', 'area'),
+                              ('file', ('a.txt', 'spam\neggs\nham\n', 'text/plain')))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^form$'):
                 p()
@@ -241,41 +216,14 @@ ham
         self.assert_not_in('button', f.model_object)
         self.assert_false(f.has_error())
 
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="text"
-
-text
-{__}
-Content-Disposition: form-data; name="password"
-
-password
-{__}
-Content-Disposition: form-data; name="hidden"
-
-hidden
-{__}
-Content-Disposition: form-data; name="area"
-
-area
-{__}
-Content-Disposition: form-data; name="file"; filename="a.txt"
-Content-Type: text/plain
-
-spam
-eggs
-ham
-
-{__}
-Content-Disposition: form-data; name="button"
-
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('text', 'text'),
+                              ('password', 'password'),
+                              ('hidden', 'hidden'),
+                              ('area', 'area'),
+                              ('file', ('a.txt', 'spam\neggs\nham\n', 'text/plain')),
+                              ('button', ''))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
             with self.assert_raises_regex(Valid, '^button$'):
                 p()
@@ -717,18 +665,9 @@ Content-Disposition: form-data; name="button"
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
 
     def test_radio_choice_post(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="radio"
-
-1
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('radio', '1'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             with self.assert_raises(Valid):
                 p()
@@ -737,18 +676,9 @@ Content-Disposition: form-data; name="radio"
         self.assert_false(f.has_error())
 
     def test_radio_choice_post_no_choices(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="radio"
-
-2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('radio', '2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             p.find('form:radio').choices = []
             with self.assert_raises(Valid):
@@ -758,14 +688,8 @@ Content-Disposition: form-data; name="radio"
         self.assert_false(f.has_error())
 
     def test_radio_choice_post_empty(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             with self.assert_raises(Valid):
                 p()
@@ -774,14 +698,8 @@ form
         self.assert_false(f.has_error())
 
     def test_radio_choice_required_error(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             p.find('form:radio').required = True
             with self.assert_raises(Invalid):
@@ -792,18 +710,9 @@ form
             self.assert_required_error(f.find('radio'), [])
 
     def test_radio_choice_validation_error_out_of_range(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="radio"
-
--1
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('radio', '-1'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             with self.assert_raises(Invalid):
                 p()
@@ -813,18 +722,9 @@ Content-Disposition: form-data; name="radio"
             self.assert_choice_error(f.find('radio'), ['-1'])
 
     def test_radio_choice_validation_error_no_value(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="radio"
-
-
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('radio', ''))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             with self.assert_raises(Invalid):
                 p()
@@ -892,34 +792,13 @@ Content-Disposition: form-data; name="radio"
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
 
     def test_check_box_choice_post(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '0'),
+                              ('checkbox', '0'),
+                              ('checkbox', '1'),
+                              ('checkbox', '1'),
+                              ('checkbox', '2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             with self.assert_raises(Valid):
                 p()
@@ -928,18 +807,9 @@ Content-Disposition: form-data; name="checkbox"
         self.assert_false(f.has_error())
 
     def test_check_box_choice_post_single(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '1'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage(multiple=False)
             with self.assert_raises(Valid):
                 p()
@@ -948,26 +818,11 @@ Content-Disposition: form-data; name="checkbox"
         self.assert_false(f.has_error())
 
     def test_check_box_choice_post_no_choices(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '0'),
+                              ('checkbox', '1'),
+                              ('checkbox', '2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             p.find('form:checkbox').choices = []
             with self.assert_raises(Valid):
@@ -977,26 +832,11 @@ Content-Disposition: form-data; name="checkbox"
         self.assert_false(f.has_error())
 
     def test_check_box_choice_post_no_model(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '0'),
+                              ('checkbox', '1'),
+                              ('checkbox', '2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             p.find('form').model = None
             with self.assert_raises(Valid):
@@ -1006,14 +846,8 @@ Content-Disposition: form-data; name="checkbox"
         self.assert_false(f.has_error())
 
     def test_check_box_choice_post_empty(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             with self.assert_raises(Valid):
                 p()
@@ -1022,14 +856,8 @@ form
         self.assert_false(f.has_error())
 
     def test_check_box_choice_required_error(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             p.find('form:checkbox').required = True
             with self.assert_raises(Invalid):
@@ -1040,26 +868,11 @@ form
             self.assert_required_error(f.find('checkbox'), [])
 
     def test_check_box_choice_validation_error_out_of_range(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
--1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-3
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '-1'),
+                              ('checkbox', '0'),
+                              ('checkbox', '3'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
                 p()
@@ -1069,18 +882,9 @@ Content-Disposition: form-data; name="checkbox"
             self.assert_choice_error(f.find('checkbox'), ['-1', '0', '3'])
 
     def test_check_box_choice_validation_error_no_value(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', ''))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
                 p()
@@ -1090,34 +894,13 @@ Content-Disposition: form-data; name="checkbox"
             self.assert_choice_error(f.find('checkbox'), [''])
 
     def test_check_box_choice_validation_error_no_values(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-0
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-1
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-
-{__}
-Content-Disposition: form-data; name="checkbox"
-
-2
-{____}
-"""
-        with self.application(self.new_environ(method='POST', body=data)):
+        data = self.form_data(('{path}', 'form'),
+                              ('checkbox', '0'),
+                              ('checkbox', ''),
+                              ('checkbox', '1'),
+                              ('checkbox', ''),
+                              ('checkbox', '2'))
+        with self.application(self.new_environ(method='POST', form=data)):
             p = HamPage()
             with self.assert_raises(Invalid):
                 p()
@@ -1195,35 +978,14 @@ Content-Disposition: form-data; name="checkbox"
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
 
     def test_select_choice_post(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{__}
-Content-Disposition: form-data; name="select"
-
-2
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '0'),
+                              ('select', '0'),
+                              ('select', '1'),
+                              ('select', '1'),
+                              ('select', '2'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 with self.assert_raises(Valid):
                     p()
@@ -1232,19 +994,10 @@ Content-Disposition: form-data; name="select"
             self.assert_false(f.has_error())
 
     def test_select_choice_post_single(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '1'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_(multiple=False)
                 with self.assert_raises(Valid):
                     p()
@@ -1253,27 +1006,12 @@ Content-Disposition: form-data; name="select"
             self.assert_false(f.has_error())
 
     def test_select_choice_post_no_choices(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{__}
-Content-Disposition: form-data; name="select"
-
-2
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '0'),
+                              ('select', '1'),
+                              ('select', '2'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 p.find('form:select').choices = []
                 with self.assert_raises(Valid):
@@ -1283,27 +1021,12 @@ Content-Disposition: form-data; name="select"
             self.assert_false(f.has_error())
 
     def test_select_choice_post_no_model(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{__}
-Content-Disposition: form-data; name="select"
-
-2
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '0'),
+                              ('select', '1'),
+                              ('select', '2'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 p.find('form').model = None
                 with self.assert_raises(Valid):
@@ -1313,15 +1036,9 @@ Content-Disposition: form-data; name="select"
             self.assert_false(f.has_error())
 
     def test_select_choice_post_empty(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
+        data = self.form_data(('{path}', 'form'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 with self.assert_raises(Valid):
                     p()
@@ -1330,15 +1047,9 @@ form
             self.assert_false(f.has_error())
 
     def test_select_choice_required_error(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{____}
-"""
+        data = self.form_data(('{path}', 'form'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 p.find('form:select').required = True
                 with self.assert_raises(Invalid):
@@ -1349,27 +1060,12 @@ form
                 self.assert_required_error(f.find('select'), [])
 
     def test_select_choice_validation_error_out_of_range(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
--1
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-3
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '-1'),
+                              ('select', '0'),
+                              ('select', '3'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
                     p()
@@ -1379,19 +1075,10 @@ Content-Disposition: form-data; name="select"
                 self.assert_choice_error(f.find('select'), ['-1', '0', '3'])
 
     def test_select_choice_validation_error_no_value(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', ''))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
                     p()
@@ -1401,35 +1088,14 @@ Content-Disposition: form-data; name="select"
                 self.assert_choice_error(f.find('select'), [''])
 
     def test_select_choice_validation_error_no_values(self):
-        data = """\
-{__}
-Content-Disposition: form-data; name="{path}"
-
-form
-{__}
-Content-Disposition: form-data; name="select"
-
-0
-{__}
-Content-Disposition: form-data; name="select"
-
-
-{__}
-Content-Disposition: form-data; name="select"
-
-1
-{__}
-Content-Disposition: form-data; name="select"
-
-
-{__}
-Content-Disposition: form-data; name="select"
-
-2
-{____}
-"""
+        data = self.form_data(('{path}', 'form'),
+                              ('select', '0'),
+                              ('select', ''),
+                              ('select', '1'),
+                              ('select', ''),
+                              ('select', '2'))
         for class_ in (ToastPage, BeansPage):
-            with self.application(self.new_environ(method='POST', body=data)):
+            with self.application(self.new_environ(method='POST', form=data)):
                 p = class_()
                 with self.assert_raises(Invalid):
                     p()
@@ -1524,7 +1190,8 @@ class EggsPage(ayame.Page):
           <input checked="checked" id="radio-0" name="radio" type="radio" value="0" /><label for="radio-0">2012-01-01</label><br />
           <input id="radio-1" name="radio" type="radio" value="1" /><label for="radio-1">2012-01-02</label><br />
           <input id="radio-2" name="radio" type="radio" value="2" /><label for="radio-2">2012-01-03</label>
-        """ if v else ''
+        \
+""" if v else ''
     }
 
     def __init__(self):
@@ -1562,7 +1229,8 @@ class HamPage(ayame.Page):
           <input {}id="checkbox-0" name="checkbox" type="checkbox" value="0" /><label for="checkbox-0">2012-01-01</label><br />
           <input {}id="checkbox-1" name="checkbox" type="checkbox" value="1" /><label for="checkbox-1">2012-01-02</label><br />
           <input {}id="checkbox-2" name="checkbox" type="checkbox" value="2" /><label for="checkbox-2">2012-01-03</label>
-        """.format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''
+        \
+""".format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''
     }
 
     def __init__(self, multiple=True):

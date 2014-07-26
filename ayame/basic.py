@@ -69,7 +69,7 @@ class ListView(core.MarkupContainer):
         skel.qname = markup.DIV
         del element[:]
         for c in self.children:
-            element.extend(c.on_render(skel.copy()).children)
+            element.extend(c.on_render(skel.copy()))
         return element
 
     def populate_item(self, item):

@@ -89,9 +89,9 @@ class MarkupTestCase(AyameTestCase):
         self.assert_true(eggs)
 
     def test_element___getitem_____setitem_____delitem__(self):
-        spam = markup.Element(markup.QName('', 'spam'),
+        spam = markup.Element(self.of('spam'),
                               attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
+        eggs = markup.Element(self.of('eggs'))
         spam[:1] = ['a', 'b', 'c']
         spam[3:] = [eggs]
         spam[4:] = ['d', 'e', 'f']
@@ -104,9 +104,9 @@ class MarkupTestCase(AyameTestCase):
         self.assert_equal(spam.children, [])
 
     def test_element_append(self):
-        spam = markup.Element(markup.QName('', 'spam'),
+        spam = markup.Element(self.of('spam'),
                               attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
+        eggs = markup.Element(self.of('eggs'))
         spam.append('a')
         spam.append('b')
         spam.append('c')
@@ -118,17 +118,17 @@ class MarkupTestCase(AyameTestCase):
         self.assert_equal(eggs.children, [])
 
     def test_element_extend(self):
-        spam = markup.Element(markup.QName('', 'spam'),
+        spam = markup.Element(self.of('spam'),
                               attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
+        eggs = markup.Element(self.of('eggs'))
         spam.extend(('a', 'b', 'c', eggs, 'd', 'e', 'f'))
         self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
         self.assert_equal(eggs.children, [])
 
     def test_element_insert(self):
-        spam = markup.Element(markup.QName('', 'spam'),
+        spam = markup.Element(self.of('spam'),
                               attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
+        eggs = markup.Element(self.of('eggs'))
         spam.insert(0, 'f')
         spam.insert(0, 'c')
         spam.insert(0, 'b')
@@ -140,9 +140,9 @@ class MarkupTestCase(AyameTestCase):
         self.assert_equal(eggs.children, [])
 
     def test_element_remove(self):
-        spam = markup.Element(markup.QName('', 'spam'),
+        spam = markup.Element(self.of('spam'),
                               attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(markup.QName('', 'eggs'))
+        eggs = markup.Element(self.of('eggs'))
         spam.extend(['a', 'b', 'c', eggs, 'd', 'e', 'f'])
         spam.remove('a')
         spam.remove('b')
@@ -158,7 +158,7 @@ class MarkupTestCase(AyameTestCase):
         def new_elements(i=None):
             for n in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon',
                       'sausage')[:i]:
-                yield markup.Element(markup.QName('', n))
+                yield markup.Element(self.of(n))
 
         spam, eggs, ham, toast = new_elements(4)
         spam.extend(('a', eggs,
@@ -197,28 +197,28 @@ class MarkupTestCase(AyameTestCase):
                                           beans, bacon, sausage, 'def'])
 
     def test_element_walk(self):
-        root = markup.Element(markup.QName('', 'root'),
+        root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'root'})
         it = root.walk()
         self.assert_equal(list(it), [(root, 0)])
 
-        a1 = markup.Element(markup.QName('', 'a1'))
+        a1 = markup.Element(self.of('a1'))
         root.append(a1)
-        a2 = markup.Element(markup.QName('', 'a2'),
+        a2 = markup.Element(self.of('a2'),
                             attrib={markup.AYAME_ID: 'a2'})
         root.append(a2)
         it = root.walk()
         self.assert_equal(list(it), [(root, 0),
                                      (a1, 1), (a2, 1)])
 
-        a1_b1 = markup.Element(markup.QName('', 'b1'))
+        a1_b1 = markup.Element(self.of('b1'))
         a1.append(a1_b1)
-        a1_b2 = markup.Element(markup.QName('', 'b2'),
+        a1_b2 = markup.Element(self.of('b2'),
                                attrib={markup.AYAME_ID: 'b2'})
         a1.append(a1_b2)
-        a2_b1 = markup.Element(markup.QName('', 'b1'))
+        a2_b1 = markup.Element(self.of('b1'))
         a2.append(a2_b1)
-        a2_b2 = markup.Element(markup.QName('', 'b2'),
+        a2_b2 = markup.Element(self.of('b2'),
                                attrib={markup.AYAME_ID: 'b2'})
         a2.append(a2_b2)
         it = root.walk()

@@ -95,7 +95,7 @@ class ValidationError(AyameError):
             self.keys.append(key)
 
     def __repr__(self):
-        args = (repr(self.args)[1:-1].rstrip(',') + ', ') if self.args else ''
+        args = repr(self.args)[1:-1].rstrip(',') + ', ' if self.args else ''
         return '{}({}keys={}, vars={})'.format(self.__class__.__name__,
                                                args,
                                                self.keys,
