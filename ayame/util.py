@@ -39,7 +39,7 @@ from .exception import ResourceError
 
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
-           'FilterDict', 'RWLock']
+           'FilterDict', 'RWLock', 'LRUCache']
 
 if five.PY2:
     _builtins = '__builtin__'
@@ -250,3 +250,219 @@ class RWLock(object):
 
         def __exit__(self, *exc_info):
             self._release()
+
+
+class LRUCache(object):
+
+    __slots__ = ('__cap', '_ref', '_head', '_lock')
+
+    def __init__(self, cap=-1):
+        self.__cap = cap
+        self.on_init()
+
+    def cap():
+        def fget(self):
+            with self._lock.read():
+                return self.__cap
+
+        def fset(self, cap):
+            with self._lock.write():
+                self.__cap = cap
+                self._sweep()
+
+        return locals()
+
+    cap = property(**cap())
+
+    def __repr__(self):
+        return u'{}({})'.format(self.__class__.__name__, list(self.items()))
+
+    def __len__(self):
+        with self._lock.read():
+            return len(self._ref)
+
+    def __getitem__(self, key):
+        with self._lock.write():
+            return self._move_to_front(self._ref[key]).value
+
+    def __setitem__(self, key, value):
+        with self._lock.write():
+            if key in self._ref:
+                e = self._ref[key]
+                e.value = value
+            else:
+                self._ref[key] = e = self._Entry(key, value)
+                self._sweep()
+
+            if self._head is None:
+                self._head = e.next = e.prev = e
+            else:
+                self._move_to_front(e)
+
+    def __delitem__(self, key):
+        with self._lock.write():
+            self._evict(self._ref[key])
+
+    def __iter__(self):
+        with self._lock.read():
+            for e in self._iter():
+                yield e.key
+
+    def __reversed__(self):
+        with self._lock.read():
+            for e in self._iter(reverse=True):
+                yield e.key
+
+    def __contains__(self, key):
+        with self._lock.read():
+            return key in self._ref
+
+    def __copy__(self):
+        with self._lock.read():
+            c = self.__class__(self.__cap)
+            for e in self._iter(reverse=True):
+                c[e.key] = e.value
+            return c
+
+    def __getstate__(self):
+        with self._lock.read():
+            return (self.__cap, tuple((e.key, e.value) for e in self._iter()))
+
+    def __setstate__(self, state):
+        self.__cap = state[0]
+        self.on_init()
+        for k, v in reversed(state[1]):
+            self[k] = v
+
+    def items(self):
+        with self._lock.read():
+            for e in self._iter():
+                yield (e.key, e.value)
+
+    keys = __iter__
+
+    def values(self):
+        with self._lock.read():
+            for e in self._iter():
+                yield e.value
+
+    copy = __copy__
+
+    def clear(self):
+        with self._lock.write():
+            self._ref.clear()
+            self._head = None
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def peek(self, key):
+        with self._lock.read():
+            return self._ref[key].value
+
+    def setdefault(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = default
+            return default
+
+    def update(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def pop(self, key, *args):
+        with self._lock.write():
+            e = self._ref.pop(key, *args)
+            if e in args:
+                return e
+            # reset for evict
+            self._ref[key] = e
+            self._evict(e)
+            return e.value
+
+    def popitem(self):
+        with self._lock.write():
+            k, e = self._ref.popitem()
+            # reset for evict
+            self._ref[k] = e
+            self._evict(e)
+            return (e.key, e.value)
+
+    def on_init(self):
+        self._ref = {}
+        self._head = None
+        self._lock = RWLock()
+
+    def on_evicted(self, key, value):
+        pass
+
+    def _iter(self, reverse=False):
+        if self._head is None:
+            # no entries
+            return
+        elif not reverse:
+            # forward iterator
+            e = self._head
+            while True:
+                n = e.next
+                yield e
+                if n is self._head:
+                    break
+                e = n
+        else:
+            # reverse iterator
+            e = self._head.prev
+            while True:
+                p = e.prev
+                yield e
+                if e is self._head:
+                    break
+                e = p
+
+    def _move_to_front(self, e):
+        if e is self._head:
+            # already at front
+            return e
+        # remove from current position
+        if e.next is not None:
+            e.next.prev = e.prev
+            e.prev.next = e.next
+        # insert at front
+        n = self._head
+        e.next = n
+        e.prev = n.prev
+        self._head = n.prev.next = n.prev = e
+        return e
+
+    def _sweep(self):
+        if 0 <= self.__cap:
+            it = self._iter(reverse=True)
+            while self.__cap < len(self._ref):
+                self._evict(next(it))
+
+    def _evict(self, e):
+        e.next.prev = e.prev
+        e.prev.next = e.next
+        del self._ref[e.key]
+        if e is self._head:
+            if (not self._ref or
+                self.__cap < 2):
+                self._head = None
+            else:
+                self._head = e.next
+        self.on_evicted(e.key, e.value)
+
+    class _Entry(object):
+
+        __slots__ = ('key', 'value', 'next', 'prev')
+
+        def __init__(self, key, value):
+            self.key = key
+            self.value = value
+            self.next = self.prev = None
+
+
+collections.MutableMapping.register(LRUCache)
