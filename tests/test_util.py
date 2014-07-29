@@ -26,7 +26,10 @@
 
 import io
 import os
+import random
 import sys
+import threading
+import time
 import types
 
 import ayame
@@ -387,3 +390,36 @@ class UtilTestCase(AyameTestCase):
         x[0] = 'b'
         self.assert_equal(d, {'a': 0, 'b': 1, 0: 'a'})
         self.assert_equal(x, {'a': 0, 'b': 1, 0: 'b'})
+
+
+class RWLockTestCase(AyameTestCase):
+
+    def test_rwlock(self):
+        def reader():
+            with lock.read():
+                self.assert_greater(lock._rcnt, 0)
+                self.assert_equal(lock._rwait, 0)
+                time.sleep(0.01)
+
+        def writer():
+            with lock.write():
+                self.assert_equal(lock._rcnt, -1)
+                self.assert_equal(lock._rwait, 0)
+                time.sleep(0.01)
+
+        lock = util.RWLock()
+        for _ in five.range(10):
+            thr = threading.Thread(target=random.choice((reader, writer)))
+            thr.daemon = True
+            thr.start()
+        time.sleep(0.11)
+        self.assert_equal(lock._rcnt, 0)
+        self.assert_equal(lock._rwait, 0)
+        self.assert_equal(threading.active_count(), 1)
+
+    def test_release(self):
+        lock = util.RWLock()
+        with self.assert_raises(RuntimeError):
+            lock.release_read()
+        with self.assert_raises(RuntimeError):
+            lock.release_write()

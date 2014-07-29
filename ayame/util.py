@@ -31,6 +31,7 @@ import os
 import pkgutil
 import random
 import sys
+import threading
 import types
 
 from . import _compat as five
@@ -38,7 +39,7 @@ from .exception import ResourceError
 
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
-           'FilterDict']
+           'FilterDict', 'RWLock']
 
 if five.PY2:
     _builtins = '__builtin__'
@@ -177,3 +178,75 @@ class FilterDict(dict):
                 new_key = convert(key)
                 if new_key != key:
                     self[new_key] = pop(key)
+
+
+class RWLock(object):
+
+    def __init__(self):
+        self._rcnt = 0
+        self._rwait = 0
+        self._lock = threading.Lock()
+        self._r = threading.Condition(self._lock)
+        self._w = threading.Condition(self._lock)
+
+    def read(self):
+        return self._Lock(self.acquire_read, self.release_read)
+
+    def write(self):
+        return self._Lock(self.acquire_write, self.release_write)
+
+    def acquire_read(self):
+        with self._lock:
+            while self._rcnt < 0:
+                # wait for writer
+                self._r.wait()
+            self._rcnt += 1
+
+    def release_read(self):
+        with self._lock:
+            if self._rcnt == 0:
+                raise RuntimeError('read lock is not acquired')
+            if self._rcnt < 0:
+                # writer is waiting
+                self._rcnt += 1
+                self._rwait -= 1
+                if self._rwait == 0:
+                    # wake up writers
+                    self._w.notify_all()
+            else:
+                self._rcnt -= 1
+
+    def acquire_write(self):
+        with self._lock:
+            while self._rcnt < 0:
+                # wait for writer
+                self._w.wait()
+            rcnt = self._rcnt
+            self._rcnt = -rcnt - 1
+            self._rwait = rcnt
+            if 0 < rcnt:
+                # wait for readers
+                self._w.wait()
+
+    def release_write(self):
+        with self._lock:
+            if 0 <= self._rcnt:
+                raise RuntimeError('write lock is not acquired')
+            self._rcnt += 1
+            # wake up readers
+            self._r.notify_all()
+            # wake up writers
+            self._w.notify_all()
+
+    class _Lock(object):
+
+        def __init__(self, acquire, release):
+            self._acquire = acquire
+            self._release = release
+
+        def __enter__(self):
+            self._acquire()
+            return self
+
+        def __exit__(self, *exc_info):
+            self._release()
