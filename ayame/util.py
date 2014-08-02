@@ -27,6 +27,7 @@
 import collections
 import hashlib
 import io
+import itertools
 import os
 import pkgutil
 import random
@@ -39,7 +40,7 @@ from .exception import ResourceError
 
 
 __all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
-           'FilterDict', 'RWLock', 'LRUCache']
+           'FilterDict', 'RWLock', 'LRUCache', 'LFUCache']
 
 if five.PY2:
     _builtins = '__builtin__'
@@ -252,22 +253,22 @@ class RWLock(object):
             self._release()
 
 
-class LRUCache(object):
+class _Cache(object):
 
-    __slots__ = ('__cap', '_ref', '_head', '_lock')
+    __slots__ = ('_cap', '_ref', '_head', '_lock')
 
     def __init__(self, cap=-1):
-        self.__cap = cap
+        self._cap = cap
         self.on_init()
 
     def cap():
         def fget(self):
             with self._lock.read():
-                return self.__cap
+                return self._cap
 
         def fset(self, cap):
             with self._lock.write():
-                self.__cap = cap
+                self._cap = cap
                 self._sweep()
 
         return locals()
@@ -280,24 +281,6 @@ class LRUCache(object):
     def __len__(self):
         with self._lock.read():
             return len(self._ref)
-
-    def __getitem__(self, key):
-        with self._lock.write():
-            return self._move_to_front(self._ref[key]).value
-
-    def __setitem__(self, key, value):
-        with self._lock.write():
-            if key in self._ref:
-                e = self._ref[key]
-                e.value = value
-            else:
-                self._ref[key] = e = self._Entry(key, value)
-                self._sweep()
-
-            if self._head is None:
-                self._head = e.next = e.prev = e
-            else:
-                self._move_to_front(e)
 
     def __delitem__(self, key):
         with self._lock.write():
@@ -317,23 +300,6 @@ class LRUCache(object):
         with self._lock.read():
             return key in self._ref
 
-    def __copy__(self):
-        with self._lock.read():
-            c = self.__class__(self.__cap)
-            for e in self._iter(reverse=True):
-                c[e.key] = e.value
-            return c
-
-    def __getstate__(self):
-        with self._lock.read():
-            return (self.__cap, tuple((e.key, e.value) for e in self._iter()))
-
-    def __setstate__(self, state):
-        self.__cap = state[0]
-        self.on_init()
-        for k, v in reversed(state[1]):
-            self[k] = v
-
     def items(self):
         with self._lock.read():
             for e in self._iter():
@@ -345,13 +311,6 @@ class LRUCache(object):
         with self._lock.read():
             for e in self._iter():
                 yield e.value
-
-    copy = __copy__
-
-    def clear(self):
-        with self._lock.write():
-            self._ref.clear()
-            self._head = None
 
     def get(self, key, default=None):
         try:
@@ -393,11 +352,61 @@ class LRUCache(object):
 
     def on_init(self):
         self._ref = {}
-        self._head = None
         self._lock = RWLock()
 
     def on_evicted(self, key, value):
         pass
+
+
+class LRUCache(_Cache):
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        with self._lock.write():
+            return self._move_to_front(self._ref[key]).value
+
+    def __setitem__(self, key, value):
+        with self._lock.write():
+            if key in self._ref:
+                e = self._ref[key]
+                e.value = value
+            else:
+                self._ref[key] = e = self._Entry(key, value)
+                self._sweep()
+
+            if self._head is None:
+                self._head = e.next = e.prev = e
+            else:
+                self._move_to_front(e)
+
+    def __copy__(self):
+        with self._lock.read():
+            c = self.__class__(self._cap)
+            for e in self._iter(reverse=True):
+                c[e.key] = e.value
+            return c
+
+    def __getstate__(self):
+        with self._lock.read():
+            return (self._cap, tuple((e.key, e.value) for e in self._iter()))
+
+    def __setstate__(self, state):
+        self._cap = state[0]
+        self.on_init()
+        for k, v in reversed(state[1]):
+            self[k] = v
+
+    copy = __copy__
+
+    def clear(self):
+        with self._lock.write():
+            self._ref.clear()
+            self._head = None
+
+    def on_init(self):
+        super(LRUCache, self).on_init()
+        self._head = None
 
     def _iter(self, reverse=False):
         if self._head is None:
@@ -438,9 +447,9 @@ class LRUCache(object):
         return e
 
     def _sweep(self):
-        if 0 <= self.__cap:
+        if 0 <= self._cap:
             it = self._iter(reverse=True)
-            while self.__cap < len(self._ref):
+            while self._cap < len(self._ref):
                 self._evict(next(it))
 
     def _evict(self, e):
@@ -449,7 +458,7 @@ class LRUCache(object):
         del self._ref[e.key]
         if e is self._head:
             if (not self._ref or
-                self.__cap < 2):
+                self._cap < 2):
                 self._head = None
             else:
                 self._head = e.next
@@ -466,3 +475,180 @@ class LRUCache(object):
 
 
 collections.MutableMapping.register(LRUCache)
+
+
+class LFUCache(_Cache):
+    """An implementation of LFU cache algorithm
+
+    This is based upon K. Shah, A. Mitra and D. Matani,
+    "An O(1) algorithm for implementation the LFU cache eviction scheme" August 2010
+    """
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        with self._lock.write():
+            e = self._ref[key]
+            curr = e.parent
+            # remove from current frequency node
+            self._remove(e)
+            # append to next frequency node
+            next = curr.next
+            if (next is self._head or
+                next.value != curr.value + 1):
+                next = self._new_freq(curr.value + 1, next)
+            next.append(e)
+
+            return e.value
+
+    def __setitem__(self, key, value):
+        with self._lock.write():
+            if key in self._ref:
+                self._evict(self._ref[key])
+            self._sweep(self._cap - 1 if 0 < self._cap else self._cap)
+
+            freq = self._head.next
+            if freq.value != 1:
+                freq = self._new_freq(1, freq)
+            self._ref[key] = e = self._Entry(key, value)
+            freq.append(e)
+
+    def __copy__(self):
+        with self._lock.read():
+            c = self.__class__(self._cap)
+            for fv, g in itertools.groupby(self._iter(), lambda e: e.parent.value):
+                for e in reversed(tuple(g)):
+                    c[e.key] = e.value
+                c._head.next.value = fv
+            return c
+
+    def __getstate__(self):
+        with self._lock.read():
+            return (self._cap,
+                    tuple((fv, tuple((e.key, e.value) for e in g))
+                          for fv, g in itertools.groupby(self._iter(), lambda e: e.parent.value)))
+
+    def __setstate__(self, state):
+        self._cap = state[0]
+        self.on_init()
+        for fv, g in state[1]:
+            for k, v in reversed(g):
+                self[k] = v
+            self._head.next.value = fv
+
+    copy = __copy__
+
+    def clear(self):
+        with self._lock.write():
+            self._ref.clear()
+            self._head.next = self._head.prev = self._head
+
+    def on_init(self):
+        super(LFUCache, self).on_init()
+        self._head = self._Frequency(0)
+
+    def _iter(self, reverse=False):
+        if self._head.next is self._head:
+            # no entries
+            return
+        elif not reverse:
+            # forward iterator
+            freq = self._head.prev
+            while freq is not self._head:
+                e = freq.head.prev
+                while True:
+                    p = e.prev
+                    yield e
+                    if e is freq.head:
+                        break
+                    e = p
+                freq = freq.prev
+        else:
+            # reverse iterator
+            freq = self._head.next
+            while freq is not self._head:
+                e = freq.head
+                while True:
+                    n = e.next
+                    yield e
+                    if n is freq.head:
+                        break
+                    e = n
+                freq = freq.next
+
+    def _new_freq(self, v, next):
+        freq = self._Frequency(v)
+        freq.next = next
+        freq.prev = next.prev
+        next.prev.next = next.prev = freq
+        return freq
+
+    def _sweep(self, cap=None):
+        if cap is None:
+            cap = self._cap
+
+        if 0 <= cap:
+            while cap < len(self._ref):
+                self._evict(self._lfu())
+
+    def _evict(self, e):
+        self._remove(e)
+        del self._ref[e.key]
+        self.on_evicted(e.key, e.value)
+
+    def _remove(self, e):
+        freq = e.parent
+        freq.remove(e)
+        if freq.len == 0:
+            freq.next.prev = freq.prev
+            freq.prev.next = freq.next
+
+    def _lfu(self):
+        if self._head.next is self._head:
+            raise RuntimeError("'{}' is empty".format(self.__class__.__name__))
+        return self._ref[self._head.next.head.key]
+
+    class _Frequency(object):
+
+        __slots__ = ('value', 'head', 'len', 'next', 'prev')
+
+        def __init__(self, value):
+            self.value = value
+            self.head = None
+            self.len = 0
+            self.next = self.prev = self
+
+        def append(self, e):
+            if self.head is None:
+                self.head = e.next = e.prev = e
+            else:
+                n = self.head
+                e.next = n
+                e.prev = n.prev
+                n.prev.next = n.prev = e
+            e.parent = self
+            self.len += 1
+
+        def remove(self, e):
+            if e.next is e:
+                self.head = None
+            else:
+                e.next.prev = e.prev
+                e.prev.next = e.next
+                if self.head is e:
+                    self.head = e.next
+            e.parent = None
+            self.len -= 1
+
+    class _Entry(object):
+
+        __slots__ = ('key', 'value', 'parent', 'next', 'prev')
+
+        def __init__(self, key, value):
+            self.key = key
+            self.value = value
+            self.parent = None
+            self.next = self.prev = None
+
+
+collections.MutableMapping.register(LFUCache)
