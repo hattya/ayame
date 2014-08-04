@@ -64,7 +64,10 @@ class ValidatorTestCase(AyameTestCase):
     def test_validator(self):
         class Validator(validator.Validator):
             def validate(self, object):
-                super(Validator, self).validate(object)
+                return super(Validator, self).validate(object)
+
+        with self.assert_raises(TypeError):
+            validator.Validator()
 
         v = Validator()
         self.assert_false(v.validate(None))
@@ -81,6 +84,7 @@ class ValidatorTestCase(AyameTestCase):
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['EmailValidator'])
             self.assert_equal(e.vars, {'pattern': v.regex.pattern})
+
         assert_error(None)
         assert_error('')
         assert_error('a@b@example.com')
@@ -88,18 +92,10 @@ class ValidatorTestCase(AyameTestCase):
 
     def test_url_validator(self):
         v = validator.URLValidator()
-        self.assert_false(v.validate('http://127.0.0.1'))
-        self.assert_false(v.validate('http://127.0.0.1/'))
-        self.assert_false(v.validate('http://127.0.0.1:80'))
-        self.assert_false(v.validate('http://127.0.0.1:80/'))
-        self.assert_false(v.validate('http://localhost'))
-        self.assert_false(v.validate('http://localhost/'))
-        self.assert_false(v.validate('http://localhost:80'))
-        self.assert_false(v.validate('http://localhost:80/'))
-        self.assert_false(v.validate('http://example.com'))
-        self.assert_false(v.validate('http://example.com/'))
-        self.assert_false(v.validate('http://example.com:80'))
-        self.assert_false(v.validate('http://example.com:80/'))
+        for host in ('127.0.0.1', 'localhost', 'example.com'):
+            for port in ('', ':80'):
+                for s in ('', '/'):
+                    self.assert_false(v.validate('http://' + host + port + s))
 
         self.assert_false(v.validate('http://user@example.com/'))
         self.assert_false(v.validate('http://user:password@example.com/'))
@@ -117,6 +113,7 @@ class ValidatorTestCase(AyameTestCase):
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['URLValidator'])
             self.assert_equal(e.vars, {'pattern': v.regex.pattern})
+
         assert_error(None)
         assert_error('')
         assert_error('mailto:a@example.com')
@@ -136,6 +133,7 @@ class ValidatorTestCase(AyameTestCase):
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['RangeValidator.type'])
             self.assert_equal(e.vars, {})
+
         v.min = v.max = 0
         assert_type_error(None)
         assert_type_error('a')
@@ -203,6 +201,7 @@ class ValidatorTestCase(AyameTestCase):
             self.assert_equal(five.str(e), '')
             self.assert_equal(e.keys, ['StringValidator.type'])
             self.assert_equal(e.vars, {})
+
         assert_type_error(None, None, 0)
         assert_type_error(0.0, None, '')
         assert_type_error(None, 0.0, '')

@@ -127,12 +127,14 @@ class RouteTestCase(AyameTestCase):
 
     def test_duplicate_variable(self):
         map = route.Map()
-        with self.assert_raises_regex(ayame.RouteError, "'a' already in use$"):
+        with self.assert_raises_regex(ayame.RouteError,
+                                      "'a' already in use$"):
             map.connect('/<a>/<b>/<a>/<c>', 0)
 
     def test_unknown_converter(self):
         map = route.Map()
-        with self.assert_raises_regex(ayame.RouteError, " 'spam' not found$"):
+        with self.assert_raises_regex(ayame.RouteError,
+                                      " 'spam' not found$"):
             map.connect('/<a:spam>', 0)
 
     def test_custom_converter(self):

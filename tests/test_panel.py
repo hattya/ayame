@@ -31,9 +31,10 @@ from base import AyameTestCase
 
 class PanelTestCase(AyameTestCase):
 
-    def setup(self):
-        super(PanelTestCase, self).setup()
-        self.app.config['ayame.markup.pretty'] = True
+    @classmethod
+    def setup_class(cls):
+        super(PanelTestCase, cls).setup_class()
+        cls.app.config['ayame.markup.pretty'] = True
 
     def test_panel(self):
         class Spam(MarkupContainer):
@@ -144,6 +145,7 @@ class PanelTestCase(AyameTestCase):
 
         class EggsPanel(Panel):
             pass
+
         class HamPanel(EggsPanel):
             pass
 
@@ -620,7 +622,8 @@ class ShallotsPage(ayame.Page):
         'error': lambda v=False: """
     <ul class="feedback-panel">
       <li>&#x27;text&#x27; is required</li>
-    </ul>""" if v else ''
+    </ul>\
+""" if v else ''
     }
 
     def __init__(self):

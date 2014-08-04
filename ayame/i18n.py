@@ -51,7 +51,10 @@ _kv_re = re.compile(r"""
     \Z
 """, re.VERBOSE)
 _backslash_re = re.compile(r'\\(.)')
-_lcont_re = re.compile(r'(?<!\\)(?:\\\\)*\\$')
+_lcont_re = re.compile(r"""
+    (?<!\\)(?:\\\\)* \\
+    \Z
+""", re.VERBOSE)
 _ctrl_chr = {
     'f': '\f',
     'n': '\n',
@@ -110,15 +113,15 @@ class Localizer(object):
         while queue:
             class_, prefix = queue.pop()
             yield class_, prefix
-            if (not self.is_base_class(class_) and
+            if (not self._is_base_class(class_) and
                 class_.__bases__):
                 queue.extend((c, prefix) for c in class_.__bases__
-                             if self.is_target_class(c))
+                             if self._is_target_class(c))
 
-    def is_target_class(self, class_):
+    def _is_target_class(self, class_):
         return issubclass(class_, (core.Component, ayame.Ayame))
 
-    def is_base_class(self, class_):
+    def _is_base_class(self, class_):
         return class_ in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
 
     def _load(self, fp):

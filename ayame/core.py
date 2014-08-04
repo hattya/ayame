@@ -87,7 +87,7 @@ class Component(object):
                     c = queue.pop()
                     # reset model
                     if (isinstance(c.model, mm.WrapModel) and
-                        c.model.wrapped_model == prev):
+                        c.model.wrapped_model is prev):
                         c.model = None
                     # push children
                     if isinstance(c, MarkupContainer):
@@ -490,7 +490,7 @@ class MarkupContainer(Component):
             return element.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
 
         def path_of(class_):
-            markup_type = (self if self.__class__ == class_ else super(class_, self)).markup_type
+            markup_type = (self if self.__class__ is class_ else super(class_, self)).markup_type
             if markup_type.scope:
                 return (sep.join(c.__name__
                                  for c in markup_type.scope + (class_,)) +

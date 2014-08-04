@@ -1,0 +1,22 @@
+# comment
+spam : spam
+! comment
+eggs = eggs
+ham ham
+toast\:: toast:
+toast\== toast=
+toast\  toast\ 
+beans1\\: beans1
+beans2\\= beans2
+beans3\\ beans3
+beans\\\: beans:
+beans\\\= beans=
+beans\\\  beans\ 
+bacon1 = bacon \
+         bacon
+bacon2 = bacon\\
+sausage = sausage\nsausage
+tomato
+lobster\= == lobster
+lobster\: :: lobster
+lobster\   \  lobster

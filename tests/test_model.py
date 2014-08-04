@@ -39,36 +39,36 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(m.object, '')
 
     def test_nested_model(self):
-        inner = model.Model(None)
-        outer = model.Model(inner)
-        self.assert_is_none(inner.object)
-        self.assert_is_none(outer.object)
+        m = model.Model(model.Model(None))
+        self.assert_is_none(m.object)
 
-        outer.object = model.Model('')
-        self.assert_equal(outer.object, '')
+        m.object = model.Model('')
+        self.assert_equal(m.object, '')
 
     def test_inheritable_model(self):
-        with self.assert_raises(TypeError):
-            model.InheritableModel()
-
         class InheritableModel(model.InheritableModel):
             def wrap(self, component):
                 return super(InheritableModel, self).wrap(component)
+
+        with self.assert_raises(TypeError):
+            model.InheritableModel()
+
         m = InheritableModel(None)
         self.assert_is_none(m.wrap(None))
 
     def test_wrap_model(self):
-        with self.assert_raises(TypeError):
-            model.WrapModel()
-
         class WrapModel(model.WrapModel):
             @property
             def object(self):
                 return super(WrapModel, self).object
+
+        with self.assert_raises(TypeError):
+            model.WrapModel()
+
         m = WrapModel(None)
         self.assert_is_none(m.object)
 
-    def test_compound_model_attribute(self):
+    def test_compound_model_attr(self):
         class Object(object):
             attr = 'value'
 
@@ -84,16 +84,20 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(o.attr, 'new_value')
         self.assert_equal(mc.find('attr').model.object, 'new_value')
 
-    def test_compound_model_property_attribute(self):
+    def test_compound_model_property(self):
         class Object(object):
             def __init__(self):
                 self.__attr = 'value'
+
             def attr():
                 def fget(self):
                     return self.__attr
+
                 def fset(self, attr):
                     self.__attr = attr
+
                 return locals()
+
             attr = property(**attr())
 
         o = Object()
@@ -112,8 +116,10 @@ class ModelTestCase(AyameTestCase):
         class Object(object):
             def __init__(self):
                 self.__method = 'value'
+
             def get_method(self):
                 return self.__method
+
             def set_method(self, method):
                 self.__method = method
 
@@ -140,7 +146,8 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(len(mc.children), 1)
         self.assert_is_none(mc.find('method').model.object)
 
-        with self.assert_raises_regex(AttributeError, '^method$'):
+        with self.assert_raises_regex(AttributeError,
+                                      '^method$'):
             mc.find('method').model.object = 'new_value'
 
     def test_compound_model_dict(self):
@@ -175,8 +182,10 @@ class ModelTestCase(AyameTestCase):
         mc.model = model.CompoundModel(object())
         self.assert_is_none(mc.find('b').model.object)
         self.assert_is_none(mc.find('b:c').model.object)
-        with self.assert_raises_regex(AttributeError, '^b$'):
+        with self.assert_raises_regex(AttributeError,
+                                      '^b$'):
             setattr(mc.find('b').model, 'object', '')
-        with self.assert_raises_regex(AttributeError, '^c$'):
+        with self.assert_raises_regex(AttributeError,
+                                      '^c$'):
             setattr(mc.find('b:c').model, 'object', '')
         self.assert_equal(mc.render(''), '')

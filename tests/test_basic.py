@@ -70,6 +70,9 @@ class BasicTestCase(AyameTestCase):
             self.assert_equal(elem.children, ['&lt;tag&gt;'])
 
     def test_list_view_empty_model(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+
         root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         label = markup.Element(self.of('label'),
@@ -77,8 +80,6 @@ class BasicTestCase(AyameTestCase):
         root.append(label)
         mc = ayame.MarkupContainer('a')
         m = model.Model(None)
-        def populate_item(li):
-            li.add(basic.Label('c', li.model.object))
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
@@ -101,6 +102,9 @@ class BasicTestCase(AyameTestCase):
             mc.render(root)
 
     def test_list_view(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+
         root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         label = markup.Element(self.of('label'),
@@ -108,8 +112,6 @@ class BasicTestCase(AyameTestCase):
         root.append(label)
         mc = ayame.MarkupContainer('a')
         m = model.Model([str(i) for i in five.range(3)])
-        def populate_item(li):
-            li.add(basic.Label('c', li.model.object))
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
@@ -150,6 +152,10 @@ class BasicTestCase(AyameTestCase):
         self.assert_equal(lv.children[2].model.object, 12)
 
     def test_list_view_render_body_only(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+            li.find('c').render_body_only = True
+
         root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         root.append('[')
@@ -158,9 +164,6 @@ class BasicTestCase(AyameTestCase):
         root.append(label)
         root.append(']')
         mc = ayame.MarkupContainer('a')
-        def populate_item(li):
-            li.add(basic.Label('c', li.model.object))
-            li.find('c').render_body_only = True
         mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
@@ -171,6 +174,9 @@ class BasicTestCase(AyameTestCase):
         self.assert_equal(root.children, ['[0][1][2]'])
 
     def test_property_list_view(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+
         root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         label = markup.Element(self.of('label'),
@@ -178,8 +184,6 @@ class BasicTestCase(AyameTestCase):
         root.append(label)
         m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
         mc = ayame.MarkupContainer('a', m)
-        def populate_item(li):
-            li.add(basic.Label('c', li.model.object))
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)
@@ -220,6 +224,10 @@ class BasicTestCase(AyameTestCase):
         self.assert_equal(lv.children[2].model.object, 12)
 
     def test_property_list_view_render_body_only(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model.object))
+            li.find('c').render_body_only = True
+
         root = markup.Element(self.of('root'),
                               attrib={markup.AYAME_ID: 'b'})
         root.append('[')
@@ -229,9 +237,6 @@ class BasicTestCase(AyameTestCase):
         root.append(']')
         m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
         mc = ayame.MarkupContainer('a', m)
-        def populate_item(li):
-            li.add(basic.Label('c', li.model.object))
-            li.find('c').render_body_only = True
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)

@@ -36,7 +36,6 @@ class AppTestCase(AyameTestCase):
 
     def setup(self):
         super(AppTestCase, self).setup()
-        self.boundary = 'ayame.app'
         self.locale = locale.getdefaultlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
@@ -194,13 +193,14 @@ class SimpleAppTestCase(AyameTestCase):
 
     def setup(self):
         super(SimpleAppTestCase, self).setup()
-        map = self.app.config['ayame.route.map']
+        app = ayame.Ayame(__name__)
+        map = app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)
         map.connect('/class', object)
         map.connect('/redir', RedirectPage)
 
-        self.app = self.app.new()
+        self.app = app.new()
 
     def new_environ(self, method='GET', path='', query=''):
         return super(SimpleAppTestCase, self).new_environ(method=method,
@@ -208,10 +208,10 @@ class SimpleAppTestCase(AyameTestCase):
                                                           query=query)
 
     def wsgi_call(self, environ):
-        wsgi = {}
         def start_response(status, headers, exc_info=None):
             wsgi.update(status=status, headers=headers, exc_info=exc_info)
 
+        wsgi = {}
         content = self.app(environ, start_response)
         return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
 
@@ -320,10 +320,13 @@ class SimplePage(ayame.Page):
 
     def __init__(self):
         super(SimplePage, self).__init__()
-        class SessionLabel(basic.Label):
-            def __init__(self, id, default):
-                super(SessionLabel, self).__init__(id, self.session.get(id, default))
         self.add(SessionLabel('message', self.kwargs['message']))
+
+
+class SessionLabel(basic.Label):
+
+    def __init__(self, id, default):
+        super(SessionLabel, self).__init__(id, self.session.get(id, default))
 
 
 class RedirectPage(ayame.Page):
@@ -336,4 +339,5 @@ class RedirectPage(ayame.Page):
             self.redirect(RedirectPage, {'p': 1}, permanent=True)
         elif 'temporary' in self.request.query.get('type', []):
             self.redirect(RedirectPage, {'t': 1})
-        self.forward(RedirectPage)
+        else:
+            self.forward(RedirectPage)

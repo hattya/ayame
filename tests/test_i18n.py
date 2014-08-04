@@ -33,9 +33,10 @@ from base import AyameTestCase
 
 class I18nTestCase(AyameTestCase):
 
-    def setup(self):
-        super(I18nTestCase, self).setup()
-        self.app = Application(__name__)
+    @classmethod
+    def setup_class(cls):
+        super(I18nTestCase, cls).setup_class()
+        cls.app = Application(__name__)
 
     def test_iter_class(self):
         with self.application():
@@ -67,89 +68,55 @@ class I18nTestCase(AyameTestCase):
                                (ayame.Ayame, '')])
 
     def test_load(self):
-        data = br"""
-# comment
-spam : spam
-! comment
-eggs = eggs
-ham ham
-toast\:: toast:
-toast\== toast=
-toast\  toast\ 
-beans1\\: beans1
-beans2\\= beans2
-beans3\\ beans3
-beans\\\: beans:
-beans\\\= beans=
-beans\\\  beans\ 
-bacon1 = bacon \
-         bacon
-bacon2 = bacon\\
-sausage = sausage\nsausage
-tomato
-lobster\= == lobster
-lobster\: :: lobster
-lobster\   \  lobster
-"""
-        l = i18n.Localizer()
-        self.assert_equal(l._load(io.StringIO(data.decode())),
-                          {'spam': 'spam',
-                           'eggs': 'eggs',
-                           'ham': 'ham',
-                           'toast:': 'toast:',
-                           'toast=': 'toast=',
-                           'toast ': 'toast ',
-                           'beans1\\': 'beans1',
-                           'beans2\\': 'beans2',
-                           'beans3\\': 'beans3',
-                           'beans\\:': 'beans:',
-                           'beans\\=': 'beans=',
-                           'beans\\ ': 'beans ',
-                           'bacon1': 'bacon bacon',
-                           'bacon2': 'bacon\\',
-                           'sausage': 'sausage\nsausage',
-                           'tomato': '',
-                           'lobster=': '= lobster',
-                           'lobster:': ': lobster',
-                           'lobster ': '  lobster'})
+        with io.open(self.path_for('i18n.txt')) as fp:
+            l = i18n.Localizer()
+            self.assert_equal(l._load(fp),
+                              {'spam': 'spam',
+                               'eggs': 'eggs',
+                               'ham': 'ham',
+                               'toast:': 'toast:',
+                               'toast=': 'toast=',
+                               'toast ': 'toast ',
+                               'beans1\\': 'beans1',
+                               'beans2\\': 'beans2',
+                               'beans3\\': 'beans3',
+                               'beans\\:': 'beans:',
+                               'beans\\=': 'beans=',
+                               'beans\\ ': 'beans ',
+                               'bacon1': 'bacon bacon',
+                               'bacon2': 'bacon\\',
+                               'sausage': 'sausage\nsausage',
+                               'tomato': '',
+                               'lobster=': '= lobster',
+                               'lobster:': ': lobster',
+                               'lobster ': '  lobster'})
 
     def test_get(self):
         with self.application():
             locale = (None,) * 2
             l = i18n.Localizer()
             p = Page()
-            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
+                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
 
     def test_get_ja(self):
         with self.application():
             locale = ('ja', 'JP')
             l = i18n.Localizer()
             p = Page()
-            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
+                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
 
-    def test_get_no___module__(self):
+    def test_get_unknown_module(self):
         class P(Page):
             __module__ = None
+
         with self.application():
             locale = ('ja', 'JP')
             l = i18n.Localizer()
             p = P()
-            self.assert_equal(l.get(p.find('a:b'), locale, 'spam'), 'spam')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'eggs'), 'eggs')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'ham'), 'ham')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'toast'), 'toast')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'beans'), 'beans')
-            self.assert_equal(l.get(p.find('a:b'), locale, 'bacon'), 'bacon')
+            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
+                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
 
 
 class Application(ayame.Ayame):

@@ -34,10 +34,10 @@ from base import AyameTestCase
 
 class FormTestCase(AyameTestCase):
 
-    def setup(self):
-        super(FormTestCase, self).setup()
-        self.app.config['ayame.markup.pretty'] = True
-        self.boundary = 'ayame.form'
+    @classmethod
+    def setup_class(cls):
+        super(FormTestCase, cls).setup_class()
+        cls.app.config['ayame.markup.pretty'] = True
 
     def assert_required_error(self, fc, input):
         e = fc.error
@@ -87,22 +87,22 @@ class FormTestCase(AyameTestCase):
             def on_method_mismatch(self):
                 return False
 
-        f = Form('a')
         query = 'b=1'
         with self.application(self.new_environ(query=query)):
+            f = Form('a')
             f._method = 'POST'
             f.submit()
 
-        f = form.Form('a')
         query = 'b=1'
         with self.application(self.new_environ(method='PUT', query=query)):
+            f = form.Form('a')
             f._method = 'POST'
             f.submit()
 
     def test_nested_form(self):
-        f = form.Form('a')
-        f.add(form.Form('b'))
         with self.application(self.new_environ(method='POST')):
+            f = form.Form('a')
+            f.add(form.Form('b'))
             f._method = 'POST'
             with self.assert_raises_regex(ayame.ComponentError,
                                           r"\bForm is nested\b"):
@@ -112,17 +112,19 @@ class FormTestCase(AyameTestCase):
         class Button(form.Button):
             def relative_path(self):
                 return super(Button, self).relative_path()[:-1]
+
             def on_submit(self):
                 raise Valid(self.id)
 
-        f = form.Form('a')
-        f.add(Button('b1'))
-        f.add(Button('b2'))
         query = ('{path}=a&'
                  'b')
         with self.application(self.new_environ(query=query)):
+            f = form.Form('a')
+            f.add(Button('b1'))
+            f.add(Button('b2'))
             f._method = 'GET'
-            with self.assert_raises_regex(Valid, '^b1$'):
+            with self.assert_raises_regex(Valid,
+                                          '^b1$'):
                 f.submit()
 
     def test_form(self):
@@ -154,7 +156,8 @@ class FormTestCase(AyameTestCase):
                  'file=a.txt')
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid, '^form$'):
+            with self.assert_raises_regex(Valid,
+                                          '^form$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object,
@@ -175,7 +178,8 @@ class FormTestCase(AyameTestCase):
                  'button')
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid, '^button$'):
+            with self.assert_raises_regex(Valid,
+                                          '^button$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object,
@@ -197,7 +201,8 @@ class FormTestCase(AyameTestCase):
                               ('file', ('a.txt', 'spam\neggs\nham\n', 'text/plain')))
         with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid, '^form$'):
+            with self.assert_raises_regex(Valid,
+                                          '^form$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
@@ -225,7 +230,8 @@ class FormTestCase(AyameTestCase):
                               ('button', ''))
         with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid, '^button$'):
+            with self.assert_raises_regex(Valid,
+                                          '^button$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
@@ -362,6 +368,7 @@ class FormTestCase(AyameTestCase):
                 self.assert_equal(e.vars, {'input': o,
                                            'name': 'a',
                                            'label': 'a'})
+
             assert_type_error(0.0, None, 0)
             assert_type_error(None, 0.0, 0)
 
@@ -431,6 +438,7 @@ class FormTestCase(AyameTestCase):
                 self.assert_equal(e.vars, {'input': o,
                                            'name': 'a',
                                            'label': 'a'})
+
             assert_type_error(None, None, 0)
             assert_type_error(0.0, None, '')
             assert_type_error(None, 0.0, '')
@@ -1151,14 +1159,6 @@ class SpamPage(ayame.Page):
         self.find('form:checkbox').model_object = True
         self.find('form').add(form.FileUploadField('file'))
         self.find('form:file').model_object = None
-        class Button(form.Button):
-            def on_submit(self):
-                super(Button, self).on_submit()
-                self.model_object = 'submitted'
-                raise Valid(self.id)
-            def on_error(self):
-                super(Button, self).on_error()
-                raise Invalid(self.id)
         self.find('form').add(Button('button'))
 
 
@@ -1301,6 +1301,18 @@ class Form(form.Form):
 
     def on_error(self):
         super(Form, self).on_error()
+        raise Invalid(self.id)
+
+
+class Button(form.Button):
+
+    def on_submit(self):
+        super(Button, self).on_submit()
+        self.model_object = 'submitted'
+        raise Valid(self.id)
+
+    def on_error(self):
+        super(Button, self).on_error()
         raise Invalid(self.id)
 
 

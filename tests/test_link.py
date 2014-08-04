@@ -31,6 +31,10 @@ from base import AyameTestCase
 
 class LinkTestCase(AyameTestCase):
 
+    def setup(self):
+        super(LinkTestCase, self).setup()
+        self.app = ayame.Ayame(__name__)
+
     def test_link_href(self):
         a = markup.Element(link._A)
         with self.application():
@@ -148,7 +152,7 @@ class LinkTestCase(AyameTestCase):
     def test_page_link_error(self):
         with self.application(self.new_environ()):
             with self.assert_raises_regex(ayame.ComponentError,
-                                          r" is not a subclass of Page\b"):
+                                          r' not .* subclass of Page\b'):
                 link.PageLink('a', object)
 
 
@@ -172,11 +176,14 @@ class SpamPage(ayame.Page):
 
     def __init__(self):
         super(SpamPage, self).__init__()
-        class ActionLink(link.ActionLink):
-            def on_click(self):
-                super(ActionLink, self).on_click()
-                raise Clicked()
         self.add(ActionLink('link'))
+
+
+class ActionLink(link.ActionLink):
+
+    def on_click(self):
+        super(ActionLink, self).on_click()
+        raise Clicked()
 
 
 class Clicked(Exception):

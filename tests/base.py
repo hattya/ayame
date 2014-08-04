@@ -25,6 +25,7 @@
 #
 
 import contextlib
+import os
 import sys
 import unittest
 import wsgiref.util
@@ -68,7 +69,24 @@ class AyameTestCase(unittest.TestCase):
         try:
             return getattr(self, _ASSERT_MAP[name])
         except KeyError:
-            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self.__class__), name))
+            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self), name))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setup_class()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.teardown_class()
+
+    @classmethod
+    def setup_class(cls):
+        cls.app = ayame.Ayame(cls.__module__)
+        cls.boundary = 'ayame.' + cls.__module__[5:]
+
+    @classmethod
+    def teardown_class(cls):
+        pass
 
     def setUp(self):
         self.setup()
@@ -77,8 +95,7 @@ class AyameTestCase(unittest.TestCase):
         self.teardown()
 
     def setup(self):
-        self.app = ayame.Ayame(__name__)
-        self.boundary = self.__class__.__module__
+        pass
 
     def teardown(self):
         pass
@@ -86,6 +103,9 @@ class AyameTestCase(unittest.TestCase):
     def assert_ws(self, seq, i):
         self.assert_is_instance(seq[i], five.string_type)
         self.assert_regex(seq[i], '^\s*$')
+
+    def path_for(self, path):
+        return os.path.join(os.path.splitext(sys.modules[self.__class__.__module__].__file__)[0], path)
 
     @contextlib.contextmanager
     def application(self, environ=None):

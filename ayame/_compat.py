@@ -52,28 +52,8 @@ if PY2:
     str = unicode
     range = xrange
 
-    class _dict_view(object):
-
-        __slots__ = ('_dict',)
-
-        def __init__(self, d):
-            self._dict = d
-
-        def __repr__(self):
-            return '{}({})'.format(self.__class__.__name__, list(self))
-
-        def __unicode__(self):
-            return unicode(self.__repr__())
-
-    class dict_items(_dict_view):
-
-        __slots__ = ()
-
-        def __iter__(self):
-            return self._dict.iteritems()
-
     def items(d):
-        return dict_items(d)
+        return d.viewitems()
 
     def html_escape(s, quote=True):
         s = cgi.escape(s, quote)

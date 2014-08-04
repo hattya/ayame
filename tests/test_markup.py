@@ -39,7 +39,7 @@ class MarkupTestCase(AyameTestCase):
         with self.assert_raises(ayame.MarkupError) as a:
             loader.load(self, src, **kwargs)
         self.assert_equal(len(a.exception.args), 3)
-        self.assert_equal(a.exception.args[0], self)
+        self.assert_is(a.exception.args[0], self)
         self.assert_equal(a.exception.args[1], pos)
         self.assert_regex(a.exception.args[2], regex)
 
@@ -47,7 +47,7 @@ class MarkupTestCase(AyameTestCase):
         renderer = markup.MarkupRenderer()
         with self.assert_raises(ayame.RenderingError) as a:
             renderer.render(self, m, **kwargs)
-        self.assert_equal(a.exception.args[0], self)
+        self.assert_is(a.exception.args[0], self)
         self.assert_regex(a.exception.args[1], regex)
 
     def format(self, doc_t, *args, **kwargs):
@@ -445,6 +445,7 @@ x\
                 elem = super(Loader, self).new_xml_element(*args, **kwargs)
                 elem.ns.pop('', None)
                 return elem
+
         src = io.StringIO(xml)
         self.assert_markup_error((1, 70), ' no default namespace$',
                                  src, lang='xml',
@@ -456,6 +457,7 @@ x\
                 elem = super(Loader, self).new_xml_element(*args, **kwargs)
                 elem.ns.pop('eggs', None)
                 return elem
+
         src = io.StringIO(xml)
         self.assert_markup_error((1, 58), "^unknown .* prefix 'eggs'$",
                                  src, lang='xml',
@@ -816,6 +818,7 @@ after html\
 
         def new_element(name, type=markup.Element.OPEN, **kwargs):
             return markup.Element(self.html_of(name), type=type, **kwargs)
+
         def new_ayame_element(name, **kwargs):
             kwargs['type'] = markup.Element.OPEN
             return markup.Element(self.ayame_of(name), **kwargs)

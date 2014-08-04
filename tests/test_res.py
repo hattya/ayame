@@ -82,8 +82,10 @@ class ResTestCase(AyameTestCase):
                     self.__loader__ = loader
                 else:
                     from importlib.util import spec_from_loader
+
                     self.__spec__ = spec_from_loader(__name__, loader,
                                                      origin=__spec__.origin)
+
         return Module()
 
     def test_resource(self):
@@ -157,9 +159,6 @@ class ResTestCase(AyameTestCase):
             def open(self):
                 return io.StringIO(self._loader.get_data(path))
 
-        def path_for(s):
-            return os.path.join(os.path.splitext(__file__)[0], s)
-
         loader = ResourceLoader()
 
         class Spam(object):
@@ -168,7 +167,7 @@ class ResTestCase(AyameTestCase):
         def ham():
             pass
 
-        path = path_for('Spam.txt')
+        path = self.path_for('Spam.txt')
         for o in (Spam, Spam()):
             for p in ('Spam.txt', '.txt'):
                 r = loader.load(o, p)
@@ -178,7 +177,7 @@ class ResTestCase(AyameTestCase):
                 with r.open() as fp:
                     self.assert_equal(fp.read(), 'test_res/Spam.txt from Loader')
 
-        path = path_for('ham.txt')
+        path = self.path_for('ham.txt')
         for p in ('ham.txt', '.txt'):
             r = loader.load(ham, p)
             self.assert_is_instance(r, res.FileResource)
@@ -191,9 +190,6 @@ class ResTestCase(AyameTestCase):
 class FileResourceTestCase(AyameTestCase):
 
     regex = '^cannot load '
-
-    def path_for(self, s):
-        return os.path.join(os.path.splitext(__file__)[0], s)
 
     def test_load_by_class(self):
         loader = res.ResourceLoader()

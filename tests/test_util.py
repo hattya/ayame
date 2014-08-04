@@ -54,6 +54,10 @@ class UtilTestCase(AyameTestCase):
     def test_fqon_of_class(self):
         class O:
             pass
+
+        class N(object):
+            pass
+
         self.assert_equal(util.fqon_of(O), __name__ + '.O')
         self.assert_equal(util.fqon_of(O()), __name__ + '.O')
         O.__module__ = None
@@ -64,8 +68,6 @@ class UtilTestCase(AyameTestCase):
             self.assert_equal(util.fqon_of(O), 'O')
             self.assert_equal(util.fqon_of(O()), 'O')
 
-        class N(object):
-            pass
         self.assert_equal(util.fqon_of(N), __name__ + '.N')
         self.assert_equal(util.fqon_of(N()), __name__ + '.N')
         N.__module__ = None
@@ -75,11 +77,13 @@ class UtilTestCase(AyameTestCase):
     def test_fqon_of_function(self):
         def f():
             pass
+
         self.assert_equal(util.fqon_of(f), __name__ + '.f')
         del f.__module__
         self.assert_equal(util.fqon_of(f), '<unknown>.f')
 
         f = lambda: None
+
         self.assert_equal(util.fqon_of(f), __name__ + '.<lambda>')
         del f.__module__
         self.assert_equal(util.fqon_of(f), '<unknown>.<lambda>')

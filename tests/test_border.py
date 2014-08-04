@@ -31,9 +31,10 @@ from base import AyameTestCase
 
 class BorderTestCase(AyameTestCase):
 
-    def setup(self):
-        super(BorderTestCase, self).setup()
-        self.app.config['ayame.markup.pretty'] = True
+    @classmethod
+    def setup_class(cls):
+        super(BorderTestCase, cls).setup_class()
+        cls.app.config['ayame.markup.pretty'] = True
 
     def test_border(self):
         class Spam(MarkupContainer):
@@ -162,6 +163,7 @@ class BorderTestCase(AyameTestCase):
 
         class EggsBorder(Border):
             pass
+
         class HamBorder(EggsBorder):
             pass
 

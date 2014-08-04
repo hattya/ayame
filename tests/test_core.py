@@ -32,13 +32,9 @@ from base import AyameTestCase
 
 class CoreTestCase(AyameTestCase):
 
-    def setup(self):
-        super(CoreTestCase, self).setup()
-        self.boundary = 'ayame.core'
-
     def test_component(self):
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r'\bid .* not set\b'):
+                                      r' id .* not set\b'):
             ayame.Component(None)
 
         c = ayame.Component('a')
@@ -67,7 +63,7 @@ class CoreTestCase(AyameTestCase):
         with self.assert_raises(ayame.AyameError):
             c.uri_for(c)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             c.page()
         c.add(None, True, 0, 3.14, '')
         self.assert_equal(c.behaviors, [])
@@ -78,7 +74,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_component_with_model(self):
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r'\bis not an instance of Model\b'):
+                                      r' not .* instance of Model\b'):
             ayame.Component('1', '')
 
         m = model.Model(None)
@@ -115,7 +111,7 @@ class CoreTestCase(AyameTestCase):
         with self.assert_raises(ayame.AyameError):
             c.uri_for(c)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             c.page()
         c.add(None, True, 0, 3.14, '')
         self.assert_equal(c.behaviors, [])
@@ -138,7 +134,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_container(self):
         mc = ayame.MarkupContainer('a')
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             mc.page()
         self.assert_equal(mc.path(), 'a')
         self.assert_equal(mc.children, [])
@@ -150,24 +146,24 @@ class CoreTestCase(AyameTestCase):
         b1 = ayame.Component('b1')
         mc.add(b1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             b1.page()
         self.assert_equal(b1.path(), 'a:b1')
         self.assert_equal(mc.children, [b1])
         self.assert_is(mc.find('b1'), b1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b1' already exists\b"):
+                                      r"'b1' .* exists\b"):
             mc.add(b1)
         b2 = ayame.MarkupContainer('b2')
         mc.add(b2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             b2.page()
         self.assert_equal(b2.path(), 'a:b2')
         self.assert_equal(mc.children, [b1, b2])
         self.assert_is(mc.find('b2'), b2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b2' already exists\b"):
+                                      r"'b2' .* exists\b"):
             mc.add(b2)
         it = mc.walk()
         self.assert_equal(list(it), [(mc, 0),
@@ -176,24 +172,24 @@ class CoreTestCase(AyameTestCase):
         c1 = ayame.Component('c1')
         b2.add(c1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             c1.page()
         self.assert_equal(c1.path(), 'a:b2:c1')
         self.assert_equal(b2.children, [c1])
         self.assert_is(mc.find('b2:c1'), c1)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c1' already exists\b"):
+                                      r"'c1' .* exists\b"):
             b2.add(c1)
         c2 = ayame.MarkupContainer('c2')
         b2.add(c2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r" is not attached .*\.Page\b"):
+                                      r' not attached .*\.Page\b'):
             c2.page()
         self.assert_equal(c2.path(), 'a:b2:c2')
         self.assert_equal(b2.children, [c1, c2])
         self.assert_is(mc.find('b2:c2'), c2)
         with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c2' already exists\b"):
+                                      r"'c2' .* exists\b"):
             b2.add(c2)
         it = mc.walk()
         self.assert_equal(list(it), [(mc, 0),
@@ -256,7 +252,7 @@ class CoreTestCase(AyameTestCase):
         mc.add(Component('b'))
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_element_itself_by_string(self):
+    def test_render_replace_element_itself_with_string(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return ''
@@ -267,7 +263,7 @@ class CoreTestCase(AyameTestCase):
         mc.add(Component('b'))
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_element_itself_by_list(self):
+    def test_render_replace_element_itself_with_list(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return ['>', '!', '<']
@@ -299,7 +295,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
-    def test_render_replace_element_by_string(self):
+    def test_render_replace_element_with_string(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return ''
@@ -318,7 +314,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '', '<'])
 
-    def test_render_replace_element_by_list(self):
+    def test_render_replace_element_with_list(self):
         class Component(ayame.Component):
             def on_render(self, element):
                 return [self.id, str(int(self.id) + 2)]
@@ -348,7 +344,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_ayame_element_itself_by_string(self):
+    def test_render_replace_ayame_element_itself_with_string(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 return ''
@@ -357,7 +353,7 @@ class CoreTestCase(AyameTestCase):
         mc = MarkupContainer('a')
         self.assert_equal(mc.render(root), '')
 
-    def test_render_replace_ayame_element_itself_by_list(self):
+    def test_render_replace_ayame_element_itself_with_list(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 return ['>', '!', '<']
@@ -385,10 +381,10 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '2', '4', '6', '8', '<'])
 
-    def test_render_replace_ayame_element_by_string(self):
+    def test_render_replace_ayame_element_with_string(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
-                return '' if element == a else element
+                return '' if element is a else element
 
         root = markup.Element(self.of('root'))
         root.append('>')
@@ -402,7 +398,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(root.attrib, {})
         self.assert_equal(root.children, ['>', '', '<'])
 
-    def test_render_replace_ayame_element_by_list(self):
+    def test_render_replace_ayame_element_with_list(self):
         class MarkupContainer(ayame.MarkupContainer):
             def on_render_element(self, element):
                 n = element.qname.name
@@ -431,7 +427,7 @@ class CoreTestCase(AyameTestCase):
         root.append(container)
         mc = ayame.MarkupContainer('a')
         with self.assert_raises_regex(ayame.RenderingError,
-                                      r"'ayame:id' .* 'ayame:container'"):
+                                      "'ayame:id' .* 'ayame:container'"):
             mc.render(root)
 
     def test_render_ayame_container_no_associated_component(self):
@@ -445,6 +441,9 @@ class CoreTestCase(AyameTestCase):
             mc.render(root)
 
     def test_render_ayame_container(self):
+        def populate_item(li):
+            li.add(basic.Label('c', li.model_object))
+
         root = markup.Element(self.of('root'))
         container = markup.Element(markup.AYAME_CONTAINER,
                                    attrib={markup.AYAME_ID: 'b'})
@@ -453,8 +452,6 @@ class CoreTestCase(AyameTestCase):
                            attrib={markup.AYAME_ID: 'c'})
         container.append(a)
         mc = ayame.MarkupContainer('a')
-        def populate_item(li):
-            li.add(basic.Label('c', li.model_object))
         mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
 
         root = mc.render(root)
@@ -483,7 +480,7 @@ class CoreTestCase(AyameTestCase):
         root.append(enclosure)
         mc = ayame.MarkupContainer('a')
         with self.assert_raises_regex(ayame.RenderingError,
-                                      r"'ayame:child' .* 'ayame:enclosure'"):
+                                      "'ayame:child' .* 'ayame:enclosure'"):
             mc.render(root)
 
     def test_render_ayame_enclosure_no_associated_component(self):
@@ -585,7 +582,7 @@ class CoreTestCase(AyameTestCase):
                                      attrib={markup.AYAME_KEY: 'b'})
             mc = ayame.MarkupContainer('a')
             with self.assert_raises_regex(ayame.RenderingError,
-                                          r"\bvalue .* ayame:message .* 'b'"):
+                                          " value .* ayame:message .* 'b'"):
                 mc.render(message)
 
     def test_render_ayame_message_element(self):
@@ -618,7 +615,7 @@ class CoreTestCase(AyameTestCase):
             mc = ayame.MarkupContainer('a')
             mc.add(ayame.Component('b'))
             with self.assert_raises_regex(ayame.RenderingError,
-                                          r"\binvalid .* ayame:message\b"):
+                                          r'\binvalid .* ayame:message '):
                 mc.render(root)
 
     def test_render_ayame_message_attribute(self):
@@ -744,8 +741,10 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance(self):
         class Spam(ayame.MarkupContainer):
             pass
+
         class Eggs(Spam):
             pass
+
         class Ham(Eggs):
             pass
 
@@ -861,6 +860,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_empty_submarkup(self):
         class Spam(ayame.MarkupContainer):
             pass
+
         class Sausage(Spam):
             pass
 
@@ -947,6 +947,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_merge_ayame_head(self):
         class Bacon(ayame.MarkupContainer):
             pass
+
         class Sausage(Bacon):
             pass
 
@@ -1037,30 +1038,35 @@ class CoreTestCase(AyameTestCase):
         with self.application():
             mc = Sausage('a')
             with self.assert_raises_regex(ayame.AyameError,
-                                          r"\bsuperclass .* not found\b"):
+                                          '^superclass .* not found$'):
                 mc.load_markup()
 
     def test_markup_inheritance_multiple_inheritance(self):
         class Spam(ayame.MarkupContainer):
             pass
+
         class Toast(ayame.MarkupContainer):
             pass
+
         class Beans(ayame.MarkupContainer):
             pass
+
         class Bacon(ayame.MarkupContainer):
             pass
+
         class Sausage(Spam, Toast, Beans, Bacon):
             pass
 
         with self.application():
             mc = Sausage('a')
             with self.assert_raises_regex(ayame.AyameError,
-                                          r"\bmultiple inheritance\b"):
+                                          ' multiple inheritance$'):
                 mc.load_markup()
 
     def test_markup_inheritance_no_ayame_child(self):
         class Toast(ayame.MarkupContainer):
             pass
+
         class Sausage(Toast):
             pass
 
@@ -1073,6 +1079,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_no_head(self):
         class Beans(ayame.MarkupContainer):
             pass
+
         class Sausage(Beans):
             pass
 
@@ -1085,6 +1092,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_ayame_child_as_root(self):
         class Tomato(ayame.MarkupContainer):
             pass
+
         class Sausage(Tomato):
             pass
 
@@ -1097,8 +1105,10 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_empty_markup(self):
         class Lobster(ayame.MarkupContainer):
             pass
+
         class Sausage(Lobster):
             pass
+
         with self.application():
             mc = Sausage('a')
             m = mc.load_markup()
@@ -1109,6 +1119,7 @@ class CoreTestCase(AyameTestCase):
 
         class Lobster(ayame.Page):
             pass
+
         with self.application(self.new_environ()):
             p = Lobster()
             status, headers, content = p()
@@ -1121,6 +1132,7 @@ class CoreTestCase(AyameTestCase):
     def test_markup_inheritance_duplicate_ayame_elements(self):
         class Shallots(ayame.MarkupContainer):
             pass
+
         class Aubergine(Shallots):
             pass
 
@@ -1226,6 +1238,7 @@ class CoreTestCase(AyameTestCase):
   </body>
 </html>
 """
+
             def __init__(self):
                 super(SpamPage, self).__init__()
                 self.add(basic.Label('message', 'Hello World!'))
@@ -1270,9 +1283,11 @@ class CoreTestCase(AyameTestCase):
             def on_before_render(self, component):
                 super(Behavior, self).on_before_render(component)
                 component.model_object.append('before-render')
+
             def on_component(self, component, element):
                 super(Behavior, self).on_component(component, element)
                 component.model_object.append('component')
+
             def on_after_render(self, component):
                 super(Behavior, self).on_after_render(component)
                 component.model_object.append('after-render')
@@ -1478,13 +1493,17 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.model_object, 0)
 
     def test_nested(self):
-        regex = r" is not a subclass of MarkupContainer\b"
-        with self.assert_raises_regex(ayame.AyameError, regex):
+        regex = ' not .* subclass of MarkupContainer$'
+
+        with self.assert_raises_regex(ayame.AyameError,
+                                      regex):
             class C(object):
                 @ayame.nested
                 class C(object):
                     pass
-        with self.assert_raises_regex(ayame.AyameError, regex):
+
+        with self.assert_raises_regex(ayame.AyameError,
+                                      regex):
             class C(object):
                 @ayame.nested
                 def f(self):
@@ -1494,6 +1513,7 @@ class CoreTestCase(AyameTestCase):
             @ayame.nested
             class MarkupContainer(ayame.MarkupContainer):
                 pass
+
         self.assert_is_instance(C.MarkupContainer('a'), ayame.MarkupContainer)
 
     def test_nested_class_markup(self):
@@ -1510,8 +1530,10 @@ class CoreTestCase(AyameTestCase):
   </body>
 </html>
 """
+
         class ToastPage(HamPage):
             markup_type = markup.MarkupType('.htm', 'text/html', ())
+
             @ayame.nested
             class NestedPage(HamPage):
                 pass
@@ -1544,6 +1566,7 @@ class CoreTestCase(AyameTestCase):
     def test_element(self):
         class Lobster(ayame.MarkupContainer):
             pass
+
         with self.application():
             mc = Lobster('a')
             mc.add(ayame.MarkupContainer('b'))
@@ -1554,6 +1577,7 @@ class CoreTestCase(AyameTestCase):
 
         class Toast(ayame.MarkupContainer):
             pass
+
         with self.application():
             mc = Toast('a')
             mc.add(ayame.MarkupContainer('b'))
@@ -1615,15 +1639,14 @@ class EggsPage(ayame.Page):
             'clay1': 0,
             'clay2': 0
         })
-        class Clay(ayame.Component):
-            def __init__(self, id, model=None):
-                super(Clay, self).__init__(id, model)
-            def on_fire(self):
-                super(Clay, self).on_fire()
-                self.model_object += 1
-        self.add(Clay('clay1'))
+        self.add(self.Clay('clay1'))
         self.add(ayame.MarkupContainer('obstacle'))
-        self.find('obstacle').add(Clay('clay2'))
+        self.find('obstacle').add(self.Clay('clay2'))
+
+    class Clay(ayame.Component):
+
+        def on_fire(self):
+            self.model_object += 1
 
 
 class BeansPage(ayame.Page):
