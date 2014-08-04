@@ -26,21 +26,15 @@
 
 import collections
 import hashlib
-import io
 import itertools
-import os
-import pkgutil
 import random
-import sys
 import threading
-import types
 
 from . import _compat as five
-from .exception import ResourceError
 
 
-__all__ = ['fqon_of', 'load_data', 'to_bytes', 'to_list', 'new_token',
-           'FilterDict', 'RWLock', 'LRUCache', 'LFUCache']
+__all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',
+           'RWLock', 'LRUCache', 'LFUCache']
 
 if five.PY2:
     _builtins = '__builtin__'
@@ -58,48 +52,6 @@ def fqon_of(object):
         elif object.__module__ != _builtins:
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
-
-
-def load_data(object, path, encoding='utf-8'):
-    if isinstance(object, types.ModuleType):
-        module = object
-        is_module = True
-    else:
-        if not hasattr(object, '__name__'):
-            object = object.__class__
-        try:
-            module = sys.modules[object.__module__]
-            is_module = False
-        except (AttributeError, KeyError):
-            raise ResourceError('cannot find module of {!r}'.format(object))
-    try:
-        parent, name = os.path.split(module.__file__)
-        name = os.path.splitext(name)[0]
-    except AttributeError:
-        raise ResourceError("cannot determine '{}' module location".format(module.__name__))
-
-    new_path = os.path.normpath(path)
-    if (os.path.isabs(new_path) or
-        new_path.split(os.path.sep, 1)[0] == os.path.pardir):
-        raise ResourceError("invalid path '{}'".format(path))
-    path = new_path
-    if (not is_module and
-        path.startswith('.')):
-        path = object.__name__ + path
-    if name.lower() != '__init__':
-        path = os.path.join(name, path)
-
-    try:
-        data = pkgutil.get_data(module.__name__, path)
-        if data is not None:
-            return io.StringIO(five.str(data, encoding))
-    except (OSError, IOError):
-        raise ResourceError("cannot load '{}' from loader".format(path))
-    path = os.path.join(parent, path)
-    try:
-        return io.open(path, encoding=encoding)
-    except (OSError, IOError):
-        raise ResourceError("cannot load '{}'".format(path))
 
 
 def to_bytes(s, encoding='utf-8', errors='strict'):

@@ -32,7 +32,7 @@ import sys
 import beaker.middleware
 
 from . import _compat as five
-from . import converter, core, http, i18n, local, markup, page, route, uri
+from . import converter, core, http, i18n, local, markup, page, res, route, uri
 from .exception import AyameError, _Redirect
 
 
@@ -59,6 +59,7 @@ class Ayame(object):
             'ayame.max.redirect': 7,
             'ayame.page.http': page.HTTPStatusPage,
             'ayame.request': Request,
+            'ayame.resource.loader': res.ResourceLoader(),
             'ayame.route.map': route.Map(),
             'beaker.session.type': 'file',
             'beaker.session.data_dir': os.path.join(session_dir, 'data'),

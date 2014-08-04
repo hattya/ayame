@@ -29,7 +29,7 @@ import re
 import sys
 
 import ayame
-from . import core, local, util
+from . import core, local
 from .exception import ResourceError
 
 
@@ -76,10 +76,13 @@ class Localizer(object):
                     return v
 
     def _iter_resource(self, component, locale):
+        res = component.config['ayame.resource.loader']
+
         def load(module, *args):
             name = '_'.join(args)
             try:
-                with util.load_data(module, name + self.extension) as fp:
+                r = res.load(module, name + self.extension)
+                with r.open() as fp:
                     return self._load(fp)
             except (OSError, IOError, ResourceError):
                 pass

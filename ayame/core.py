@@ -497,6 +497,7 @@ class MarkupContainer(Component):
                         markup_type.extension)
             return markup_type.extension
 
+        res = self.config['ayame.resource.loader']
         loader = self.config['ayame.markup.loader']()
         enc = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
@@ -504,8 +505,9 @@ class MarkupContainer(Component):
         extra_head = []
         ayame_child = None
         while True:
-            m = loader.load(class_,
-                            util.load_data(class_, path_of(class_), enc))
+            r = res.load(class_, path_of(class_))
+            with r.open(enc) as fp:
+                m = loader.load(class_, fp)
             if m.root is None:
                 # markup is empty
                 break

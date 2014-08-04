@@ -25,46 +25,21 @@
 #
 
 import collections
-import io
 import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 import random
-import sys
 import threading
 import time
-import types
 
-import ayame
 from ayame import _compat as five
 from ayame import util
 from base import AyameTestCase
 
 
 class UtilTestCase(AyameTestCase):
-
-    def setup(self):
-        super(UtilTestCase, self).setup()
-        self._module = sys.modules[__name__]
-
-    def teardown(self):
-        super(UtilTestCase, self).teardown()
-        sys.modules[__name__] = self._module
-
-    def new_module(self, loader):
-        class Module(types.ModuleType):
-            def __init__(self):
-                super(Module, self).__init__(__name__)
-                self.__file__ = __file__
-                if sys.version_info < (3, 4):
-                    self.__loader__ = loader
-                else:
-                    from importlib.util import spec_from_loader
-                    self.__spec__ = spec_from_loader(__name__, loader,
-                                                     origin=__spec__.origin)
-        return Module()
 
     def test_fqon_of_builtin(self):
         self.assert_equal(util.fqon_of(None), 'NoneType')
@@ -112,196 +87,6 @@ class UtilTestCase(AyameTestCase):
     def test_fqon_of_module(self):
         self.assert_equal(util.fqon_of(os), 'os')
         self.assert_equal(util.fqon_of(util), 'ayame.util')
-
-    def test_load_data_class(self):
-        class Spam(object):
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/Spam.txt')
-        assert_load(Spam, 'Spam.txt')
-        assert_load(Spam, '.txt')
-        assert_load(Spam(), 'Spam.txt')
-        assert_load(Spam(), '.txt')
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          "^invalid path '"):
-                util.load_data(*args)
-        assert_load(Spam, os.path.pardir)
-        assert_load(Spam, os.path.join(*(os.path.pardir,) * 2))
-        assert_load(Spam, os.path.sep)
-        assert_load(Spam(), os.path.pardir)
-        assert_load(Spam(), os.path.join(*(os.path.pardir,) * 2))
-        assert_load(Spam(), os.path.sep)
-
-        Spam.__module__ = None
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          ' find module '):
-                util.load_data(*args)
-        assert_load(Spam, 'Spam.txt')
-        assert_load(Spam, '.txt')
-        assert_load(Spam(), 'Spam.txt')
-        assert_load(Spam(), '.txt')
-
-        class Eggs(object):
-            pass
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError, " load '"):
-                util.load_data(*args)
-        assert_load(Eggs, 'Eggs.txt')
-        assert_load(Eggs, '.txt')
-        assert_load(Eggs(), 'Eggs.txt')
-        assert_load(Eggs(), '.txt')
-
-    def test_load_data_function(self):
-        def ham():
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/ham.txt')
-        assert_load(ham, 'ham.txt')
-        assert_load(ham, '.txt')
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          "^invalid path '"):
-                util.load_data(*args)
-        assert_load(ham, os.path.pardir)
-        assert_load(ham, os.path.join(*(os.path.pardir,) * 2))
-        assert_load(ham, os.path.sep)
-
-        del ham.__module__
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          ' find module '):
-                util.load_data(*args)
-        assert_load(ham, 'ham.txt')
-        assert_load(ham, '.txt')
-
-        def toast():
-            pass
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError, " load '"):
-                util.load_data(*args)
-        assert_load(toast, 'toast.txt')
-        assert_load(toast, '.txt')
-
-    def test_load_data_module(self):
-        module = sys.modules[__name__]
-
-        with util.load_data(module, '.txt') as fp:
-            self.assert_equal(fp.read().strip(), 'test_util/.txt')
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          "^invalid path '"):
-                util.load_data(*args)
-        assert_load(module, os.path.pardir)
-        assert_load(module, os.path.join(*(os.path.pardir,) * 2))
-        assert_load(module, os.path.sep)
-
-        with self.assert_raises_regex(ayame.ResourceError,
-                                      " load '.*' from loader"):
-            util.load_data(ayame, '.txt')
-
-    def test_load_data_no___file__(self):
-        sys.modules[__name__] = types.ModuleType(__name__)
-
-        class Spam(object):
-            pass
-        def ham():
-            pass
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          "' module location$"):
-                util.load_data(*args)
-        assert_load(Spam, 'Spam.txt')
-        assert_load(Spam, '.txt')
-        assert_load(Spam(), 'Spam.txt')
-        assert_load(Spam(), '.txt')
-        assert_load(ham, 'ham.txt')
-        assert_load(ham, '.txt')
-        assert_load(sys.modules[__name__], '.txt')
-
-    def test_load_data_no___loader__(self):
-        sys.modules[__name__] = self.new_module(True)
-
-        class Spam(object):
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/Spam.txt')
-        assert_load(Spam, 'Spam.txt')
-        assert_load(Spam, '.txt')
-        assert_load(Spam(), 'Spam.txt')
-        assert_load(Spam(), '.txt')
-
-        def ham():
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/ham.txt')
-        assert_load(ham, 'ham.txt')
-        assert_load(ham, '.txt')
-
-        with util.load_data(sys.modules[__name__], '.txt') as fp:
-            self.assert_equal(fp.read().strip(), 'test_util/.txt')
-
-        class Eggs(object):
-            pass
-        def toast():
-            pass
-
-        def assert_load(*args):
-            with self.assert_raises_regex(ayame.ResourceError, " load .*'$"):
-                with util.load_data(*args):
-                    pass
-        assert_load(Eggs, 'Eggs.txt')
-        assert_load(Eggs, '.txt')
-        assert_load(Eggs(), 'Eggs.txt')
-        assert_load(Eggs(), '.txt')
-        assert_load(toast, 'toast.txt')
-        assert_load(toast, '.txt')
-
-    def test_load_data___loader__(self):
-        class Loader(object):
-            def get_data(self, path):
-                with io.open(path, 'rb') as fp:
-                    return fp.read().strip() + b' from Loader'
-
-        sys.modules[__name__] = self.new_module(Loader())
-
-        class Spam(object):
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/Spam.txt from Loader')
-        assert_load(Spam, 'Spam.txt')
-        assert_load(Spam, '.txt')
-        assert_load(Spam(), 'Spam.txt')
-        assert_load(Spam(), '.txt')
-
-        def ham():
-            pass
-
-        def assert_load(*args):
-            with util.load_data(*args) as fp:
-                self.assert_equal(fp.read().strip(), 'test_util/ham.txt from Loader')
-        assert_load(ham, 'ham.txt')
-        assert_load(ham, '.txt')
-
-        with util.load_data(sys.modules[__name__], '.txt') as fp:
-            self.assert_equal(fp.read().strip(), 'test_util/.txt from Loader')
 
     def test_to_bytes(self):
         # iroha in hiragana
