@@ -1,6 +1,7 @@
 [run]
 branch = True
 omit =
+    */_compat.py
     */tests/*
 
 [report]
