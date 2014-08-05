@@ -27,6 +27,7 @@
 import io
 
 import ayame
+from ayame import _compat as five
 from ayame import i18n
 from base import AyameTestCase
 
@@ -38,34 +39,61 @@ class I18nTestCase(AyameTestCase):
         super(I18nTestCase, cls).setup_class()
         cls.app = Application(__name__)
 
+    def assert_messages(self, page, locale):
+        with self.application():
+            l = i18n.Localizer()
+            for i in five.range(1, 3):
+                c = page.find('a{}:b'.format(i))
+                for k in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
+                    v = k
+                    if k in ('ham', 'toast'):
+                        v += str(i)
+                    self.assert_equal(l.get(c, locale, k), v)
+
     def test_iter_class(self):
         with self.application():
             l = i18n.Localizer()
             p = Page()
-            self.assert_equal(list(l._iter_class(p.find('a:b'))),
-                              [(Page, 'a.b'),
-                               (ayame.Page, 'a.b'),
-                               (MarkupContainer, 'b'),
-                               (ayame.MarkupContainer, 'b'),
-                               (Component, ''),
-                               (ayame.Component, ''),
-                               (Application, ''),
-                               (ayame.Ayame, '')])
-            self.assert_equal(list(l._iter_class(p.find('a'))),
-                              [(Page, 'a'),
-                               (ayame.Page, 'a'),
-                               (MarkupContainer, ''),
-                               (ayame.MarkupContainer, ''),
-                               (Application, ''),
-                               (ayame.Ayame, '')])
+            self.assert_equal(list(l._iter_class(p.find('a1:b'))),
+                              [(Page, (), 'a1.b'),
+                               (ayame.Page, (), 'a1.b'),
+                               (MarkupContainer, (), 'b'),
+                               (ayame.MarkupContainer, (), 'b'),
+                               (Component, (), ''),
+                               (ayame.Component, (), ''),
+                               (Application, (), ''),
+                               (ayame.Ayame, (), '')])
+            self.assert_equal(list(l._iter_class(p.find('a2:b'))),
+                              [(Page, (), 'a2.b'),
+                               (ayame.Page, (), 'a2.b'),
+                               (Page.MarkupContainer, (Page,), 'b'),
+                               (ayame.MarkupContainer, (), 'b'),
+                               (Component, (), ''),
+                               (ayame.Component, (), ''),
+                               (Application, (), ''),
+                               (ayame.Ayame, (), '')])
+            self.assert_equal(list(l._iter_class(p.find('a1'))),
+                              [(Page, (), 'a1'),
+                               (ayame.Page, (), 'a1'),
+                               (MarkupContainer, (), ''),
+                               (ayame.MarkupContainer, (), ''),
+                               (Application, (), ''),
+                               (ayame.Ayame, (), '')])
+            self.assert_equal(list(l._iter_class(p.find('a2'))),
+                              [(Page, (), 'a2'),
+                               (ayame.Page, (), 'a2'),
+                               (Page.MarkupContainer, (Page,), ''),
+                               (ayame.MarkupContainer, (), ''),
+                               (Application, (), ''),
+                               (ayame.Ayame, (), '')])
             self.assert_equal(list(l._iter_class(p)),
-                              [(Page, ''),
-                               (ayame.Page, ''),
-                               (Application, ''),
-                               (ayame.Ayame, '')])
+                              [(Page, (), ''),
+                               (ayame.Page, (), ''),
+                               (Application, (), ''),
+                               (ayame.Ayame, (), '')])
             self.assert_equal(list(l._iter_class(None)),
-                              [(Application, ''),
-                               (ayame.Ayame, '')])
+                              [(Application, (), ''),
+                               (ayame.Ayame, (), '')])
 
     def test_load(self):
         with io.open(self.path_for('i18n.txt')) as fp:
@@ -92,31 +120,19 @@ class I18nTestCase(AyameTestCase):
                                'lobster ': '  lobster'})
 
     def test_get(self):
-        with self.application():
-            locale = (None,) * 2
-            l = i18n.Localizer()
-            p = Page()
-            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
-                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
+        locale = (None,) * 2
+        self.assert_messages(Page(), locale)
 
     def test_get_ja(self):
-        with self.application():
-            locale = ('ja', 'JP')
-            l = i18n.Localizer()
-            p = Page()
-            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
-                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
+        locale = ('ja', 'JP')
+        self.assert_messages(Page(), locale)
 
     def test_get_unknown_module(self):
         class P(Page):
             __module__ = None
 
-        with self.application():
-            locale = ('ja', 'JP')
-            l = i18n.Localizer()
-            p = P()
-            for s in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
-                self.assert_equal(l.get(p.find('a:b'), locale, s), s)
+        locale = ('en', 'US')
+        self.assert_messages(P(), locale)
 
 
 class Application(ayame.Ayame):
@@ -127,8 +143,14 @@ class Page(ayame.Page):
 
     def __init__(self):
         super(Page, self).__init__()
-        self.add(MarkupContainer('a'))
-        self.find('a').add(Component('b'))
+        self.add(MarkupContainer('a1'))
+        self.find('a1').add(Component('b'))
+        self.add(self.MarkupContainer('a2'))
+        self.find('a2').add(Component('b'))
+
+    @ayame.nested
+    class MarkupContainer(ayame.MarkupContainer):
+        pass
 
 
 class MarkupContainer(ayame.MarkupContainer):

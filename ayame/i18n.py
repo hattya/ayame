@@ -80,6 +80,7 @@ class Localizer(object):
 
     def _iter_resource(self, component, locale):
         res = component.config['ayame.resource.loader']
+        sep = component.config['ayame.markup.separator']
 
         def load(module, *args):
             name = '_'.join(args)
@@ -90,39 +91,49 @@ class Localizer(object):
             except (OSError, IOError, ResourceError):
                 pass
 
-        for class_, prefix in self._iter_class(component):
+        for class_, scope, prefix in self._iter_class(component):
             m = sys.modules.get(class_.__module__)
             if m:
+                n = sep.join(c.__name__ for c in scope + (class_,)) if scope else class_.__name__
                 lc, cc = locale[:2]
                 if lc:
                     if cc:
-                        yield load(m, class_.__name__, lc, cc), prefix
-                    yield load(m, class_.__name__, lc), prefix
-                yield load(m, class_.__name__), prefix
+                        yield load(m, n, lc, cc), prefix
+                    yield load(m, n, lc), prefix
+                yield load(m, n), prefix
 
     def _iter_class(self, component):
-        queue = collections.deque(((local.app().__class__, ''),))
+        queue = collections.deque()
         if isinstance(component, core.Component):
-            queue.append((component.__class__, ''))
             path = component.path().split(':')
-            i = len(path)
-            for c in component.iter_parent():
-                i -= 1
-                queue.append((c.__class__, '.'.join(path[i:])))
+            scope = ()
+            for i, c in enumerate(reversed(tuple(component.iter_parent()))):
+                c = c.__class__
+                if c.markup_type.scope:
+                    scope = c.markup_type.scope
+                queue.appendleft((c, scope, '.'.join(path[i:])))
+            queue.appendleft((component.__class__, self._scope_of(component.__class__), ''))
+        queue.appendleft((local.app().__class__, (), ''))
 
         while queue:
-            class_, prefix = queue.pop()
-            yield class_, prefix
+            class_, scope, prefix = queue.pop()
+            yield class_, scope, prefix
             if (not self._is_base_class(class_) and
                 class_.__bases__):
-                queue.extend((c, prefix) for c in class_.__bases__
+                queue.extend((c, self._scope_of(c), prefix)
+                             for c in class_.__bases__
                              if self._is_target_class(c))
+
+    def _is_base_class(self, class_):
+        return class_ in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
 
     def _is_target_class(self, class_):
         return issubclass(class_, (core.Component, ayame.Ayame))
 
-    def _is_base_class(self, class_):
-        return class_ in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
+    def _scope_of(self, class_):
+        if issubclass(class_, core.MarkupContainer):
+            return class_.markup_type.scope
+        return ()
 
     def _load(self, fp):
         match = _kv_re.match
