@@ -81,15 +81,29 @@ class Localizer(object):
     def _iter_resource(self, component, locale):
         res = component.config['ayame.resource.loader']
         sep = component.config['ayame.markup.separator']
+        cache = component.config['ayame.i18n.cache']
 
         def load(module, *args):
             name = '_'.join(args)
+            key = module.__name__ + ':' + name
+            try:
+                mtime, bundle = cache[key]
+            except KeyError:
+                mtime = -1
+                bundle = None
             try:
                 r = res.load(module, name + self.extension)
-                with r.open() as fp:
-                    return self._load(fp)
+                if mtime < r.mtime:
+                    with r.open() as fp:
+                        bundle = self._load(fp)
+                    cache[key] = (r.mtime, bundle)
             except (OSError, IOError, ResourceError):
-                pass
+                bundle = None
+                try:
+                    del cache[key]
+                except KeyError:
+                    pass
+            return bundle
 
         for class_, scope, prefix in self._iter_class(component):
             m = sys.modules.get(class_.__module__)
@@ -167,7 +181,8 @@ class Localizer(object):
                 key, value = m.groups()
                 value = sub(repl, value)
             else:
-                key, value = l, ''
+                key = l
+                value = ''
             key = sub(repl, key)
             bundle[key] = value
         return bundle

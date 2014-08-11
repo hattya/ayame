@@ -32,7 +32,8 @@ import sys
 import beaker.middleware
 
 from . import _compat as five
-from . import converter, core, http, i18n, local, markup, page, res, route, uri
+from . import (converter, core, http, i18n, local, markup, page, res, route,
+               uri, util)
 from .exception import AyameError, _Redirect
 
 
@@ -50,6 +51,7 @@ class Ayame(object):
         session_dir = os.path.join(self._root, 'session')
         self.config = {
             'ayame.converter.registry': converter.ConverterRegistry(),
+            'ayame.i18n.cache': util.LRUCache(64),
             'ayame.i18n.localizer': i18n.Localizer(),
             'ayame.markup.encoding': 'utf-8',
             'ayame.markup.loader': markup.MarkupLoader,
