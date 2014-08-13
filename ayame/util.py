@@ -410,7 +410,7 @@ class LRUCache(_Cache):
         del self._ref[e.key]
         if e is self._head:
             if (not self._ref or
-                self._cap < 2):
+                self._cap == 1):
                 self._head = None
             else:
                 self._head = e.next
