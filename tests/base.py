@@ -25,6 +25,7 @@
 #
 
 import contextlib
+import io
 import os
 import sys
 import unittest
@@ -32,7 +33,7 @@ import wsgiref.util
 
 import ayame
 from ayame import _compat as five
-from ayame import local, markup, uri, util
+from ayame import local, markup, res, uri, util
 
 
 __all__ = ['AyameTestCase']
@@ -106,6 +107,45 @@ class AyameTestCase(unittest.TestCase):
 
     def path_for(self, path):
         return os.path.join(os.path.splitext(sys.modules[self.__class__.__module__].__file__)[0], path)
+
+    def new_resource_loader(self):
+        ref = {}
+
+        class ResourceLoader(res.ResourceLoader):
+            def load_from(self, loader, parent, path):
+                return Resource(os.path.join(parent, path))
+
+        class Resource(res.FileResource):
+            @property
+            def mtime(self):
+                if self._path not in ref:
+                    ref[self._path] = 0
+                ref[self._path] += 1
+                return self._mtime + ref[self._path]
+
+            def open(self, encoding='utf-8'):
+                if 3 < ref[self._path]:
+                    raise ayame.ResourceError
+                return StringIO(self._path, encoding)
+
+        class StringIO(io.StringIO):
+            def __init__(self, path, encoding):
+                self._path = path
+                with io.open(self._path, encoding=encoding) as fp:
+                    super(StringIO, self).__init__(fp.read())
+
+            def read(self, *args, **kwargs):
+                return self._wrap(super(StringIO, self).read, args, kwargs)
+
+            def readline(self, *args, **kwargs):
+                return self._wrap(super(StringIO, self).readline, args, kwargs)
+
+            def _wrap(self, func, args, kwargs):
+                if 2 < ref[self._path]:
+                    raise OSError
+                return func(*args, **kwargs)
+
+        return ResourceLoader()
 
     @contextlib.contextmanager
     def application(self, environ=None):

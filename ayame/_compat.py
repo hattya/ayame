@@ -28,9 +28,9 @@ import sys
 
 
 __all__ = ['PY2', 'UTC', 'class_types', 'integer_types', 'string_type', 'int',
-           'str', 'range', 'items', 'html_escape', 'urlencode', 'urlparse_qs',
-           'urlquote', 'urlquote_plus', 'urlsplit', 'with_metaclass',
-           'HTMLParser']
+           'str', 'range', 'items', 'reraise', 'html_escape', 'urlencode',
+           'urlparse_qs', 'urlquote', 'urlquote_plus', 'urlsplit',
+           'with_metaclass', 'HTMLParser']
 
 PY2 = sys.version_info[0] == 2
 if PY2:
@@ -54,6 +54,8 @@ if PY2:
 
     def items(d):
         return d.viewitems()
+
+    exec('def reraise(t, v, tb=None): raise t, v, tb')
 
     def html_escape(s, quote=True):
         s = cgi.escape(s, quote)
@@ -117,6 +119,11 @@ else:
 
     def items(d):
         return d.items()
+
+    def reraise(t, v, tb=None):
+        if v.__traceback__ is not tb:
+            raise v.with_traceback(tb)
+        raise v
 
     UTC = datetime.timezone.utc
 

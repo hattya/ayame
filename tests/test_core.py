@@ -1589,6 +1589,31 @@ class CoreTestCase(AyameTestCase):
             self.assert_is_instance(p.find('clay1').element(), markup.Element)
             self.assert_is_instance(p.find('obstacle:clay2').element(), markup.Element)
 
+    def test_cache(self):
+        config = self.app.config.copy()
+        try:
+            self.app.config['ayame.resource.loader'] = self.new_resource_loader()
+            self.app.config['ayame.markup.cache'] = cache = config['ayame.markup.cache'].copy()
+
+            with self.application(self.new_environ()):
+                p = EggsPage()
+                p()
+            self.assert_equal(len(cache), 1)
+
+            with self.application(self.new_environ()):
+                p = EggsPage()
+                with self.assert_raises(OSError):
+                    p()
+            self.assert_equal(len(cache), 0)
+
+            with self.application(self.new_environ()):
+                p = EggsPage()
+                with self.assert_raises(ayame.ResourceError):
+                    p()
+            self.assert_equal(len(cache), 0)
+        finally:
+            self.app.config = config
+
 
 class Component(ayame.Component):
 

@@ -25,6 +25,7 @@
 #
 
 import collections
+import sys
 import wsgiref.headers
 
 from . import _compat as five
@@ -501,13 +502,33 @@ class MarkupContainer(Component):
         loader = self.config['ayame.markup.loader']()
         enc = self.config['ayame.markup.encoding']
         sep = self.config['ayame.markup.separator']
+        cache = self.config['ayame.markup.cache']
         class_ = self.__class__
         extra_head = []
         ayame_child = None
         while True:
-            r = res.load(class_, path_of(class_))
-            with r.open(enc) as fp:
-                m = loader.load(class_, fp)
+            path = path_of(class_)
+            key = class_.__name__ + ':' + path
+            try:
+                mtime, m = cache[key]
+            except KeyError:
+                mtime = -1
+                m = None
+            try:
+                r = res.load(class_, path)
+                if mtime < r.mtime:
+                    with r.open(enc) as fp:
+                        m = loader.load(class_, fp)
+                    cache[key] = (r.mtime, m)
+            except:
+                exc_info = sys.exc_info()
+                try:
+                    del cache[key]
+                except KeyError:
+                    pass
+                five.reraise(*exc_info)
+            # m will be modified, so it should be copied
+            m = m.copy()
             if m.root is None:
                 # markup is empty
                 break

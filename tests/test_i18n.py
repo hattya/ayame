@@ -25,11 +25,10 @@
 #
 
 import io
-import os
 
 import ayame
 from ayame import _compat as five
-from ayame import i18n, res
+from ayame import i18n
 from base import AyameTestCase
 
 
@@ -39,14 +38,6 @@ class I18nTestCase(AyameTestCase):
     def setup_class(cls):
         super(I18nTestCase, cls).setup_class()
         cls.app = Application(__name__)
-
-    def setup(self):
-        super(I18nTestCase, self).setup()
-        self._loader = self.app.config['ayame.resource.loader']
-
-    def teardown(self):
-        super(I18nTestCase, self).teardown()
-        self.app.config['ayame.resource.loader'] = self._loader
 
     def assert_messages(self, page, locale):
         with self.application():
@@ -143,44 +134,23 @@ class I18nTestCase(AyameTestCase):
         locale = ('en', 'US')
         self.assert_messages(P(), locale)
 
-    def test_get_error(self):
-        class ResourceLoader(res.ResourceLoader):
-            def load_from(self, loader, parent, path):
-                return Resource(os.path.join(parent, path))
+    def test_cache(self):
+        config = self.app.config.copy()
+        try:
+            with self.application():
+                locale = (None,) * 2
+                l = i18n.Localizer()
+                p = Page()
+                for i in five.range(1, 3):
+                    self.app.config['ayame.resource.loader'] = self.new_resource_loader()
+                    self.app.config['ayame.i18n.cache'] = config['ayame.i18n.cache'].copy()
 
-        class Resource(res.FileResource):
-            def __init__(self, path):
-                super(Resource, self).__init__(path)
-                self._key = __name__ + ':' + os.path.splitext(os.path.basename(self._path))[0]
-
-            @property
-            def mtime(self):
-                if self._key not in ref:
-                    ref[self._key] = 0
-                ref[self._key] += 1
-                return self._mtime + ref[self._key]
-
-            def open(self):
-                if 1 < ref[self._key]:
-                    raise ayame.ResourceError()
-                return super(Resource, self).open()
-
-        self.app.config['ayame.resource.loader'] = ResourceLoader()
-        cache = self.app.config['ayame.i18n.cache']
-        ref = {}
-
-        with self.application():
-            locale = (None,) * 2
-            l = i18n.Localizer()
-            p = Page()
-            for i in five.range(1, 3):
-                cache.clear()
-                ref.clear()
-
-                c = p.find('a{}:b'.format(i))
-                self.assert_equal(l.get(c, locale, 'spam'), 'spam')
-                self.assert_is_none(l.get(c, locale, 'spam'))
-                self.assert_is_none(l.get(c, locale, 'eggs'))
+                    c = p.find('a{}:b'.format(i))
+                    self.assert_equal(l.get(c, locale, 'spam'), 'spam')
+                    self.assert_is_none(l.get(c, locale, 'spam'))
+                    self.assert_is_none(l.get(c, locale, 'eggs'))
+        finally:
+            self.app.config = config
 
 
 class Application(ayame.Ayame):

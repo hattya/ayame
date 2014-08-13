@@ -148,6 +148,17 @@ class Markup(object):
         self.doctype = None
         self.root = None
 
+    def __copy__(self):
+        m = self.__class__()
+        m.xml_decl = self.xml_decl.copy()
+        m.lang = self.lang
+        m.doctype = self.doctype
+        if self.root is not None:
+            m.root = self.root.copy()
+        return m
+
+    copy = __copy__
+
 
 class Element(object):
 

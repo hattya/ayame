@@ -53,6 +53,7 @@ class Ayame(object):
             'ayame.converter.registry': converter.ConverterRegistry(),
             'ayame.i18n.cache': util.LRUCache(64),
             'ayame.i18n.localizer': i18n.Localizer(),
+            'ayame.markup.cache': util.LRUCache(64),
             'ayame.markup.encoding': 'utf-8',
             'ayame.markup.loader': markup.MarkupLoader,
             'ayame.markup.pretty': False,
