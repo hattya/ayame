@@ -39,17 +39,6 @@ class I18nTestCase(AyameTestCase):
         super(I18nTestCase, cls).setup_class()
         cls.app = Application(__name__)
 
-    def assert_messages(self, page, locale):
-        with self.application():
-            l = i18n.Localizer()
-            for i in five.range(1, 3):
-                c = page.find('a{}:b'.format(i))
-                for k in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
-                    v = k
-                    if k in ('ham', 'toast'):
-                        v += str(i)
-                    self.assert_equal(l.get(c, locale, k), v)
-
     def test_iter_class(self):
         with self.application():
             l = i18n.Localizer()
@@ -121,18 +110,29 @@ class I18nTestCase(AyameTestCase):
 
     def test_get(self):
         locale = (None,) * 2
-        self.assert_messages(Page(), locale)
+        self._test_get(Page(), locale)
 
     def test_get_ja(self):
         locale = ('ja', 'JP')
-        self.assert_messages(Page(), locale)
+        self._test_get(Page(), locale)
 
     def test_get_unknown_module(self):
         class P(Page):
             __module__ = None
 
         locale = ('en', 'US')
-        self.assert_messages(P(), locale)
+        self._test_get(P(), locale)
+
+    def _test_get(self, page, locale):
+        with self.application():
+            l = i18n.Localizer()
+            for i in five.range(1, 3):
+                c = page.find('a{}:b'.format(i))
+                for k in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
+                    v = k
+                    if k in ('ham', 'toast'):
+                        v += str(i)
+                    self.assert_equal(l.get(c, locale, k), v)
 
     def test_cache(self):
         config = self.app.config.copy()

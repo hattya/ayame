@@ -25,6 +25,7 @@
 #
 
 import io
+import os
 try:
     import cPickle as pickle
 except ImportError:
@@ -39,21 +40,33 @@ from base import AyameTestCase
 
 class MarkupTestCase(AyameTestCase):
 
-    def assert_markup_error(self, pos, regex, src, **kwargs):
-        loader = kwargs.pop('loader', markup.MarkupLoader)()
-        with self.assert_raises(ayame.MarkupError) as a:
-            loader.load(self, src, **kwargs)
-        self.assert_equal(len(a.exception.args), 3)
-        self.assert_is(a.exception.args[0], self)
-        self.assert_equal(a.exception.args[1], pos)
-        self.assert_regex(a.exception.args[2], regex)
+    def test_fragment(self):
+        br = markup.Element(self.html_of('br'),
+                            type=markup.Element.EMPTY)
+        f = markup.Fragment(['before', br, 'after'])
+        self.assert_equal(len(f), 3)
 
-    def assert_rendering_error(self, regex, m, **kwargs):
-        renderer = markup.MarkupRenderer()
-        with self.assert_raises(ayame.RenderingError) as a:
-            renderer.render(self, m, **kwargs)
-        self.assert_is(a.exception.args[0], self)
-        self.assert_regex(a.exception.args[1], regex)
+        f = f.copy()
+        self.assert_is_instance(f, markup.Fragment)
+        self.assert_equal(len(f), 3)
+        self.assert_equal(f[0], 'before')
+        self.assert_is_not(f[1], br)
+        self.assert_equal(f[2], 'after')
+
+
+class MarkupLoaderTestCase(AyameTestCase):
+
+    def assert_error(self, pos, regex, src, **kwargs):
+        loader = kwargs.pop('loader', markup.MarkupLoader)()
+        with self.assert_raises(ayame.MarkupError) as cm:
+            loader.load(self, src, **kwargs)
+        self.assert_equal(len(cm.exception.args), 3)
+        self.assert_is(cm.exception.args[0], self)
+        self.assert_equal(cm.exception.args[1], pos)
+        self.assert_regex(cm.exception.args[2], regex)
+
+    def load(self, src, **kwargs):
+        return markup.MarkupLoader().load(self, src, **kwargs)
 
     def format(self, doc_t, *args, **kwargs):
         kwargs.update(doctype=markup.XHTML1_STRICT,
@@ -61,151 +74,121 @@ class MarkupTestCase(AyameTestCase):
                       ayame=markup.AYAME_NS)
         return doc_t.format(*args, **kwargs)
 
-    def test_fragment(self):
-        spam = markup.Element(markup.QName('spam', 'spam'),
-                              type=markup.Element.EMPTY,
-                              ns={'': 'spam'})
-        f1 = markup.Fragment(['before', spam, 'after'])
-        self.assert_equal(len(f1), 3)
-
-        f2 = f1.copy()
-        self.assert_is_instance(f2, markup.Fragment)
-        self.assert_equal(len(f2), 3)
-        self.assert_equal(f1[0], f2[0])
-        self.assert_not_equal(f1[1], f2[1])
-        self.assert_equal(f1[2], f2[2])
-
-    def test_load_error(self):
+    def test_error(self):
         # src is None
         src = None
-        self.assert_markup_error((0, 0), r'\bload markup\b',
-                                 src)
+        self.assert_error((0, 0), ' load markup$',
+                          src)
 
         # cannot open src
         src = ''
-        self.assert_markup_error((0, 0), r'\bload markup\b',
-                                 src)
+        self.assert_error((0, 0), ' load markup$',
+                          src)
 
     def test_load(self):
         # unknown lang
         src = io.StringIO()
-        self.assert_markup_error((1, 0), " '' .* not implemented$",
-                                 src, lang='')
+        self.assert_error((1, 0), " '' .* not implemented$",
+                          src, lang='')
 
         # unknown processing instruction
-        php = u'<?php echo "Hello World!"?>'
-        src = io.StringIO(php)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xml')
+        src = io.StringIO(u'<?php echo "Hello World!"?>')
+        m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {})
         self.assert_equal(m.lang, 'xml')
         self.assert_is_none(m.doctype)
         self.assert_is_none(m.root)
 
         # no root element
-        text = u'&amp; &#38;'
-        src = io.StringIO(text)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xml')
+        src = io.StringIO(u'&amp; &#38;')
+        m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {})
         self.assert_equal(m.lang, 'xml')
         self.assert_is_none(m.doctype)
         self.assert_is_none(m.root)
 
         # load from file
-        with tempfile.NamedTemporaryFile('w+') as fp:
-            loader = markup.MarkupLoader()
-            m = loader.load(self, fp)
+        with tempfile.NamedTemporaryFile('w+', delete=False) as fp:
+            pass
+        try:
+            m = self.load(fp.name)
             self.assert_equal(m.xml_decl, {})
             self.assert_equal(m.lang, 'xhtml1')
             self.assert_is_none(m.doctype)
             self.assert_is_none(m.root)
+        finally:
+            os.remove(fp.name)
 
-    def test_load_unsupported_html(self):
+    def test_unsupported_html(self):
         # xhtml1 frameset
         html = u"""\
-<?xml version="1.0"?>\
+<?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C/DTD XHTML 1.0 Frameset//EN"\
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">\
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
 """
-        src = io.StringIO(html)
-        self.assert_markup_error((1, 21), r'^unsupported HTML version$',
-                                 src)
+        self.assert_error((2, 0), '^unsupported HTML version$',
+                          io.StringIO(html))
 
     def test_invalid_xml(self):
-        def assert_xml(xml, pos, regex):
-            src = io.StringIO(xml)
-            self.assert_markup_error(pos, regex,
-                                     src, lang='xml')
+        def assert_xml(pos, regex, xml):
+            self.assert_error(pos, regex,
+                              io.StringIO(xml), lang='xml')
 
         # malformed xml declaration
         xml = u'<?xml standalone="yes"?>'
-        assert_xml(xml, (1, 0), '^malformed XML declaration$')
+        assert_xml((1, 0), '^malformed XML declaration$',
+                   xml)
 
         # unquoted xml attributes
         xml = u'<?xml version=1.0?>'
-        assert_xml(xml, (1, 0), '^malformed XML declaration$')
+        assert_xml((1, 0), '^malformed XML declaration$',
+                   xml)
 
         # mismatched quotes in xml declaration
-        xml = u'<?xml version="1.0\'?>'
-        assert_xml(xml, (1, 0), '^mismatched quotes$')
-        xml = u'<?xml version=\'1.0"?>'
-        assert_xml(xml, (1, 0), '^mismatched quotes$')
+        for xml in (u'<?xml version="1.0\'?>',
+                    u'<?xml version=\'1.0"?>'):
+            assert_xml((1, 0), '^mismatched quotes$',
+                       xml)
 
         # no xml declaration
         xml = u'<spam></spam>'
-        assert_xml(xml, (1, 0), '^XML declaration is not found$')
+        assert_xml((1, 0), '^XML declaration is not found$',
+                   xml)
 
         # multiple root elements
-        xml = u"""\
-<?xml version="1.0"?>\
-<spam/>\
-<eggs/>\
-"""
-        assert_xml(xml, (1, 28), ' multiple root elements$')
-        xml = u"""\
-<?xml version="1.0"?>\
-<spam></spam>\
-<eggs></eggs>\
-"""
-        assert_xml(xml, (1, 34), ' multiple root elements$')
+        for xml in (u'<?xml version="1.0"?>\n<spam/>\n<eggs/>',
+                    u'<?xml version="1.0"?>\n<spam></spam>\n<eggs></eggs>'):
+            assert_xml((3, 0), ' multiple root elements$',
+                       xml)
 
         # omitted end tag for root element
-        xml = u"""\
-<?xml version="1.0"?>\
-<spam>\
-"""
-        assert_xml(xml, (1, 27), "^end tag .* '{}spam' omitted$")
+        xml = u'<?xml version="1.0"?>\n<spam>'
+        assert_xml((2, 6), "^end tag .* '{}spam' omitted$",
+                   xml)
 
         # mismatched tag
-        xml = u"""\
-<?xml version="1.0"?>\
-<spam></eggs>\
-"""
-        assert_xml(xml, (1, 27), "^end tag .* '{}eggs' .* not open$")
+        xml = u'<?xml version="1.0"?>\n<spam></eggs>'
+        assert_xml((2, 6), "^end tag .* '{}eggs' .* not open$",
+                   xml)
 
         # attribute duplication
-        xml = u"""\
-<?xml version="1.0"?>\
-<spam a="1" a="2"/>\
-"""
-        assert_xml(xml, (1, 21), "^attribute '{}a' already exists$")
+        xml = u'<?xml version="1.0"?>\n<spam a="1" a="2"/>'
+        assert_xml((2, 0), "^attribute '{}a' already exists$",
+                   xml)
 
-    def test_load_empty_xml(self):
-        xml = u"<?xml version='1.0'?>"
-        src = io.StringIO(xml)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xml')
+    def test_empty_xml(self):
+        src = io.StringIO(u'<?xml version="1.0"?>')
+        m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xml')
         self.assert_is_none(m.doctype)
         self.assert_is_none(m.root)
 
-    def test_load_xml(self):
+    def test_xml(self):
         xml = u"""\
 <?xml version="1.0"?>\
 <!DOCTYPE spam SYSTEM "spam.dtd">\
-<spam xmlns="spam" id="a">\
+<spam xmlns="spam" id="spam">\
 &amp;\
 <eggs/>\
 &#38;\
@@ -213,8 +196,7 @@ x\
 </spam>\
 """
         src = io.StringIO(xml)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xml')
+        m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xml')
         self.assert_equal(m.doctype, '<!DOCTYPE spam SYSTEM "spam.dtd">')
@@ -222,7 +204,7 @@ x\
 
         spam = m.root
         self.assert_equal(spam.qname, markup.QName('spam', 'spam'))
-        self.assert_equal(spam.attrib, {markup.QName('spam', 'id'): 'a'})
+        self.assert_equal(spam.attrib, {markup.QName('spam', 'id'): 'spam'})
         self.assert_equal(spam.type, markup.Element.OPEN)
         self.assert_equal(spam.ns, {'': 'spam',
                                     'xml': markup.XML_NS})
@@ -237,7 +219,7 @@ x\
         self.assert_equal(eggs.ns, {})
         self.assert_equal(eggs.children, [])
 
-    def test_load_xml_with_prefix(self):
+    def test_xml_with_prefix(self):
         xml = u"""\
 <?xml version="1.0"?>\
 <spam xmlns="spam" xmlns:eggs="eggs">\
@@ -245,8 +227,7 @@ x\
 </spam>\
 """
         src = io.StringIO(xml)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xml')
+        m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xml')
         self.assert_is_none(m.doctype)
@@ -276,9 +257,9 @@ x\
                 return elem
 
         src = io.StringIO(xml)
-        self.assert_markup_error((1, 70), ' no default namespace$',
-                                 src, lang='xml',
-                                 loader=Loader)
+        self.assert_error((1, 70), ' no default namespace$',
+                          src, lang='xml',
+                          loader=Loader)
 
         # no eggs namespace
         class Loader(markup.MarkupLoader):
@@ -288,42 +269,44 @@ x\
                 return elem
 
         src = io.StringIO(xml)
-        self.assert_markup_error((1, 58), "^unknown .* prefix 'eggs'$",
-                                 src, lang='xml',
-                                 loader=Loader)
+        self.assert_error((1, 58), "^unknown .* prefix 'eggs'$",
+                          src, lang='xml',
+                          loader=Loader)
 
     def test_invalid_xhtml1(self):
-        def assert_xhtml1(html_t, pos, regex):
-            src = io.StringIO(self.format(html_t))
-            self.assert_markup_error(pos, regex,
-                                     src, lang='xhtml1')
+        def assert_xhtml1(pos, regex, html_t):
+            self.assert_error(pos, regex,
+                              io.StringIO(self.format(html_t)), lang='xhtml1')
 
         # no xml declaration
         html_t = u"""\
-{doctype}\
-<html xmlns="http://www.w3.org/1999/xhtml">\
-</html>\
+{doctype}
+<html xmlns="http://www.w3.org/1999/xhtml">
+</html>
 """
-        assert_xhtml1(html_t, (1, 109), '^XML declaration is not found$')
+        assert_xhtml1((2, 0), '^XML declaration is not found$',
+                      html_t)
 
         # multiple root elements
         html_t = u"""\
-<?xml version="1.0"?>\
-{doctype}\
-<html xmlns="http://www.w3.org/1999/xhtml" />\
-<html xmlns="http://www.w3.org/1999/xhtml" />\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="http://www.w3.org/1999/xhtml" />
+<html xmlns="http://www.w3.org/1999/xhtml" />
 """
-        assert_xhtml1(html_t, (1, 175), ' multiple root elements$')
+        assert_xhtml1((4, 0), ' multiple root elements$',
+                      html_t)
 
         # omitted end tag for root element
         html_t = u"""\
-<?xml version="1.0"?>\
-{doctype}\
-<html xmlns="http://www.w3.org/1999/xhtml">\
+<?xml version="1.0"?>
+{doctype}
+<html xmlns="http://www.w3.org/1999/xhtml">
 """
-        assert_xhtml1(html_t, (1, 173), "^end tag .* '{.*}html' omitted$")
+        assert_xhtml1((4, 0), "^end tag .* '{.*}html' omitted$",
+                      html_t)
 
-    def test_load_xhtml1(self):
+    def test_xhtml1(self):
         html = self.format(u"""\
 <?xml version="1.0"?>\
 {doctype}\
@@ -338,8 +321,7 @@ x\
 </html>\
 """)
         src = io.StringIO(html)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xhtml1')
+        m = self.load(src, lang='xhtml1')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -400,20 +382,19 @@ x\
     def test_ayame_remove(self):
         # descendant of root element
         html = self.format(u"""\
-<?xml version="1.0"?>\
-{doctype}\
+<?xml version="1.0"?>
+{doctype}
 <html xmlns="{xhtml}" xmlns:ayame="{ayame}">\
-<ayame:remove>\
-<body>\
-<h1>text</h1>\
-<hr />\
-</body>\
+<ayame:remove>
+  <body>
+    <h1>text</h1>
+    <hr />
+  </body>
 </ayame:remove>\
-</html>\
+</html>
 """)
         src = io.StringIO(html)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xhtml1')
+        m = self.load(src, lang='xhtml1')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -429,29 +410,28 @@ x\
         self.assert_equal(html.children, [])
 
         # multiple root elements
-        html_t = self.format(u"""\
-<?xml version="1.0"?>\
-{doctype}\
-<ayame:remove xmlns:ayame="{ayame}">\
-before html\
-</ayame:remove>\
-<ayame:remove xmlns:ayame="{ayame}" />\
+        html = self.format(u"""\
+<?xml version="1.0"?>
+{doctype}
+<ayame:remove xmlns:ayame="{ayame}">
+  before html
+</ayame:remove>
+<ayame:remove xmlns:ayame="{ayame}" />
 <html xmlns="{xhtml}" xmlns:ayame="{ayame}">\
-<ayame:remove>\
-<body>\
-<h1>text</h1>\
-<hr />\
-</body>\
+<ayame:remove>
+  <body>
+    <h1>text</h1>
+    <hr />
+  </body>
 </ayame:remove>\
-</html>\
-<ayame:remove xmlns:ayame="{ayame}" />\
-<ayame:remove xmlns:ayame="{ayame}">\
-after html\
-</ayame:remove>\
+</html>
+<ayame:remove xmlns:ayame="{ayame}" />
+<ayame:remove xmlns:ayame="{ayame}">
+  after html
+</ayame:remove>
 """)
-        src = io.StringIO(html_t)
-        loader = markup.MarkupLoader()
-        m = loader.load(self, src, lang='xhtml1')
+        src = io.StringIO(html)
+        m = self.load(src, lang='xhtml1')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xhtml1')
         self.assert_equal(m.doctype, markup.XHTML1_STRICT)
@@ -466,87 +446,86 @@ after html\
                                     'ayame': markup.AYAME_NS})
         self.assert_equal(html.children, [])
 
-    def test_render_error(self):
-        def new_markup(lang):
-            m = markup.Markup()
-            m.xml_decl = {
-                'version': u'1.0',
-                'standalone': u'yes'
-            }
-            m.lang = lang
-            spam = markup.Element(markup.QName(u'spam', u'spam'),
-                                  attrib={markup.QName(u'spam', u'id'): u'a'},
-                                  type=markup.Element.OPEN,
-                                  ns={u'': u'spam'})
-            eggs = markup.Element(markup.QName(u'spam', u'eggs'),
-                                  type=markup.Element.OPEN)
-            eggs.append(0)
-            spam.append(eggs)
-            m.root = spam
-            return m
 
-        # invalid type
-        m = new_markup('xml')
-        self.assert_rendering_error("^invalid type .* 'int'",
-                                    m, pretty=False)
-        self.assert_rendering_error("^invalid type .* 'int'",
-                                    m, pretty=True)
+class MarkupRendererTestCase(AyameTestCase):
 
-        # svg
-        m = new_markup('svg')
-        self.assert_rendering_error(" 'svg' .* not implemented$",
-                                    m, pretty=False)
-        self.assert_rendering_error(" 'svg' .* not implemented$",
-                                    m, pretty=True)
+    def assert_error(self, regex, m):
+        for pretty in (False, True):
+            renderer = markup.MarkupRenderer()
+            with self.assert_raises(ayame.RenderingError) as cm:
+                renderer.render(self, m, pretty=pretty)
+            self.assert_equal(len(cm.exception.args), 2)
+            self.assert_is(cm.exception.args[0], self)
+            self.assert_regex(cm.exception.args[1], regex)
 
+    def new_markup(self, lang):
+        m = markup.Markup()
+        m.xml_decl = {
+            u'version': u'1.0',
+            u'standalone': u'yes'
+        }
+        m.lang = lang
+        spam = markup.Element(markup.QName(u'spam', u'spam'),
+                              attrib={markup.QName(u'spam', u'id'): u'a'},
+                              ns={u'': u'spam'})
+        eggs = markup.Element(markup.QName(u'spam', u'eggs'))
+        eggs.append(0)
+        spam.append(eggs)
+        m.root = spam
+        return m
+
+    def format(self, doc_t, *args, **kwargs):
+        kwargs.update(doctype=markup.XHTML1_STRICT,
+                      xhtml=markup.XHTML_NS,
+                      ayame=markup.AYAME_NS)
+        return doc_t.format(*args, **kwargs)
+
+    def test_invalid_type(self):
+        m = self.new_markup('xml')
+        self.assert_error("^invalid type .* 'int'",
+                          m)
+
+    def test_svg(self):
+        m = self.new_markup('svg')
+        self.assert_error(" 'svg' .* not implemented$",
+                          m)
+
+    def test_unknown_ns_uri(self):
         # unknown namespace URI
-        m = new_markup('xml')
+        m = self.new_markup('xml')
         m.root.ns.clear()
         del m.root[0][:]
-        self.assert_rendering_error("^unknown namespace URI 'spam'$",
-                                    m, pretty=False)
-        self.assert_rendering_error("^unknown namespace URI 'spam'$",
-                                    m, pretty=True)
+        self.assert_error("^unknown namespace URI 'spam'$",
+                          m)
 
-        # overwrite namespace URI
-        m = new_markup('xml')
+    def test_overwrite_ns_uri(self):
+        m = self.new_markup('xml')
         m.root[0].ns[u''] = u'eggs'
-        ham = markup.Element(markup.QName(u'spam', u'ham'),
-                             type=markup.Element.EMPTY)
+        ham = markup.Element(markup.QName(u'spam', u'ham'))
         m.root[0][:] = [ham]
-        self.assert_rendering_error("namespace URI .*''.* overwritten$",
-                                    m, pretty=False)
-        self.assert_rendering_error("namespace URI .*''.* overwritten$",
-                                    m, pretty=True)
+        self.assert_error("namespace URI .*''.* overwritten$",
+                          m)
 
-        # element namespace with default namespace
-        m = new_markup('xml')
+    def test_default_ns_attr(self):
+        m = self.new_markup('xml')
         eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
                               attrib={markup.QName(u'eggs', u'a'): u'1',
                                       markup.QName(u'spam', u'a'): u'2'},
-                              type=markup.Element.OPEN,
                               ns={u'eggs': u'eggs'})
         m.root[:] = [eggs]
-        self.assert_rendering_error(' default namespace$',
-                                    m, pretty=False)
-        self.assert_rendering_error(' default namespace$',
-                                    m, pretty=True)
+        self.assert_error(' default namespace$',
+                          m)
 
-        # attribute is None
-        m = new_markup('xhtml1')
+    def test_attr_is_none(self):
+        m = self.new_markup('xhtml1')
         m.root = markup.Element(self.html_of(u'html'),
                                 attrib={self.html_of(u'lang'): None},
-                                type=markup.Element.EMPTY,
                                 ns={u'': markup.XHTML_NS})
-        self.assert_rendering_error("^'{.*}lang' attribute is None$",
-                                    m, pretty=False)
-        self.assert_rendering_error("^'{.*}lang' attribute is None$",
-                                    m, pretty=True)
+        self.assert_error("^'{.*}lang' attribute is None$",
+                          m)
 
     def test_render_xml(self):
         renderer = markup.MarkupRenderer()
-
-        # pretty output
         xml = u"""\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!DOCTYPE spam SYSTEM "spam.dtd">
@@ -564,6 +543,7 @@ after html\
 </spam>
 """.encode('iso-8859-1')
 
+        # pretty output
         m = markup.Markup()
         m.xml_decl = {
             'version': u'1.0',
@@ -644,14 +624,6 @@ after html\
 
     def test_render_xhtml1(self):
         renderer = markup.MarkupRenderer()
-
-        def new_element(name, type=markup.Element.OPEN, **kwargs):
-            return markup.Element(self.html_of(name), type=type, **kwargs)
-
-        def new_ayame_element(name, **kwargs):
-            kwargs['type'] = markup.Element.OPEN
-            return markup.Element(self.ayame_of(name), **kwargs)
-
         html = self.format(u"""\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 {doctype}
@@ -762,6 +734,16 @@ after html\
 </html>
 """).encode('iso-8859-1')
 
+        def new_element(name, type=markup.Element.OPEN, **kwargs):
+            return markup.Element(self.html_of(name), type=type, **kwargs)
+
+        def new_ayame_element(name, **kwargs):
+            kwargs['type'] = markup.Element.OPEN
+            return markup.Element(self.ayame_of(name), **kwargs)
+
+        br = new_element(u'br',
+                         type=markup.Element.EMPTY)
+
         m = markup.Markup()
         m.xml_decl = {
             'version': u'1.0',
@@ -801,9 +783,8 @@ after html\
                      u'\n')
         head.append(style)
 
-        script = new_element(
-            u'script',
-            attrib={self.html_of(u'type'): u'text/javascript'})
+        script = new_element(u'script',
+                             attrib={self.html_of(u'type'): u'text/javascript'})
         script.append(u'\n'
                       u'     <!--\n'
                       u'     var x = 0;\n'
@@ -832,9 +813,8 @@ after html\
                   u'  ham  \n')
         body.append(h1)
 
-        blockquote = new_element(
-            u'blockquote',
-            attrib={self.html_of(u'cite'): u'http://example.com/'})
+        blockquote = new_element(u'blockquote',
+                                 attrib={self.html_of(u'cite'): u'http://example.com/'})
         blockquote.append(u'before')
         p = new_element(u'p')
         p.append(u'citation')
@@ -858,8 +838,7 @@ after html\
         ins = new_element(u'ins')
         remove = new_ayame_element(u'remove')
         remove.append(u'spam')
-        br = new_element(u'br', type=markup.Element.EMPTY)
-        remove.append(br)
+        remove.append(br.copy())
         remove.append(u'eggs')
         ins.append(remove)
         div.append(ins)
@@ -946,8 +925,7 @@ after html\
         em.append(u'Mercury')
         p.append(em)
         p.append(u' is the first planet.')
-        br = new_element(u'br', type=markup.Element.EMPTY)
-        p.append(br)
+        p.append(br.copy())
         p.append(u'\n')
         em = new_element(u'em')
         em.append(u'Venus')
@@ -968,8 +946,7 @@ after html\
         em.append(u'Mars')
         p.append(em)
         p.append(u' is the fourth planet.')
-        br = new_element(u'br', type=markup.Element.EMPTY)
-        p.append(br)
+        p.append(br.copy())
         em = new_element(u'em')
         em.append(u'Jupiter')
         p.append(em)
@@ -979,11 +956,9 @@ after html\
         ul = new_element(u'ul')
         li = new_element(u'li')
         li.append(u'1')
-        br = new_element(u'br', type=markup.Element.EMPTY)
-        li.append(br)
+        li.append(br.copy())
         li.append(u'2')
-        br = new_element(u'br', type=markup.Element.EMPTY)
-        li.append(br)
+        li.append(br.copy())
         li.append(u'3')
         ul.append(li)
         div.append(ul)
@@ -1029,6 +1004,14 @@ class ElementTestCase(AyameTestCase):
         self.assert_regex(repr(div), ' {{{}}}div '.format(markup.XHTML_NS))
         self.assert_equal(len(div), 0)
         self.assert_true(div)
+
+    def test_attrib(self):
+        o = object()
+        div = self.new_element('div', {'ID': 'spam'})
+        div.attrib['CLASS'] = 'eggs'
+        div.attrib[o] = 'ham'
+        self.assert_equal(list(sorted(five.items(div.attrib), key=lambda t: t[1])),
+                          [('class', 'eggs'), (o, 'ham'), (self.html_of('id'), 'spam')])
 
     def test_set(self):
         p = self.new_element('p')
@@ -1102,26 +1085,14 @@ class ElementTestCase(AyameTestCase):
         self.assert_equal(p.children, [])
 
     def test_copy(self):
-        spam = self.new_element('div', {'id': 'spam'})
-        spam.append(self.new_element('span'))
-        eggs = spam.copy()
-        eggs.attrib[self.html_of('id')] = 'eggs'
-        spam.attrib[self.html_of('class')] = 'spam'
-
-        self.assert_equal(spam.attrib, {self.html_of('id'): 'spam',
-                                        self.html_of('class'): 'spam'})
-        self.assert_is_not(spam.children[0], eggs.children[0])
-
-        self.assert_equal(eggs.qname, self.html_of('div'))
-        self.assert_equal(eggs.attrib, {self.html_of('id'): 'eggs'})
-        self.assert_equal(eggs.type, markup.Element.OPEN)
-        self.assert_equal(eggs.ns, {'': markup.XHTML_NS})
-        self.assert_equal(repr(eggs.qname), '{{{}}}div'.format(markup.XHTML_NS))
-        self.assert_regex(repr(eggs), ' {{{}}}div '.format(markup.XHTML_NS))
-        self.assert_equal(len(eggs), 1)
-        self.assert_true(eggs)
+        div = self._test_dup(lambda div: div.copy())
+        self.assert_is_not(div[1][1], div[3])
 
     def test_pickle(self):
+        div = self._test_dup(lambda div: pickle.loads(pickle.dumps(div)))
+        self.assert_is(div[1][1], div[3])
+
+    def _test_dup(self, dup):
         div = self.new_element('div', {'id': 'spam'})
         p = self.new_element('p', {'id': 'eggs'})
         br = self.new_element('br')
@@ -1129,7 +1100,7 @@ class ElementTestCase(AyameTestCase):
         p[:] = ['ham', br]
         div[:] = ['toast', p, 'beans', br]
 
-        elem = pickle.loads(pickle.dumps(div))
+        elem = dup(div)
         # div#spam
         self.assert_element_equal(elem, div)
         self.assert_equal(elem[0], 'toast')
@@ -1141,8 +1112,7 @@ class ElementTestCase(AyameTestCase):
         self.assert_element_equal(elem[1][1], br)
         # div#spam br
         self.assert_element_equal(elem[3], br)
-
-        self.assert_is(elem[1][1], elem[3])
+        return elem
 
     def test_walk(self):
         root = self.new_element('div', {'id': 'root'})

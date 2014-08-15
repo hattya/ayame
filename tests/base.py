@@ -70,7 +70,7 @@ class AyameTestCase(unittest.TestCase):
         try:
             return getattr(self, _ASSERT_MAP[name])
         except KeyError:
-            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self), name))
+            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self.__class__), name))
 
     @classmethod
     def setUpClass(cls):

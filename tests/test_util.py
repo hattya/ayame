@@ -390,14 +390,15 @@ class LRUCacheTestCase(AyameTestCase):
             c.update()
 
     def test_copy(self):
-        c = self.lru_cache(3).copy()
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self._test_dup(lambda c: c.copy())
 
     def test_pickle(self):
-        c = pickle.loads(pickle.dumps(self.lru_cache(3)))
+        self._test_dup(lambda c: pickle.loads(pickle.dumps(c)))
+
+    def _test_dup(self, dup):
+        r = self.lru_cache(3)
+        c = dup(r)
+        self.assert_is_not(c, r)
         self.assert_equal(c.cap, 3)
         self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
         self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
@@ -586,44 +587,15 @@ class LFUCacheTestCase(AyameTestCase):
             c.update()
 
     def test_copy(self):
-        c = self.lfu_cache(3).copy()
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
-        freq = c._head.next
-        self.assert_equal(freq.value, 1)
-        self.assert_equal(freq.len, 3)
-        self.assert_equal(c._head.prev.value, 1)
-
-        c = self.lfu_cache(3)
-        _ = c['b']
-        _ = c['c']
-        _ = c['c']
-        c = c.copy()
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
-        freq = c._head.next
-        self.assert_equal(freq.value, 1)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'a')
-        self.assert_equal(freq.head.value, 1)
-        freq = c._head.next.next
-        self.assert_equal(freq.value, 2)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'b')
-        self.assert_equal(freq.head.value, 2)
-        freq = c._head.next.next.next
-        self.assert_equal(freq.value, 3)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'c')
-        self.assert_equal(freq.head.value, 3)
-        self.assert_equal(c._head.prev.value, 3)
+        self._test_dup(lambda c: c.copy())
 
     def test_pickle(self):
-        c = pickle.loads(pickle.dumps(self.lfu_cache(3)))
+        self._test_dup(lambda c: pickle.loads(pickle.dumps(c)))
+
+    def _test_dup(self, dup):
+        f = self.lfu_cache(3)
+        c = dup(f)
+        self.assert_is_not(c, f)
         self.assert_equal(c.cap, 3)
         self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
         self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
@@ -633,11 +605,12 @@ class LFUCacheTestCase(AyameTestCase):
         self.assert_equal(freq.len, 3)
         self.assert_equal(c._head.prev.value, 1)
 
-        c = self.lfu_cache(3)
-        _ = c['b']
-        _ = c['c']
-        _ = c['c']
-        c = pickle.loads(pickle.dumps(c))
+        f = self.lfu_cache(3)
+        _ = f['b']
+        _ = f['c']
+        _ = f['c']
+        c = dup(f)
+        self.assert_is_not(c, f)
         self.assert_equal(c.cap, 3)
         self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
         self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])

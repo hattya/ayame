@@ -46,16 +46,16 @@ class RouteTestCase(AyameTestCase):
 
         # GET (empty path info) -> MovedPermanently
         router = map.bind(self.new_environ(path=''))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/')])
 
         # HEAD / -> NotImplemented
         router = map.bind(self.new_environ(method='HEAD', path='/'))
-        with self.assert_raises(http.NotImplemented) as a:
+        with self.assert_raises(http.NotImplemented) as cm:
             router.match()
-        self.assert_equal(a.exception.headers, [])
+        self.assert_equal(cm.exception.headers, [])
 
         # GET /news
         router = map.bind(self.new_environ(path='/news'))
@@ -155,9 +155,9 @@ class RouteTestCase(AyameTestCase):
 
         # GET /2011 -> MovedPermanently
         router = map.bind(self.new_environ(path='/2011'))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/2011/')])
 
         # GET /2011/
@@ -170,9 +170,9 @@ class RouteTestCase(AyameTestCase):
 
         # GET /2011/01 -> MovedPermanently
         router = map.bind(self.new_environ(path='/2011/01'))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/2011/01/')])
 
         # GET /2011/01/
@@ -354,16 +354,16 @@ class RouteTestCase(AyameTestCase):
 
         # GET /2011/01/ -> MovedPermanently
         router = map.bind(self.new_environ(path='/2011/01/'))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/_/2011/01/')])
 
         # GET /jp/ -> MovedPermanently
         router = map.bind(self.new_environ(path='/jp/'))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/_/jp/')])
 
     def test_add_rule(self):
@@ -390,9 +390,9 @@ class RouteTestCase(AyameTestCase):
 
         # GET /_/old -> MovedPermanently
         router = map.bind(self.new_environ(path='/_/old'))
-        with self.assert_raises(http.MovedPermanently) as a:
+        with self.assert_raises(http.MovedPermanently) as cm:
             router.match()
-        self.assert_equal(a.exception.headers,
+        self.assert_equal(cm.exception.headers,
                           [('Location', 'http://localhost/_/new')])
 
     def test_parse_args(self):

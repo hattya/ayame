@@ -49,30 +49,6 @@ class ResTestCase(AyameTestCase):
         super(ResTestCase, self).teardown()
         sys.modules[__name__] = self._module
 
-    def assert_load_fail(self, regex):
-        loader = res.ResourceLoader()
-
-        class Spam(object):
-            pass
-
-        def ham():
-            pass
-
-        for o in (Spam, Spam()):
-            for p in ('Spam.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError,
-                                              regex):
-                    loader.load(o, p)
-
-        for p in ('ham.txt', '.txt'):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          regex):
-                loader.load(ham, p)
-
-        with self.assert_raises_regex(ayame.ResourceError,
-                                      regex):
-            loader.load(sys.modules[__name__], '.txt')
-
     def new_module(self, loader):
         class Module(types.ModuleType):
             def __init__(self):
@@ -118,7 +94,7 @@ class ResTestCase(AyameTestCase):
 
     def test_unknown_module_location(self):
         sys.modules[__name__] = types.ModuleType(__name__)
-        self.assert_load_fail(" module location$")
+        self._test_error(" module location$")
 
     def test_invalid_path(self):
         loader = res.ResourceLoader()
@@ -137,7 +113,31 @@ class ResTestCase(AyameTestCase):
 
     def test_unknown_loader(self):
         sys.modules[__name__] = self.new_module(True)
-        self.assert_load_fail("^cannot load '.*' from loader True$")
+        self._test_error("^cannot load '.*' from loader True$")
+
+    def _test_error(self, regex):
+        loader = res.ResourceLoader()
+
+        class Spam(object):
+            pass
+
+        def ham():
+            pass
+
+        for o in (Spam, Spam()):
+            for p in ('Spam.txt', '.txt'):
+                with self.assert_raises_regex(ayame.ResourceError,
+                                              regex):
+                    loader.load(o, p)
+
+        for p in ('ham.txt', '.txt'):
+            with self.assert_raises_regex(ayame.ResourceError,
+                                          regex):
+                loader.load(ham, p)
+
+        with self.assert_raises_regex(ayame.ResourceError,
+                                      regex):
+            loader.load(sys.modules[__name__], '.txt')
 
     def test_loader(self):
         class Loader(object):
