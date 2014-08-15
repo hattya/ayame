@@ -40,6 +40,49 @@ from base import AyameTestCase
 
 class MarkupTestCase(AyameTestCase):
 
+    def assert_markup_equal(self, a, b):
+        self.assert_is_not(a, b)
+        self.assert_is_not(a.xml_decl, b.xml_decl)
+        self.assert_equal(a.xml_decl, b.xml_decl)
+        self.assert_equal(a.lang, b.lang)
+        self.assert_equal(a.doctype, b.doctype)
+        self.assert_is_not(a.root, b.root)
+        # html
+        self.assert_element_equal(a.root, b.root)
+        # html head
+        self.assert_element_equal(a.root[0], b.root[0])
+        # html head title
+        self.assert_element_equal(a.root[0][0], b.root[0][0])
+        # html body
+        self.assert_element_equal(a.root[1], b.root[1])
+
+    def new_xhtml1(self):
+        def new_element(name, **kwargs):
+            return markup.Element(self.html_of(name),
+                                  type=markup.Element.OPEN,
+                                  **kwargs)
+
+        m = markup.Markup()
+        m.xml_decl = {'version': '1.0'}
+        m.lang = 'xhtml1'
+        m.doctype = markup.XHTML1_STRICT
+        m.root = new_element('html',
+                             ns={'': markup.XHTML_NS,
+                                 'xml': markup.XML_NS})
+        head = new_element('head')
+        head.append(new_element('title'))
+        body = new_element('body')
+        m.root[:] = [head, body]
+        return m
+
+    def test_markup_copy(self):
+        m = self.new_xhtml1()
+        self.assert_markup_equal(m, m.copy())
+
+    def test_markup_pickle(self):
+        m = self.new_xhtml1()
+        self.assert_markup_equal(m, pickle.loads(pickle.dumps(m)))
+
     def test_fragment(self):
         br = markup.Element(self.html_of('br'),
                             type=markup.Element.EMPTY)

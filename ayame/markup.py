@@ -157,6 +157,12 @@ class Markup(object):
             m.root = self.root.copy()
         return m
 
+    def __getstate__(self):
+        return (self.xml_decl, self.lang, self.doctype, self.root)
+
+    def __setstate__(self, state):
+        self.xml_decl, self.lang, self.doctype, self.root = state
+
     copy = __copy__
 
 
