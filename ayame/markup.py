@@ -178,15 +178,6 @@ class Element(object):
             self.ns.update(ns)
         self.children = []
 
-    def __copy__(self):
-        elem = self.__class__(self.qname)
-        elem.attrib = self.attrib.copy()
-        elem.type = self.type
-        elem.ns = self.ns.copy()
-        elem.children = [n.copy() if isinstance(n, Element) else n
-                         for n in self.children]
-        return elem
-
     def __repr__(self):
         return '<{} {!r} at 0x{:x}>'.format(util.fqon_of(self), self.qname, id(self))
 
@@ -207,7 +198,22 @@ class Element(object):
         return self.children.__setitem__(key, value)
 
     def __delitem__(self, key):
-        self.children.__delitem__(key)
+        return self.children.__delitem__(key)
+
+    def __copy__(self):
+        elem = self.__class__(self.qname)
+        elem.attrib = self.attrib.copy()
+        elem.type = self.type
+        elem.ns = self.ns.copy()
+        elem.children = [n.copy() if isinstance(n, Element) else n
+                         for n in self.children]
+        return elem
+
+    def __getstate__(self):
+        return (self.qname, self.attrib, self.type, self.ns, self.children)
+
+    def __setstate__(self, state):
+        self.qname, self.attrib, self.type, self.ns, self.children = state
 
     copy = __copy__
 

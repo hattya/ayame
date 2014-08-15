@@ -25,9 +25,14 @@
 #
 
 import io
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import tempfile
 
 import ayame
+from ayame import _compat as five
 from ayame import markup
 from base import AyameTestCase
 
@@ -55,182 +60,6 @@ class MarkupTestCase(AyameTestCase):
                       xhtml=markup.XHTML_NS,
                       ayame=markup.AYAME_NS)
         return doc_t.format(*args, **kwargs)
-
-    def test_element(self):
-        spam = markup.Element(markup.QName('spam', 'spam'),
-                              attrib={'id': 'a'},
-                              type=markup.Element.EMPTY,
-                              ns={'': 'spam'})
-        self.assert_equal(spam.qname, markup.QName('spam', 'spam'))
-        self.assert_equal(spam.attrib, {'id': 'a'})
-        self.assert_equal(spam.type, markup.Element.EMPTY)
-        self.assert_equal(spam.ns, {'': 'spam'})
-        self.assert_equal(spam.children, [])
-        self.assert_equal(repr(spam.qname), '{spam}spam')
-        self.assert_regex(repr(spam), ' {spam}spam ')
-        self.assert_equal(len(spam), 0)
-        self.assert_true(spam)
-
-        eggs = spam.copy()
-        eggs.qname = markup.QName('spam', 'eggs')
-        spam.attrib[0] = 'a'
-        self.assert_equal(spam.qname, markup.QName('spam', 'spam'))
-        self.assert_equal(spam.attrib, {'id': 'a',
-                                        0: 'a'})
-
-        self.assert_equal(eggs.qname, markup.QName('spam', 'eggs'))
-        self.assert_equal(eggs.attrib, {'id': 'a'})
-        self.assert_equal(eggs.type, markup.Element.EMPTY)
-        self.assert_equal(eggs.ns, {'': 'spam'})
-        self.assert_equal(eggs.children, [])
-        self.assert_equal(repr(eggs.qname), '{spam}eggs')
-        self.assert_regex(repr(eggs), ' {spam}eggs ')
-        self.assert_equal(len(eggs), 0)
-        self.assert_true(eggs)
-
-    def test_element___getitem_____setitem_____delitem__(self):
-        spam = markup.Element(self.of('spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(self.of('eggs'))
-        spam[:1] = ['a', 'b', 'c']
-        spam[3:] = [eggs]
-        spam[4:] = ['d', 'e', 'f']
-        self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
-        self.assert_equal(eggs.children, [])
-        self.assert_equal(spam[:3], ['a', 'b', 'c'])
-        self.assert_equal(spam[3], eggs)
-        self.assert_equal(spam[4:], ['d', 'e', 'f'])
-        del spam[:]
-        self.assert_equal(spam.children, [])
-
-    def test_element_append(self):
-        spam = markup.Element(self.of('spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(self.of('eggs'))
-        spam.append('a')
-        spam.append('b')
-        spam.append('c')
-        spam.append(eggs)
-        spam.append('d')
-        spam.append('e')
-        spam.append('f')
-        self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
-        self.assert_equal(eggs.children, [])
-
-    def test_element_extend(self):
-        spam = markup.Element(self.of('spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(self.of('eggs'))
-        spam.extend(('a', 'b', 'c', eggs, 'd', 'e', 'f'))
-        self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
-        self.assert_equal(eggs.children, [])
-
-    def test_element_insert(self):
-        spam = markup.Element(self.of('spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(self.of('eggs'))
-        spam.insert(0, 'f')
-        spam.insert(0, 'c')
-        spam.insert(0, 'b')
-        spam.insert(-1, 'd')
-        spam.insert(-1, 'e')
-        spam.insert(0, 'a')
-        spam.insert(3, eggs)
-        self.assert_equal(spam.children, ['a', 'b', 'c', eggs, 'd', 'e', 'f'])
-        self.assert_equal(eggs.children, [])
-
-    def test_element_remove(self):
-        spam = markup.Element(self.of('spam'),
-                              attrib={markup.AYAME_ID: 'spam'})
-        eggs = markup.Element(self.of('eggs'))
-        spam.extend(['a', 'b', 'c', eggs, 'd', 'e', 'f'])
-        spam.remove('a')
-        spam.remove('b')
-        spam.remove('c')
-        spam.remove(eggs)
-        spam.remove('d')
-        spam.remove('e')
-        spam.remove('f')
-        self.assert_equal(spam.children, [])
-        self.assert_equal(eggs.children, [])
-
-    def test_element_normalize(self):
-        def new_elements(i=None):
-            for n in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon',
-                      'sausage')[:i]:
-                yield markup.Element(self.of(n))
-
-        spam, eggs, ham, toast = new_elements(4)
-        spam.extend(('a', eggs,
-                     'b', 'c', ham, toast,
-                     'd', 'e', 'f'))
-        spam.normalize()
-        self.assert_equal(spam.children, ['a', eggs,
-                                          'bc', ham, toast,
-                                          'def'])
-
-        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
-        spam.extend(('a', eggs,
-                     'b', 'c', ham, toast,
-                     'd', 'e', 'f', beans, bacon, sausage))
-        spam.normalize()
-        self.assert_equal(spam.children, ['a', eggs,
-                                          'bc', ham, toast,
-                                          'def', beans, bacon, sausage])
-
-        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
-        spam.extend((eggs, 'a',
-                     ham, toast, 'b', 'c',
-                     beans, bacon, sausage))
-        spam.normalize()
-        self.assert_equal(spam.children, [eggs, 'a',
-                                          ham, toast, 'bc',
-                                          beans, bacon, sausage])
-
-        spam, eggs, ham, toast, beans, bacon, sausage = new_elements()
-        spam.extend((eggs, 'a',
-                     ham, toast, 'b', 'c',
-                     beans, bacon, sausage, 'd', 'e', 'f'))
-        spam.normalize()
-        self.assert_equal(spam.children, [eggs, 'a',
-                                          ham, toast, 'bc',
-                                          beans, bacon, sausage, 'def'])
-
-    def test_element_walk(self):
-        root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'root'})
-        it = root.walk()
-        self.assert_equal(list(it), [(root, 0)])
-
-        a1 = markup.Element(self.of('a1'))
-        root.append(a1)
-        a2 = markup.Element(self.of('a2'),
-                            attrib={markup.AYAME_ID: 'a2'})
-        root.append(a2)
-        it = root.walk()
-        self.assert_equal(list(it), [(root, 0),
-                                     (a1, 1), (a2, 1)])
-
-        a1_b1 = markup.Element(self.of('b1'))
-        a1.append(a1_b1)
-        a1_b2 = markup.Element(self.of('b2'),
-                               attrib={markup.AYAME_ID: 'b2'})
-        a1.append(a1_b2)
-        a2_b1 = markup.Element(self.of('b1'))
-        a2.append(a2_b1)
-        a2_b2 = markup.Element(self.of('b2'),
-                               attrib={markup.AYAME_ID: 'b2'})
-        a2.append(a2_b2)
-        it = root.walk()
-        self.assert_equal(list(it),
-                          [(root, 0),
-                           (a1, 1), (a1_b1, 2), (a1_b2, 2),
-                           (a2, 1), (a2_b1, 2), (a2_b2, 2)])
-        it = root.walk(step=lambda element, *args: element != a1)
-        self.assert_equal(list(it),
-                          [(root, 0),
-                           (a1, 1),
-                           (a2, 1), (a2_b1, 2), (a2_b2, 2)])
 
     def test_fragment(self):
         spam = markup.Element(markup.QName('spam', 'spam'),
@@ -1176,3 +1005,192 @@ after html\
         m.root.append(body)
 
         self.assert_equal(renderer.render(self, m, pretty=True), html)
+
+
+class ElementTestCase(AyameTestCase):
+
+    def new_element(self, name, attrib=None):
+        elem = markup.Element(self.html_of(name),
+                              type=markup.Element.OPEN,
+                              ns={'': markup.XHTML_NS})
+        if attrib:
+            for n, v in five.items(attrib):
+                elem.attrib[self.html_of(n)] = v
+        return elem
+
+    def test_element(self):
+        div = self.new_element('div', {'id': 'spam'})
+        self.assert_equal(div.qname, self.html_of('div'))
+        self.assert_equal(div.attrib, {self.html_of('id'): 'spam'})
+        self.assert_equal(div.type, markup.Element.OPEN)
+        self.assert_equal(div.ns, {'': markup.XHTML_NS})
+        self.assert_equal(div.children, [])
+        self.assert_equal(repr(div.qname), '{{{}}}div'.format(markup.XHTML_NS))
+        self.assert_regex(repr(div), ' {{{}}}div '.format(markup.XHTML_NS))
+        self.assert_equal(len(div), 0)
+        self.assert_true(div)
+
+    def test_set(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p[:1] = ['a', 'b', 'c']
+        p[3:] = [br]
+        p[4:] = ['d', 'e', 'f']
+        self.assert_equal(p.children, ['a', 'b', 'c', br, 'd', 'e', 'f'])
+
+    def test_get(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p[:] = ['a', 'b', 'c', br, 'd', 'e', 'f']
+        self.assert_equal(p[:3], ['a', 'b', 'c'])
+        self.assert_equal(p[3], br)
+        self.assert_equal(p[4:], ['d', 'e', 'f'])
+        self.assert_equal(p[:], ['a', 'b', 'c', br, 'd', 'e', 'f'])
+
+    def test_del(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p[:] = ['a', 'b', 'c', br, 'd', 'e', 'f']
+        del p[:3]
+        self.assert_equal(p.children, [br, 'd', 'e', 'f'])
+        del p[0]
+        self.assert_equal(p.children, ['d', 'e', 'f'])
+        del p[0:]
+        self.assert_equal(p.children, [])
+
+    def test_append(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p.append('a')
+        p.append('b')
+        p.append('c')
+        p.append(br)
+        p.append('d')
+        p.append('e')
+        p.append('f')
+        self.assert_equal(p.children, ['a', 'b', 'c', br, 'd', 'e', 'f'])
+
+    def test_extend(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p.extend(('a', 'b', 'c', br, 'd', 'e', 'f'))
+        self.assert_equal(p.children, ['a', 'b', 'c', br, 'd', 'e', 'f'])
+
+    def test_insert(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p.insert(0, 'f')
+        p.insert(0, 'c')
+        p.insert(0, 'b')
+        p.insert(-1, 'd')
+        p.insert(-1, 'e')
+        p.insert(0, 'a')
+        p.insert(3, br)
+        self.assert_equal(p.children, ['a', 'b', 'c', br, 'd', 'e', 'f'])
+
+    def test_remove(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+        p[:] = ['a', 'b', 'c', br, 'd', 'e', 'f']
+        p.remove('a')
+        p.remove('b')
+        p.remove('c')
+        p.remove(br)
+        p.remove('d')
+        p.remove('e')
+        p.remove('f')
+        self.assert_equal(p.children, [])
+
+    def test_copy(self):
+        spam = self.new_element('div', {'id': 'spam'})
+        spam.append(self.new_element('span'))
+        eggs = spam.copy()
+        eggs.attrib[self.html_of('id')] = 'eggs'
+        spam.attrib[self.html_of('class')] = 'spam'
+
+        self.assert_equal(spam.attrib, {self.html_of('id'): 'spam',
+                                        self.html_of('class'): 'spam'})
+        self.assert_is_not(spam.children[0], eggs.children[0])
+
+        self.assert_equal(eggs.qname, self.html_of('div'))
+        self.assert_equal(eggs.attrib, {self.html_of('id'): 'eggs'})
+        self.assert_equal(eggs.type, markup.Element.OPEN)
+        self.assert_equal(eggs.ns, {'': markup.XHTML_NS})
+        self.assert_equal(repr(eggs.qname), '{{{}}}div'.format(markup.XHTML_NS))
+        self.assert_regex(repr(eggs), ' {{{}}}div '.format(markup.XHTML_NS))
+        self.assert_equal(len(eggs), 1)
+        self.assert_true(eggs)
+
+    def test_pickle(self):
+        div = self.new_element('div', {'id': 'spam'})
+        p = self.new_element('p', {'id': 'eggs'})
+        br = self.new_element('br')
+        br.type = markup.Element.EMPTY
+        p[:] = ['ham', br]
+        div[:] = ['toast', p, 'beans', br]
+
+        elem = pickle.loads(pickle.dumps(div))
+        # div#spam
+        self.assert_element_equal(elem, div)
+        self.assert_equal(elem[0], 'toast')
+        self.assert_equal(elem[2], 'beans')
+        # div#spam p#eggs
+        self.assert_element_equal(elem[1], p)
+        self.assert_equal(elem[1][0], 'ham')
+        # div#spam p#eggs br
+        self.assert_element_equal(elem[1][1], br)
+        # div#spam br
+        self.assert_element_equal(elem[3], br)
+
+        self.assert_is(elem[1][1], elem[3])
+
+    def test_walk(self):
+        root = self.new_element('div', {'id': 'root'})
+        it = root.walk()
+        self.assert_equal(list(it), [(root, 0)])
+
+        spam = self.new_element('div', {'id': 'spam'})
+        eggs = self.new_element('div', {'id': 'eggs'})
+        root.extend([spam, eggs])
+        it = root.walk()
+        self.assert_equal(list(it), [(root, 0),
+                                     (spam, 1), (eggs, 1)])
+
+        toast = self.new_element('div', {'id': 'toast'})
+        beans = self.new_element('div', {'id': 'beans'})
+        spam.extend([toast, beans])
+        bacon = self.new_element('div', {'id': 'bacon'})
+        sausage = self.new_element('div', {'id': 'sausage'})
+        eggs.extend([bacon, sausage])
+        it = root.walk()
+        self.assert_equal(list(it), [(root, 0),
+                                     (spam, 1),
+                                     (toast, 2), (beans, 2),
+                                     (eggs, 1),
+                                     (bacon, 2), (sausage, 2)])
+
+        it = root.walk(step=lambda element, *args: element is not spam)
+        self.assert_equal(list(it), [(root, 0),
+                                     (spam, 1),
+                                     (eggs, 1),
+                                     (bacon, 2), (sausage, 2)])
+
+    def test_normalize(self):
+        p = self.new_element('p')
+        br = self.new_element('br')
+
+        p[:] = ['a', br, 'b', 'c', br, 'd', 'e', 'f']
+        p.normalize()
+        self.assert_equal(p.children, ['a', br, 'bc', br, 'def'])
+
+        p[:] = ['a', br, 'b', 'c', br, 'd', 'e', 'f', br]
+        p.normalize()
+        self.assert_equal(p.children, ['a', br, 'bc', br, 'def', br])
+
+        p[:] = [br, 'a', br, 'b', 'c', br, 'd', 'e', 'f']
+        p.normalize()
+        self.assert_equal(p.children, [br, 'a', br, 'bc', br, 'def'])
+
+        p[:] = [br, 'a', br, 'b', 'c', br, 'd', 'e', 'f', br]
+        p.normalize()
+        self.assert_equal(p.children, [br, 'a', br, 'bc', br, 'def', br])

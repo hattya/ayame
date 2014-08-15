@@ -101,6 +101,38 @@ class AyameTestCase(unittest.TestCase):
     def teardown(self):
         pass
 
+    def assert_element_equal(self, a, b):
+        self.assert_is_not(a, b)
+        # qname
+        self.assert_is_instance(a.qname, markup.QName)
+        self.assert_is_instance(b.qname, markup.QName)
+        self.assert_equal(a.qname, b.qname)
+        # attrib
+        self.assert_is_instance(a.attrib, markup._AttributeDict)
+        self.assert_is_instance(b.attrib, markup._AttributeDict)
+        self.assert_is_not(a.attrib, b.attrib)
+        self.assert_equal(a.attrib, b.attrib)
+        # type
+        self.assert_equal(a.type, b.type)
+        # ns
+        self.assert_is_instance(a.ns, dict)
+        self.assert_is_instance(b.ns, dict)
+        self.assert_is_not(a.ns, b.ns)
+        self.assert_equal(a.ns, b.ns)
+        # children
+        self.assert_is_instance(a.children, list)
+        self.assert_is_instance(b.children, list)
+        self.assert_is_not(a.children, b.children)
+        self.assert_equal(len(a.children), len(b.children))
+        for i in five.range(len(a.children)):
+            if isinstance(a[i], markup.Element):
+                self.assert_is_instance(b[i], markup.Element)
+                self.assert_element_equal(a[i], b[i])
+            else:
+                self.assert_is_instance(a[i], five.string_type)
+                self.assert_is_instance(b[i], five.string_type)
+                self.assert_equal(a[i], b[i])
+
     def assert_ws(self, seq, i):
         self.assert_is_instance(seq[i], five.string_type)
         self.assert_regex(seq[i], '^\s*$')
