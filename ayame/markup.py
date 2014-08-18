@@ -287,77 +287,53 @@ class Fragment(list):
 
 class MarkupLoader(five.HTMLParser):
 
-    _decl = {
-        'new_element': 'new_{}_element',
-        'push': '{}_push',
-        'pop': '{}_pop',
-        'finish': '{}_finish'
-    }
-
     def __init__(self):
         super(MarkupLoader, self).__init__(convert_charrefs=False)
-        self.__stack = collections.deque()
+        self._stack = collections.deque()
         self._cache = {}
 
-        self._object = None
-        self._markup = None
-        self._text = None
-        self._remove = False
-
-    def load(self, object, src, encoding='utf-8', lang=u'xhtml1'):
-        if isinstance(src, five.string_type):
-            try:
-                fp = io.open(src, encoding=encoding)
-            except (OSError, IOError):
-                fp = None
-        else:
-            fp = src
-        if fp is None:
-            raise MarkupError(object, (0, 0), 'cannot load markup')
-
+    def load(self, object, src, lang=u'xhtml1'):
         self.reset()
-        self.__stack.clear()
+        self._stack.clear()
         self._cache.clear()
 
         self._object = object
         self._markup = Markup()
         self._markup.lang = lang.lower()
-        self._text = None
+        self._text = []
         self._remove = False
 
-        try:
-            while True:
-                data = fp.read(8192)
-                if data == '':
-                    break
-                self.feed(data)
-        finally:
-            if isinstance(src, five.string_type):
-                fp.close()
+        while True:
+            data = src.read(8192)
+            if data == '':
+                break
+            self.feed(data)
         self.close()
         return self._markup
 
     def close(self):
         super(MarkupLoader, self).close()
-        self._impl_of('finish')()
+        if self._stack:
+            raise MarkupError(self._object, self.getpos(),
+                              u"end tag for element '{}' omitted".format(self._peek().qname))
 
     def handle_starttag(self, name, attrs):
         if self._remove:
             # children of ayame:remove element
             return
         # new element
-        elem = self._impl_of('new_element')(name, attrs)
-        if (self._ptr() == 0 and
+        elem = self._new_element(name, attrs)
+        if (not self._stack and
             self._markup.root is not None and
             elem.qname != AYAME_REMOVE):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push element
-        self._impl_of('push')(elem)
+        self._push(elem)
         if elem.qname == AYAME_REMOVE:
             self._remove = True
-            if 1 < self._ptr():
-                # remove from parent elem
+            if 1 < len(self._stack):
+                # remove from parent element
                 del self._at(-2)[-1]
         elif self._markup.root is None:
             self._markup.root = elem
@@ -367,41 +343,38 @@ class MarkupLoader(five.HTMLParser):
             # children of ayame:remove element
             return
         # new element
-        elem = self._impl_of('new_element')(name, attrs, type=Element.EMPTY)
+        elem = self._new_element(name, attrs, type=Element.EMPTY)
         if elem.qname == AYAME_REMOVE:
             return
-        elif (self._ptr() == 0 and
+        elif (not self._stack and
               self._markup.root is not None):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push and pop element
-        self._impl_of('push')(elem)
-        self._impl_of('pop')(elem.qname)
+        self._push(elem)
         if self._markup.root is None:
             self._markup.root = elem
+        self._pop(elem.qname)
 
     def handle_endtag(self, name):
         qname = self._new_qname(name)
         if qname == AYAME_REMOVE:
             # end tag of ayame:remove element
             self._remove = False
-        if self._remove:
+        elif self._remove:
             # children of ayame:remove element
             return
         # pop element
-        pos, elem = self._impl_of('pop')(qname)
+        self._pop(qname)
 
     def handle_data(self, data):
-        if 0 < self._ptr():
-            self._append_text(data)
+        self._append_text(data)
 
     def handle_charref(self, name):
-        if 0 < self._ptr():
-            self._append_text(u''.join(('&#', name, ';')))
+        self._append_text(u''.join(('&#', name, ';')))
 
     def handle_entityref(self, name):
-        if 0 < self._ptr():
-            self._append_text(u''.join(('&', name, ';')))
+        self._append_text(u''.join(('&', name, ';')))
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
@@ -429,26 +402,11 @@ class MarkupLoader(five.HTMLParser):
                                       'mismatched quotes')
                 self._markup.xml_decl[k] = v.strip(v[0])
 
-    def _impl_of(self, name):
-        # from method cache
-        impl = self._cache.get(name)
-        if impl is not None:
-            return impl
-        # from instance
-        decl = MarkupLoader._decl.get(name)
-        if decl is not None:
-            impl = getattr(self, decl.format(self._markup.lang), None)
-            if impl is not None:
-                return self._cache.setdefault(name, impl)
-        raise MarkupError(self._object, self.getpos(),
-                          u"'{}' for '{}' document is not implemented".format(name, self._markup.lang))
-
     def _new_qname(self, name, ns=None):
         def ns_uri_of(pfx):
-            for i in five.range(self._ptr() - 1, -1, -1):
+            for i in five.range(len(self._stack) - 1, -1, -1):
                 elem = self._at(i)
-                if (elem.ns and
-                    pfx in elem.ns):
+                if pfx in elem.ns:
                     return elem.ns[pfx]
 
         if ns is None:
@@ -456,51 +414,50 @@ class MarkupLoader(five.HTMLParser):
 
         if ':' in name:
             prefix, name = name.split(':', 1)
-            uri = ns.get(prefix, ns_uri_of(prefix))
+            uri = ns[prefix] if prefix in ns else ns_uri_of(prefix)
             if uri is None:
                 raise MarkupError(self._object, self.getpos(),
                                   u"unknown namespace prefix '{}'".format(prefix))
         else:
-            uri = ns.get('', ns_uri_of(''))
+            uri = ns[''] if '' in ns else ns_uri_of('')
             if uri is None:
                 raise MarkupError(self._object, self.getpos(),
                                   'there is no default namespace')
         return QName(uri, name)
 
     def _append_text(self, text):
-        if self._remove:
-            # children of ayame:remove element
-            return
-        elif self._text is None:
-            self._text = [text]
-        else:
+        if self._stack:
+            if self._remove:
+                # children of ayame:remove element
+                return
             self._text.append(text)
 
     def _push(self, element):
-        if 0 < self._ptr():
+        if self._stack:
             self._flush_text()
             self._peek().append(element)
-        self.__stack.append((self.getpos(), element))
+        self._stack.append((self.getpos(), element))
 
-    def _pop(self):
+    def _pop(self, qname):
         self._flush_text()
-        return self.__stack.pop()
+        if (not self._stack or
+            self._peek().qname != qname):
+            raise MarkupError(self._object, self.getpos(),
+                              u"end tag for element '{}' which is not open".format(qname))
+        return self._stack.pop()
 
     def _flush_text(self):
-        if self._text is not None:
+        if self._text:
             self._peek().append(u''.join(self._text))
-            self._text = None
+            del self._text[:]
 
     def _peek(self):
-        return self.__stack[-1][1]
+        return self._stack[-1][1]
 
     def _at(self, index):
-        return self.__stack[index][1]
+        return self._stack[index][1]
 
-    def _ptr(self):
-        return len(self.__stack)
-
-    def new_xml_element(self, name, attrs, type=None, default_ns=u''):
+    def _new_element(self, name, attrs, type=Element.OPEN):
         # gather xmlns
         xmlns = {}
         for n, v in tuple(attrs):
@@ -511,16 +468,24 @@ class MarkupLoader(five.HTMLParser):
             else:
                 continue
             attrs.remove((n, v))
-        if self._ptr() == 0:
+
+        if not self._stack:
+            if (self._markup.lang in ('xml', 'xhtml1') and
+                not self._markup.xml_decl):
+                    raise MarkupError(self._object, self.getpos(),
+                                      'XML declaration is not found')
             # declare xml ns
             xmlns[u'xml'] = XML_NS
             # declare default ns
             if '' not in xmlns:
-                xmlns[u''] = default_ns
+                if self._markup.lang == 'xhtml1':
+                    xmlns[u''] = XHTML_NS
+                else:
+                    xmlns[u''] = u''
 
         new_qname = self._new_qname
-        elem = Element(qname=new_qname(name, xmlns),
-                       type=type if type is not None else Element.OPEN,
+        elem = Element(new_qname(name, xmlns),
+                       type=type,
                        ns=xmlns.copy())
         # convert attr name to qname
         xmlns[u''] = elem.qname.ns_uri
@@ -531,33 +496,6 @@ class MarkupLoader(five.HTMLParser):
                                   u"attribute '{}' already exists".format(qname))
             elem.attrib[qname] = v
         return elem
-
-    def xml_push(self, element):
-        if not self._markup.xml_decl:
-            raise MarkupError(self._object, self.getpos(),
-                              'XML declaration is not found')
-        self._push(element)
-
-    def xml_pop(self, qname):
-        if (self._ptr() == 0 or
-            self._peek().qname != qname):
-            raise MarkupError(self._object, self.getpos(),
-                              u"end tag for element '{}' which is not open".format(qname))
-        return self._pop()
-
-    def xml_finish(self):
-        if 0 < self._ptr():
-            raise MarkupError(self._object, self.getpos(),
-                              u"end tag for element '{}' omitted".format(self._peek().qname))
-
-    def new_xhtml1_element(self, name, attrs, type=None):
-        return self.new_xml_element(name, attrs,
-                                    type=type,
-                                    default_ns=XHTML_NS)
-
-    xhtml1_push = xml_push
-    xhtml1_pop = xml_pop
-    xhtml1_finish = xml_finish
 
 
 class MarkupRenderer(object):

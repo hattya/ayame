@@ -25,12 +25,10 @@
 #
 
 import io
-import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import tempfile
 
 import ayame
 from ayame import _compat as five
@@ -117,23 +115,7 @@ class MarkupLoaderTestCase(AyameTestCase):
                       ayame=markup.AYAME_NS)
         return doc_t.format(*args, **kwargs)
 
-    def test_error(self):
-        # src is None
-        src = None
-        self.assert_error((0, 0), ' load markup$',
-                          src)
-
-        # cannot open src
-        src = ''
-        self.assert_error((0, 0), ' load markup$',
-                          src)
-
     def test_load(self):
-        # unknown lang
-        src = io.StringIO()
-        self.assert_error((1, 0), " '' .* not implemented$",
-                          src, lang='')
-
         # unknown processing instruction
         src = io.StringIO(u'<?php echo "Hello World!"?>')
         m = self.load(src, lang='xml')
@@ -149,18 +131,6 @@ class MarkupLoaderTestCase(AyameTestCase):
         self.assert_equal(m.lang, 'xml')
         self.assert_is_none(m.doctype)
         self.assert_is_none(m.root)
-
-        # load from file
-        with tempfile.NamedTemporaryFile('w+', delete=False) as fp:
-            pass
-        try:
-            m = self.load(fp.name)
-            self.assert_equal(m.xml_decl, {})
-            self.assert_equal(m.lang, 'xhtml1')
-            self.assert_is_none(m.doctype)
-            self.assert_is_none(m.root)
-        finally:
-            os.remove(fp.name)
 
     def test_unsupported_html(self):
         # xhtml1 frameset
@@ -294,8 +264,8 @@ x\
 
         # no default namespace
         class Loader(markup.MarkupLoader):
-            def new_xml_element(self, *args, **kwargs):
-                elem = super(Loader, self).new_xml_element(*args, **kwargs)
+            def _new_element(self, *args, **kwargs):
+                elem = super(Loader, self)._new_element(*args, **kwargs)
                 elem.ns.pop('', None)
                 return elem
 
@@ -306,8 +276,8 @@ x\
 
         # no eggs namespace
         class Loader(markup.MarkupLoader):
-            def new_xml_element(self, *args, **kwargs):
-                elem = super(Loader, self).new_xml_element(*args, **kwargs)
+            def _new_element(self, *args, **kwargs):
+                elem = super(Loader, self)._new_element(*args, **kwargs)
                 elem.ns.pop('eggs', None)
                 return elem
 
