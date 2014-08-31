@@ -142,7 +142,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(f.model_object['text'], '')
         self.assert_equal(f.model_object['password'], '')
         self.assert_equal(f.model_object['hidden'], '')
-        self.assert_equal(f.model_object['area'], 'Hello World!')
+        self.assert_equal(f.model_object['area'], 'Hello World!\n')
         self.assert_equal(f.model_object['checkbox'], True)
         self.assert_is_none(f.model_object['file'])
         self.assert_not_in('button', f.model_object)
@@ -1154,7 +1154,7 @@ class SpamPage(ayame.Page):
         self.find('form').add(form.HiddenField('hidden'))
         self.find('form:hidden').model_object = u''
         self.find('form').add(form.TextArea('area'))
-        self.find('form:area').model_object = u'Hello World!'
+        self.find('form:area').model_object = u'Hello World!\n'
         self.find('form').add(form.CheckBox('checkbox'))
         self.find('form:checkbox').model_object = True
         self.find('form').add(form.FileUploadField('file'))

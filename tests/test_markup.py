@@ -94,6 +94,88 @@ class MarkupTestCase(AyameTestCase):
         self.assert_is_not(f[1], br)
         self.assert_equal(f[2], 'after')
 
+    def test_space(self):
+        self.assert_is_instance(markup.Space, five.str)
+        self.assert_equal(repr(markup.Space), 'Space')
+
+    def test_markup_handler(self):
+        class MarkupHandler(markup.MarkupHandler):
+            @property
+            def xml(self):
+                return super(MarkupHandler, self).xml
+
+            def is_empty(self, element):
+                return super(MarkupHandler, self).is_empty(element)
+
+            def start_tag(self):
+                super(MarkupHandler, self).start_tag()
+                self.renderer.write(u'start_tag\n')
+
+            def end_tag(self):
+                super(MarkupHandler, self).end_tag()
+                self.renderer.write(u'end_tag\n')
+
+        class MarkupRenderer(io.StringIO):
+            def peek(self):
+                pass
+
+            def writeln(self, *args):
+                for a in args:
+                    self.write(a)
+                self.write(u'\n')
+
+        with self.assert_raises(TypeError):
+            markup.MarkupHandler(None)
+
+        r = MarkupRenderer()
+        h = MarkupHandler(r)
+        self.assert_is_none(h.xml)
+        self.assert_is_none(h.is_empty(None))
+        h.doctype(u'doctype')
+        h.start_tag()
+        h.end_tag()
+        h.text(0, u'')
+        h.text(0, u'text\n')
+        h.indent(0, 0)
+        self.assert_equal(r.getvalue(), u'doctype\nstart_tag\nend_tag\ntext\n')
+
+        elem = markup.Element(None)
+        elem[:] = ('',) * 3
+        h.compile(elem)
+        self.assert_equal(elem.children, [])
+
+    def test_markup_prettifier(self):
+        class MarkupHandler(markup.MarkupHandler):
+            @property
+            def xml(self):
+                pass
+
+            def is_empty(self, element):
+                pass
+
+            def start_tag(self):
+                pass
+
+            def end_tag(self):
+                pass
+
+            def indent(self, pos):
+                self.renderer.write(u'indent\n')
+
+            def compile(self, element):
+                self.renderer.write(u'compile\n')
+
+        r = io.StringIO()
+        h = markup.MarkupPrettifier(MarkupHandler(r))
+        h._bol = True
+        h.text(0, u'')
+        self.assert_true(h._bol)
+        h.text(0, u'text\n')
+        self.assert_false(h._bol)
+        h.indent(0)
+        h.compile(None)
+        self.assert_equal(r.getvalue(), u'text\nindent\ncompile\n')
+
 
 class MarkupLoaderTestCase(AyameTestCase):
 
@@ -500,7 +582,7 @@ class MarkupRendererTestCase(AyameTestCase):
 
     def test_svg(self):
         m = self.new_markup('svg')
-        self.assert_error(" 'svg' .* not implemented$",
+        self.assert_error("^unknown .* 'svg'",
                           m)
 
     def test_unknown_ns_uri(self):
@@ -527,14 +609,6 @@ class MarkupRendererTestCase(AyameTestCase):
                               ns={u'eggs': u'eggs'})
         m.root[:] = [eggs]
         self.assert_error(' default namespace$',
-                          m)
-
-    def test_attr_is_none(self):
-        m = self.new_markup('xhtml1')
-        m.root = markup.Element(self.html_of(u'html'),
-                                attrib={self.html_of(u'lang'): None},
-                                ns={u'': markup.XHTML_NS})
-        self.assert_error("^'{.*}lang' attribute is None$",
                           m)
 
     def test_render_xml(self):
@@ -633,7 +707,7 @@ class MarkupRendererTestCase(AyameTestCase):
                     u'  ')
         m.root.append(eggs)
         m.root.append(u'\n')
-        self.assert_equal(renderer.render(self, m, pretty=False), xml)
+        self.assert_equal(renderer.render(self, m), xml)
 
     def test_render_xhtml1(self):
         renderer = markup.MarkupRenderer()
@@ -663,11 +737,11 @@ class MarkupRendererTestCase(AyameTestCase):
     <ayame:remove>
       <p>Hello World!</p>
     </ayame:remove>
-    <h1> spam <span class="yellow"> eggs </span> ham </h1>
+    <h1>spam <span class="yellow">eggs</span> ham</h1>
     <blockquote cite="http://example.com/">
       <p>citation</p>
     </blockquote>
-    <div class="text"> spam <i>eggs</i> ham</div>
+    <div class="text">spam <i>eggs</i> ham</div>
     <div class="ayame">
       <ins>
         <ayame:remove>
@@ -691,8 +765,8 @@ class MarkupRendererTestCase(AyameTestCase):
     <div class="block">
       Planets
       <ul>
-        <li> Mercury </li>
-        <li> Venus </li>
+        <li>Mercury</li>
+        <li>Venus</li>
         <li>Earth</li>
       </ul>
     </div>
@@ -857,7 +931,7 @@ class MarkupRendererTestCase(AyameTestCase):
         div.append(ins)
         p = new_element(u'p')
         remove = new_ayame_element(u'remove')
-        remove.append(u'ham')
+        remove.append(u'ham\n')
         p.append(remove)
         p.append(u'toast')
         div.append(p)
@@ -986,7 +1060,7 @@ class MarkupRendererTestCase(AyameTestCase):
         legend.append(u'form')
         fieldset.append(legend)
         textarea = new_element(u'textarea')
-        textarea.append(u'Sun')
+        textarea.append(u'Sun\n')
         fieldset.append(textarea)
         form.append(fieldset)
         body.append(form)
