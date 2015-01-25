@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -594,7 +594,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_message_element_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
@@ -605,7 +605,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_message_attribute_invalid_value(self):
         with self.application(self.new_environ()):
@@ -627,7 +627,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_message_attribute_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
@@ -638,7 +638,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_head_unknown_root(self):
         root = markup.Element(self.of('root'))
@@ -1127,7 +1127,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', '0')])
-        self.assert_equal(content, b'')
+        self.assert_equal(content, [b''])
 
     def test_markup_inheritance_duplicate_ayame_elements(self):
         class Shallots(ayame.MarkupContainer):
@@ -1252,7 +1252,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.page(), p)
         self.assert_equal(p.find('message').page(), p)
@@ -1356,7 +1356,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 1,
                                            'clay2': 0})
@@ -1372,7 +1372,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 1,
                                            'clay2': 0})
@@ -1387,7 +1387,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
@@ -1403,7 +1403,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
@@ -1418,7 +1418,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 1})
@@ -1434,7 +1434,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 1})
@@ -1449,7 +1449,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
@@ -1465,7 +1465,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         self.assert_equal(p.model_object, {'clay1': 0,
                                            'clay2': 0})
@@ -1551,7 +1551,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         with self.application(self.new_environ()):
             p = ToastPage.NestedPage()
@@ -1561,7 +1561,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_element(self):
         class Lobster(ayame.MarkupContainer):

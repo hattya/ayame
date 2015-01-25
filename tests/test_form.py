@@ -1,7 +1,7 @@
 #
 # test_form
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -136,7 +136,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object['text'], '')
@@ -637,7 +637,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
@@ -652,7 +652,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
@@ -667,7 +667,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'radio': p.choices[0]})
@@ -750,7 +750,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
@@ -764,7 +764,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[0]})
@@ -779,7 +779,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
@@ -794,7 +794,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         f = p.find('form')
         self.assert_equal(f.model_object, {'checkbox': p.choices[:2]})
@@ -933,7 +933,7 @@ class FormTestCase(AyameTestCase):
             self.assert_equal(headers,
                               [('Content-Type', 'text/html; charset=UTF-8'),
                                ('Content-Length', str(len(html)))])
-            self.assert_equal(content, html)
+            self.assert_equal(content, [html])
 
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
@@ -948,7 +948,7 @@ class FormTestCase(AyameTestCase):
             self.assert_equal(headers,
                               [('Content-Type', 'text/html; charset=UTF-8'),
                                ('Content-Length', str(len(html)))])
-            self.assert_equal(content, html)
+            self.assert_equal(content, [html])
 
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[0]})
@@ -964,7 +964,7 @@ class FormTestCase(AyameTestCase):
             self.assert_equal(headers,
                               [('Content-Type', 'text/html; charset=UTF-8'),
                                ('Content-Length', str(len(html)))])
-            self.assert_equal(content, html)
+            self.assert_equal(content, [html])
 
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})
@@ -980,7 +980,7 @@ class FormTestCase(AyameTestCase):
             self.assert_equal(headers,
                               [('Content-Type', 'text/html; charset=UTF-8'),
                                ('Content-Length', str(len(html)))])
-            self.assert_equal(content, html)
+            self.assert_equal(content, [html])
 
             f = p.find('form')
             self.assert_equal(f.model_object, {'select': p.choices[:2]})

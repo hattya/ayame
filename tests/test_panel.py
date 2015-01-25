@@ -1,7 +1,7 @@
 #
 # test_panel
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -489,7 +489,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_feedback_panel_valid(self):
         query = ('{path}=form&'
@@ -502,7 +502,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_feedback_panel_invalid(self):
         query = ('{path}=form&'
@@ -515,7 +515,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_feedback_panel_nonexistent_path(self):
         query = '{path}=panel'
@@ -527,7 +527,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
@@ -538,7 +538,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_render_ayame_message_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
@@ -549,7 +549,7 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
 
 class MarkupContainer(ayame.MarkupContainer):

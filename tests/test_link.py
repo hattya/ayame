@@ -1,7 +1,7 @@
 #
 # test_link
 #
-#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -111,7 +111,7 @@ class LinkTestCase(AyameTestCase):
         self.assert_equal(headers,
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_action_link_fire(self):
         query = '{path}=link'

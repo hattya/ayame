@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -644,7 +644,7 @@ class Page(MarkupContainer):
 
     def __call__(self):
         self.fire()
-        return self.render()
+        return self.status, self.__headers, [self.render()]
 
     def render(self):
         # load markup and render components
@@ -667,7 +667,7 @@ class Page(MarkupContainer):
         # HTTP headers
         self.headers['Content-Type'] = '{}; charset=UTF-8'.format(self.markup_type.mime_type)
         self.headers['Content-Length'] = str(len(content))
-        return self.status, self.__headers, content
+        return content
 
 
 class Behavior(object):

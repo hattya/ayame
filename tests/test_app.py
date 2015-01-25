@@ -1,7 +1,7 @@
 #
 # test_app
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -225,7 +225,7 @@ class SimpleAppTestCase(AyameTestCase):
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
         self.assert_is_none(exc_info)
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
         # GET /page?{query in EUC-JP} -> OK
         query = uri.quote('\u3044\u308d\u306f', encoding='euc-jp')
@@ -237,7 +237,7 @@ class SimpleAppTestCase(AyameTestCase):
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
         self.assert_is_none(exc_info)
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
     def test_get_int(self):
         # GET /int -> NotFound
@@ -297,7 +297,7 @@ class SimpleAppTestCase(AyameTestCase):
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', str(len(html)))])
         self.assert_is_none(exc_info)
-        self.assert_equal(content, html)
+        self.assert_equal(content, [html])
 
 
 class SimplePage(ayame.Page):

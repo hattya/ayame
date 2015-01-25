@@ -1,7 +1,7 @@
 #
 # test_page
 #
-#   Copyright (c) 2012-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -41,7 +41,7 @@ class PageTestCase(AyameTestCase):
                            ('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', '931')])
         self.assert_true(content)
-        self.assert_regex(content, b'<p>.*</p>')
+        self.assert_regex(content[0], b'<p>.*</p>')
 
     def test_http_304(self):
         with self.application(self.new_environ()):
@@ -52,4 +52,4 @@ class PageTestCase(AyameTestCase):
                           [('Content-Type', 'text/html; charset=UTF-8'),
                            ('Content-Length', '852')])
         self.assert_true(content)
-        self.assert_not_in(b'<p>', content)
+        self.assert_not_in(b'<p>', content[0])
