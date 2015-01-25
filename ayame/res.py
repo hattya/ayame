@@ -73,6 +73,10 @@ class ResourceLoader(object):
             path = os.path.join(name, path)
 
         loader = getattr(m, '__loader__', None)
+        if loader is None:
+            spec = getattr(m, '__spec__', None)
+            if spec:
+                loader = spec.loader
         r = self.load_from(loader, parent, path)
         if r is None:
             raise ResourceError("cannot load '{}' from loader {!r}".format(path, loader))
