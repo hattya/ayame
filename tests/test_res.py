@@ -1,7 +1,7 @@
 #
 # test_res
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -262,18 +262,19 @@ class ZipFileResourceTestCase(AyameTestCase):
 
     @contextlib.contextmanager
     def import_(self, name, files):
-        with tempfile.NamedTemporaryFile(suffix='.zip') as fp:
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as fp:
             with zipfile.ZipFile(fp, 'w') as zf:
                 for n, s in files:
                     zi = zipfile.ZipInfo(n, date_time=self.date_time)
                     zf.writestr(zi, s)
 
-            sys.path.append(fp.name)
-            try:
-                yield __import__(name)
-            finally:
-                sys.path.pop()
-                del sys.modules[name]
+        sys.path.append(fp.name)
+        try:
+            yield __import__(name)
+        finally:
+            sys.path.pop()
+            del sys.modules[name]
+            os.remove(fp.name)
 
     def test_load_by_class(self):
         loader = res.ResourceLoader()

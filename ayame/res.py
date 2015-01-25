@@ -1,7 +1,7 @@
 #
 # ayame.res
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -85,7 +85,7 @@ class ResourceLoader(object):
             return FileResource(os.path.join(parent, path))
         elif (loader.__class__.__module__ == 'zipimport' and
               loader.__class__.__name__ == 'zipimporter'):
-            return ZipFileResource(loader, path)
+            return ZipFileResource(loader, path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
 
 
 class Resource(five.with_metaclass(abc.ABCMeta, object)):
