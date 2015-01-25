@@ -150,7 +150,7 @@ cmdclass = {
 kwargs = {}
 if setuptools:
     kwargs.update(zip_safe=False,
-                  install_requires=['Beaker'])
+                  install_requires=['Werkzeug'])
 
 setup(name='ayame',
       version=version,

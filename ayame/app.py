@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -24,12 +24,11 @@
 #   SOFTWARE.
 #
 
-import datetime
 import locale
 import os
 import sys
 
-import beaker.middleware
+from werkzeug.contrib.sessions import FilesystemSessionStore, SessionMiddleware
 
 from . import _compat as five
 from . import (converter, core, http, i18n, local, markup, page, res, route,
@@ -64,12 +63,14 @@ class Ayame(object):
             'ayame.request': Request,
             'ayame.resource.loader': res.ResourceLoader(),
             'ayame.route.map': route.Map(),
-            'beaker.session.type': 'file',
-            'beaker.session.data_dir': os.path.join(session_dir, 'data'),
-            'beaker.session.lock_dir': os.path.join(session_dir, 'lock'),
-            'beaker.session.cookie_expires': datetime.timedelta(31),
-            'beaker.session.key': None,
-            'beaker.session.secret': None
+            'ayame.session.store': FilesystemSessionStore(session_dir, 'ayame_%s.sess'),
+            'ayame.session.name': 'session_id',
+            'ayame.session.expires': None,
+            'ayame.session.max_age': None,
+            'ayame.session.domain': None,
+            'ayame.session.path': '/',
+            'ayame.session.secure': False,
+            'ayame.session.httponly': True,
         }
 
     @property
@@ -93,7 +94,15 @@ class Ayame(object):
         return self.context._router
 
     def new(self):
-        app = beaker.middleware.SessionMiddleware(self, self.config, 'ayame.session')
+        app = SessionMiddleware(self, self.config['ayame.session.store'],
+                                self.config['ayame.session.name'],
+                                self.config['ayame.session.max_age'],
+                                self.config['ayame.session.expires'],
+                                self.config['ayame.session.path'],
+                                self.config['ayame.session.domain'],
+                                self.config['ayame.session.secure'],
+                                self.config['ayame.session.httponly'],
+                                'ayame.session')
         return app
 
     def __call__(self, environ, start_response):

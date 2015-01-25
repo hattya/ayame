@@ -26,6 +26,8 @@
 
 import locale
 import os
+import shutil
+import tempfile
 
 import ayame
 from ayame import basic, http, uri
@@ -191,9 +193,18 @@ class AppTestCase(AyameTestCase):
 
 class SimpleAppTestCase(AyameTestCase):
 
+    @classmethod
+    def setup_class(cls):
+        cls.session_dir = tempfile.mkdtemp()
+
+    @classmethod
+    def teardown_class(cls):
+        shutil.rmtree(cls.session_dir)
+
     def setup(self):
         super(SimpleAppTestCase, self).setup()
         app = ayame.Ayame(__name__)
+        app.config['ayame.session.store'].path = self.session_dir
         map = app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)
@@ -213,6 +224,9 @@ class SimpleAppTestCase(AyameTestCase):
 
         wsgi = {}
         content = self.app(environ, start_response)
+        content = list(content)
+        if hasattr(content, 'close'):
+            content.close()
         return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
 
     def test_get_page(self):
@@ -293,9 +307,9 @@ class SimpleAppTestCase(AyameTestCase):
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage, message='Salve Munde!')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(len(headers), 3)
+        self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assert_in(('Content-Length', str(len(html))), headers)
         self.assert_is_none(exc_info)
         self.assert_equal(content, [html])
 
