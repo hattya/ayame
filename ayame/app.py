@@ -28,11 +28,9 @@ import locale
 import os
 import sys
 
-from werkzeug.contrib.sessions import FilesystemSessionStore, SessionMiddleware
-
 from . import _compat as five
 from . import (converter, core, http, i18n, local, markup, page, res, route,
-               uri, util)
+               session, uri, util)
 from .exception import AyameError, _Redirect
 
 
@@ -63,7 +61,7 @@ class Ayame(object):
             'ayame.request': Request,
             'ayame.resource.loader': res.ResourceLoader(),
             'ayame.route.map': route.Map(),
-            'ayame.session.store': FilesystemSessionStore(session_dir, 'ayame_%s.sess'),
+            'ayame.session.store': session.FileSystemSessionStore(session_dir, 'ayame_%s.sess'),
             'ayame.session.name': 'session_id',
             'ayame.session.expires': None,
             'ayame.session.max_age': None,
@@ -87,23 +85,11 @@ class Ayame(object):
 
     @property
     def session(self):
-        return self.context.environ['ayame.session']
+        return self.context.session
 
     @property
     def _router(self):
         return self.context._router
-
-    def new(self):
-        app = SessionMiddleware(self, self.config['ayame.session.store'],
-                                self.config['ayame.session.name'],
-                                self.config['ayame.session.max_age'],
-                                self.config['ayame.session.expires'],
-                                self.config['ayame.session.path'],
-                                self.config['ayame.session.domain'],
-                                self.config['ayame.session.secure'],
-                                self.config['ayame.session.httponly'],
-                                'ayame.session')
-        return app
 
     def __call__(self, environ, start_response):
         try:
@@ -112,6 +98,7 @@ class Ayame(object):
             # dispatch
             o, values = ctx._router.match()
             ctx.request = self.config['ayame.request'](environ, values)
+            ctx.session = session.get(self, environ)
             for _ in five.range(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(o)
@@ -129,6 +116,9 @@ class Ayame(object):
             else:
                 raise AyameError('reached to the maximum number of internal redirects')
             exc_info = None
+            set_cookie = session.save(self, ctx.session)
+            if set_cookie:
+                headers.append(set_cookie)
         except Exception as e:
             status, headers, exc_info, content = self.handle_error(e)
         finally:
@@ -209,4 +199,4 @@ class Request(object):
 
     @property
     def session(self):
-        return self.environ['ayame.session']
+        return local.context().session

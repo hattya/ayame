@@ -68,7 +68,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
     def test_request_post_empty(self):
@@ -80,7 +81,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
         environ = self.new_environ(method='POST', form='')
@@ -91,7 +93,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
     def test_request_get(self):
@@ -105,7 +108,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
         self.assert_equal(request.form_data, {})
         self.assert_equal(request.path, 'spam')
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
     def test_request_post(self):
@@ -119,7 +123,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
         self.assert_equal(request.form_data, {ayame.AYAME_PATH: ['eggs']})
         self.assert_equal(request.path, 'eggs')
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
         query = '{path}=spam'
@@ -132,7 +137,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
         self.assert_equal(request.form_data, {ayame.AYAME_PATH: ['eggs']})
         self.assert_equal(request.path, 'eggs')
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
     def test_request_put(self):
@@ -149,7 +155,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.input.read(), (b'spam\n'
                                                  b'eggs\n'
                                                  b'ham\n'))
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, self.locale)
 
     def test_request_posix_locale(self):
@@ -163,7 +170,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, (None, None))
 
     def test_request_accept_language_en(self):
@@ -175,7 +183,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, ('en', None))
 
     def test_request_accept_language_en_us(self):
@@ -187,7 +196,8 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.session, {})
+        with self.assert_raises(ayame.AyameError):
+            request.session
         self.assert_equal(request.locale, ('en', 'US'))
 
 
@@ -203,15 +213,13 @@ class SimpleAppTestCase(AyameTestCase):
 
     def setup(self):
         super(SimpleAppTestCase, self).setup()
-        app = ayame.Ayame(__name__)
-        app.config['ayame.session.store'].path = self.session_dir
-        map = app.config['ayame.route.map']
+        self.app = ayame.Ayame(__name__)
+        self.app.config['ayame.session.store'].path = self.session_dir
+        map = self.app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)
         map.connect('/class', object)
         map.connect('/redir', RedirectPage)
-
-        self.app = app.new()
 
     def new_environ(self, method='GET', path='', query=''):
         return super(SimpleAppTestCase, self).new_environ(method=method,

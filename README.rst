@@ -42,12 +42,10 @@ app.wsgi
             self.add(Label('message', 'Hello World!'))
 
 
-    app = Ayame(__name__)
-    map = app.config['ayame.route.map']
+    application = Ayame(__name__)
+
+    map = application.config['ayame.route.map']
     map.connect('/', HelloWorld)
-
-
-    application = app.new()
 
 
 HelloWorld.html
