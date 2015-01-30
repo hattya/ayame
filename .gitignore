@@ -2,6 +2,7 @@
 *.py?
 *.sw?
 .coverage
+.tox/
 MANIFEST
 ayame/__version__.py
 *.egg-info/
