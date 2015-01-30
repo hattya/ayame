@@ -1,7 +1,7 @@
 #
 # test_util
 #
-#   Copyright (c) 2011-2014 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2015 Akinori Hattori <hattya@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person
 #   obtaining a copy of this software and associated documentation files
@@ -206,7 +206,8 @@ class RWLockTestCase(AyameTestCase):
             thr = threading.Thread(target=random.choice((reader, writer)))
             thr.daemon = True
             thr.start()
-        time.sleep(0.11)
+            time.sleep(0.01)
+        time.sleep(0.17)
         self.assert_equal(lock._rcnt, 0)
         self.assert_equal(lock._rwait, 0)
         self.assert_equal(threading.active_count(), 1)
@@ -606,9 +607,9 @@ class LFUCacheTestCase(AyameTestCase):
         self.assert_equal(c._head.prev.value, 1)
 
         f = self.lfu_cache(3)
-        _ = f['b']
-        _ = f['c']
-        _ = f['c']
+        f['b']
+        f['c']
+        f['c']
         c = dup(f)
         self.assert_is_not(c, f)
         self.assert_equal(c.cap, 3)

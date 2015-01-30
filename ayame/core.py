@@ -644,7 +644,8 @@ class Page(MarkupContainer):
 
     def __call__(self):
         self.fire()
-        return self.status, self.__headers, [self.render()]
+        content = self.render()
+        return self.status, self.__headers, [content]
 
     def render(self):
         # load markup and render components
