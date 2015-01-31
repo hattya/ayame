@@ -1,8 +1,14 @@
-ayame
+Ayame
 =====
 
-ayame is a component based WSGI framework. It is inspired by
+Ayame is a component based WSGI framework. It is inspired by
 `Apache Wicket`_, `Apache Click`_ and Flask_.
+
+.. image:: https://pypip.in/version/ayame/badge.svg
+   :target: https://pypi.python.org/pypi/ayame
+
+.. image:: https://drone.io/github.com/hattya/ayame/status.png
+   :target: https://drone.io/github.com/hattya/ayame/latest
 
 .. _Apache Wicket: http://wicket.apache.org/
 .. _Apache Click: http://click.apache.org/
@@ -70,4 +76,4 @@ HelloWorld.html
 License
 -------
 
-ayame is distributed under the terms of the MIT License.
+Ayame is distributed under the terms of the MIT License.
