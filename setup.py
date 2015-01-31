@@ -55,22 +55,24 @@ if os.path.isdir('.git'):
     env = {'LANGUAGE': 'C'}
     if 'SystemRoot' in os.environ:
         env['SystemRoot'] = os.environ['SystemRoot']
-    out = runcmd([whence('git'), 'describe', '--tags', '--dirty=+', '--long', '--always'], env)
+    mark = '.'
+    out = runcmd([whence('git'), 'describe', '--tags', '--dirty=' + mark, '--long', '--always'], env)
     v = out.strip().rsplit('-', 2)
     if len(v) == 3:
         v[0] = v[0][1:]
         v[2] = v[2][1:]
         if v[1] == '0':
             version = v[0]
-            if v[2].endswith('+'):
-                version += '+'
+            if v[2].endswith(mark):
+                mark = '+'
+                version += mark
         else:
-            version = '{}.{}-{}'.format(*v)
+            version = '{}.{}+{}'.format(*v)
     elif v[0]:
         out = runcmd([whence('git'), 'rev-list', 'HEAD'], env)
         if out:
-            version = '0.0.{}-{}'.format(str(len(out.splitlines())), v[0])
-    if version.endswith('+'):
+            version = '0.0.{}+{}'.format(str(len(out.splitlines())), v[0])
+    if version.endswith(mark):
         version += time.strftime('%Y-%m-%d')
 
 if version:
