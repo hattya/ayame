@@ -10,6 +10,9 @@ Ayame is a component based WSGI framework. It is inspired by
 .. image:: https://drone.io/github.com/hattya/ayame/status.png
    :target: https://drone.io/github.com/hattya/ayame/latest
 
+.. image:: https://ci.appveyor.com/api/projects/status/67nbqb4ej84liu9m?svg=true
+   :target: https://ci.appveyor.com/project/hattya/ayame
+
 .. _Apache Wicket: http://wicket.apache.org/
 .. _Apache Click: http://click.apache.org/
 .. _Flask: http://flask.pocoo.org/
