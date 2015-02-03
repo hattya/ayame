@@ -164,7 +164,7 @@ setup(name='ayame',
       license='MIT',
       packages=packages,
       package_data=package_data,
-      classifiers=(
+      classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Web Environment',
           'Intended Audience :: Developers',
@@ -181,6 +181,6 @@ setup(name='ayame',
           'Topic :: Internet :: WWW/HTTP :: WSGI',
           'Topic :: Software Development :: Libraries :: Application Frameworks',
           'Topic :: Software Development :: Libraries :: Python Modules',
-      ),
+      ],
       cmdclass=cmdclass,
       **kwargs)
