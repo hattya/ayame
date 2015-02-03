@@ -8,3 +8,4 @@ ayame/__version__.py
 *.egg-info/
 build/
 dist/
+doc/_build/
