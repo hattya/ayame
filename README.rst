@@ -4,7 +4,7 @@ Ayame
 Ayame is a component based WSGI framework. It is inspired by
 `Apache Wicket`_, `Apache Click`_ and Flask_.
 
-.. image:: https://pypip.in/version/ayame/badge.svg
+.. image:: https://img.shields.io/pypi/v/ayame.svg
    :target: https://pypi.python.org/pypi/ayame
 
 .. image:: https://drone.io/github.com/hattya/ayame/status.png
