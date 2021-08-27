@@ -37,8 +37,8 @@ def push(app, environ):
 
 def pop():
     stack = getattr(_local, 'stack', None)
-    if (stack is not None and
-        0 < len(stack)):
+    if (stack is not None
+        and len(stack) > 0):
         return stack.pop()
 
 

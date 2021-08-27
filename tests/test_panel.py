@@ -40,9 +40,11 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -69,16 +71,20 @@ class PanelTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Spam'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Spam',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'SpamPanel'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'SpamPanel',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -142,9 +148,11 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -173,24 +181,30 @@ class PanelTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Eggs'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Eggs',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'EggsPanel'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'EggsPanel',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[9]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'HamPanel'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'HamPanel',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -242,8 +256,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Toast('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'ayame:panel' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:panel' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_no_head(self):
@@ -257,8 +270,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Beans('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'head' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'head' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_unknown_ayame_element(self):
@@ -272,8 +284,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Bacon('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"\bunknown .* 'ayame:bacon'"):
+            with self.assert_raises_regex(ayame.RenderingError, r"\bunknown .* 'ayame:bacon'"):
                 mc.render()
 
     def test_empty_markup(self):
@@ -296,9 +307,11 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -323,8 +336,10 @@ class PanelTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Sausage'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Sausage',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -383,9 +398,11 @@ class PanelTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -412,16 +429,20 @@ class PanelTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Lobster'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Lobster',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'LobsterPanel'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'LobsterPanel',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -468,9 +489,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_panel_valid(self):
@@ -481,9 +503,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_panel_invalid(self):
@@ -494,9 +517,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=True)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_panel_nonexistent_path(self):
@@ -506,9 +530,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message(self):
@@ -517,9 +542,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(TomatoPage, message='Hello World!')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message_ja(self):
@@ -528,9 +554,10 @@ class PanelTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(TomatoPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
 

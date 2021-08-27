@@ -78,8 +78,8 @@ class PageLink(Link):
 
     def __init__(self, id, page, values=None, anchor=''):
         super(PageLink, self).__init__(id, None)
-        if (not issubclass(page, core.Page) or
-            page is core.Page):
+        if (not issubclass(page, core.Page)
+            or page is core.Page):
             raise ComponentError(self,
                                  "'{}' is not a subclass of Page".format(util.fqon_of(page)))
         self._page = page

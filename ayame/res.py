@@ -43,13 +43,13 @@ class ResourceLoader(object):
         name = os.path.splitext(name)[0]
         # check path
         p = os.path.normpath(path)
-        if (os.path.isabs(p) or
-            p.split(os.path.sep, 1)[0] == os.path.pardir):
+        if (os.path.isabs(p)
+            or p.split(os.path.sep, 1)[0] == os.path.pardir):
             raise ResourceError("invalid path '{}'".format(path))
         path = p
         # prepare path
-        if (not is_module and
-            path.startswith('.')):
+        if (not is_module
+            and path.startswith('.')):
             path = object.__name__ + path
         if name.lower() != '__init__':
             path = os.path.join(name, path)
@@ -65,12 +65,12 @@ class ResourceLoader(object):
         return r
 
     def load_from(self, loader, parent, path):
-        if (loader is None or
-            (loader.__class__.__module__ == '_frozen_importlib' and
-             loader.__class__.__name__ == 'SourceFileLoader')):
+        if (loader is None
+            or (loader.__class__.__module__ == '_frozen_importlib'
+                and loader.__class__.__name__ == 'SourceFileLoader')):
             return FileResource(os.path.join(parent, path))
-        elif (loader.__class__.__module__ == 'zipimport' and
-              loader.__class__.__name__ == 'zipimporter'):
+        elif (loader.__class__.__module__ == 'zipimport'
+              and loader.__class__.__name__ == 'zipimporter'):
             return ZipFileResource(loader, path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
 
 

@@ -4,7 +4,6 @@
 #
 
 from __future__ import print_function
-from distutils.command.check import check as _check
 import os
 import subprocess
 import sys
@@ -22,13 +21,13 @@ except ImportError:
 
 def whence(cmd, path=None):
     try:
-        PATH = (path or os.environ['PATH']).split(os.pathsep)
+        PATH = (path or os.environ['PATH']).split(os.path.pathsep)
     except KeyError:
         raise SystemExit('PATH environment variable is not set')
     name, ext = os.path.splitext(cmd)
     cands = []
-    if (not ext and
-        sys.platform == 'win32'):
+    if (not ext
+        and sys.platform == 'win32'):
         cands.extend(name + ext for ext in ('.exe', '.bat', '.cmd'))
     else:
         cands.append(cmd)
@@ -94,27 +93,19 @@ else:
                 if l.startswith('version = '):
                     version = l.split('=', 2)[1].strip("\n '")
                     break
-    except:
+    except (OSError, IOError):
         pass
-
-
-class check(_check):
-
-    def check_restructuredtext(self):
-        from docutils.frontend import OptionParser
-
-        # for code directive
-        OptionParser.settings_defaults['syntax_highlight'] = None
-        _check.check_restructuredtext(self)
 
 
 class test(Command):
 
     description = 'run unit tests'
-    user_options = []
+    user_options = [('failfast', 'f', 'stop on first fail or error')]
+
+    boolean_options = ['failfast']
 
     def initialize_options(self):
-        pass
+        self.failfast = False
 
     def finalize_options(self):
         pass
@@ -132,27 +123,29 @@ class test(Command):
         argv = [sys.argv[0], 'discover', '--start-directory', 'tests']
         if self.verbose:
             argv.append('--verbose')
+        if self.failfast:
+            argv.append('--failfast')
         unittest.main(None, argv=argv)
 
 
 try:
     with open('README.rst') as fp:
         long_description = fp.read()
-except:
+except (OSError, IOError):
     long_description = ''
 
 packages = ['ayame']
-package_data = {'ayame': ['*/*.html']}
+package_data = {
+    'ayame': ['*/*.html'],
+}
 
 cmdclass = {
-    'check': check,
     'test': test
 }
 
 kwargs = {}
 if setuptools:
-    kwargs.update(zip_safe=False,
-                  install_requires=['Werkzeug'])
+    kwargs.update(install_requires=['Werkzeug < 0.15'])
 
 setup(name='ayame',
       version=version,
@@ -170,13 +163,11 @@ setup(name='ayame',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: MIT License',
           'Operating System :: OS Independent',
-          'Programming Language :: Python',
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
           'Programming Language :: Python :: 3.3',
           'Programming Language :: Python :: 3.4',
-          'Topic :: Internet :: WWW/HTTP',
           'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
           'Topic :: Internet :: WWW/HTTP :: WSGI',
           'Topic :: Software Development :: Libraries :: Application Frameworks',

@@ -55,8 +55,8 @@ def parse_form_data(environ):
 
     form_data = {}
     for field in fs.list:
-        if (isinstance(field, cgi.FieldStorage) and
-            field.done == -1):
+        if (isinstance(field, cgi.FieldStorage)
+            and field.done == -1):
             raise RequestTimeout()
         if five.PY2:
             field.name = unicode(field.name, 'utf-8', 'replace')
@@ -84,8 +84,8 @@ class _HTTPStatusMetaclass(type):
                 prev = ''
                 buf = []
                 for c in name:
-                    if (c.isupper() and
-                        prev.islower()):
+                    if (c.isupper()
+                        and prev.islower()):
                         buf.append(' ')
                     buf.append(c)
                     prev = c

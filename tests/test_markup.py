@@ -47,8 +47,10 @@ class MarkupTestCase(AyameTestCase):
         m.lang = 'xhtml1'
         m.doctype = markup.XHTML1_STRICT
         m.root = new_element('html',
-                             ns={'': markup.XHTML_NS,
-                                 'xml': markup.XML_NS})
+                             ns={
+                                 '': markup.XHTML_NS,
+                                 'xml': markup.XML_NS,
+                             })
         head = new_element('head')
         head.append(new_element('title'))
         body = new_element('body')
@@ -203,7 +205,7 @@ class MarkupLoaderTestCase(AyameTestCase):
 <!DOCTYPE html PUBLIC "-//W3C/DTD XHTML 1.0 Frameset//EN"\
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
 """
-        self.assert_error((2, 0), '^unsupported HTML version$',
+        self.assert_error((2, 0), r'^unsupported HTML version$',
                           io.StringIO(html))
 
     def test_invalid_xml(self):
@@ -213,44 +215,44 @@ class MarkupLoaderTestCase(AyameTestCase):
 
         # malformed xml declaration
         xml = u'<?xml standalone="yes"?>'
-        assert_xml((1, 0), '^malformed XML declaration$',
+        assert_xml((1, 0), r'^malformed XML declaration$',
                    xml)
 
         # unquoted xml attributes
         xml = u'<?xml version=1.0?>'
-        assert_xml((1, 0), '^malformed XML declaration$',
+        assert_xml((1, 0), r'^malformed XML declaration$',
                    xml)
 
         # mismatched quotes in xml declaration
         for xml in (u'<?xml version="1.0\'?>',
                     u'<?xml version=\'1.0"?>'):
-            assert_xml((1, 0), '^mismatched quotes$',
+            assert_xml((1, 0), r'^mismatched quotes$',
                        xml)
 
         # no xml declaration
         xml = u'<spam></spam>'
-        assert_xml((1, 0), '^XML declaration is not found$',
+        assert_xml((1, 0), r'^XML declaration is not found$',
                    xml)
 
         # multiple root elements
         for xml in (u'<?xml version="1.0"?>\n<spam/>\n<eggs/>',
                     u'<?xml version="1.0"?>\n<spam></spam>\n<eggs></eggs>'):
-            assert_xml((3, 0), ' multiple root elements$',
+            assert_xml((3, 0), r' multiple root elements$',
                        xml)
 
         # omitted end tag for root element
         xml = u'<?xml version="1.0"?>\n<spam>'
-        assert_xml((2, 6), "^end tag .* '{}spam' omitted$",
+        assert_xml((2, 6), r"^end tag .* '{}spam' omitted$",
                    xml)
 
         # mismatched tag
         xml = u'<?xml version="1.0"?>\n<spam></eggs>'
-        assert_xml((2, 6), "^end tag .* '{}eggs' .* not open$",
+        assert_xml((2, 6), r"^end tag .* '{}eggs' .* not open$",
                    xml)
 
         # attribute duplication
         xml = u'<?xml version="1.0"?>\n<spam a="1" a="2"/>'
-        assert_xml((2, 0), "^attribute '{}a' already exists$",
+        assert_xml((2, 0), r"^attribute '{}a' already exists$",
                    xml)
 
     def test_empty_xml(self):
@@ -283,8 +285,10 @@ x\
         self.assert_equal(spam.qname, markup.QName('spam', 'spam'))
         self.assert_equal(spam.attrib, {markup.QName('spam', 'id'): 'spam'})
         self.assert_equal(spam.type, markup.Element.OPEN)
-        self.assert_equal(spam.ns, {'': 'spam',
-                                    'xml': markup.XML_NS})
+        self.assert_equal(spam.ns, {
+            '': 'spam',
+            'xml': markup.XML_NS,
+        })
         self.assert_equal(len(spam), 3)
         self.assert_equal(spam[0], '&amp;')
         self.assert_equal(spam[2], '&#38;x')
@@ -314,9 +318,11 @@ x\
         self.assert_equal(spam.qname, markup.QName('spam', 'spam'))
         self.assert_equal(spam.attrib, {})
         self.assert_equal(spam.type, markup.Element.OPEN)
-        self.assert_equal(spam.ns, {'': 'spam',
-                                    'eggs': 'eggs',
-                                    'xml': markup.XML_NS})
+        self.assert_equal(spam.ns, {
+            '': 'spam',
+            'eggs': 'eggs',
+            'xml': markup.XML_NS,
+        })
         self.assert_equal(len(spam), 1)
 
         eggs = spam[0]
@@ -334,7 +340,7 @@ x\
                 return elem
 
         src = io.StringIO(xml)
-        self.assert_error((1, 70), ' no default namespace$',
+        self.assert_error((1, 70), r' no default namespace$',
                           src, lang='xml',
                           loader=Loader)
 
@@ -346,7 +352,7 @@ x\
                 return elem
 
         src = io.StringIO(xml)
-        self.assert_error((1, 58), "^unknown .* prefix 'eggs'$",
+        self.assert_error((1, 58), r"^unknown .* prefix 'eggs'$",
                           src, lang='xml',
                           loader=Loader)
 
@@ -408,8 +414,10 @@ x\
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+        })
         self.assert_equal(len(html), 2)
 
         head = html[0]
@@ -481,9 +489,11 @@ x\
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(html.children, [])
 
         # multiple root elements
@@ -518,9 +528,11 @@ x\
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(html.children, [])
 
 
@@ -559,12 +571,12 @@ class MarkupRendererTestCase(AyameTestCase):
 
     def test_invalid_type(self):
         m = self.new_markup('xml')
-        self.assert_error("^invalid type .* 'int'",
+        self.assert_error(r"^invalid type .* 'int'",
                           m)
 
     def test_svg(self):
         m = self.new_markup('svg')
-        self.assert_error("^unknown .* 'svg'",
+        self.assert_error(r"^unknown .* 'svg'",
                           m)
 
     def test_unknown_ns_uri(self):
@@ -572,7 +584,7 @@ class MarkupRendererTestCase(AyameTestCase):
         m = self.new_markup('xml')
         m.root.ns.clear()
         del m.root[0][:]
-        self.assert_error("^unknown namespace URI 'spam'$",
+        self.assert_error(r"^unknown namespace URI 'spam'$",
                           m)
 
     def test_overwrite_ns_uri(self):
@@ -580,17 +592,19 @@ class MarkupRendererTestCase(AyameTestCase):
         m.root[0].ns[u''] = u'eggs'
         ham = markup.Element(markup.QName(u'spam', u'ham'))
         m.root[0][:] = [ham]
-        self.assert_error("namespace URI .*''.* overwritten$",
+        self.assert_error(r"namespace URI .*''.* overwritten$",
                           m)
 
     def test_default_ns_attr(self):
         m = self.new_markup('xml')
         eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
-                              attrib={markup.QName(u'eggs', u'a'): u'1',
-                                      markup.QName(u'spam', u'a'): u'2'},
+                              attrib={
+                                  markup.QName(u'eggs', u'a'): u'1',
+                                  markup.QName(u'spam', u'a'): u'2',
+                              },
                               ns={u'eggs': u'eggs'})
         m.root[:] = [eggs]
-        self.assert_error(' default namespace$',
+        self.assert_error(r' default namespace$',
                           m)
 
     def test_render_xml(self):
@@ -634,11 +648,15 @@ class MarkupRendererTestCase(AyameTestCase):
                       u'    b\n'
                       u'    c\n')
         eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
-                              attrib={markup.QName(u'eggs', u'a'): u'1',
-                                      markup.QName(u'ham', u'a'): u'2'},
+                              attrib={
+                                  markup.QName(u'eggs', u'a'): u'1',
+                                  markup.QName(u'ham', u'a'): u'2',
+                              },
                               type=markup.Element.OPEN,
-                              ns={u'eggs': u'eggs',
-                                  u'ham': u'ham'})
+                              ns={
+                                  u'eggs': u'eggs',
+                                  u'ham': u'ham',
+                              })
         ham = markup.Element(markup.QName(u'spam', u'ham'),
                              type=markup.Element.OPEN)
         ham.append(u'\n'
@@ -671,11 +689,15 @@ class MarkupRendererTestCase(AyameTestCase):
                       u'  c\n'
                       u'  ')
         eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
-                              attrib={markup.QName(u'eggs', u'a'): u'1',
-                                      markup.QName(u'ham', u'a'): u'2'},
+                              attrib={
+                                  markup.QName(u'eggs', u'a'): u'1',
+                                  markup.QName(u'ham', u'a'): u'2',
+                              },
                               type=markup.Element.OPEN,
-                              ns={u'eggs': u'eggs',
-                                  u'ham': u'ham'})
+                              ns={
+                                  u'eggs': u'eggs',
+                                  u'ham': u'ham',
+                              })
         eggs.append(u'\n'
                     u'    ')
         ham = markup.Element(markup.QName(u'spam', u'ham'),
@@ -822,14 +844,18 @@ class MarkupRendererTestCase(AyameTestCase):
         m.doctype = markup.XHTML1_STRICT
         m.root = new_element(u'html',
                              attrib={self.xml_of(u'lang'): u'en'},
-                             ns={u'a': markup.XML_NS,
+                             ns={
+                                 u'a': markup.XML_NS,
                                  u'b': markup.XHTML_NS,
-                                 u'ayame': markup.AYAME_NS})
+                                 u'ayame': markup.AYAME_NS,
+                             })
 
         head = new_element(u'head')
         meta = new_element(u'meta',
-                           attrib={self.html_of(u'name'): u'keywords',
-                                   self.html_of(u'content'): u''})
+                           attrib={
+                               self.html_of(u'name'): u'keywords',
+                               self.html_of(u'content'): u'',
+                           })
         meta.append(u'a')
         head.append(meta)
 
@@ -1035,8 +1061,10 @@ class MarkupRendererTestCase(AyameTestCase):
         body.append(div)
 
         form = new_element(u'form',
-                           attrib={self.html_of(u'action'): u'/',
-                                   self.html_of(u'method'): u'post'})
+                           attrib={
+                               self.html_of(u'action'): u'/',
+                               self.html_of(u'method'): u'post',
+                           })
         fieldset = new_element(u'fieldset')
         legend = new_element(u'legend')
         legend.append(u'form')
@@ -1070,7 +1098,7 @@ class ElementTestCase(AyameTestCase):
         self.assert_equal(div.ns, {'': markup.XHTML_NS})
         self.assert_equal(div.children, [])
         self.assert_equal(repr(div.qname), '{{{}}}div'.format(markup.XHTML_NS))
-        self.assert_regex(repr(div), ' {{{}}}div '.format(markup.XHTML_NS))
+        self.assert_regex(repr(div), r' {{{}}}div '.format(markup.XHTML_NS))
         self.assert_equal(len(div), 0)
         self.assert_true(div)
 
@@ -1079,8 +1107,11 @@ class ElementTestCase(AyameTestCase):
         div = self.new_element('div', {'ID': 'spam'})
         div.attrib['CLASS'] = 'eggs'
         div.attrib[o] = 'ham'
-        self.assert_equal(list(sorted(five.items(div.attrib), key=lambda t: t[1])),
-                          [('class', 'eggs'), (o, 'ham'), (self.html_of('id'), 'spam')])
+        self.assert_equal(list(sorted(five.items(div.attrib), key=lambda t: t[1])), [
+            ('class', 'eggs'),
+            (o, 'ham'),
+            (self.html_of('id'), 'spam'),
+        ])
 
     def test_set(self):
         p = self.new_element('p')
@@ -1192,8 +1223,10 @@ class ElementTestCase(AyameTestCase):
         eggs = self.new_element('div', {'id': 'eggs'})
         root.extend([spam, eggs])
         it = root.walk()
-        self.assert_equal(list(it), [(root, 0),
-                                     (spam, 1), (eggs, 1)])
+        self.assert_equal(list(it), [
+            (root, 0),
+            (spam, 1), (eggs, 1),
+        ])
 
         toast = self.new_element('div', {'id': 'toast'})
         beans = self.new_element('div', {'id': 'beans'})
@@ -1202,17 +1235,21 @@ class ElementTestCase(AyameTestCase):
         sausage = self.new_element('div', {'id': 'sausage'})
         eggs.extend([bacon, sausage])
         it = root.walk()
-        self.assert_equal(list(it), [(root, 0),
-                                     (spam, 1),
-                                     (toast, 2), (beans, 2),
-                                     (eggs, 1),
-                                     (bacon, 2), (sausage, 2)])
+        self.assert_equal(list(it), [
+            (root, 0),
+            (spam, 1),
+            (toast, 2), (beans, 2),
+            (eggs, 1),
+            (bacon, 2), (sausage, 2),
+        ])
 
         it = root.walk(step=lambda element, *args: element is not spam)
-        self.assert_equal(list(it), [(root, 0),
-                                     (spam, 1),
-                                     (eggs, 1),
-                                     (bacon, 2), (sausage, 2)])
+        self.assert_equal(list(it), [
+            (root, 0),
+            (spam, 1),
+            (eggs, 1),
+            (bacon, 2), (sausage, 2),
+        ])
 
     def test_normalize(self):
         p = self.new_element('p')

@@ -1,11 +1,12 @@
+*.egg-info/
+.eggs/
+.tox/
+build/
+dist/
+doc/_build/
 *.egg
 *.py?
 *.sw?
 .coverage
-.tox/
 MANIFEST
 ayame/__version__.py
-*.egg-info/
-build/
-dist/
-doc/_build/

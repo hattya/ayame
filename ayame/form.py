@@ -85,8 +85,8 @@ class Form(core.MarkupContainer):
         return super(Form, self).on_render(element)
 
     def submit(self):
-        if not (self.request.method == self._method or
-                self.on_method_mismatch()):
+        if not (self.request.method == self._method
+                or self.on_method_mismatch()):
             # abort
             return
         elif self.request.method == 'GET':
@@ -114,8 +114,8 @@ class Form(core.MarkupContainer):
                 # validate
                 name = c.relative_path()
                 if isinstance(c, Button):
-                    if (name in values and
-                        button is None):
+                    if (name in values
+                        and button is None):
                         button = c
                 elif isinstance(c, Choice):
                     c.validate(values[name] if name in values else [])
@@ -146,8 +146,8 @@ class Form(core.MarkupContainer):
 
     def has_error(self):
         for c, _ in self.walk():
-            if (isinstance(c, FormComponent) and
-                c.error):
+            if (isinstance(c, FormComponent)
+                and c.error):
                 return True
         return False
 
@@ -170,8 +170,8 @@ class FormComponent(core.MarkupContainer):
     def validate(self, value):
         try:
             # check required
-            if (self.required and
-                not value):
+            if (self.required
+                and not value):
                 raise self.required_error()
             # convert to object
             o = self.convert(value)
@@ -449,8 +449,8 @@ class CheckBoxChoice(Choice):
                 input.attrib[_TYPE] = u'checkbox'
                 input.attrib[_NAME] = name
                 input.attrib[_VALUE] = self.renderer.value_of(i, choice)
-                if (selected is not None and
-                    is_selected(selected, choice)):
+                if (selected is not None
+                    and is_selected(selected, choice)):
                     input.attrib[_CHECKED] = u'checked'
                 input = self.render_element(input, i, choice)
                 element.append(input)
@@ -498,8 +498,8 @@ class SelectChoice(Choice):
                 # option
                 option = markup.Element(_OPTION, type=markup.Element.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(i, choice)
-                if (selected is not None and
-                    is_selected(selected, choice)):
+                if (selected is not None
+                    and is_selected(selected, choice)):
                     option.attrib[_SELECTED] = u'selected'
                 option = self.render_element(option, i, choice)
                 # label

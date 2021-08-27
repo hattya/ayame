@@ -15,16 +15,14 @@ from base import AyameTestCase
 class CoreTestCase(AyameTestCase):
 
     def test_component(self):
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' id .* not set\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' id .* not set\b'):
             ayame.Component(None)
 
         c = ayame.Component('a')
         self.assert_equal(c.id, 'a')
         self.assert_is_none(c.model)
         self.assert_is_none(c.model_object)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r'\bmodel .* not set\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r'\bmodel .* not set\b'):
             c.model_object = ''
         with self.assert_raises(ayame.AyameError):
             c.app
@@ -44,8 +42,7 @@ class CoreTestCase(AyameTestCase):
             c.tr('key')
         with self.assert_raises(ayame.AyameError):
             c.uri_for(c)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c.page()
         c.add(None, True, 0, 3.14, '')
         self.assert_equal(c.behaviors, [])
@@ -55,8 +52,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_is_none(c.render(''))
 
     def test_component_with_model(self):
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not .* instance of Model\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not .* instance of Model\b'):
             ayame.Component('1', '')
 
         m = model.Model(None)
@@ -92,8 +88,7 @@ class CoreTestCase(AyameTestCase):
             c.tr('key')
         with self.assert_raises(ayame.AyameError):
             c.uri_for(c)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c.page()
         c.add(None, True, 0, 3.14, '')
         self.assert_equal(c.behaviors, [])
@@ -115,8 +110,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_markup_container(self):
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             mc.page()
         self.assert_equal(mc.path(), 'a')
         self.assert_equal(mc.children, [])
@@ -127,60 +121,55 @@ class CoreTestCase(AyameTestCase):
 
         b1 = ayame.Component('b1')
         mc.add(b1)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             b1.page()
         self.assert_equal(b1.path(), 'a:b1')
         self.assert_equal(mc.children, [b1])
         self.assert_is(mc.find('b1'), b1)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b1' .* exists\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"'b1' .* exists\b"):
             mc.add(b1)
         b2 = ayame.MarkupContainer('b2')
         mc.add(b2)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             b2.page()
         self.assert_equal(b2.path(), 'a:b2')
         self.assert_equal(mc.children, [b1, b2])
         self.assert_is(mc.find('b2'), b2)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'b2' .* exists\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"'b2' .* exists\b"):
             mc.add(b2)
         it = mc.walk()
-        self.assert_equal(list(it), [(mc, 0),
-                                     (b1, 1), (b2, 1)])
+        self.assert_equal(list(it), [(mc, 0), (b1, 1), (b2, 1)])
 
         c1 = ayame.Component('c1')
         b2.add(c1)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c1.page()
         self.assert_equal(c1.path(), 'a:b2:c1')
         self.assert_equal(b2.children, [c1])
         self.assert_is(mc.find('b2:c1'), c1)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c1' .* exists\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"'c1' .* exists\b"):
             b2.add(c1)
         c2 = ayame.MarkupContainer('c2')
         b2.add(c2)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' not attached .*\.Page\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c2.page()
         self.assert_equal(c2.path(), 'a:b2:c2')
         self.assert_equal(b2.children, [c1, c2])
         self.assert_is(mc.find('b2:c2'), c2)
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"'c2' .* exists\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"'c2' .* exists\b"):
             b2.add(c2)
         it = mc.walk()
-        self.assert_equal(list(it), [(mc, 0),
-                                     (b1, 1),
-                                     (b2, 1), (c1, 2), (c2, 2)])
+        self.assert_equal(list(it), [
+            (mc, 0),
+            (b1, 1),
+            (b2, 1), (c1, 2), (c2, 2),
+        ])
         it = mc.walk(step=lambda component, *args: component != b2)
-        self.assert_equal(list(it), [(mc, 0),
-                                     (b1, 1),
-                                     (b2, 1)])
+        self.assert_equal(list(it), [
+            (mc, 0),
+            (b1, 1),
+            (b2, 1),
+        ])
 
         self.assert_equal(mc.render(''), '')
         mc.visible = False
@@ -199,28 +188,29 @@ class CoreTestCase(AyameTestCase):
     def test_render_unknown_ayame_element(self):
         root = markup.Element(self.ayame_of('spam'))
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"\bunknown element 'ayame:spam'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"\bunknown element 'ayame:spam'"):
             mc.render(root)
 
     def test_render_unknown_ayame_attribute(self):
         root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'b',
-                                      self.ayame_of('spam'): ''})
+                              attrib={
+                                  markup.AYAME_ID: 'b',
+                                  self.ayame_of('spam'): '',
+                              })
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.Component('b'))
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"\bunknown attribute 'ayame:spam'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"\bunknown attribute 'ayame:spam'"):
             mc.render(root)
 
     def test_render_no_associated_component(self):
         root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'c',
-                                      self.of('id'): 'c'})
+                              attrib={
+                                  markup.AYAME_ID: 'c',
+                                  self.of('id'): 'c',
+                              })
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.Component('b'))
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"\bcomponent .* 'c' .* not found\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
             mc.render(root)
 
     def test_render_replace_element_itself(self):
@@ -408,8 +398,7 @@ class CoreTestCase(AyameTestCase):
         container = markup.Element(markup.AYAME_CONTAINER)
         root.append(container)
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'ayame:id' .* 'ayame:container'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'ayame:id' .* 'ayame:container'"):
             mc.render(root)
 
     def test_render_ayame_container_no_associated_component(self):
@@ -418,8 +407,7 @@ class CoreTestCase(AyameTestCase):
                                    attrib={markup.AYAME_ID: 'b'})
         root.append(container)
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"\bcomponent .* 'b' .* not found\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'b' .* not found\b"):
             mc.render(root)
 
     def test_render_ayame_container(self):
@@ -461,8 +449,7 @@ class CoreTestCase(AyameTestCase):
         enclosure = markup.Element(markup.AYAME_ENCLOSURE)
         root.append(enclosure)
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'ayame:child' .* 'ayame:enclosure'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'ayame:child' .* 'ayame:enclosure'"):
             mc.render(root)
 
     def test_render_ayame_enclosure_no_associated_component(self):
@@ -474,8 +461,7 @@ class CoreTestCase(AyameTestCase):
                            attrib={markup.AYAME_ID: 'b'})
         enclosure.append(a)
         mc = ayame.MarkupContainer('a')
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"\bcomponent .* 'b' .* not found\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'b' .* not found\b"):
             mc.render(root)
 
     def test_render_ayame_enclosure_with_visible_component(self):
@@ -563,8 +549,7 @@ class CoreTestCase(AyameTestCase):
             message = markup.Element(markup.AYAME_MESSAGE,
                                      attrib={markup.AYAME_KEY: 'b'})
             mc = ayame.MarkupContainer('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          " value .* ayame:message .* 'b'"):
+            with self.assert_raises_regex(ayame.RenderingError, r" value .* ayame:message .* 'b'"):
                 mc.render(message)
 
     def test_render_ayame_message_element(self):
@@ -573,9 +558,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(BeansPage, message='Hello World!')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message_element_ja(self):
@@ -584,20 +570,22 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(BeansPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message_attribute_invalid_value(self):
         with self.application(self.new_environ()):
             root = markup.Element(self.of('root'),
-                                  attrib={markup.AYAME_ID: 'b',
-                                          markup.AYAME_MESSAGE: 'id'})
+                                  attrib={
+                                      markup.AYAME_ID: 'b',
+                                      markup.AYAME_MESSAGE: 'id',
+                                  })
             mc = ayame.MarkupContainer('a')
             mc.add(ayame.Component('b'))
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r'\binvalid .* ayame:message '):
+            with self.assert_raises_regex(ayame.RenderingError, r'\binvalid .* ayame:message '):
                 mc.render(root)
 
     def test_render_ayame_message_attribute(self):
@@ -606,9 +594,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(BaconPage, message='Submit')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message_attribute_ja(self):
@@ -617,9 +606,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(BaconPage, message=u'\u9001\u4fe1')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_head_unknown_root(self):
@@ -629,8 +619,7 @@ class CoreTestCase(AyameTestCase):
         root.append(a)
         mc = ayame.MarkupContainer('a')
         mc.add(AyameHeadContainer('b'))
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"\broot element is not 'html'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"\broot element is not 'html'"):
             mc.find_head(root)
 
     def test_render_ayame_head_no_head(self):
@@ -640,8 +629,7 @@ class CoreTestCase(AyameTestCase):
         root.append(a)
         mc = ayame.MarkupContainer('a')
         mc.add(AyameHeadContainer('b'))
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"'head' .* not found\b"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'head' .* not found\b"):
             mc.render(root)
 
     def test_render_ayame_head(self):
@@ -742,9 +730,11 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -773,24 +763,30 @@ class CoreTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Spam'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Spam',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Eggs'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Eggs',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[9]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Ham'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Ham',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -858,9 +854,11 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -887,16 +885,20 @@ class CoreTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Spam'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Spam',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Sausage'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Sausage',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -945,9 +947,11 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -974,16 +978,20 @@ class CoreTestCase(AyameTestCase):
 
         meta = ayame_head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Bacon'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Bacon',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = ayame_head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Sausage'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Sausage',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -1019,8 +1027,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            with self.assert_raises_regex(ayame.AyameError,
-                                          '^superclass .* not found$'):
+            with self.assert_raises_regex(ayame.AyameError, r'^superclass .* not found$'):
                 mc.load_markup()
 
     def test_markup_inheritance_multiple_inheritance(self):
@@ -1041,8 +1048,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            with self.assert_raises_regex(ayame.AyameError,
-                                          ' multiple inheritance$'):
+            with self.assert_raises_regex(ayame.AyameError, r' multiple inheritance$'):
                 mc.load_markup()
 
     def test_markup_inheritance_no_ayame_child(self):
@@ -1054,8 +1060,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'ayame:child' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:child' .* not found\b"):
                 mc.load_markup()
 
     def test_markup_inheritance_no_head(self):
@@ -1067,8 +1072,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'head' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'head' .* not found\b"):
                 mc.load_markup()
 
     def test_markup_inheritance_ayame_child_as_root(self):
@@ -1080,8 +1084,7 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'ayame:child' .* root element\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:child' .* root element\b"):
                 mc.load_markup()
 
     def test_markup_inheritance_empty_markup(self):
@@ -1106,9 +1109,10 @@ class CoreTestCase(AyameTestCase):
             p = Lobster()
             status, headers, content = p()
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', '0')])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', '0'),
+        ])
         self.assert_equal(content, [b''])
 
     def test_markup_inheritance_duplicate_ayame_elements(self):
@@ -1130,9 +1134,11 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -1159,16 +1165,20 @@ class CoreTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Shallots'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Shallots',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Aubergine'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Aubergine',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -1231,9 +1241,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         self.assert_equal(p.page(), p)
@@ -1280,8 +1291,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.behaviors[0].component, c)
 
         self.assert_is_none(c.render(None))
-        self.assert_equal(c.model_object,
-                          ['before-render', 'component', 'after-render'])
+        self.assert_equal(c.model_object, ['before-render', 'component', 'after-render'])
 
         mc = ayame.MarkupContainer('a', model.Model([]))
         mc.add(Behavior())
@@ -1289,8 +1299,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(mc.behaviors[0].component, mc)
 
         self.assert_is_none(mc.render(None))
-        self.assert_equal(mc.model_object,
-                          ['before-render', 'component', 'after-render'])
+        self.assert_equal(mc.model_object, ['before-render', 'component', 'after-render'])
 
     def test_attribute_modifier_on_component(self):
         root = markup.Element(self.of('root'),
@@ -1335,13 +1344,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 1,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 1,
+            'clay2': 0,
+        })
 
     def test_fire_get_duplicate_ayame_path(self):
         query = ('{path}=clay1&'
@@ -1351,13 +1363,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 1,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 1,
+            'clay2': 0,
+        })
 
     def test_fire_get_nonexistent_path(self):
         query = '{path}=clay2'
@@ -1366,13 +1381,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 0,
+        })
 
     def test_fire_get_invisible_component(self):
         query = '{path}=clay1'
@@ -1382,13 +1400,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage, clay1=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 0,
+        })
 
     def test_fire_post(self):
         data = self.form_data(('{path}', 'obstacle:clay2'))
@@ -1397,13 +1418,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 1})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 1,
+        })
 
     def test_fire_post_duplicate_ayame_path(self):
         data = self.form_data(('{path}', 'obstacle:clay2'),
@@ -1413,13 +1437,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 1})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 1,
+        })
 
     def test_fire_post_nonexistent_path(self):
         data = self.form_data(('{path}', 'clay2'))
@@ -1428,13 +1455,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 0,
+        })
 
     def test_fire_post_invisible_component(self):
         data = self.form_data(('{path}', 'clay1'))
@@ -1444,13 +1474,16 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage, clay1=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
-        self.assert_equal(p.model_object, {'clay1': 0,
-                                           'clay2': 0})
+        self.assert_equal(p.model_object, {
+            'clay1': 0,
+            'clay2': 0,
+        })
 
     def test_fire_component(self):
         query = '{path}=c'
@@ -1475,17 +1508,15 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(c.model_object, 0)
 
     def test_nested(self):
-        regex = ' not .* subclass of MarkupContainer$'
+        regex = r' not .* subclass of MarkupContainer$'
 
-        with self.assert_raises_regex(ayame.AyameError,
-                                      regex):
+        with self.assert_raises_regex(ayame.AyameError, regex):
             class C(object):
                 @ayame.nested
                 class C(object):
                     pass
 
-        with self.assert_raises_regex(ayame.AyameError,
-                                      regex):
+        with self.assert_raises_regex(ayame.AyameError, regex):
             class C(object):
                 @ayame.nested
                 def f(self):
@@ -1530,9 +1561,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ToastPage, name='ToastPage')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         with self.application(self.new_environ()):
@@ -1540,9 +1572,10 @@ class CoreTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ToastPage, name='ToastPage.NestedPage')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_element(self):

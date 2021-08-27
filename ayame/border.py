@@ -51,15 +51,15 @@ class Border(core.MarkupContainer):
                 if ayame_border is None:
                     ayame_border = elem
             elif elem.qname == markup.AYAME_BODY:
-                if (ayame_border is not None and
-                    ayame_body is None):
+                if (ayame_border is not None
+                    and ayame_body is None):
                     # replace children of ayame:body element
                     ayame_body = elem
                     ayame_body.type = markup.Element.OPEN
                     ayame_body[:] = element
             elif elem.qname == markup.AYAME_HEAD:
-                if ('html' in m.lang and
-                    ayame_head is None):
+                if ('html' in m.lang
+                    and ayame_head is None):
                     ayame_head = elem
         if ayame_border is None:
             raise RenderingError(self, "'ayame:border' element is not found")

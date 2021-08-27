@@ -79,8 +79,8 @@ _xhtml1_block = frozenset((
     'table',
 ))
 _xhtml1_Block = (
-    _xhtml1_block |
-    frozenset((
+    _xhtml1_block
+    | frozenset((
         'form',
         'noscript', 'ins', 'del', 'script',  # %misc;
     ))
@@ -97,17 +97,8 @@ _xhtml1__Inline__ = frozenset(('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'dt',
 _xhtml1__Flow__ = frozenset(('div', 'li', 'dd', 'ins', 'del', 'button', 'th', 'td'))
 _xhtml1__PCDATA__ = frozenset(('title', 'style', 'script', 'option', 'textarea'))
 
-_xhtml1_Block_all = (
-    _xhtml1_Block |
-    _xhtml1__Flow__ |
-    frozenset(('dt', 'legend', 'caption'))
-)
-_xhtml1__PCDATA__all = (
-    _xhtml1__Inline__ |
-    _xhtml1__Flow__ |
-    _xhtml1__PCDATA__ |
-    frozenset(('object', 'fieldset'))
-)
+_xhtml1_Block_all = _xhtml1_Block | _xhtml1__Flow__ | frozenset(('dt', 'legend', 'caption'))
+_xhtml1__PCDATA__all = _xhtml1__Inline__ | _xhtml1__Flow__ | _xhtml1__PCDATA__ | frozenset(('object', 'fieldset'))
 
 
 class QName(collections.namedtuple('QName', 'ns_uri, name')):
@@ -248,8 +239,8 @@ class Element(object):
             element, depth = queue.pop()
             yield element, depth
             # push child elements
-            if (step is None or
-                step(element, depth)):
+            if (step is None
+                or step(element, depth)):
                 queue.extend((node, depth + 1) for node in reversed(element)
                              if isinstance(node, Element))
 
@@ -292,8 +283,8 @@ class Fragment(list):
     copy = __copy__
 
 
-_space_re = re.compile('\s{2,}')
-_newline_re = re.compile('[\n\r]+')
+_space_re = re.compile(r'\s{2,}')
+_newline_re = re.compile(r'[\n\r]+')
 
 
 class MarkupLoader(five.HTMLParser):
@@ -334,16 +325,16 @@ class MarkupLoader(five.HTMLParser):
             return
         # new element
         elem = self._new_element(name, attrs)
-        if (not self._stack and
-            self._markup.root is not None and
-            elem.qname != AYAME_REMOVE):
+        if (not self._stack
+            and self._markup.root is not None
+            and elem.qname != AYAME_REMOVE):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push element
         self._push(elem)
         if elem.qname == AYAME_REMOVE:
             self._remove = True
-            if 1 < len(self._stack):
+            if len(self._stack) > 1:
                 # remove from parent element
                 del self._at(-2)[-1]
         elif self._markup.root is None:
@@ -357,8 +348,8 @@ class MarkupLoader(five.HTMLParser):
         elem = self._new_element(name, attrs, type=Element.EMPTY)
         if elem.qname == AYAME_REMOVE:
             return
-        elif (not self._stack and
-              self._markup.root is not None):
+        elif (not self._stack
+              and self._markup.root is not None):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push and pop element
@@ -451,8 +442,8 @@ class MarkupLoader(five.HTMLParser):
 
     def _pop(self, qname):
         self._flush_text()
-        if (not self._stack or
-            self._peek().qname != qname):
+        if (not self._stack
+            or self._peek().qname != qname):
             raise MarkupError(self._object, self.getpos(),
                               u"end tag for element '{}' which is not open".format(qname))
         return self._stack.pop()
@@ -481,10 +472,10 @@ class MarkupLoader(five.HTMLParser):
             attrs.remove((n, v))
 
         if not self._stack:
-            if (self._markup.lang in ('xml', 'xhtml1') and
-                not self._markup.xml_decl):
-                    raise MarkupError(self._object, self.getpos(),
-                                      'XML declaration is not found')
+            if (self._markup.lang in ('xml', 'xhtml1')
+                and not self._markup.xml_decl):
+                raise MarkupError(self._object, self.getpos(),
+                                  'XML declaration is not found')
             # declare xml ns
             xmlns[u'xml'] = XML_NS
             # declare default ns
@@ -565,8 +556,8 @@ class MarkupRenderer(object):
                 raise RenderingError(self.object,
                                      u"invalid type '{}'".format(type(node)))
             # render end tags
-            while (self._stack and
-                   self.peek().pending == 0):
+            while (self._stack
+                   and self.peek().pending == 0):
                 h.end_tag()
                 self.pop()
         self.writeln()
@@ -581,8 +572,8 @@ class MarkupRenderer(object):
                    u' version="', xml_decl.get('version', u'1.0'), u'"')
         # EncodingDecl
         encoding = xml_decl.get('encoding', encoding).upper()
-        if (encoding != 'UTF-8' and
-            not encoding.startswith('UTF-16')):
+        if (encoding != 'UTF-8'
+            and not encoding.startswith('UTF-16')):
             self.write(u' encoding="', encoding, u'"')
         # SDDecl
         standalone = xml_decl.get('standalone')
@@ -709,18 +700,18 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
         # calculate indent level
         lv = -1
         if pos == self.INDENT_BEFORE:
-            if 1 < r.depth():
+            if r.depth() > 1:
                 lv = r.depth() - 1
         elif pos == self.INDENT_INSIDE:
-            if 0 < curr.pending:
+            if curr.pending > 0:
                 # after start tag
                 lv = r.depth()
             else:
                 # before end tag
                 lv = r.depth() - 1
         elif pos == self.INDENT_AFTER:
-            if (1 < r.depth() and
-                next_nonblank(r.at(-2).element, curr.index + 1)):
+            if (r.depth() > 1
+                and next_nonblank(r.at(-2).element, curr.index + 1)):
                 lv = r.depth() - 1
         elif pos == self.INDENT_TEXT:
             if not curr.flags & self.INDENT_TEXT:
@@ -728,7 +719,7 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
                 return False
             lv = r.depth()
         # indent
-        if 0 <= lv:
+        if lv >= 0:
             r.write(u'\n', u' ' * (indent * lv))
             return True
         return False
@@ -751,9 +742,9 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
                     s = l.lstrip()
                     if first:
                         first = False
-                        if (s != l and
-                            (children and
-                             children[-1] is not Space)):
+                        if (s != l
+                            and (children
+                                 and children[-1] is not Space)):
                             children.append(Space)
                     if not s:
                         continue
@@ -767,8 +758,8 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
             else:
                 raise RenderingError(self.renderer.object,
                                      "invalid type '{}'".format(type(node)))
-        if (children and
-            children[-1] is Space):
+        if (children
+            and children[-1] is Space):
             flags = self.INDENT_ALL
             del children[-1]
         element.children = children
@@ -799,8 +790,8 @@ class MarkupPrettifier(MarkupHandler):
         curr.flags = h.compile(curr.element)
         curr.pending = len(curr.element)
 
-        if (not self._bol and
-            curr.flags & self.INDENT_BEFORE):
+        if (not self._bol
+            and curr.flags & self.INDENT_BEFORE):
             h.indent(self.INDENT_BEFORE, self._indent)
 
         h.start_tag()
@@ -815,8 +806,8 @@ class MarkupPrettifier(MarkupHandler):
         h = self._handler
 
         curr = h.renderer.peek()
-        if (not self._bol and
-            curr.flags & self.INDENT_INSIDE):
+        if (not self._bol
+            and curr.flags & self.INDENT_INSIDE):
             h.indent(self.INDENT_INSIDE, self._indent)
 
         h.end_tag()
@@ -878,8 +869,8 @@ class XMLHandler(MarkupHandler):
                 default_ns = True
             elif pfx != epfx:
                 r.write(pfx, u':')
-            elif (default_ns and
-                  pfx == epfx):
+            elif (default_ns
+                  and pfx == epfx):
                 raise RenderingError(self.renderer.object,
                                      'cannot combine with default namespace')
             r.write(n, u'="', v, u'"')
@@ -952,19 +943,19 @@ class XHTML1Handler(XMLHandler):
                         if not s:
                             continue
                         i = len(l) - len(s)
-                        if (0 < i and
-                            (indent == 0 or
-                             i < indent)):
+                        if (i > 0
+                            and (indent == 0
+                                 or i < indent)):
                             indent = i
                         s = l.rstrip()
                         children.append(s)
                         if s != l:
                             children.append(Space)
-            if (children and
-                children[-1] is Space):
+            if (children
+                and children[-1] is Space):
                 flags = self.INDENT_ALL
                 del children[-1]
-            if 0 < indent:
+            if indent > 0:
                 for i, s in enumerate(children):
                     if s is not Space:
                         children[i] = s[indent:]
@@ -984,16 +975,16 @@ class XHTML1Handler(XMLHandler):
 
     def _has_block_element(self, root):
         def step(element, depth):
-            return (depth == 0 or
-                    (element.qname.ns_uri == XHTML_NS and
-                     element.qname.name in ('ins', 'del', 'button')))
+            return (depth == 0
+                    or (element.qname.ns_uri == XHTML_NS
+                        and element.qname.name in ('ins', 'del', 'button')))
 
         for elem, depth in root.walk(step=step):
-            if 0 < depth:
+            if depth > 0:
                 if elem.qname.ns_uri != XHTML_NS:
                     return True
-                elif (elem.qname.name not in ('ins', 'del', 'button') and
-                      elem.qname.name in _xhtml1_Block):
+                elif (elem.qname.name not in ('ins', 'del', 'button')
+                      and elem.qname.name in _xhtml1_Block):
                     return True
 
     def _has_br_element(self, root):
@@ -1001,7 +992,7 @@ class XHTML1Handler(XMLHandler):
             return element.qname.ns_uri == XHTML_NS
 
         for elem, depth in root.walk(step=step):
-            if 0 < depth:
+            if depth > 0:
                 if elem.qname.name == 'br':
                     return True
 

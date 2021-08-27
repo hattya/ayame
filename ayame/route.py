@@ -79,7 +79,7 @@ _args_re = re.compile(r"""
         \Z
     )
 """, re.VERBOSE)
-_sep_re = re.compile('[\s,]')
+_sep_re = re.compile(r'[\s,]')
 
 
 class Rule(object):
@@ -142,13 +142,13 @@ class Rule(object):
                 raise RouteError("variable name '{}' already in use".format(var))
             else:
                 conv = self._new_converter(conv, args)
-                buf.append('(?P<{}>{})'.format(var, conv.pattern))
+                buf.append(r'(?P<{}>{})'.format(var, conv.pattern))
                 self._segs.append((True, var))
                 self._convs[var] = conv
                 self._vars.add(var)
         if not self.is_leaf():
             self._segs.append((False, '/'))
-        buf.append('(?P<__slash__>/?)')
+        buf.append(r'(?P<__slash__>/?)')
         buf.append(r'\Z')
 
         self._regex = re.compile(''.join(buf))
@@ -219,8 +219,8 @@ class Rule(object):
                 kwargs[name] = v
             pos = m.endpos
 
-        if (pos != len(expr) and
-            _sep_re.sub('', expr)):
+        if (pos != len(expr)
+            and _sep_re.sub('', expr)):
             raise error('invalid syntax', max(pos, 1))
         return tuple(args), kwargs
 
@@ -231,9 +231,9 @@ class Rule(object):
             return
         g = m.groupdict()
         slash = g.pop('__slash__')
-        if (self.map.slash and
-            not self.is_leaf() and
-            not slash):
+        if (self.map.slash
+            and not self.is_leaf()
+            and not slash):
             raise _RequestSlash()
 
         values = {}
@@ -246,8 +246,8 @@ class Rule(object):
 
     def build(self, values, anchor=None, method=None, query=True):
         assert self.map is not None, 'rule not bound to map'
-        if not (method is None or
-                method in self.methods):
+        if not (method is None
+                or method in self.methods):
             return
         for var in self._vars:
             if var not in values:
@@ -398,7 +398,7 @@ class Router(object):
 
 class Converter(object):
 
-    pattern = '[^/]+'
+    pattern = r'[^/]+'
 
     def __init__(self, map):
         self.map = map
@@ -423,29 +423,29 @@ class _StringConverter(Converter):
             cnt = len
         else:
             cnt = '1,'
-        self.pattern = '[^/]{{{}}}'.format(cnt)
+        self.pattern = r'[^/]{{{}}}'.format(cnt)
 
     def to_uri(self, value):
         value = super(_StringConverter, self).to_uri(value)
         if self.min is not None:
-            if (len(value) < self.min or
-                (self.len is not None and
-                 self.len < len(value))):
+            if (len(value) < self.min
+                or (self.len is not None
+                    and len(value) > self.len)):
                 raise ValueError()
-        elif (self.len is not None and
-              len(value) != self.len):
+        elif (self.len is not None
+              and len(value) != self.len):
             raise ValueError()
         return value
 
 
 class _PathConverter(Converter):
 
-    pattern = '[^/].*?'
+    pattern = r'[^/].*?'
 
 
 class _IntegerConverter(Converter):
 
-    pattern = '\d+'
+    pattern = r'\d+'
 
     def __init__(self, map, digits=None, min=None, max=None):
         super(_IntegerConverter, self).__init__(map)
@@ -453,14 +453,14 @@ class _IntegerConverter(Converter):
         self.min = min
         self.max = max
         if digits is not None:
-            self.pattern = '\d{{{}}}'.format(digits)
+            self.pattern = r'\d{{{}}}'.format(digits)
 
     def to_python(self, value):
         value = int(value)
-        if ((self.min is not None and
-             value < self.min) or
-            (self.max is not None and
-             self.max < value)):
+        if ((self.min is not None
+             and value < self.min)
+            or (self.max is not None
+                and value > self.max)):
             raise ValueError()
         return value
 
@@ -468,7 +468,7 @@ class _IntegerConverter(Converter):
         value = self.to_python(value)
         if self.digits is not None:
             value = '{:0{}d}'.format(value, self.digits)
-            if self.digits < len(value):
+            if len(value) > self.digits:
                 raise ValueError()
             return value
         return five.str(value)

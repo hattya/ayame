@@ -25,70 +25,77 @@ class I18nTestCase(AyameTestCase):
         with self.application():
             l = i18n.Localizer()
             p = Page()
-            self.assert_equal(list(l._iter_class(p.find('a1:b'))),
-                              [(Page, (), 'a1.b'),
-                               (ayame.Page, (), 'a1.b'),
-                               (MarkupContainer, (), 'b'),
-                               (ayame.MarkupContainer, (), 'b'),
-                               (Component, (), ''),
-                               (ayame.Component, (), ''),
-                               (Application, (), ''),
-                               (ayame.Ayame, (), '')])
-            self.assert_equal(list(l._iter_class(p.find('a2:b'))),
-                              [(Page, (), 'a2.b'),
-                               (ayame.Page, (), 'a2.b'),
-                               (Page.MarkupContainer, (Page,), 'b'),
-                               (ayame.MarkupContainer, (), 'b'),
-                               (Component, (), ''),
-                               (ayame.Component, (), ''),
-                               (Application, (), ''),
-                               (ayame.Ayame, (), '')])
-            self.assert_equal(list(l._iter_class(p.find('a1'))),
-                              [(Page, (), 'a1'),
-                               (ayame.Page, (), 'a1'),
-                               (MarkupContainer, (), ''),
-                               (ayame.MarkupContainer, (), ''),
-                               (Application, (), ''),
-                               (ayame.Ayame, (), '')])
-            self.assert_equal(list(l._iter_class(p.find('a2'))),
-                              [(Page, (), 'a2'),
-                               (ayame.Page, (), 'a2'),
-                               (Page.MarkupContainer, (Page,), ''),
-                               (ayame.MarkupContainer, (), ''),
-                               (Application, (), ''),
-                               (ayame.Ayame, (), '')])
-            self.assert_equal(list(l._iter_class(p)),
-                              [(Page, (), ''),
-                               (ayame.Page, (), ''),
-                               (Application, (), ''),
-                               (ayame.Ayame, (), '')])
-            self.assert_equal(list(l._iter_class(None)),
-                              [(Application, (), ''),
-                               (ayame.Ayame, (), '')])
+            self.assert_equal(list(l._iter_class(p.find('a1:b'))), [
+                (Page, (), 'a1.b'),
+                (ayame.Page, (), 'a1.b'),
+                (MarkupContainer, (), 'b'),
+                (ayame.MarkupContainer, (), 'b'),
+                (Component, (), ''),
+                (ayame.Component, (), ''),
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
+            self.assert_equal(list(l._iter_class(p.find('a2:b'))), [
+                (Page, (), 'a2.b'),
+                (ayame.Page, (), 'a2.b'),
+                (Page.MarkupContainer, (Page,), 'b'),
+                (ayame.MarkupContainer, (), 'b'),
+                (Component, (), ''),
+                (ayame.Component, (), ''),
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
+            self.assert_equal(list(l._iter_class(p.find('a1'))), [
+                (Page, (), 'a1'),
+                (ayame.Page, (), 'a1'),
+                (MarkupContainer, (), ''),
+                (ayame.MarkupContainer, (), ''),
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
+            self.assert_equal(list(l._iter_class(p.find('a2'))), [
+                (Page, (), 'a2'),
+                (ayame.Page, (), 'a2'),
+                (Page.MarkupContainer, (Page,), ''),
+                (ayame.MarkupContainer, (), ''),
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
+            self.assert_equal(list(l._iter_class(p)), [
+                (Page, (), ''),
+                (ayame.Page, (), ''),
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
+            self.assert_equal(list(l._iter_class(None)), [
+                (Application, (), ''),
+                (ayame.Ayame, (), ''),
+            ])
 
     def test_load(self):
         with io.open(self.path_for('i18n.txt')) as fp:
             l = i18n.Localizer()
-            self.assert_equal(l._load(fp),
-                              {'spam': 'spam',
-                               'eggs': 'eggs',
-                               'ham': 'ham',
-                               'toast:': 'toast:',
-                               'toast=': 'toast=',
-                               'toast ': 'toast ',
-                               'beans1\\': 'beans1',
-                               'beans2\\': 'beans2',
-                               'beans3\\': 'beans3',
-                               'beans\\:': 'beans:',
-                               'beans\\=': 'beans=',
-                               'beans\\ ': 'beans ',
-                               'bacon1': 'bacon bacon',
-                               'bacon2': 'bacon\\',
-                               'sausage': 'sausage\nsausage',
-                               'tomato': '',
-                               'lobster=': '= lobster',
-                               'lobster:': ': lobster',
-                               'lobster ': '  lobster'})
+            self.assert_equal(l._load(fp), {
+                'spam': 'spam',
+                'eggs': 'eggs',
+                'ham': 'ham',
+                'toast:': 'toast:',
+                'toast=': 'toast=',
+                'toast ': 'toast ',
+                'beans1\\': 'beans1',
+                'beans2\\': 'beans2',
+                'beans3\\': 'beans3',
+                'beans\\:': 'beans:',
+                'beans\\=': 'beans=',
+                'beans\\ ': 'beans ',
+                'bacon1': 'bacon bacon',
+                'bacon2': 'bacon\\',
+                'sausage': 'sausage\nsausage',
+                'tomato': '',
+                'lobster=': '= lobster',
+                'lobster:': ': lobster',
+                'lobster ': '  lobster',
+            })
 
     def test_get(self):
         locale = (None,) * 2

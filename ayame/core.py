@@ -26,8 +26,8 @@ AYAME_PATH = u'ayame:path'
 class Component(object):
 
     def __init__(self, id, model=None):
-        if (not isinstance(self, Page) and
-            id is None):
+        if (not isinstance(self, Page)
+            and id is None):
             raise ComponentError(self, 'component id is not set')
         self.__id = id
         self.__model = None
@@ -53,8 +53,8 @@ class Component(object):
                     return self.__model
 
         def fset(self, model):
-            if not (model is None or
-                    isinstance(model, mm.Model)):
+            if not (model is None
+                    or isinstance(model, mm.Model)):
                 self.__model = None
                 raise ComponentError(self,
                                      '{!r} is not an instance of Model'.format(model))
@@ -62,15 +62,15 @@ class Component(object):
             prev = self.__model
             self.__model = model
             # propagate to child models
-            if (isinstance(self, MarkupContainer) and
-                (prev and
-                 isinstance(prev, mm.InheritableModel))):
+            if (isinstance(self, MarkupContainer)
+                and (prev
+                     and isinstance(prev, mm.InheritableModel))):
                 queue = collections.deque((self,))
                 while queue:
                     c = queue.pop()
                     # reset model
-                    if (isinstance(c.model, mm.WrapModel) and
-                        c.model.wrapped_model is prev):
+                    if (isinstance(c.model, mm.WrapModel)
+                        and c.model.wrapped_model is prev):
                         c.model = None
                     # push children
                     if isinstance(c, MarkupContainer):
@@ -184,8 +184,8 @@ class Component(object):
     def path(self):
         lis = [self]
         lis.extend(self.iter_parent())
-        if (isinstance(lis[-1], Page) and
-            lis[-1].id is None):
+        if (isinstance(lis[-1], Page)
+            and lis[-1].id is None):
             del lis[-1]
         return u':'.join(c.id for c in reversed(lis))
 
@@ -193,8 +193,8 @@ class Component(object):
         return self.app.redirect(*args, **kwargs)
 
     def fire(self):
-        if (self.request.path == self.path() and
-            self.visible):
+        if (self.request.path == self.path()
+            and self.visible):
             self.on_fire()
 
     def on_fire(self):
@@ -276,7 +276,7 @@ class MarkupContainer(Component):
         if not path:
             return self
         p = path.split(':', 1)
-        id, tail = p[0], p[1] if 1 < len(p) else None
+        id, tail = p[0], p[1] if len(p) > 1 else None
         c = self._ref.get(id)
         return c.find(tail) if isinstance(c, MarkupContainer) else c
 
@@ -286,9 +286,9 @@ class MarkupContainer(Component):
             component, depth = queue.pop()
             yield component, depth
             # push child components
-            if (isinstance(component, MarkupContainer) and
-                (step is None or
-                 step(component, depth))):
+            if (isinstance(component, MarkupContainer)
+                and (step is None
+                     or step(component, depth))):
                 queue.extend((c, depth + 1)
                              for c in reversed(component.children))
 
@@ -296,8 +296,8 @@ class MarkupContainer(Component):
         if self.request.path:
             # fire component
             c = self.find(self.request.path)
-            if (c is not None and
-                c.visible):
+            if (c is not None
+                and c.visible):
                 c.on_fire()
 
     def on_configure(self):
@@ -476,8 +476,8 @@ class MarkupContainer(Component):
             markup_type = (self if self.__class__ is class_ else super(class_, self)).markup_type
             if markup_type.scope:
                 return (sep.join(c.__name__
-                                 for c in markup_type.scope + (class_,)) +
-                        markup_type.extension)
+                                 for c in markup_type.scope + (class_,))
+                        + markup_type.extension)
             return markup_type.extension
 
         res = self.config['ayame.resource.loader']
@@ -502,7 +502,7 @@ class MarkupContainer(Component):
                     with r.open(enc) as fp:
                         m = loader.load(class_, fp)
                     cache[key] = (r.mtime, m)
-            except:
+            except Exception:
                 exc_info = sys.exc_info()
                 try:
                     del cache[key]
@@ -524,8 +524,8 @@ class MarkupContainer(Component):
                         # resolve superclass
                         superclass = None
                         for c in class_.__bases__:
-                            if (not issubclass(c, MarkupContainer) or
-                                c is MarkupContainer):
+                            if (not issubclass(c, MarkupContainer)
+                                or c is MarkupContainer):
                                 continue
                             elif superclass is not None:
                                 raise AyameError('does not support multiple inheritance')
@@ -545,8 +545,8 @@ class MarkupContainer(Component):
                         parent[i:i + 1] = ayame_child
                         ayame_child = None
                 elif elem.qname == markup.AYAME_HEAD:
-                    if ('html' in m.lang and
-                        ayame_head is None):
+                    if ('html' in m.lang
+                        and ayame_head is None):
                         ayame_head = elem
             if ayame_child is not None:
                 raise RenderingError(class_,
@@ -564,8 +564,8 @@ class MarkupContainer(Component):
             if ayame_head is None:
                 # merge to head element
                 for node in m.root:
-                    if (isinstance(node, markup.Element) and
-                        node.qname == markup.HEAD):
+                    if (isinstance(node, markup.Element)
+                        and node.qname == markup.HEAD):
                         node.type = markup.Element.OPEN
                         node.extend(extra_head)
                         extra_head = None
@@ -579,13 +579,13 @@ class MarkupContainer(Component):
         return m
 
     def find_head(self, root):
-        if not (isinstance(root, markup.Element) and
-                root.qname == markup.HTML):
+        if not (isinstance(root, markup.Element)
+                and root.qname == markup.HTML):
             raise RenderingError(self, "root element is not 'html'")
 
         for node in root:
-            if (isinstance(node, markup.Element) and
-                node.qname == markup.HEAD):
+            if (isinstance(node, markup.Element)
+                and node.qname == markup.HEAD):
                 node.type = markup.Element.OPEN
                 return node
 
@@ -740,17 +740,17 @@ class _AttributeLocalizer(Behavior):
 class nested(object):
 
     def __init__(self, attr):
-        if (not isinstance(attr, type) or
-            not issubclass(attr, MarkupContainer) or
-            attr is MarkupContainer):
+        if (not isinstance(attr, type)
+            or not issubclass(attr, MarkupContainer)
+            or attr is MarkupContainer):
             raise AyameError("'{}' is not a subclass of MarkupContainer".format(util.fqon_of(attr)))
         self._attr = attr
         self._arranged = False
 
     def __get__(self, instance, owner):
         attr = self._attr
-        if (not self._arranged and
-            issubclass(owner, MarkupContainer)):
+        if (not self._arranged
+            and issubclass(owner, MarkupContainer)):
             attr.markup_type = markup.MarkupType(attr.markup_type.extension,
                                                  attr.markup_type.mime_type,
                                                  owner.markup_type.scope + (owner,))

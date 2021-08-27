@@ -128,8 +128,7 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(len(mc.children), 1)
         self.assert_is_none(mc.find('method').model.object)
 
-        with self.assert_raises_regex(AttributeError,
-                                      '^method$'):
+        with self.assert_raises_regex(AttributeError, r'^method$'):
             mc.find('method').model.object = 'new_value'
 
     def test_compound_model_dict(self):
@@ -164,10 +163,8 @@ class ModelTestCase(AyameTestCase):
         mc.model = model.CompoundModel(object())
         self.assert_is_none(mc.find('b').model.object)
         self.assert_is_none(mc.find('b:c').model.object)
-        with self.assert_raises_regex(AttributeError,
-                                      '^b$'):
+        with self.assert_raises_regex(AttributeError, r'^b$'):
             setattr(mc.find('b').model, 'object', '')
-        with self.assert_raises_regex(AttributeError,
-                                      '^c$'):
+        with self.assert_raises_regex(AttributeError, r'^c$'):
             setattr(mc.find('b:c').model, 'object', '')
         self.assert_equal(mc.render(''), '')

@@ -26,22 +26,26 @@ class FormTestCase(AyameTestCase):
         self.assert_is_instance(e, ayame.ValidationError)
         self.assert_equal(five.str(e), "'{}' is required".format(fc.id))
         self.assert_equal(e.keys, ['Required'])
-        self.assert_equal(e.vars, {'input': input,
-                                   'name': fc.id,
-                                   'label': fc.id})
+        self.assert_equal(e.vars, {
+            'input': input,
+            'name': fc.id,
+            'label': fc.id,
+        })
 
     def assert_choice_error(self, fc, input):
         e = fc.error
         self.assert_is_instance(e, ayame.ValidationError)
         if fc.multiple:
-            self.assert_regex(five.str(e), "'{}' contain invalid choices$".format(fc.id))
+            self.assert_regex(five.str(e), r"'{}' contain invalid choices$".format(fc.id))
             self.assert_equal(e.keys, ['Choice.multiple'])
         else:
-            self.assert_regex(five.str(e), "'{}' is not a valid choice$".format(fc.id))
+            self.assert_regex(five.str(e), r"'{}' is not a valid choice$".format(fc.id))
             self.assert_equal(e.keys, ['Choice.single'])
-        self.assert_equal(e.vars, {'input': input,
-                                   'name': fc.id,
-                                   'label': fc.id})
+        self.assert_equal(e.vars, {
+            'input': input,
+            'name': fc.id,
+            'label': fc.id,
+        })
 
     def new_environ(self, method='GET', query='', form=None):
         return super(FormTestCase, self).new_environ(method=method,
@@ -52,16 +56,14 @@ class FormTestCase(AyameTestCase):
     def test_form_invalid_markup(self):
         # not form element
         f = form.Form('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"'form' .* expected\b"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'form' .* expected\b"):
             f.render(markup.Element(markup.DIV))
 
         # method is not found
         root = markup.Element(form._FORM,
                               attrib={form._ACTION: u'/'})
         f = form.Form('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'method' .* required .* 'form'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'method' .* required .* 'form'"):
             f.render(root)
 
     def test_form_method(self):
@@ -86,8 +88,7 @@ class FormTestCase(AyameTestCase):
             f = form.Form('a')
             f.add(form.Form('b'))
             f._method = 'POST'
-            with self.assert_raises_regex(ayame.ComponentError,
-                                          r"\bForm is nested\b"):
+            with self.assert_raises_regex(ayame.ComponentError, r"\bForm is nested\b"):
                 f.submit()
 
     def test_form_duplicate_buttons(self):
@@ -105,8 +106,7 @@ class FormTestCase(AyameTestCase):
             f.add(Button('b1'))
             f.add(Button('b2'))
             f._method = 'GET'
-            with self.assert_raises_regex(Valid,
-                                          '^b1$'):
+            with self.assert_raises_regex(Valid, r'^b1$'):
                 f.submit()
 
     def test_form(self):
@@ -115,9 +115,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -138,17 +139,17 @@ class FormTestCase(AyameTestCase):
                  'file=a.txt')
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid,
-                                          '^form$'):
+            with self.assert_raises_regex(Valid, r'^form$'):
                 p()
         f = p.find('form')
-        self.assert_equal(f.model_object,
-                          {'text': 'text',
-                           'password': 'password',
-                           'hidden': 'hidden',
-                           'area': 'area',
-                           'checkbox': False,
-                           'file': 'a.txt'})
+        self.assert_equal(f.model_object, {
+            'text': 'text',
+            'password': 'password',
+            'hidden': 'hidden',
+            'area': 'area',
+            'checkbox': False,
+            'file': 'a.txt',
+        })
         self.assert_false(f.has_error())
 
         query = ('{path}=form&'
@@ -160,18 +161,18 @@ class FormTestCase(AyameTestCase):
                  'button')
         with self.application(self.new_environ(query=query)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid,
-                                          '^button$'):
+            with self.assert_raises_regex(Valid, r'^button$'):
                 p()
         f = p.find('form')
-        self.assert_equal(f.model_object,
-                          {'text': 'text',
-                           'password': 'password',
-                           'hidden': 'hidden',
-                           'area': 'area',
-                           'checkbox': False,
-                           'file': 'a.txt',
-                           'button': 'submitted'})
+        self.assert_equal(f.model_object, {
+            'text': 'text',
+            'password': 'password',
+            'hidden': 'hidden',
+            'area': 'area',
+            'checkbox': False,
+            'file': 'a.txt',
+            'button': 'submitted',
+        })
         self.assert_false(f.has_error())
 
     def test_form_post(self):
@@ -183,8 +184,7 @@ class FormTestCase(AyameTestCase):
                               ('file', ('a.txt', 'spam\neggs\nham\n', 'text/plain')))
         with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid,
-                                          '^form$'):
+            with self.assert_raises_regex(Valid, r'^form$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
@@ -194,9 +194,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(f.model_object['checkbox'], False)
         self.assert_equal(f.model_object['file'].name, 'file')
         self.assert_equal(f.model_object['file'].filename, 'a.txt')
-        self.assert_equal(f.model_object['file'].value, (b'spam\n'
-                                                         b'eggs\n'
-                                                         b'ham\n'))
+        self.assert_equal(f.model_object['file'].value, b'spam\neggs\nham\n')
         self.assert_is_not_none(f.model_object['file'].file)
         self.assert_equal(f.model_object['file'].type, 'text/plain')
         self.assert_equal(f.model_object['file'].type_options, {})
@@ -212,8 +210,7 @@ class FormTestCase(AyameTestCase):
                               ('button', ''))
         with self.application(self.new_environ(method='POST', form=data)):
             p = SpamPage()
-            with self.assert_raises_regex(Valid,
-                                          '^button$'):
+            with self.assert_raises_regex(Valid, r'^button$'):
                 p()
         f = p.find('form')
         self.assert_equal(f.model_object['text'], 'text')
@@ -223,9 +220,7 @@ class FormTestCase(AyameTestCase):
         self.assert_equal(f.model_object['checkbox'], False)
         self.assert_equal(f.model_object['file'].name, 'file')
         self.assert_equal(f.model_object['file'].filename, 'a.txt')
-        self.assert_equal(f.model_object['file'].value, (b'spam\n'
-                                                         b'eggs\n'
-                                                         b'ham\n'))
+        self.assert_equal(f.model_object['file'].value, b'spam\neggs\nham\n')
         self.assert_is_not_none(f.model_object['file'].file)
         self.assert_equal(f.model_object['file'].type, 'text/plain')
         self.assert_equal(f.model_object['file'].type_options, {})
@@ -245,12 +240,14 @@ class FormTestCase(AyameTestCase):
             with self.assert_raises(Invalid):
                 p()
             f = p.find('form')
-            self.assert_equal(f.model_object, {'text': '',
-                                               'password': '',
-                                               'hidden': '',
-                                               'area': 'area',
-                                               'checkbox': False,
-                                               'file': 'a.txt'})
+            self.assert_equal(f.model_object, {
+                'text': '',
+                'password': '',
+                'hidden': '',
+                'area': 'area',
+                'checkbox': False,
+                'file': 'a.txt',
+            })
             self.assert_true(f.has_error())
             self.assert_required_error(f.find('text'), None)
             self.assert_required_error(f.find('password'), None)
@@ -283,13 +280,15 @@ class FormTestCase(AyameTestCase):
             with self.assert_raises(Valid):
                 p()
             f = p.find('form')
-            self.assert_equal(f.model_object, {'text': '',
-                                               'password': '',
-                                               'hidden': '',
-                                               'area': 'area',
-                                               'checkbox': False,
-                                               'file': 'a.txt',
-                                               'button': 'submitted'})
+            self.assert_equal(f.model_object, {
+                'text': '',
+                'password': '',
+                'hidden': '',
+                'area': 'area',
+                'checkbox': False,
+                'file': 'a.txt',
+                'button': 'submitted',
+            })
             self.assert_false(f.has_error())
 
     def test_form_component_relative_path(self):
@@ -300,8 +299,7 @@ class FormTestCase(AyameTestCase):
 
         self.assert_equal(f.find('b1').relative_path(), 'b1')
         self.assert_equal(f.find('b2:c').relative_path(), 'b2:c')
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r' is not attached .*\.Form\b'):
+        with self.assert_raises_regex(ayame.ComponentError, r' is not attached .*\.Form\b'):
             form.FormComponent('a').relative_path()
 
     def test_form_component_required_error(self):
@@ -324,13 +322,17 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' is not a valid type 'int'")
-            self.assert_equal(e.keys, ['Converter.int',
-                                       'Converter'])
-            self.assert_equal(e.vars, {'input': 'a',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'type': 'int'})
+            self.assert_regex(five.str(e), r"'a' is not a valid type 'int'")
+            self.assert_equal(e.keys, [
+                'Converter.int',
+                'Converter',
+            ])
+            self.assert_equal(e.vars, {
+                'input': 'a',
+                'name': 'a',
+                'label': 'a',
+                'type': 'int',
+            })
 
     def test_form_component_validation_error_range(self):
         with self.application(self.new_environ()):
@@ -345,11 +347,13 @@ class FormTestCase(AyameTestCase):
                 fc.validate(o)
                 e = fc.error
                 self.assert_is_instance(e, ayame.ValidationError)
-                self.assert_regex(five.str(e), "'a' cannot validate$")
+                self.assert_regex(five.str(e), r"'a' cannot validate$")
                 self.assert_equal(e.keys, ['RangeValidator.type'])
-                self.assert_equal(e.vars, {'input': o,
-                                           'name': 'a',
-                                           'label': 'a'})
+                self.assert_equal(e.vars, {
+                    'input': o,
+                    'name': 'a',
+                    'label': 'a',
+                })
 
             assert_type_error(0.0, None, 0)
             assert_type_error(None, 0.0, 0)
@@ -359,48 +363,56 @@ class FormTestCase(AyameTestCase):
             fc.validate(0)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be at least 5$")
+            self.assert_regex(five.str(e), r"'a' must be at least 5$")
             self.assert_equal(e.keys, ['RangeValidator.minimum'])
-            self.assert_equal(e.vars, {'input': 0,
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'min': 5})
+            self.assert_equal(e.vars, {
+                'input': 0,
+                'name': 'a',
+                'label': 'a',
+                'min': 5,
+            })
 
             v.min = None
             v.max = 3
             fc.validate(5)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be at most 3$")
+            self.assert_regex(five.str(e), r"'a' must be at most 3$")
             self.assert_equal(e.keys, ['RangeValidator.maximum'])
-            self.assert_equal(e.vars, {'input': 5,
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'max': 3})
+            self.assert_equal(e.vars, {
+                'input': 5,
+                'name': 'a',
+                'label': 'a',
+                'max': 3,
+            })
 
             v.min = 3
             v.max = 5
             fc.validate(0)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be between 3 and 5$")
+            self.assert_regex(five.str(e), r"'a' must be between 3 and 5$")
             self.assert_equal(e.keys, ['RangeValidator.range'])
-            self.assert_equal(e.vars, {'input': 0,
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'min': 3,
-                                       'max': 5})
+            self.assert_equal(e.vars, {
+                'input': 0,
+                'name': 'a',
+                'label': 'a',
+                'min': 3,
+                'max': 5,
+            })
 
             v.min = v.max = 3
             fc.validate(5)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be exactly 3$")
+            self.assert_regex(five.str(e), r"'a' must be exactly 3$")
             self.assert_equal(e.keys, ['RangeValidator.exact'])
-            self.assert_equal(e.vars, {'input': 5,
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'exact': 3})
+            self.assert_equal(e.vars, {
+                'input': 5,
+                'name': 'a',
+                'label': 'a',
+                'exact': 3,
+            })
 
     def test_form_component_validation_error_string(self):
         with self.application(self.new_environ()):
@@ -415,11 +427,13 @@ class FormTestCase(AyameTestCase):
                 fc.validate(o)
                 e = fc.error
                 self.assert_is_instance(e, ayame.ValidationError)
-                self.assert_regex(five.str(e), "'a' cannot validate$")
+                self.assert_regex(five.str(e), r"'a' cannot validate$")
                 self.assert_equal(e.keys, ['StringValidator.type'])
-                self.assert_equal(e.vars, {'input': o,
-                                           'name': 'a',
-                                           'label': 'a'})
+                self.assert_equal(e.vars, {
+                    'input': o,
+                    'name': 'a',
+                    'label': 'a',
+                })
 
             assert_type_error(None, None, 0)
             assert_type_error(0.0, None, '')
@@ -430,64 +444,74 @@ class FormTestCase(AyameTestCase):
             fc.validate('.jp')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be at least 4 ")
+            self.assert_regex(five.str(e), r"'a' must be at least 4 ")
             self.assert_equal(e.keys, ['StringValidator.minimum'])
-            self.assert_equal(e.vars, {'input': '.jp',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'min': 4})
+            self.assert_equal(e.vars, {
+                'input': '.jp',
+                'name': 'a',
+                'label': 'a',
+                'min': 4,
+            })
 
             v.min = None
             v.max = 4
             fc.validate('.info')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be at most 4 ")
+            self.assert_regex(five.str(e), r"'a' must be at most 4 ")
             self.assert_equal(e.keys, ['StringValidator.maximum'])
-            self.assert_equal(e.vars, {'input': '.info',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'max': 4})
+            self.assert_equal(e.vars, {
+                'input': '.info',
+                'name': 'a',
+                'label': 'a',
+                'max': 4,
+            })
 
             v.min = 4
             v.max = 5
             fc.validate('.jp')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be between 4 and 5 ")
+            self.assert_regex(five.str(e), r"'a' must be between 4 and 5 ")
             self.assert_equal(e.keys, ['StringValidator.range'])
-            self.assert_equal(e.vars, {'input': '.jp',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'min': 4,
-                                       'max': 5})
+            self.assert_equal(e.vars, {
+                'input': '.jp',
+                'name': 'a',
+                'label': 'a',
+                'min': 4,
+                'max': 5,
+            })
 
             v.min = v.max = 4
             fc.validate('.info')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' must be exactly 4 ")
+            self.assert_regex(five.str(e), r"'a' must be exactly 4 ")
             self.assert_equal(e.keys, ['StringValidator.exact'])
-            self.assert_equal(e.vars, {'input': '.info',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'exact': 4})
+            self.assert_equal(e.vars, {
+                'input': '.info',
+                'name': 'a',
+                'label': 'a',
+                'exact': 4,
+            })
 
     def test_form_component_validation_error_regex(self):
         with self.application(self.new_environ()):
             fc = form.FormComponent('a')
-            fc.add(validator.RegexValidator('\d+$'))
+            fc.add(validator.RegexValidator(r'\d+$'))
             self.assert_is_none(fc.error)
 
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' does not match pattern ")
+            self.assert_regex(five.str(e), r"'a' does not match pattern ")
             self.assert_equal(e.keys, ['RegexValidator'])
-            self.assert_equal(e.vars, {'input': 'a',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'pattern': '\d+$'})
+            self.assert_equal(e.vars, {
+                'input': 'a',
+                'name': 'a',
+                'label': 'a',
+                'pattern': r'\d+$',
+            })
 
     def test_form_component_validation_error_email(self):
         with self.application(self.new_environ()):
@@ -499,12 +523,14 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' is not a valid email address$")
+            self.assert_regex(five.str(e), r"'a' is not a valid email address$")
             self.assert_equal(e.keys, ['EmailValidator'])
-            self.assert_equal(e.vars, {'input': 'a',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {
+                'input': 'a',
+                'name': 'a',
+                'label': 'a',
+                'pattern': v.regex.pattern,
+            })
 
     def test_form_component_validation_error_url(self):
         with self.application(self.new_environ()):
@@ -516,12 +542,14 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), "'a' is not a valid URL$")
+            self.assert_regex(five.str(e), r"'a' is not a valid URL$")
             self.assert_equal(e.keys, ['URLValidator'])
-            self.assert_equal(e.vars, {'input': 'a',
-                                       'name': 'a',
-                                       'label': 'a',
-                                       'pattern': v.regex.pattern})
+            self.assert_equal(e.vars, {
+                'input': 'a',
+                'name': 'a',
+                'label': 'a',
+                'pattern': v.regex.pattern,
+            })
 
     def test_form_component_no_model(self):
         with self.application():
@@ -550,37 +578,34 @@ class FormTestCase(AyameTestCase):
                                attrib={form._TYPE: 'text'})
 
         fc = form.Button('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' .* 'submit'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' .* 'submit'"):
             fc.render(input)
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' or 'button' element "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' or 'button' element "):
             fc.render(markup.Element(markup.DIV))
 
     def test_file_upload_field_invalid_markup(self):
         fc = form.FileUploadField('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' element is "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' element is "):
             fc.render(markup.Element(markup.DIV))
 
     def test_text_field_invalid_markup(self):
         fc = form.TextField('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' element is "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' element is "):
             fc.render(markup.Element(markup.DIV))
 
     def test_text_area_invalid_markup(self):
         fc = form.TextArea('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'textarea' element is "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'textarea' element is "):
             fc.render(markup.Element(markup.DIV))
 
     def test_check_box(self):
         element = markup.Element(form._FORM,
                                  attrib={form._METHOD: 'GET'})
         input = markup.Element(form._INPUT,
-                               attrib={markup.AYAME_ID: 'b',
-                                       form._TYPE: 'checkbox'})
+                               attrib={
+                                   markup.AYAME_ID: 'b',
+                                   form._TYPE: 'checkbox',
+                               })
         element.append(input)
         with self.application(self.new_environ()):
             f = form.Form('a')
@@ -588,20 +613,20 @@ class FormTestCase(AyameTestCase):
             f.render(element)
         self.assert_equal(len(element), 2)
         input = element.children[1]
-        self.assert_equal(input.attrib, {form._NAME: 'b',
-                                         form._TYPE: 'checkbox',
-                                         form._VALUE: 'on'})
+        self.assert_equal(input.attrib, {
+            form._NAME: 'b',
+            form._TYPE: 'checkbox',
+            form._VALUE: 'on',
+        })
 
     def test_check_box_invalid_markup(self):
         input = markup.Element(form._INPUT,
                                attrib={form._TYPE: 'text'})
 
         fc = form.CheckBox('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' .* 'checkbox'"):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' .* 'checkbox'"):
             fc.render(input)
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      "'input' element is "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'input' element is "):
             fc.render(markup.Element(markup.DIV))
 
     def test_choice(self):
@@ -616,9 +641,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -631,9 +657,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -646,9 +673,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(EggsPage, choices=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -729,9 +757,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(HamPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -743,9 +772,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(HamPage, choices=1)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -758,9 +788,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(HamPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -773,9 +804,10 @@ class FormTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(HamPage, choices=0)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
         f = p.find('form')
@@ -901,8 +933,7 @@ class FormTestCase(AyameTestCase):
 
     def test_select_choice_invalid_markup(self):
         fc = form.SelectChoice('a')
-        with self.assert_raises_regex(ayame.RenderingError,
-                                      r"'select' element is "):
+        with self.assert_raises_regex(ayame.RenderingError, r"'select' element is "):
             fc.render(markup.Element(markup.DIV))
 
     def test_select_choice(self):
@@ -912,9 +943,10 @@ class FormTestCase(AyameTestCase):
                 status, headers, content = p()
             html = self.format(class_)
             self.assert_equal(status, http.OK.status)
-            self.assert_equal(headers,
-                              [('Content-Type', 'text/html; charset=UTF-8'),
-                               ('Content-Length', str(len(html)))])
+            self.assert_equal(headers, [
+                ('Content-Type', 'text/html; charset=UTF-8'),
+                ('Content-Length', str(len(html))),
+            ])
             self.assert_equal(content, [html])
 
             f = p.find('form')
@@ -927,9 +959,10 @@ class FormTestCase(AyameTestCase):
                 status, headers, content = p()
             html = self.format(class_, multiple=False, choices=1)
             self.assert_equal(status, http.OK.status)
-            self.assert_equal(headers,
-                              [('Content-Type', 'text/html; charset=UTF-8'),
-                               ('Content-Length', str(len(html)))])
+            self.assert_equal(headers, [
+                ('Content-Type', 'text/html; charset=UTF-8'),
+                ('Content-Length', str(len(html))),
+            ])
             self.assert_equal(content, [html])
 
             f = p.find('form')
@@ -943,9 +976,10 @@ class FormTestCase(AyameTestCase):
                 status, headers, content = p()
             html = self.format(class_)
             self.assert_equal(status, http.OK.status)
-            self.assert_equal(headers,
-                              [('Content-Type', 'text/html; charset=UTF-8'),
-                               ('Content-Length', str(len(html)))])
+            self.assert_equal(headers, [
+                ('Content-Type', 'text/html; charset=UTF-8'),
+                ('Content-Length', str(len(html))),
+            ])
             self.assert_equal(content, [html])
 
             f = p.find('form')
@@ -959,9 +993,10 @@ class FormTestCase(AyameTestCase):
                 status, headers, content = p()
             html = self.format(class_, choices=False)
             self.assert_equal(status, http.OK.status)
-            self.assert_equal(headers,
-                              [('Content-Type', 'text/html; charset=UTF-8'),
-                               ('Content-Length', str(len(html)))])
+            self.assert_equal(headers, [
+                ('Content-Type', 'text/html; charset=UTF-8'),
+                ('Content-Length', str(len(html))),
+            ])
             self.assert_equal(content, [html])
 
             f = p.find('form')

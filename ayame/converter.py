@@ -80,8 +80,8 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
         return five.str(value)
 
     def check_type(self, value):
-        if not (self.type is None or
-                isinstance(value, self.type)):
+        if not (self.type is None
+                or isinstance(value, self.type)):
             q = "'{}'".format
             if isinstance(self.type, collections.Iterable):
                 et = []
@@ -89,7 +89,7 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
                     if et:
                         et.append(', ')
                     et.append(q(t))
-                if 2 < len(et):
+                if len(et) > 2:
                     et[-2] = ' or '
                 et = ''.join(et)
             else:
@@ -236,8 +236,8 @@ class DateTimeConverter(Converter):
             if ':' in off:
                 sign = off[0]
                 h, m = off[1:].split(':', 1)
-                if (h.isdigit() and
-                    m.isdigit()):
+                if (h.isdigit()
+                    and m.isdigit()):
                     minutes = int(h) * 60 + int(m)
                     if sign == '+':
                         if minutes <= 840:  # UTC+14:00

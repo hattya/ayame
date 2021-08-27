@@ -46,10 +46,10 @@ def application_uri(environ):
         port = environ['SERVER_PORT']
     uri.append(host)
     if port:
-        if ((scheme == 'http' and
-             port != '80') or
-            (scheme == 'https' and
-             port != '443')):
+        if ((scheme == 'http'
+             and port != '80')
+            or (scheme == 'https'
+                and port != '443')):
             uri.append(':')
             uri.append(port)
     # SCRIPT_NAME
@@ -67,8 +67,8 @@ def request_uri(environ, query=False):
             path_info = path_info[1:]
         uri.append(quote(path_info))
     # QUERY_STRING
-    if (query and
-        environ.get('QUERY_STRING')):
+    if (query
+        and environ.get('QUERY_STRING')):
         uri.append('?')
         uri.append(environ['QUERY_STRING'])
     return ''.join(uri)
@@ -91,8 +91,8 @@ def request_path(environ):
 def is_relative_uri(uri):
     if uri == '':
         return True
-    elif (uri is None or
-          uri[0] in ('/', '#')):
+    elif (uri is None
+          or uri[0] in ('/', '#')):
         return False
     return not five.urlsplit(uri).scheme
 

@@ -23,7 +23,7 @@ class AppTestCase(AyameTestCase):
         self.locale = locale.getdefaultlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
-            self.locale = (v[0].lower(), v[1].upper()) if 1 < len(v) else (v[0].lower() if len(v) == 1 else None, None)
+            self.locale = (v[0].lower(), v[1].upper()) if len(v) > 1 else (v[0].lower() if len(v) == 1 else None, None)
         else:
             self.locale = (None,) * 2
         self._getdefaultlocale = locale.getdefaultlocale
@@ -134,9 +134,7 @@ class AppTestCase(AyameTestCase):
         self.assert_equal(request.query, {})
         self.assert_equal(request.form_data, {})
         self.assert_is_none(request.path)
-        self.assert_equal(request.input.read(), (b'spam\n'
-                                                 b'eggs\n'
-                                                 b'ham\n'))
+        self.assert_equal(request.input.read(), b'spam\neggs\nham\n')
         with self.assert_raises(ayame.AyameError):
             request.session
         self.assert_equal(request.locale, self.locale)
@@ -225,9 +223,10 @@ class SimpleAppTestCase(AyameTestCase):
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_is_none(exc_info)
         self.assert_equal(content, [html])
 
@@ -237,9 +236,10 @@ class SimpleAppTestCase(AyameTestCase):
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_is_none(exc_info)
         self.assert_equal(content, [html])
 

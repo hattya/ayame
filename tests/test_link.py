@@ -90,9 +90,10 @@ class LinkTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(SpamPage)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_action_link_fire(self):
@@ -133,8 +134,7 @@ class LinkTestCase(AyameTestCase):
 
     def test_page_link_error(self):
         with self.application(self.new_environ()):
-            with self.assert_raises_regex(ayame.ComponentError,
-                                          r' not .* subclass of Page\b'):
+            with self.assert_raises_regex(ayame.ComponentError, r' not .* subclass of Page\b'):
                 link.PageLink('a', object)
 
 

@@ -89,4 +89,4 @@ class ValidationError(AyameError):
                 msg = self.component.tr(key)
                 if msg is not None:
                     return msg.format(**self.vars)
-        return five.str(self.args[0]) if 0 < len(self.args) else u''
+        return five.str(self.args[0]) if len(self.args) > 0 else u''

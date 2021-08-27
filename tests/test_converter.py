@@ -69,19 +69,42 @@ class ConverterTestCase(AyameTestCase):
         registry.add(oc)
         nc = NConverter()
         registry.add(nc)
-        for v in (O, O(), OO, OO(), ON, ON()):
+        for v in (
+            O, O(),
+            OO, OO(),
+            ON, ON(),
+        ):
             self.assert_is(registry.converter_for(v), oc)
-        for v in (N, N(), NN, NN(), NN, NN()):
+        for v in (
+            N, N(),
+            NN, NN(),
+            NN, NN(),
+        ):
             self.assert_is(registry.converter_for(v), nc)
 
         registry.remove(O)
-        for v in (O, O(), OO, OO()):
+        for v in (
+            O, O(),
+            OO, OO(),
+        ):
             self.assert_is(registry.converter_for(v), registry.get(object))
-        for v in (N, N(), NN, NN(), ON, ON(), NO, NO()):
+        for v in (
+            N, N(),
+            NN, NN(),
+            ON, ON(),
+            NO, NO(),
+        ):
             self.assert_is(registry.converter_for(v), nc)
 
         registry.remove(N)
-        for v in (O, O(), N, N(), OO, OO(), NN, NN(), ON, ON(), NO, NO()):
+        for v in (
+            O, O(),
+            N, N(),
+            OO, OO(),
+            NN, NN(),
+            ON, ON(),
+            NO, NO(),
+        ):
             self.assert_is(registry.converter_for(v), registry.get(object))
 
     def test_registry_no_type(self):
@@ -128,8 +151,7 @@ class ConverterTestCase(AyameTestCase):
             def to_python(self, value):
                 pass
 
-        with self.assert_raises_regex(ayame.ConversionError,
-                                      " .* 'str'.* but "):
+        with self.assert_raises_regex(ayame.ConversionError, r" .* 'str'.* but "):
             Converter().to_string(0)
 
         class Converter(converter.Converter):
@@ -140,8 +162,7 @@ class ConverterTestCase(AyameTestCase):
             def to_python(self, value):
                 pass
 
-        with self.assert_raises_regex(ayame.ConversionError,
-                                      " .* 'int'.* or .* 'float'.* but "):
+        with self.assert_raises_regex(ayame.ConversionError, r" .* 'int'.* or .* 'float'.* but "):
             Converter().to_string('')
 
     def test_object(self):
@@ -282,21 +303,25 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is(c.type, datetime.datetime)
         self.assert_is_instance(datetime.datetime.now(), c.type)
 
-        for v in ('2010-12-31T19:00:00-05:00',
-                  '2011-01-01T00:00:00Z',
-                  '2011-01-01 09:00:00+09:00'):
+        for v in (
+            '2010-12-31T19:00:00-05:00',
+            '2011-01-01T00:00:00Z',
+            '2011-01-01 09:00:00+09:00',
+        ):
             self.assert_equal(c.to_python(v), datetime.datetime(2011, 1, 1, tzinfo=five.UTC))
-        for v in ('2011-01-01T00:00:00',
-                  '2011-01-01T00:00:00-0500',
-                  '2011-01-01T00:00:00+0900',
-                  '2011-01-01T00:00:00-a:a',
-                  '2011-01-01T00:00:00-12:01',
-                  '2011-01-01T00:00:00+14:01',
-                  '2011-01-01t00:00:00Z',
-                  '1-01-01T00:00:00Z',
-                  None,
-                  '',
-                  object()):
+        for v in (
+            '2011-01-01T00:00:00',
+            '2011-01-01T00:00:00-0500',
+            '2011-01-01T00:00:00+0900',
+            '2011-01-01T00:00:00-a:a',
+            '2011-01-01T00:00:00-12:01',
+            '2011-01-01T00:00:00+14:01',
+            '2011-01-01t00:00:00Z',
+            '1-01-01T00:00:00Z',
+            None,
+            '',
+            object(),
+        ):
             with self.assert_raises(ayame.ConversionError):
                 c.to_python(v)
 

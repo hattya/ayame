@@ -40,9 +40,11 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -69,16 +71,20 @@ class BorderTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Spam'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Spam',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'SpamBorder'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'SpamBorder',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -160,9 +166,11 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -191,24 +199,30 @@ class BorderTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Eggs'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Eggs',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'EggsBorder'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'EggsBorder',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[9]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'HamBorder'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'HamBorder',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -278,8 +292,7 @@ class BorderTestCase(AyameTestCase):
 
         with self.application():
             mc = Toast('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'ayame:border' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:border' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_no_ayame_body(self):
@@ -293,8 +306,7 @@ class BorderTestCase(AyameTestCase):
 
         with self.application():
             mc = Beans('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"'ayame:body' .* not found\b"):
+            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:body' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_unknown_ayame_element(self):
@@ -308,8 +320,7 @@ class BorderTestCase(AyameTestCase):
 
         with self.application():
             mc = Bacon('a')
-            with self.assert_raises_regex(ayame.RenderingError,
-                                          r"\bunknown .* 'ayame:bacon'"):
+            with self.assert_raises_regex(ayame.RenderingError, r"\bunknown .* 'ayame:bacon'"):
                 mc.render()
 
     def test_empty_markup(self):
@@ -332,9 +343,11 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -359,8 +372,10 @@ class BorderTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Sausage'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Sausage',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -419,9 +434,11 @@ class BorderTestCase(AyameTestCase):
         self.assert_equal(html.qname, self.html_of('html'))
         self.assert_equal(html.attrib, {})
         self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {'': markup.XHTML_NS,
-                                    'xml': markup.XML_NS,
-                                    'ayame': markup.AYAME_NS})
+        self.assert_equal(html.ns, {
+            '': markup.XHTML_NS,
+            'xml': markup.XML_NS,
+            'ayame': markup.AYAME_NS,
+        })
         self.assert_equal(len(html), 5)
         self.assert_ws(html, 0)
         self.assert_ws(html, 2)
@@ -448,16 +465,20 @@ class BorderTestCase(AyameTestCase):
 
         meta = head[3]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'Lobster'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'Lobster',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
 
         meta = head[6]
         self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {self.html_of('name'): 'class',
-                                        self.html_of('content'): 'LobsterBorder'})
+        self.assert_equal(meta.attrib, {
+            self.html_of('name'): 'class',
+            self.html_of('content'): 'LobsterBorder',
+        })
         self.assert_equal(meta.type, markup.Element.EMPTY)
         self.assert_equal(meta.ns, {})
         self.assert_equal(meta.children, [])
@@ -530,9 +551,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_field_border_valid(self):
@@ -543,9 +565,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_field_border_invalid(self):
@@ -556,9 +579,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=True)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_feedback_field_border_nonexistent_path(self):
@@ -568,9 +592,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message(self):
@@ -579,9 +604,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(TomatoPage, message='before, body, after')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
     def test_render_ayame_message_ja(self):
@@ -590,9 +616,10 @@ class BorderTestCase(AyameTestCase):
             status, headers, content = p()
         html = self.format(TomatoPage, message=u'\u524d, \u4e2d, \u5f8c')
         self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers,
-                          [('Content-Type', 'text/html; charset=UTF-8'),
-                           ('Content-Length', str(len(html)))])
+        self.assert_equal(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
         self.assert_equal(content, [html])
 
 

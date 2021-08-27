@@ -70,13 +70,12 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam(), ham):
             o.__module__ = None
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          '^cannot find module '):
+            with self.assert_raises_regex(ayame.ResourceError, r'^cannot find module '):
                 loader.load(o, None)
 
     def test_unknown_module_location(self):
         sys.modules[__name__] = types.ModuleType(__name__)
-        self._test_error(" module location$")
+        self._test_error(r" module location$")
 
     def test_invalid_path(self):
         loader = res.ResourceLoader()
@@ -89,13 +88,12 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam(), ham, sys.modules[__name__]):
             for p in (os.path.pardir, os.path.join(*(os.path.pardir,) * 2), os.path.sep):
-                with self.assert_raises_regex(ayame.ResourceError,
-                                              '^invalid path '):
+                with self.assert_raises_regex(ayame.ResourceError, r'^invalid path '):
                     loader.load(o, p)
 
     def test_unknown_loader(self):
         sys.modules[__name__] = self.new_module(True)
-        self._test_error("^cannot load '.*' from loader True$")
+        self._test_error(r"^cannot load '.*' from loader True$")
 
     def _test_error(self, regex):
         loader = res.ResourceLoader()
@@ -108,17 +106,14 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam()):
             for p in ('Spam.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError,
-                                              regex):
+                with self.assert_raises_regex(ayame.ResourceError, regex):
                     loader.load(o, p)
 
         for p in ('ham.txt', '.txt'):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          regex):
+            with self.assert_raises_regex(ayame.ResourceError, regex):
                 loader.load(ham, p)
 
-        with self.assert_raises_regex(ayame.ResourceError,
-                                      regex):
+        with self.assert_raises_regex(ayame.ResourceError, regex):
             loader.load(sys.modules[__name__], '.txt')
 
     def test_loader(self):
@@ -171,7 +166,7 @@ class ResTestCase(AyameTestCase):
 
 class FileResourceTestCase(AyameTestCase):
 
-    regex = '^cannot load '
+    regex = r'^cannot load '
 
     def test_load_by_class(self):
         loader = res.ResourceLoader()
@@ -194,8 +189,7 @@ class FileResourceTestCase(AyameTestCase):
 
         for o in (Eggs, Eggs()):
             for p in ('Eggx.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError,
-                                              self.regex):
+                with self.assert_raises_regex(ayame.ResourceError, self.regex):
                     loader.load(o, p)
 
     def test_load_by_function(self):
@@ -217,8 +211,7 @@ class FileResourceTestCase(AyameTestCase):
                 self.assert_equal(fp.read().strip(), 'test_res/ham.txt')
 
         for p in ('toast.txt', '.txt'):
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          self.regex):
+            with self.assert_raises_regex(ayame.ResourceError, self.regex):
                 loader.load(toast, p)
 
     def test_load_by_module(self):
@@ -231,8 +224,7 @@ class FileResourceTestCase(AyameTestCase):
         with r.open() as fp:
             self.assert_equal(fp.read().strip(), 'test_res/.txt')
 
-        with self.assert_raises_regex(ayame.ResourceError,
-                                      self.regex):
+        with self.assert_raises_regex(ayame.ResourceError, self.regex):
             loader.load(ayame, '.txt')
 
 
@@ -240,7 +232,7 @@ class ZipFileResourceTestCase(AyameTestCase):
 
     date_time = (2014, 1, 1, 0, 0, 0)
     mtime = time.mktime(datetime.datetime(*date_time).timetuple())
-    regex = "^cannot load '.*' from loader "
+    regex = r"^cannot load '.*' from loader "
 
     @contextlib.contextmanager
     def import_(self, name, files):
@@ -282,8 +274,7 @@ class Eggs(object):
 
             for o in (m.Eggs, m.Eggs()):
                 for p in ('Eggs.txt', '.txt'):
-                    with self.assert_raises_regex(ayame.ResourceError,
-                                                  self.regex):
+                    with self.assert_raises_regex(ayame.ResourceError, self.regex):
                         loader.load(o, p)
 
     def test_load_by_function(self):
@@ -307,8 +298,7 @@ def toast():
                     self.assert_equal(fp.read().strip(), 'm/ham.txt')
 
             for p in ('toast.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError,
-                                              self.regex):
+                with self.assert_raises_regex(ayame.ResourceError, self.regex):
                     loader.load(m.toast, p)
 
     def test_load_by_module(self):
@@ -322,6 +312,5 @@ def toast():
                 self.assert_equal(fp.read().strip(), 'm/.txt')
 
         with self.import_('m', [('m.py', '')]) as m:
-            with self.assert_raises_regex(ayame.ResourceError,
-                                          self.regex):
+            with self.assert_raises_regex(ayame.ResourceError, self.regex):
                 loader.load(m, '.txt')

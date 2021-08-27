@@ -79,8 +79,7 @@ class BasicTestCase(AyameTestCase):
         m = model.Model([str(i) for i in five.range(3)])
         mc.add(basic.ListView('b', m, None))
 
-        with self.assert_raises_regex(ayame.ComponentError,
-                                      r"\bcomponent .* 'c' .* not found\b"):
+        with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
             mc.render(root)
 
     def test_list_view(self):

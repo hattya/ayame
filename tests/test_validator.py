@@ -157,8 +157,10 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.range'])
-        self.assert_equal(e.vars, {'min': 0,
-                                   'max': 9})
+        self.assert_equal(e.vars, {
+            'min': 0,
+            'max': 9,
+        })
 
         v.min = v.max = 9
         self.assert_false(v.validate(9))
@@ -216,8 +218,10 @@ class ValidatorTestCase(AyameTestCase):
         e = cm.exception
         self.assert_equal(five.str(e), '')
         self.assert_equal(e.keys, ['StringValidator.range'])
-        self.assert_equal(e.vars, {'min': 4,
-                                   'max': 5})
+        self.assert_equal(e.vars, {
+            'min': 4,
+            'max': 5,
+        })
 
         v.min = v.max = 4
         self.assert_false(v.validate('.com'))
@@ -240,5 +244,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.max = 3
         root = mc.render(root)
-        self.assert_equal(root.attrib, {validator._TYPE: 'text',
-                                        validator._MAXLENGTH: '3'})
+        self.assert_equal(root.attrib, {
+            validator._TYPE: 'text',
+            validator._MAXLENGTH: '3',
+        })

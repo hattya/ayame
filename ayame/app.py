@@ -86,11 +86,11 @@ class Ayame(object):
                     status, headers, content = self.handle_request(o)
                 except _Redirect as r:
                     if r.args[3] == _Redirect.PERMANENT:
-                        raise http.MovedPermanently(uri.application_uri(environ) +
-                                                    self.uri_for(*r.args[:3], relative=True)[1:])
+                        raise http.MovedPermanently(uri.application_uri(environ)
+                                                    + self.uri_for(*r.args[:3], relative=True)[1:])
                     elif r.args[3] != _Redirect.INTERNAL:
-                        raise http.Found(uri.application_uri(environ) +
-                                         self.uri_for(*r.args[:3], relative=True)[1:])
+                        raise http.Found(uri.application_uri(environ)
+                                         + self.uri_for(*r.args[:3], relative=True)[1:])
                     o = r.args[0]
                     ctx.request.path = None
                     continue
@@ -172,7 +172,7 @@ class Request(object):
             sep = '_'
         if v:
             v = v.split(sep, 1)
-            return (v[0].lower(), v[1].upper() if 1 < len(v) else None)
+            return (v[0].lower(), v[1].upper() if len(v) > 1 else None)
         return (None,) * 2
 
     @property

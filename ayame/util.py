@@ -59,8 +59,8 @@ def new_token(algorithm='sha1'):
 
 
 def iterable(o):
-    return (isinstance(o, collections.Iterable) and
-            not isinstance(o, five.string_type))
+    return (isinstance(o, collections.Iterable)
+            and not isinstance(o, five.string_type))
 
 
 class FilterDict(dict):
@@ -159,13 +159,13 @@ class RWLock(object):
             rcnt = self._rcnt
             self._rcnt = -rcnt - 1
             self._rwait = rcnt
-            if 0 < rcnt:
+            if rcnt > 0:
                 # wait for readers
                 self._w.wait()
 
     def release_write(self):
         with self._lock:
-            if 0 <= self._rcnt:
+            if self._rcnt >= 0:
                 raise RuntimeError('write lock is not acquired')
             self._rcnt += 1
             # wake up readers
@@ -381,9 +381,9 @@ class LRUCache(_Cache):
         return e
 
     def _sweep(self):
-        if 0 <= self._cap:
+        if self._cap >= 0:
             it = self._iter(reverse=True)
-            while self._cap < len(self._ref):
+            while len(self._ref) > self._cap:
                 self._evict(next(it))
 
     def _evict(self, e):
@@ -391,8 +391,8 @@ class LRUCache(_Cache):
         e.prev.next = e.next
         del self._ref[e.key]
         if e is self._head:
-            if (not self._ref or
-                self._cap == 1):
+            if (not self._ref
+                or self._cap == 1):
                 self._head = None
             else:
                 self._head = e.next
@@ -428,8 +428,8 @@ class LFUCache(_Cache):
             self._remove(e)
             # append to next frequency node
             next = curr.next
-            if (next is self._head or
-                next.value != curr.value + 1):
+            if (next is self._head
+                or next.value != curr.value + 1):
                 next = self._new_freq(curr.value + 1, next)
             next.append(e)
 
@@ -439,7 +439,7 @@ class LFUCache(_Cache):
         with self._lock.write():
             if key in self._ref:
                 self._evict(self._ref[key])
-            self._sweep(self._cap - 1 if 0 < self._cap else self._cap)
+            self._sweep(self._cap - 1 if self._cap > 0 else self._cap)
 
             freq = self._head.next
             if freq.value != 1:
@@ -521,8 +521,8 @@ class LFUCache(_Cache):
         if cap is None:
             cap = self._cap
 
-        if 0 <= cap:
-            while cap < len(self._ref):
+        if cap >= 0:
+            while len(self._ref) > cap:
                 self._evict(self._lfu())
 
     def _evict(self, e):

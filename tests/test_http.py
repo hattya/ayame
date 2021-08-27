@@ -30,19 +30,13 @@ class HTTPTestCase(AyameTestCase):
                                                      form=form)
 
     def test_parse_accept(self):
-        self.assert_equal(http.parse_accept(''),
-                          ())
-        self.assert_equal(http.parse_accept('ja, en'),
-                          (('ja', 1.0), ('en', 1.0)))
-        self.assert_equal(http.parse_accept('en, ja'),
-                          (('en', 1.0), ('ja', 1.0)))
-        self.assert_equal(http.parse_accept('en; q=0.7, ja'),
-                          (('ja', 1.0), ('en', 0.7)))
+        self.assert_equal(http.parse_accept(''), ())
+        self.assert_equal(http.parse_accept('ja, en'), (('ja', 1.0), ('en', 1.0)))
+        self.assert_equal(http.parse_accept('en, ja'), (('en', 1.0), ('ja', 1.0)))
+        self.assert_equal(http.parse_accept('en; q=0.7, ja'), (('ja', 1.0), ('en', 0.7)))
         # invalid
-        self.assert_equal(http.parse_accept('ja, en; q=33.3333'),
-                          (('ja', 1.0), ('en', 1.0)))
-        self.assert_equal(http.parse_accept('ja, en, q=0.7'),
-                          (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
+        self.assert_equal(http.parse_accept('ja, en; q=33.3333'), (('ja', 1.0), ('en', 1.0)))
+        self.assert_equal(http.parse_accept('ja, en, q=0.7'), (('ja', 1.0), ('en', 1.0), ('q=0.7', 1.0)))
 
     def test_parse_form_data_empty(self):
         self.assert_equal(http.parse_form_data(self.new_environ()), {})
@@ -56,10 +50,11 @@ class HTTPTestCase(AyameTestCase):
                 'z=-1&'
                 'z=-2&'
                 'z=-3')
-        self.assert_equal(http.parse_form_data(self.new_environ(data=data)),
-                          {'x': ['-1'],
-                           'y': ['-1', '-2'],
-                           'z': ['-1', '-2', '-3']})
+        self.assert_equal(http.parse_form_data(self.new_environ(data=data)), {
+            'x': ['-1'],
+            'y': ['-1', '-2'],
+            'z': ['-1', '-2', '-3'],
+        })
 
         data = self.form_data(('x', '-1'),
                               ('y', '-1'),
@@ -67,10 +62,11 @@ class HTTPTestCase(AyameTestCase):
                               ('z', '-1'),
                               ('z', '-2'),
                               ('z', '-3'))
-        self.assert_equal(http.parse_form_data(self.new_environ(form=data)),
-                          {'x': ['-1'],
-                           'y': ['-1', '-2'],
-                           'z': ['-1', '-2', '-3']})
+        self.assert_equal(http.parse_form_data(self.new_environ(form=data)), {
+            'x': ['-1'],
+            'y': ['-1', '-2'],
+            'z': ['-1', '-2', '-3'],
+        })
 
     def test_parse_form_data_utf_8(self):
         data = (u'\u3082=\u767e&'
@@ -79,22 +75,23 @@ class HTTPTestCase(AyameTestCase):
                 u'\u3059=\u767e&'
                 u'\u3059=\u5343&'
                 u'\u3059=\u4e07')
-        self.assert_equal(http.parse_form_data(self.new_environ(data=data)),
-                          {u'\u3082': [u'\u767e'],
-                           u'\u305b': [u'\u767e', u'\u5343'],
-                           u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+        self.assert_equal(http.parse_form_data(self.new_environ(data=data)), {
+            u'\u3082': [u'\u767e'],
+            u'\u305b': [u'\u767e', u'\u5343'],
+            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07'],
+        })
 
         data = self.form_data((u'\u3082', u'\u767e'),
                               (u'\u305b', u'\u767e'),
                               (u'\u305b', u'\u5343'),
                               (u'\u3059', u'\u767e'),
                               (u'\u3059', u'\u5343'),
-                              (u'\u3059', u'\u4e07'),
-                              )
-        self.assert_equal(http.parse_form_data(self.new_environ(form=data)),
-                          {u'\u3082': [u'\u767e'],
-                           u'\u305b': [u'\u767e', u'\u5343'],
-                           u'\u3059': [u'\u767e', u'\u5343', u'\u4e07']})
+                              (u'\u3059', u'\u4e07'))
+        self.assert_equal(http.parse_form_data(self.new_environ(form=data)), {
+            u'\u3082': [u'\u767e'],
+            u'\u305b': [u'\u767e', u'\u5343'],
+            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07'],
+        })
 
     def test_parse_form_data_post(self):
         data = self.form_data(('a', (u'\u3044', 'spam\neggs\nham\n', 'text/plain')))
@@ -104,9 +101,7 @@ class HTTPTestCase(AyameTestCase):
         a = form_data['a'][0]
         self.assert_equal(a.name, 'a')
         self.assert_equal(a.filename, u'\u3044')
-        self.assert_equal(a.value, (b'spam\n'
-                                    b'eggs\n'
-                                    b'ham\n'))
+        self.assert_equal(a.value, b'spam\neggs\nham\n')
 
     def test_parse_form_data_put(self):
         data = 'spam\neggs\nham\n'
@@ -200,8 +195,10 @@ class HTTPTestCase(AyameTestCase):
         assert_3xx(st, uri, [('Location', uri)])
 
         st = http.MovedPermanently(uri, headers)
-        assert_3xx(st, uri, [('Server', 'Python'),
-                             ('Location', uri)])
+        assert_3xx(st, uri, [
+            ('Server', 'Python'),
+            ('Location', uri),
+        ])
 
         self.assert_equal(headers, [('Server', 'Python')])
 
@@ -218,8 +215,10 @@ class HTTPTestCase(AyameTestCase):
         uri = 'http://localhost/'
         headers = [('Server', 'Python')]
         assert_3xx(http.Found(uri), uri, [('Location', uri)])
-        assert_3xx(http.Found(uri, headers), uri, [('Server', 'Python'),
-                                                   ('Location', uri)])
+        assert_3xx(http.Found(uri, headers), uri, [
+            ('Server', 'Python'),
+            ('Location', uri),
+        ])
         self.assert_equal(headers, [('Server', 'Python')])
 
     def test_http_303(self):
@@ -235,8 +234,10 @@ class HTTPTestCase(AyameTestCase):
         uri = 'http://localhost/'
         headers = [('Server', 'Python')]
         assert_3xx(http.SeeOther(uri), uri, [('Location', uri)])
-        assert_3xx(http.SeeOther(uri, headers), uri, [('Server', 'Python'),
-                                                      ('Location', uri)])
+        assert_3xx(http.SeeOther(uri, headers), uri, [
+            ('Server', 'Python'),
+            ('Location', uri),
+        ])
         self.assert_equal(headers, [('Server', 'Python')])
 
     def test_http_304(self):
@@ -320,8 +321,10 @@ class HTTPTestCase(AyameTestCase):
         allow = ['GET', 'POST']
         headers = [('Server', 'Python')]
         assert_4xx(http.MethodNotAllowed(method, uri, allow), method, uri, [('Allow', 'GET, POST')])
-        assert_4xx(http.MethodNotAllowed(method, uri, allow, headers), method, uri, [('Server', 'Python'),
-                                                                                     ('Allow', 'GET, POST')])
+        assert_4xx(http.MethodNotAllowed(method, uri, allow, headers), method, uri, [
+            ('Server', 'Python'),
+            ('Allow', 'GET, POST'),
+        ])
         self.assert_equal(headers, [('Server', 'Python')])
 
     def test_http_408(self):

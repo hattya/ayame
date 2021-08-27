@@ -18,8 +18,8 @@ __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
            'RangeValidator', 'StringValidator']
 
 # from RFC 1035 and RFC 2822
-_atext = "[A-Z0-9!#$%&'*+\-/=?^_`{|}~]"
-_label = '(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
+_atext = r"[A-Z0-9!#$%&'*+\-/=?^_`{|}~]"
+_label = r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
 _email = r"""
     \A
     # local part
@@ -32,11 +32,11 @@ _email = r"""
            label=_label)
 
 # from RFC 3986
-_pct_encoded = '(?:%[0-9A-F][0-9A-F])'
-_unreserved = '[A-Z0-9\-._~]'
-_sub_delims = "[!$&'()*+,;=]"
-_pchar = '(?:{}|{}|{}|[:@])'.format(_unreserved, _pct_encoded, _sub_delims)
-_ipv4 = '(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+_pct_encoded = r'(?:%[0-9A-F][0-9A-F])'
+_unreserved = r'[A-Z0-9\-._~]'
+_sub_delims = r"[!$&'()*+,;=]"
+_pchar = r'(?:{}|{}|{}|[:@])'.format(_unreserved, _pct_encoded, _sub_delims)
+_ipv4 = r'(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 _url = r"""
     \A
     # scheme
@@ -105,8 +105,8 @@ class RegexValidator(Validator):
         self.regex = re.compile(pattern, flags)
 
     def validate(self, object):
-        if not (isinstance(object, five.string_type) and
-                self.regex.match(object)):
+        if not (isinstance(object, five.string_type)
+                and self.regex.match(object)):
             e = self.error()
             e.vars['pattern'] = self.regex.pattern
             raise e
@@ -132,15 +132,15 @@ class RangeValidator(Validator):
         self.max = max
 
     def validate(self, object):
-        if ((self.min is not None and
-             not isinstance(object, self.typeof(self.min))) or
-            (self.max is not None and
-             not isinstance(object, self.typeof(self.max)))):
+        if ((self.min is not None
+             and not isinstance(object, self.typeof(self.min)))
+            or (self.max is not None
+                and not isinstance(object, self.typeof(self.max)))):
             raise self.error(variation='type')
-        elif ((self.min is not None and
-               object < self.min) or
-              (self.max is not None and
-               self.max < object)):
+        elif ((self.min is not None
+               and object < self.min)
+              or (self.max is not None
+                  and object > self.max)):
             vars = {}
             if self.max is None:
                 mode = 'minimum'
@@ -179,10 +179,10 @@ class StringValidator(RangeValidator):
         super(StringValidator, self).validate(len(object))
 
     def on_component(self, component, element):
-        if (self.max is not None and
-            self.is_text_input(element)):
+        if (self.max is not None
+            and self.is_text_input(element)):
             element.attrib[_MAXLENGTH] = five.str(self.max)
 
     def is_text_input(self, element):
-        return (element.qname == _INPUT and
-                element.attrib[_TYPE] in ('text', 'password'))
+        return (element.qname == _INPUT
+                and element.attrib[_TYPE] in ('text', 'password'))

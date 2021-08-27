@@ -22,7 +22,7 @@ __all__ = ['AyameTestCase']
 
 
 def _method_of(name):
-    return ''.join(s.title() if 0 < i else s
+    return ''.join(s.title() if i > 0 else s
                    for i, s in enumerate(name.split('_')))
 
 
@@ -117,7 +117,7 @@ class AyameTestCase(unittest.TestCase):
 
     def assert_ws(self, seq, i):
         self.assert_is_instance(seq[i], five.string_type)
-        self.assert_regex(seq[i], '^\s*$')
+        self.assert_regex(seq[i], r'^\s*$')
 
     def path_for(self, path):
         return os.path.join(os.path.splitext(sys.modules[self.__class__.__module__].__file__)[0], path)
@@ -138,7 +138,7 @@ class AyameTestCase(unittest.TestCase):
                 return self._mtime + ref[self._path]
 
             def open(self, encoding='utf-8'):
-                if 3 < ref[self._path]:
+                if ref[self._path] > 3:
                     raise ayame.ResourceError
                 return StringIO(self._path, encoding)
 
@@ -155,7 +155,7 @@ class AyameTestCase(unittest.TestCase):
                 return self._wrap(super(StringIO, self).readline, args, kwargs)
 
             def _wrap(self, func, args, kwargs):
-                if 2 < ref[self._path]:
+                if ref[self._path] > 2:
                     raise OSError
                 return func(*args, **kwargs)
 

@@ -114,8 +114,8 @@ class Localizer(object):
         while queue:
             class_, scope, prefix = queue.pop()
             yield class_, scope, prefix
-            if (not self._is_base_class(class_) and
-                class_.__bases__):
+            if (not self._is_base_class(class_)
+                and class_.__bases__):
                 queue.extend((c, self._scope_of(c), prefix)
                              for c in class_.__bases__
                              if self._is_target_class(c))
@@ -145,8 +145,8 @@ class Localizer(object):
         ll = []
         for l in fp:
             l = l.lstrip().rstrip('\n\r')
-            if (not l or
-                l[0] in ('#', '!')):
+            if (not l
+                or l[0] in ('#', '!')):
                 # blank or comment line
                 continue
             elif l[-1] == '\\':

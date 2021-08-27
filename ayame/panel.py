@@ -38,8 +38,8 @@ class Panel(core.MarkupContainer):
                 if ayame_panel is None:
                     ayame_panel = elem
             elif elem.qname == markup.AYAME_HEAD:
-                if ('html' in m.lang and
-                    ayame_head is None):
+                if ('html' in m.lang
+                    and ayame_head is None):
                     ayame_head = elem
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
@@ -64,8 +64,8 @@ class FeedbackPanel(Panel):
             c = self.page().find(self.request.path)
             if isinstance(c, form.Form):
                 for c, _ in c.walk():
-                    if (isinstance(c, form.FormComponent) and
-                        c.error):
+                    if (isinstance(c, form.FormComponent)
+                        and c.error):
                         self.__errors.append(five.str(c.error))
         self.visible = bool(self.__errors)
 
