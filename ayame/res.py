@@ -66,7 +66,7 @@ class ResourceLoader(object):
 
     def load_from(self, loader, parent, path):
         if (loader is None
-            or (loader.__class__.__module__ == '_frozen_importlib'
+            or (loader.__class__.__module__.startswith('_frozen_importlib')
                 and loader.__class__.__name__ == 'SourceFileLoader')):
             return FileResource(os.path.join(parent, path))
         elif (loader.__class__.__module__ == 'zipimport'

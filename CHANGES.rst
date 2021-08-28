@@ -1,6 +1,12 @@
 Ayame Changelog
 ===============
 
+Version 0.2
+-----------
+
+* Support Python 3.5.
+
+
 Version 0.1
 -----------
 
