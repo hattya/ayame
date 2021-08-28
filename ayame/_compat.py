@@ -85,7 +85,7 @@ if PY2:
 else:
     import datetime
     from html import escape as html_escape
-    from html.parser import HTMLParser as _HTMLParser
+    from html.parser import HTMLParser as HTMLParser
     from urllib.parse import urlencode, urlsplit
     from urllib.parse import parse_qs as urlparse_qs
     from urllib.parse import quote as urlquote
@@ -108,14 +108,6 @@ else:
         raise v
 
     UTC = datetime.timezone.utc
-
-    if sys.version_info < (3, 4):
-        class HTMLParser(_HTMLParser):
-
-            def __init__(self, strict=False, convert_charrefs=False):
-                super().__init__(strict)
-    else:
-        HTMLParser = _HTMLParser
 
 
 def with_metaclass(meta, *bases):

@@ -145,7 +145,7 @@ cmdclass = {
 
 kwargs = {}
 if setuptools:
-    kwargs.update(install_requires=['Werkzeug < 0.15'])
+    kwargs.update(install_requires=['Werkzeug < 1.0'])
 
 setup(name='ayame',
       version=version,
@@ -166,7 +166,6 @@ setup(name='ayame',
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: 3.3',
           'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
