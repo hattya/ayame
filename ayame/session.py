@@ -7,7 +7,7 @@
 #
 
 from werkzeug import http
-from werkzeug.contrib.sessions import FilesystemSessionStore as FileSystemSessionStore
+from secure_cookie.session import FilesystemSessionStore as FileSystemSessionStore
 
 
 __all__ = ['get', 'save', 'FileSystemSessionStore']
