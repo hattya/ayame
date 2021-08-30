@@ -1,0 +1,58 @@
+name: CI
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    strategy:
+      matrix:
+        platform:
+          - Linux
+          - macOS
+          - Windows
+        toxenv:
+          - py27
+          - py35
+          - py36
+          - py37
+        include:
+          - platform: Linux
+            os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
+          - platform: Windows
+            os: windows-latest
+          - toxenv: py27
+            python-version: 2.7
+          - toxenv: py35
+            python-version: 3.5
+          - toxenv: py36
+            python-version: 3.6
+          - toxenv: py37
+            python-version: 3.7
+      fail-fast: false
+    name: tox -e ${{ matrix.toxenv }} on ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    env:
+      TOXENV: ${{ matrix.toxenv }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip setuptools wheel
+          pip install -U coverage tox
+      - name: Test
+        run: tox
+      - name: Generate XML coverage report
+        run: coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          flags: ${{ matrix.platform }}
+          env_vars: TOXENV
