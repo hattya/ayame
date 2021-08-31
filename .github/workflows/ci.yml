@@ -12,7 +12,6 @@ jobs:
           - Windows
         toxenv:
           - py27
-          - py35
           - py36
           - py37
           - py38
@@ -25,8 +24,6 @@ jobs:
             os: windows-latest
           - toxenv: py27
             python-version: 2.7
-          - toxenv: py35
-            python-version: 3.5
           - toxenv: py36
             python-version: 3.6
           - toxenv: py37

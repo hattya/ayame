@@ -10,6 +10,7 @@ Version 0.2
 * Support Python 3.7.
 * Drop Python 3.4 support.
 * Support Python 3.8.
+* Drop Python 3.5 support.
 
 
 Version 0.1
