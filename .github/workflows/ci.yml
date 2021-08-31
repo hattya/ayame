@@ -15,6 +15,7 @@ jobs:
           - py35
           - py36
           - py37
+          - py38
         include:
           - platform: Linux
             os: ubuntu-latest
@@ -30,6 +31,8 @@ jobs:
             python-version: 3.6
           - toxenv: py37
             python-version: 3.7
+          - toxenv: py38
+            python-version: 3.8
       fail-fast: false
     name: tox -e ${{ matrix.toxenv }} on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
