@@ -32,9 +32,6 @@ class ModelTestCase(AyameTestCase):
             def wrap(self, component):
                 return super(InheritableModel, self).wrap(component)
 
-        with self.assert_raises(TypeError):
-            model.InheritableModel()
-
         m = InheritableModel(None)
         self.assert_is_none(m.wrap(None))
 
@@ -43,9 +40,6 @@ class ModelTestCase(AyameTestCase):
             @property
             def object(self):
                 return super(WrapModel, self).object
-
-        with self.assert_raises(TypeError):
-            model.WrapModel()
 
         m = WrapModel(None)
         self.assert_is_none(m.object)

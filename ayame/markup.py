@@ -505,8 +505,8 @@ class MarkupRenderer(object):
     _registry = {}
 
     @classmethod
-    def register(self, lang, handler):
-        self._registry[lang] = handler
+    def register(cls, lang, handler):
+        cls._registry[lang] = handler
 
     def __init__(self):
         self._stack = collections.deque()
@@ -869,8 +869,7 @@ class XMLHandler(MarkupHandler):
                 default_ns = True
             elif pfx != epfx:
                 r.write(pfx, u':')
-            elif (default_ns
-                  and pfx == epfx):
+            elif default_ns:
                 raise RenderingError(self.renderer.object,
                                      'cannot combine with default namespace')
             r.write(n, u'="', v, u'"')
