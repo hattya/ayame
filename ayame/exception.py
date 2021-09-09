@@ -6,9 +6,6 @@
 #   SPDX-License-Identifier: MIT
 #
 
-from . import _compat as five
-
-
 __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
            'RenderingError', 'ResourceError', 'RouteError', 'ValidationError']
 
@@ -24,7 +21,7 @@ class ComponentError(AyameError):
 class ConversionError(AyameError):
 
     def __init__(self, *args, **kwargs):
-        super(ConversionError, self).__init__(*args)
+        super().__init__(*args)
         self.converter = kwargs.get('converter')
         self.value = kwargs.get('value')
         self.type = kwargs.get('type')
@@ -41,7 +38,7 @@ class _Redirect(AyameError):
     TEMPORARY = 2
 
     def __init__(self, object, values=None, anchor=None, type=None):
-        super(_Redirect, self).__init__(object, values, anchor, type)
+        super().__init__(object, values, anchor, type)
 
 
 class RenderingError(AyameError):
@@ -63,7 +60,7 @@ class _RequestSlash(RouteError):
 class ValidationError(AyameError):
 
     def __init__(self, *args, **kwargs):
-        super(ValidationError, self).__init__(*args)
+        super().__init__(*args)
         self.component = kwargs.get('component')
         self.keys = []
         self.vars = {}
@@ -78,10 +75,7 @@ class ValidationError(AyameError):
 
     def __repr__(self):
         args = repr(self.args)[1:-1].rstrip(',') + ', ' if self.args else ''
-        return '{}({}keys={}, vars={})'.format(self.__class__.__name__,
-                                               args,
-                                               self.keys,
-                                               list(self.vars))
+        return f'{self.__class__.__name__}({args}keys={self.keys}, vars={list(self.vars)})'
 
     def __str__(self):
         if self.component:
@@ -89,4 +83,4 @@ class ValidationError(AyameError):
                 msg = self.component.tr(key)
                 if msg is not None:
                     return msg.format(**self.vars)
-        return five.str(self.args[0]) if len(self.args) > 0 else u''
+        return str(self.args[0]) if len(self.args) > 0 else ''

@@ -10,7 +10,6 @@ import datetime
 import sys
 
 import ayame
-from ayame import _compat as five
 from ayame import converter
 from base import AyameTestCase
 
@@ -48,21 +47,21 @@ class ConverterTestCase(AyameTestCase):
             pass
 
         # converters
-        class OConverter(object):
+        class OConverter:
             @property
             def type(self):
                 return O
 
             def to_python(self, value):
-                return five.str(value)
+                return str(value)
 
-        class NConverter(object):
+        class NConverter:
             @property
             def type(self):
                 return N
 
             def to_python(self, value):
-                return five.str(value)
+                return str(value)
 
         registry = converter.ConverterRegistry()
         oc = OConverter()
@@ -129,10 +128,10 @@ class ConverterTestCase(AyameTestCase):
         class Converter(converter.Converter):
             @property
             def type(self):
-                return super(Converter, self).type
+                return super().type
 
             def to_python(self, value):
-                return super(Converter, self).to_python(value)
+                return super().to_python(value)
 
         with self.assert_raises(TypeError):
             converter.Converter()
@@ -185,8 +184,8 @@ class ConverterTestCase(AyameTestCase):
         self.assert_is(c.to_python(n), n)
 
         self.assert_equal(c.to_string(None), 'None')
-        self.assert_equal(c.to_string(o), five.str(o))
-        self.assert_equal(c.to_string(n), five.str(n))
+        self.assert_equal(c.to_string(o), str(o))
+        self.assert_equal(c.to_string(n), str(n))
 
     def test_boolean(self):
         c = converter.BooleanConverter()
@@ -243,9 +242,8 @@ class ConverterTestCase(AyameTestCase):
 
     def test_int(self):
         c = converter.IntegerConverter()
-        self.assert_equal(c.type, five.integer_types)
-        for t in five.integer_types:
-            self.assert_is_instance(t(0), c.type)
+        self.assert_equal(c.type, int)
+        self.assert_is_instance(int(0), c.type)
 
         self.assert_equal(c.to_python('-8192'), -8192)
         self.assert_equal(c.to_python('-0'), 0)
@@ -256,11 +254,10 @@ class ConverterTestCase(AyameTestCase):
             with self.assert_raises(ayame.ConversionError):
                 c.to_python(v)
 
-        for t in five.integer_types:
-            self.assert_equal(c.to_string(t(-8192)), '-8192')
-            self.assert_equal(c.to_string(t(-0)), '0')
-            self.assert_equal(c.to_string(t(0)), '0')
-            self.assert_equal(c.to_string(t(8192)), '8192')
+        self.assert_equal(c.to_string(int(-8192)), '-8192')
+        self.assert_equal(c.to_string(int(-0)), '0')
+        self.assert_equal(c.to_string(int(0)), '0')
+        self.assert_equal(c.to_string(int(8192)), '8192')
         for v in (None, '', object()):
             with self.assert_raises(ayame.ConversionError):
                 c.to_string(v)
@@ -276,9 +273,6 @@ class ConverterTestCase(AyameTestCase):
                 c.to_python(v)
 
         self.assert_equal(c.to_string(datetime.date(2011, 1, 1)), '2011-01-01')
-        if sys.version_info < (3, 3):
-            with self.assert_raises(ayame.ConversionError):
-                c.to_string(datetime.date(1, 1, 1))
         for v in (None, '', object()):
             with self.assert_raises(ayame.ConversionError):
                 c.to_string(v)
@@ -308,7 +302,7 @@ class ConverterTestCase(AyameTestCase):
             '2011-01-01T00:00:00Z',
             '2011-01-01 09:00:00+09:00',
         ):
-            self.assert_equal(c.to_python(v), datetime.datetime(2011, 1, 1, tzinfo=five.UTC))
+            self.assert_equal(c.to_python(v), datetime.datetime(2011, 1, 1, tzinfo=datetime.timezone.utc))
         for v in (
             '2011-01-01T00:00:00',
             '2011-01-01T00:00:00-0500',

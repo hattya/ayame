@@ -6,7 +6,8 @@
 #   SPDX-License-Identifier: MIT
 #
 
-from . import _compat as five
+import urllib.parse
+
 from . import core, markup, uri, util
 from . import model as mm
 from .exception import ComponentError
@@ -15,23 +16,23 @@ from .exception import ComponentError
 __all__ = ['Link', 'ActionLink', 'PageLink']
 
 # HTML elements
-_A = markup.QName(markup.XHTML_NS, u'a')
-_LINK = markup.QName(markup.XHTML_NS, u'link')
-_AREA = markup.QName(markup.XHTML_NS, u'area')
-_SCRIPT = markup.QName(markup.XHTML_NS, u'script')
-_STYLE = markup.QName(markup.XHTML_NS, u'style')
+_A = markup.QName(markup.XHTML_NS, 'a')
+_LINK = markup.QName(markup.XHTML_NS, 'link')
+_AREA = markup.QName(markup.XHTML_NS, 'area')
+_SCRIPT = markup.QName(markup.XHTML_NS, 'script')
+_STYLE = markup.QName(markup.XHTML_NS, 'style')
 
 # HTML attributes
-_HREF = markup.QName(markup.XHTML_NS, u'href')
-_SRC = markup.QName(markup.XHTML_NS, u'src')
+_HREF = markup.QName(markup.XHTML_NS, 'href')
+_SRC = markup.QName(markup.XHTML_NS, 'src')
 
 
 class Link(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        if isinstance(model, five.string_type):
+        if isinstance(model, str):
             model = mm.Model(model)
-        super(Link, self).__init__(id, model)
+        super().__init__(id, model)
 
     def on_render(self, element):
         # modify attribute
@@ -52,7 +53,7 @@ class Link(core.MarkupContainer):
         if body:
             element[:] = (body,)
         # render link
-        return super(Link, self).on_render(element)
+        return super().on_render(element)
 
     def new_uri(self, uri):
         return uri
@@ -67,7 +68,7 @@ class ActionLink(Link):
         query = self.request.query.copy()
         query[core.AYAME_PATH] = [self.path()]
         environ = self.environ.copy()
-        environ['QUERY_STRING'] = five.urlencode(query, doseq=True)
+        environ['QUERY_STRING'] = urllib.parse.urlencode(query, doseq=True)
         return uri.request_uri(environ, True)
 
     def on_click(self):
@@ -77,11 +78,10 @@ class ActionLink(Link):
 class PageLink(Link):
 
     def __init__(self, id, page, values=None, anchor=''):
-        super(PageLink, self).__init__(id, None)
+        super().__init__(id, None)
         if (not issubclass(page, core.Page)
             or page is core.Page):
-            raise ComponentError(self,
-                                 "'{}' is not a subclass of Page".format(util.fqon_of(page)))
+            raise ComponentError(self, f"'{util.fqon_of(page)}' is not a subclass of Page")
         self._page = page
         self._values = values
         self._anchor = anchor

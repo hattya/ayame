@@ -7,7 +7,3 @@ omit =
 exclude_lines =
     pragma: no cover
     except ImportError:
-partial_branches =
-    pragma: no partial
-    if sys.version_info
-    PY2:

@@ -10,7 +10,6 @@ import locale
 import os
 import sys
 
-from . import _compat as five
 from . import (converter, core, http, i18n, local, markup, page, res, route,
                session, uri, util)
 from .exception import AyameError, _Redirect
@@ -19,7 +18,7 @@ from .exception import AyameError, _Redirect
 __all__ = ['Ayame', 'Request']
 
 
-class Ayame(object):
+class Ayame:
 
     def __init__(self, name):
         self._name = name
@@ -81,7 +80,7 @@ class Ayame(object):
             o, values = ctx._router.match()
             ctx.request = self.config['ayame.request'](environ, values)
             ctx.session = session.get(self, environ)
-            for _ in five.range(self.config['ayame.max.redirect']):
+            for _ in range(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(o)
                 except _Redirect as r:
@@ -140,7 +139,7 @@ class Ayame(object):
         return self._router.build(*args, **kwargs)
 
 
-class Request(object):
+class Request:
 
     __slots__ = ('environ', 'method', 'uri', 'query', 'form_data', 'path',
                  'locale')

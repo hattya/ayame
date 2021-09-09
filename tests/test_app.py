@@ -19,7 +19,7 @@ from base import AyameTestCase
 class AppTestCase(AyameTestCase):
 
     def setup(self):
-        super(AppTestCase, self).setup()
+        super().setup()
         self.locale = locale.getdefaultlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
@@ -29,7 +29,7 @@ class AppTestCase(AyameTestCase):
         self._getdefaultlocale = locale.getdefaultlocale
 
     def teardown(self):
-        super(AppTestCase, self).teardown()
+        super().teardown()
         locale.getdefaultlocale = self._getdefaultlocale
 
     def test_ayame(self):
@@ -192,7 +192,7 @@ class SimpleAppTestCase(AyameTestCase):
         shutil.rmtree(cls.session_dir)
 
     def setup(self):
-        super(SimpleAppTestCase, self).setup()
+        super().setup()
         self.app = ayame.Ayame(__name__)
         self.app.config['ayame.session.store'].path = self.session_dir
         map = self.app.config['ayame.route.map']
@@ -202,9 +202,9 @@ class SimpleAppTestCase(AyameTestCase):
         map.connect('/redir', RedirectPage)
 
     def new_environ(self, method='GET', path='', query=''):
-        return super(SimpleAppTestCase, self).new_environ(method=method,
-                                                          path=path,
-                                                          query=query)
+        return super().new_environ(method=method,
+                                   path=path,
+                                   query=query)
 
     def wsgi_call(self, environ):
         def start_response(status, headers, exc_info=None):
@@ -306,7 +306,7 @@ class SimpleAppTestCase(AyameTestCase):
 
 class SimplePage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -319,18 +319,18 @@ class SimplePage(ayame.Page):
 </html>
 """
     kwargs = {
-        'message': 'Hello World!'
+        'message': 'Hello World!',
     }
 
     def __init__(self):
-        super(SimplePage, self).__init__()
+        super().__init__()
         self.add(SessionLabel('message', self.kwargs['message']))
 
 
 class SessionLabel(basic.Label):
 
     def __init__(self, id, default):
-        super(SessionLabel, self).__init__(id, self.session.get(id, default))
+        super().__init__(id, self.session.get(id, default))
 
 
 class RedirectPage(ayame.Page):

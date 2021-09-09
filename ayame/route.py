@@ -8,8 +8,8 @@
 
 import collections
 import re
+import urllib.parse
 
-from . import _compat as five
 from . import http, uri, util
 from .exception import _RequestSlash, RouteError
 
@@ -82,7 +82,7 @@ _args_re = re.compile(r"""
 _sep_re = re.compile(r'[\s,]')
 
 
-class Rule(object):
+class Rule:
 
     def __init__(self, path, object, methods=None, redirection=False):
         self.__map = None
@@ -121,7 +121,7 @@ class Rule(object):
 
     def bind(self, map):
         if self.map is not None:
-            raise RouteError('rule {!r} already bound to map {!r}'.format(self, self.map))
+            raise RouteError(f'rule {self!r} already bound to map {self.map!r}')
         self.__map = map
         self._compile()
 
@@ -139,10 +139,10 @@ class Rule(object):
                 buf.append(re.escape(var))
                 self._segs.append((False, var))
             elif var in self._vars:
-                raise RouteError("variable name '{}' already in use".format(var))
+                raise RouteError(f"variable name '{var}' already in use")
             else:
                 conv = self._new_converter(conv, args)
-                buf.append(r'(?P<{}>{})'.format(var, conv.pattern))
+                buf.append(fr'(?P<{var}>{conv.pattern})')
                 self._segs.append((True, var))
                 self._convs[var] = conv
                 self._vars.add(var)
@@ -169,7 +169,7 @@ class Rule(object):
     def _new_converter(self, name, args):
         conv = self.map.converters.get(name)
         if conv is None:
-            raise RouteError("converter '{}' not found".format(name))
+            raise RouteError(f"converter '{name}' not found")
 
         if args:
             args, kwargs = self._parse_args(args)
@@ -211,7 +211,7 @@ class Rule(object):
                     v = float(v)
                 elif t == 'str':
                     q = v[0]
-                    v = five.str(v[1:-1].replace('\\' + q, q))
+                    v = str(v[1:-1].replace('\\' + q, q))
                 break
             if name is None:
                 args.append(v)
@@ -237,7 +237,7 @@ class Rule(object):
             raise _RequestSlash()
 
         values = {}
-        for var, val in five.items(g):
+        for var, val in g.items():
             try:
                 values[var] = self._convs[var].to_python(val)
             except ValueError:
@@ -270,7 +270,7 @@ class Rule(object):
         # query
         if query:
             query = []
-            for var, val in five.items(values):
+            for var, val in values.items():
                 val = [util.to_bytes(v, self.map.encoding)
                        for v in (cache[var] if var in cache else util.to_list(val))]
                 if not val:
@@ -280,15 +280,15 @@ class Rule(object):
             if query:
                 query = sorted(query, key=self.map.sort_key)
                 buf.append('?')
-                buf.append(five.urlencode(query, doseq=True))
+                buf.append(urllib.parse.urlencode(query, doseq=True))
         # anchor
         if anchor:
             buf.append('#')
             buf.append(uri.quote(anchor, encoding=self.map.encoding))
-        return u''.join(buf)
+        return ''.join(buf)
 
 
-class Map(object):
+class Map:
 
     def __init__(self, encoding='utf-8', slash=True, converters=None,
                  sort_key=None):
@@ -298,7 +298,7 @@ class Map(object):
             'default': _StringConverter,
             'string': _StringConverter,
             'path': _PathConverter,
-            'int': _IntegerConverter
+            'int': _IntegerConverter,
         }
         if converters:
             self.converters.update(converters)
@@ -325,7 +325,7 @@ class Map(object):
         return Router(self, environ)
 
 
-class _Submap(object):
+class _Submap:
 
     def __init__(self, map, path):
         self.map = map
@@ -341,7 +341,7 @@ class _Submap(object):
         self.map.add(Rule(self.path + path, dest, methods, True))
 
 
-class Router(object):
+class Router:
 
     def __init__(self, map, environ):
         self.map = map
@@ -364,7 +364,7 @@ class Router(object):
                 allow.update(rule.methods)
                 continue
             elif rule.has_redirect():
-                if isinstance(rule.object, five.string_type):
+                if isinstance(rule.object, str):
                     def repl(m):
                         var = m.group(1)
                         conv = rule._convs[var]
@@ -392,11 +392,11 @@ class Router(object):
                 continue
             elif relative:
                 return path
-            return uri.quote(self.environ.get('SCRIPT_NAME', u'')) + path
+            return uri.quote(self.environ.get('SCRIPT_NAME', '')) + path
         raise RouteError('no rule for building URI')
 
 
-class Converter(object):
+class Converter:
 
     pattern = r'[^/]+'
 
@@ -413,20 +413,20 @@ class Converter(object):
 class _StringConverter(Converter):
 
     def __init__(self, map, len=None, min=None):
-        super(_StringConverter, self).__init__(map)
+        super().__init__(map)
         self.len = len
         self.min = min
         if min is not None:
             max = len if len is not None else ''
-            cnt = '{},{}'.format(min, max)
+            cnt = fr'{min},{max}'
         elif len is not None:
             cnt = len
         else:
             cnt = '1,'
-        self.pattern = r'[^/]{{{}}}'.format(cnt)
+        self.pattern = fr'[^/]{{{cnt}}}'
 
     def to_uri(self, value):
-        value = super(_StringConverter, self).to_uri(value)
+        value = super().to_uri(value)
         if self.min is not None:
             if (len(value) < self.min
                 or (self.len is not None
@@ -448,12 +448,12 @@ class _IntegerConverter(Converter):
     pattern = r'\d+'
 
     def __init__(self, map, digits=None, min=None, max=None):
-        super(_IntegerConverter, self).__init__(map)
+        super().__init__(map)
         self.digits = digits
         self.min = min
         self.max = max
         if digits is not None:
-            self.pattern = r'\d{{{}}}'.format(digits)
+            self.pattern = fr'\d{{{digits}}}'
 
     def to_python(self, value):
         value = int(value)
@@ -467,8 +467,8 @@ class _IntegerConverter(Converter):
     def to_uri(self, value):
         value = self.to_python(value)
         if self.digits is not None:
-            value = '{:0{}d}'.format(value, self.digits)
+            value = f'{value:0{self.digits}d}'
             if len(value) > self.digits:
                 raise ValueError()
             return value
-        return five.str(value)
+        return str(value)

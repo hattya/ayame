@@ -8,6 +8,7 @@
 
 import contextlib
 import datetime
+import importlib.util
 import io
 import os
 import sys
@@ -24,32 +25,27 @@ from base import AyameTestCase
 class ResTestCase(AyameTestCase):
 
     def setup(self):
-        super(ResTestCase, self).setup()
+        super().setup()
         self._module = sys.modules[__name__]
 
     def teardown(self):
-        super(ResTestCase, self).teardown()
+        super().teardown()
         sys.modules[__name__] = self._module
 
     def new_module(self, loader):
         class Module(types.ModuleType):
             def __init__(self):
-                super(Module, self).__init__(__name__)
+                super().__init__(__name__)
                 self.__file__ = __file__
-                if sys.version_info < (3, 4):
-                    self.__loader__ = loader
-                else:
-                    from importlib.util import spec_from_loader
-
-                    self.__spec__ = spec_from_loader(__name__, loader,
-                                                     origin=__spec__.origin)
+                self.__spec__ = importlib.util.spec_from_loader(__name__, loader,
+                                                                origin=__spec__.origin)
 
         return Module()
 
     def test_resource(self):
         class Resource(res.Resource):
             def open(self, encoding='utf-8'):
-                return super(Resource, self).open(encoding)
+                return super().open(encoding)
 
         with self.assert_raises(TypeError):
             res.Resource(None)
@@ -62,7 +58,7 @@ class ResTestCase(AyameTestCase):
     def test_unknown_module(self):
         loader = res.ResourceLoader()
 
-        class Spam(object):
+        class Spam:
             pass
 
         def ham():
@@ -80,7 +76,7 @@ class ResTestCase(AyameTestCase):
     def test_invalid_path(self):
         loader = res.ResourceLoader()
 
-        class Spam(object):
+        class Spam:
             pass
 
         def ham():
@@ -98,7 +94,7 @@ class ResTestCase(AyameTestCase):
     def _test_error(self, regex):
         loader = res.ResourceLoader()
 
-        class Spam(object):
+        class Spam:
             pass
 
         def ham():
@@ -117,9 +113,9 @@ class ResTestCase(AyameTestCase):
             loader.load(sys.modules[__name__], '.txt')
 
     def test_loader(self):
-        class Loader(object):
+        class Loader:
             def get_data(self, path):
-                with io.open(path) as fp:
+                with open(path) as fp:
                     return fp.read().strip() + ' from Loader'
 
         sys.modules[__name__] = self.new_module(Loader())
@@ -130,7 +126,7 @@ class ResTestCase(AyameTestCase):
 
         class Resource(res.FileResource):
             def __init__(self, loader, path):
-                super(Resource, self).__init__(path)
+                super().__init__(path)
                 self._loader = loader
 
             def open(self):
@@ -138,7 +134,7 @@ class ResTestCase(AyameTestCase):
 
         loader = ResourceLoader()
 
-        class Spam(object):
+        class Spam:
             pass
 
         def ham():
@@ -172,10 +168,10 @@ class FileResourceTestCase(AyameTestCase):
         loader = res.ResourceLoader()
         path = self.path_for('Spam.txt')
 
-        class Spam(object):
+        class Spam:
             pass
 
-        class Eggs(object):
+        class Eggs:
             pass
 
         for o in (Spam, Spam()):
@@ -254,10 +250,10 @@ class ZipFileResourceTestCase(AyameTestCase):
         loader = res.ResourceLoader()
         path = 'm/Spam.txt'
         src = """\
-class Spam(object):
+class Spam:
     pass
 
-class Eggs(object):
+class Eggs:
     pass
 """
 

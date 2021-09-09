@@ -15,14 +15,13 @@ import time
 import types
 import zipfile
 
-from . import _compat as five
 from .exception import ResourceError
 
 
 __all__ = ['ResourceLoader', 'Resource', 'FileResource', 'ZipFileResource']
 
 
-class ResourceLoader(object):
+class ResourceLoader:
 
     def load(self, object, path):
         if isinstance(object, types.ModuleType):
@@ -34,18 +33,18 @@ class ResourceLoader(object):
             try:
                 m = sys.modules[object.__module__]
             except (AttributeError, KeyError):
-                raise ResourceError('cannot find module of {!r}'.format(object))
+                raise ResourceError(f'cannot find module of {object!r}')
             is_module = False
         try:
             parent, name = os.path.split(m.__file__)
         except AttributeError:
-            raise ResourceError("cannot determine '{}' module location".format(m.__name__))
+            raise ResourceError(f"cannot determine '{m.__name__}' module location")
         name = os.path.splitext(name)[0]
         # check path
         p = os.path.normpath(path)
         if (os.path.isabs(p)
             or p.split(os.path.sep, 1)[0] == os.path.pardir):
-            raise ResourceError("invalid path '{}'".format(path))
+            raise ResourceError(f"invalid path '{path}'")
         path = p
         # prepare path
         if (not is_module
@@ -61,7 +60,7 @@ class ResourceLoader(object):
                 loader = spec.loader
         r = self.load_from(loader, parent, path)
         if r is None:
-            raise ResourceError("cannot load '{}' from loader {!r}".format(path, loader))
+            raise ResourceError(f"cannot load '{path}' from loader {loader!r}")
         return r
 
     def load_from(self, loader, parent, path):
@@ -74,7 +73,7 @@ class ResourceLoader(object):
             return ZipFileResource(loader, path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
 
 
-class Resource(five.with_metaclass(abc.ABCMeta, object)):
+class Resource(metaclass=abc.ABCMeta):
 
     def __init__(self, path):
         self._path = path
@@ -96,33 +95,33 @@ class Resource(five.with_metaclass(abc.ABCMeta, object)):
 class FileResource(Resource):
 
     def __init__(self, path):
-        super(FileResource, self).__init__(path)
+        super().__init__(path)
         self._mtime = self._guard(os.stat, self._path).st_mtime
 
     def open(self, encoding='utf-8'):
-        return self._guard(io.open, self._path, encoding=encoding)
+        return self._guard(open, self._path, encoding=encoding)
 
     def _guard(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (OSError, IOError):
-            raise ResourceError("cannot load '{}'".format(self._path))
+        except OSError:
+            raise ResourceError(f"cannot load '{self._path}'")
 
 
 class ZipFileResource(Resource):
 
     def __init__(self, loader, path):
-        super(ZipFileResource, self).__init__(path)
+        super().__init__(path)
         self._loader = loader
         with self._guard(zipfile.ZipFile, self._loader.archive) as zf:
             zi = self._guard(zf.getinfo, self._path)
             self._mtime = time.mktime(datetime.datetime(*zi.date_time).timetuple())
 
     def open(self, encoding='utf-8'):
-        return io.StringIO(five.str(self._guard(self._loader.get_data, self._path), encoding))
+        return io.StringIO(str(self._guard(self._loader.get_data, self._path), encoding))
 
     def _guard(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (OSError, IOError, KeyError):
-            raise ResourceError("cannot load '{}' from loader {!r}".format(self._path, self._loader))
+        except (OSError, KeyError):
+            raise ResourceError(f"cannot load '{self._path}' from loader {self._loader!r}")

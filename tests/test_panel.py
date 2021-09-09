@@ -15,13 +15,13 @@ class PanelTestCase(AyameTestCase):
 
     @classmethod
     def setup_class(cls):
-        super(PanelTestCase, cls).setup_class()
+        super().setup_class()
         cls.app.config['ayame.markup.pretty'] = True
 
     def test_panel(self):
         class Spam(MarkupContainer):
             def __init__(self, id):
-                super(Spam, self).__init__(id)
+                super().__init__(id)
                 self.add(SpamPanel('panel'))
 
         class SpamPanel(Panel):
@@ -128,7 +128,7 @@ class PanelTestCase(AyameTestCase):
     def test_panel_with_markup_inheritance(self):
         class Eggs(MarkupContainer):
             def __init__(self, id):
-                super(Eggs, self).__init__(id)
+                super().__init__(id)
                 self.add(HamPanel('panel'))
 
         class EggsPanel(Panel):
@@ -248,7 +248,7 @@ class PanelTestCase(AyameTestCase):
     def test_invalid_markup_no_ayame_panel(self):
         class Toast(MarkupContainer):
             def __init__(self, id):
-                super(Toast, self).__init__(id)
+                super().__init__(id)
                 self.add(ToastPanel('panel'))
 
         class ToastPanel(Panel):
@@ -262,7 +262,7 @@ class PanelTestCase(AyameTestCase):
     def test_invalid_markup_no_head(self):
         class Beans(MarkupContainer):
             def __init__(self, id):
-                super(Beans, self).__init__(id)
+                super().__init__(id)
                 self.add(BeansPanel('panel'))
 
         class BeansPanel(Panel):
@@ -276,7 +276,7 @@ class PanelTestCase(AyameTestCase):
     def test_invalid_markup_unknown_ayame_element(self):
         class Bacon(MarkupContainer):
             def __init__(self, id):
-                super(Bacon, self).__init__(id)
+                super().__init__(id)
                 self.add(BaconPanel('panel'))
 
         class BaconPanel(Panel):
@@ -290,7 +290,7 @@ class PanelTestCase(AyameTestCase):
     def test_empty_markup(self):
         class Sausage(MarkupContainer):
             def __init__(self, id):
-                super(Sausage, self).__init__(id)
+                super().__init__(id)
                 self.add(SausagePanel('panel'))
 
         class SausagePanel(Panel):
@@ -381,7 +381,7 @@ class PanelTestCase(AyameTestCase):
     def test_duplicate_ayame_elements(self):
         class Lobster(MarkupContainer):
             def __init__(self, id):
-                super(Lobster, self).__init__(id)
+                super().__init__(id)
                 self.add(LobsterPanel('panel'))
 
         class LobsterPanel(Panel):
@@ -552,7 +552,7 @@ class PanelTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
             status, headers, content = p()
-        html = self.format(TomatoPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
+        html = self.format(TomatoPage, message='\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
@@ -566,14 +566,14 @@ class MarkupContainer(ayame.MarkupContainer):
     def render(self):
         m = self.load_markup()
         self.head = self.find_head(m.root)
-        html = super(MarkupContainer, self).render(m.root)
+        html = super().render(m.root)
         return m, html
 
 
 class Panel(panel.Panel):
 
     def __init__(self, id, model=None):
-        super(Panel, self).__init__(id, model)
+        super().__init__(id, model)
         self.add(basic.Label('class', self.__class__.__name__))
         self.find('class').render_body_only = True
 
@@ -585,7 +585,7 @@ class Panel(panel.Panel):
 
 class TomatoPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -599,7 +599,7 @@ class TomatoPage(ayame.Page):
 """
 
     def __init__(self):
-        super(TomatoPage, self).__init__()
+        super().__init__()
         self.add(TomatoPanel('panel'))
 
 
@@ -609,7 +609,7 @@ class TomatoPanel(Panel):
 
 class ShallotsPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -632,11 +632,11 @@ class ShallotsPage(ayame.Page):
     <ul class="feedback-panel">
       <li>&#x27;text&#x27; is required</li>
     </ul>\
-""" if v else ''
+""" if v else '',
     }
 
     def __init__(self):
-        super(ShallotsPage, self).__init__()
+        super().__init__()
         self.add(form.Form('form'))
         self.find('form').add(form.TextField('text'))
         self.find('form:text').required = True

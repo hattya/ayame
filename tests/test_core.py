@@ -7,7 +7,6 @@
 #
 
 import ayame
-from ayame import _compat as five
 from ayame import basic, http, markup, model
 from base import AyameTestCase
 
@@ -253,13 +252,13 @@ class CoreTestCase(AyameTestCase):
 
         root = markup.Element(self.of('root'))
         root.append('>')
-        for i in five.range(1, 10):
+        for i in range(1, 10):
             a = markup.Element(self.of('a'),
                                attrib={markup.AYAME_ID: str(i)})
             root.append(a)
         root.append('<')
         mc = ayame.MarkupContainer('a')
-        for i in five.range(1, 10):
+        for i in range(1, 10):
             mc.add(Component(str(i)))
 
         root = mc.render(root)
@@ -293,13 +292,13 @@ class CoreTestCase(AyameTestCase):
 
         root = markup.Element(self.of('root'))
         root.append('>')
-        for i in five.range(2, 10, 4):
+        for i in range(2, 10, 4):
             a = markup.Element(self.of('a'),
                                attrib={markup.AYAME_ID: str(i)})
             root.append(a)
         root.append('<')
         mc = ayame.MarkupContainer('a')
-        for i in five.range(2, 10, 4):
+        for i in range(2, 10, 4):
             mc.add(Component(str(i)))
 
         root = mc.render(root)
@@ -342,7 +341,7 @@ class CoreTestCase(AyameTestCase):
 
         root = markup.Element(self.of('root'))
         root.append('>')
-        for i in five.range(1, 10):
+        for i in range(1, 10):
             a = markup.Element(self.ayame_of('a' if i % 2 else str(i)))
             root.append(a)
         root.append('<')
@@ -382,7 +381,7 @@ class CoreTestCase(AyameTestCase):
 
         root = markup.Element(self.of('root'))
         root.append('>')
-        for i in five.range(2, 10, 4):
+        for i in range(2, 10, 4):
             a = markup.Element(self.ayame_of(str(i)))
             root.append(a)
         root.append('<')
@@ -422,7 +421,7 @@ class CoreTestCase(AyameTestCase):
                            attrib={markup.AYAME_ID: 'c'})
         container.append(a)
         mc = ayame.MarkupContainer('a')
-        mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, self.of('root'))
@@ -568,7 +567,7 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = BeansPage()
             status, headers, content = p()
-        html = self.format(BeansPage, message=u'\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
+        html = self.format(BeansPage, message='\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
@@ -604,7 +603,7 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = BaconPage()
             status, headers, content = p()
-        html = self.format(BaconPage, message=u'\u9001\u4fe1')
+        html = self.format(BaconPage, message='\u9001\u4fe1')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
@@ -1022,7 +1021,7 @@ class CoreTestCase(AyameTestCase):
         self.assert_equal(p.children, ['after ayame:child (Bacon)'])
 
     def test_markup_inheritance_no_superclass(self):
-        class Sausage(ayame.MarkupContainer, object):
+        class Sausage(ayame.MarkupContainer):
             pass
 
         with self.application():
@@ -1232,7 +1231,7 @@ class CoreTestCase(AyameTestCase):
 """
 
             def __init__(self):
-                super(SpamPage, self).__init__()
+                super().__init__()
                 self.add(basic.Label('message', 'Hello World!'))
                 self.headers['Content-Type'] = 'text/plain'
 
@@ -1274,15 +1273,15 @@ class CoreTestCase(AyameTestCase):
     def test_behavior_render(self):
         class Behavior(ayame.Behavior):
             def on_before_render(self, component):
-                super(Behavior, self).on_before_render(component)
+                super().on_before_render(component)
                 component.model_object.append('before-render')
 
             def on_component(self, component, element):
-                super(Behavior, self).on_component(component, element)
+                super().on_component(component, element)
                 component.model_object.append('component')
 
             def on_after_render(self, component):
-                super(Behavior, self).on_after_render(component)
+                super().on_after_render(component)
                 component.model_object.append('after-render')
 
         c = ayame.Component('a', model.Model([]))
@@ -1511,18 +1510,18 @@ class CoreTestCase(AyameTestCase):
         regex = r' not .* subclass of MarkupContainer$'
 
         with self.assert_raises_regex(ayame.AyameError, regex):
-            class C(object):
+            class C:
                 @ayame.nested
-                class C(object):
+                class C:
                     pass
 
         with self.assert_raises_regex(ayame.AyameError, regex):
-            class C(object):
+            class C:
                 @ayame.nested
                 def f(self):
                     pass
 
-        class C(object):
+        class C:
             @ayame.nested
             class MarkupContainer(ayame.MarkupContainer):
                 pass
@@ -1633,7 +1632,7 @@ class CoreTestCase(AyameTestCase):
 class Component(ayame.Component):
 
     def __init__(self, id):
-        super(Component, self).__init__(id, model.Model(0))
+        super().__init__(id, model.Model(0))
 
     def on_fire(self):
         self.model_object += 1
@@ -1642,7 +1641,7 @@ class Component(ayame.Component):
 class AyameHeadContainer(ayame.MarkupContainer):
 
     def __init__(self, id, elem=None):
-        super(AyameHeadContainer, self).__init__(id)
+        super().__init__(id)
         self._elem = elem
 
     def on_render(self, element):
@@ -1670,14 +1669,14 @@ class EggsPage(ayame.Page):
 </html>
 """
     kwargs = {
-        'clay1': lambda v=True: '<p>clay1</p>' if v else ''
+        'clay1': lambda v=True: '<p>clay1</p>' if v else '',
     }
 
     def __init__(self):
-        super(EggsPage, self).__init__()
+        super().__init__()
         self.model = model.CompoundModel({
             'clay1': 0,
-            'clay2': 0
+            'clay2': 0,
         })
         self.add(self.Clay('clay1'))
         self.add(ayame.MarkupContainer('obstacle'))
@@ -1691,7 +1690,7 @@ class EggsPage(ayame.Page):
 
 class BeansPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -1707,7 +1706,7 @@ class BeansPage(ayame.Page):
 
 class BaconPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">

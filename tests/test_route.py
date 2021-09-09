@@ -333,7 +333,7 @@ class RouteTestCase(AyameTestCase):
     def test_redirect(self):
         map = route.Map()
         map.redirect('/<y:int>/<m:int(2, min=1, max=12)>/', '/_/<y>/<m>/')
-        map.redirect('/<s:string(2)>/', lambda s: '/_/{}/'.format(s))
+        map.redirect('/<s:string(2)>/', lambda s: f'/_/{s}/')
 
         # GET /2011/01/ -> MovedPermanently
         router = map.bind(self.new_environ(path='/2011/01/'))

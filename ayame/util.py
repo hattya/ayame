@@ -6,22 +6,15 @@
 #   SPDX-License-Identifier: MIT
 #
 
-import collections
+import collections.abc
 import hashlib
 import itertools
 import random
 import threading
 
-from . import _compat as five
-
 
 __all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',
            'RWLock', 'LRUCache', 'LFUCache']
-
-if five.PY2:
-    _builtins = '__builtin__'
-else:
-    _builtins = 'builtins'
 
 
 def fqon_of(object):
@@ -31,7 +24,7 @@ def fqon_of(object):
     if hasattr(object, '__module__'):
         if object.__module__ is None:
             return '.'.join(('<unknown>', object.__name__))
-        elif object.__module__ != _builtins:
+        elif object.__module__ != 'builtins':
             return '.'.join((object.__module__, object.__name__))
     return object.__name__
 
@@ -39,8 +32,8 @@ def fqon_of(object):
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
         return s
-    elif not isinstance(s, five.string_type):
-        s = five.str(s)
+    elif not isinstance(s, str):
+        s = str(s)
     return s.encode(encoding, errors)
 
 
@@ -59,16 +52,16 @@ def new_token(algorithm='sha1'):
 
 
 def iterable(o):
-    return (isinstance(o, collections.Iterable)
-            and not isinstance(o, five.string_type))
+    return (isinstance(o, collections.abc.Iterable)
+            and not isinstance(o, str))
 
 
 class FilterDict(dict):
 
     def __init__(self, *args, **kwargs):
-        super(FilterDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         convert = self.__convert__
-        pop = super(FilterDict, self).pop
+        pop = super().pop
         for key in tuple(self):
             new_key = convert(key)
             if new_key != key:
@@ -78,16 +71,16 @@ class FilterDict(dict):
         return key
 
     def __getitem__(self, key):
-        return super(FilterDict, self).__getitem__(self.__convert__(key))
+        return super().__getitem__(self.__convert__(key))
 
     def __setitem__(self, key, value):
-        return super(FilterDict, self).__setitem__(self.__convert__(key), value)
+        return super().__setitem__(self.__convert__(key), value)
 
     def __delitem__(self, key):
-        super(FilterDict, self).__delitem__(self.__convert__(key))
+        super().__delitem__(self.__convert__(key))
 
     def __contains__(self, item):
-        return super(FilterDict, self).__contains__(self.__convert__(item))
+        return super().__contains__(self.__convert__(item))
 
     def __copy__(self):
         return self.__class__(self)
@@ -95,19 +88,19 @@ class FilterDict(dict):
     copy = __copy__
 
     def get(self, key, *args):
-        return super(FilterDict, self).get(self.__convert__(key), *args)
+        return super().get(self.__convert__(key), *args)
 
     def pop(self, key, *args):
-        return super(FilterDict, self).pop(self.__convert__(key), *args)
+        return super().pop(self.__convert__(key), *args)
 
     def setdefault(self, key, *args):
-        return super(FilterDict, self).setdefault(self.__convert__(key), *args)
+        return super().setdefault(self.__convert__(key), *args)
 
     def update(self, *args, **kwargs):
         keys = tuple(self)
-        super(FilterDict, self).update(*args, **kwargs)
+        super().update(*args, **kwargs)
         convert = self.__convert__
-        pop = super(FilterDict, self).pop
+        pop = super().pop
         for key in tuple(self):
             if key not in keys:
                 new_key = convert(key)
@@ -115,7 +108,7 @@ class FilterDict(dict):
                     self[new_key] = pop(key)
 
 
-class RWLock(object):
+class RWLock:
 
     def __init__(self):
         self._rcnt = 0
@@ -173,7 +166,7 @@ class RWLock(object):
             # wake up writers
             self._w.notify_all()
 
-    class _Lock(object):
+    class _Lock:
 
         def __init__(self, acquire, release):
             self._acquire = acquire
@@ -187,7 +180,7 @@ class RWLock(object):
             self._release()
 
 
-class _Cache(object):
+class _Cache:
 
     __slots__ = ('_cap', '_ref', '_head', '_lock')
 
@@ -210,7 +203,7 @@ class _Cache(object):
     cap = property(**cap())
 
     def __repr__(self):
-        return u'{}({})'.format(self.__class__.__name__, list(self.items()))
+        return f'{self.__class__.__name__}({list(self.items())})'
 
     def __len__(self):
         with self._lock.read():
@@ -339,7 +332,7 @@ class LRUCache(_Cache):
             self._head = None
 
     def on_init(self):
-        super(LRUCache, self).on_init()
+        super().on_init()
         self._head = None
 
     def _iter(self, reverse=False):
@@ -398,7 +391,7 @@ class LRUCache(_Cache):
                 self._head = e.next
         self.on_evicted(e.key, e.value)
 
-    class _Entry(object):
+    class _Entry:
 
         __slots__ = ('key', 'value', 'next', 'prev')
 
@@ -408,7 +401,7 @@ class LRUCache(_Cache):
             self.next = self.prev = None
 
 
-collections.MutableMapping.register(LRUCache)
+collections.abc.MutableMapping.register(LRUCache)
 
 
 class LFUCache(_Cache):
@@ -478,7 +471,7 @@ class LFUCache(_Cache):
             self._head.next = self._head.prev = self._head
 
     def on_init(self):
-        super(LFUCache, self).on_init()
+        super().on_init()
         self._head = self._Frequency(0)
 
     def _iter(self, reverse=False):
@@ -539,10 +532,10 @@ class LFUCache(_Cache):
 
     def _lfu(self):
         if self._head.next is self._head:
-            raise RuntimeError("'{}' is empty".format(self.__class__.__name__))
+            raise RuntimeError(f"'{self.__class__.__name__}' is empty")
         return self._ref[self._head.next.head.key]
 
-    class _Frequency(object):
+    class _Frequency:
 
         __slots__ = ('value', 'head', 'len', 'next', 'prev')
 
@@ -574,7 +567,7 @@ class LFUCache(_Cache):
             e.parent = None
             self.len -= 1
 
-    class _Entry(object):
+    class _Entry:
 
         __slots__ = ('key', 'value', 'parent', 'next', 'prev')
 
@@ -585,4 +578,4 @@ class LFUCache(_Cache):
             self.next = self.prev = None
 
 
-collections.MutableMapping.register(LFUCache)
+collections.abc.MutableMapping.register(LFUCache)

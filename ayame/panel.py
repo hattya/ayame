@@ -6,7 +6,6 @@
 #   SPDX-License-Identifier: MIT
 #
 
-from . import _compat as five
 from . import core, basic, form, markup
 from . import model as mm
 from .exception import RenderingError
@@ -18,7 +17,7 @@ __all__ = ['Panel', 'FeedbackPanel']
 class Panel(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        super(Panel, self).__init__(id, model)
+        super().__init__(id, model)
         self.has_markup = True
         self.render_body_only = True
 
@@ -48,13 +47,13 @@ class Panel(core.MarkupContainer):
             self.page().head.extend(ayame_head)
         # render panel
         element[:] = ayame_panel
-        return super(Panel, self).on_render(element)
+        return super().on_render(element)
 
 
 class FeedbackPanel(Panel):
 
     def __init__(self, id):
-        super(FeedbackPanel, self).__init__(id)
+        super().__init__(id)
         self.__errors = []
 
         self.add(self._ListView('feedback', mm.Model(self.__errors)))
@@ -66,7 +65,7 @@ class FeedbackPanel(Panel):
                 for c, _ in c.walk():
                     if (isinstance(c, form.FormComponent)
                         and c.error):
-                        self.__errors.append(five.str(c.error))
+                        self.__errors.append(str(c.error))
         self.visible = bool(self.__errors)
 
     class _ListView(basic.ListView):

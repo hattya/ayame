@@ -9,7 +9,6 @@
 import abc
 import re
 
-from . import _compat as five
 from . import core, markup
 from .exception import ValidationError
 
@@ -35,7 +34,7 @@ _email = r"""
 _pct_encoded = r'(?:%[0-9A-F][0-9A-F])'
 _unreserved = r'[A-Z0-9\-._~]'
 _sub_delims = r"[!$&'()*+,;=]"
-_pchar = r'(?:{}|{}|{}|[:@])'.format(_unreserved, _pct_encoded, _sub_delims)
+_pchar = fr'(?:{_unreserved}|{_pct_encoded}|{_sub_delims}|[:@])'
 _ipv4 = r'(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
 _url = r"""
     \A
@@ -88,7 +87,7 @@ _TYPE = markup.QName(markup.XHTML_NS, 'type')
 _MAXLENGTH = markup.QName(markup.XHTML_NS, 'maxlength')
 
 
-class Validator(five.with_metaclass(abc.ABCMeta, core.Behavior)):
+class Validator(core.Behavior, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def validate(self, object):
@@ -101,11 +100,11 @@ class Validator(five.with_metaclass(abc.ABCMeta, core.Behavior)):
 class RegexValidator(Validator):
 
     def __init__(self, pattern, flags=0):
-        super(RegexValidator, self).__init__()
+        super().__init__()
         self.regex = re.compile(pattern, flags)
 
     def validate(self, object):
-        if not (isinstance(object, five.string_type)
+        if not (isinstance(object, str)
                 and self.regex.match(object)):
             e = self.error()
             e.vars['pattern'] = self.regex.pattern
@@ -115,19 +114,19 @@ class RegexValidator(Validator):
 class EmailValidator(RegexValidator):
 
     def __init__(self):
-        super(EmailValidator, self).__init__(_email, re.IGNORECASE | re.VERBOSE)
+        super().__init__(_email, re.IGNORECASE | re.VERBOSE)
 
 
 class URLValidator(RegexValidator):
 
     def __init__(self):
-        super(URLValidator, self).__init__(_url, re.IGNORECASE | re.VERBOSE)
+        super().__init__(_url, re.IGNORECASE | re.VERBOSE)
 
 
 class RangeValidator(Validator):
 
     def __init__(self, min=None, max=None):
-        super(RangeValidator, self).__init__()
+        super().__init__()
         self.min = min
         self.max = max
 
@@ -159,29 +158,21 @@ class RangeValidator(Validator):
             e.vars.update(vars)
             raise e
 
-    if five.PY2:
-        def typeof(self, object):
-            if isinstance(object, five.integer_types):
-                return five.integer_types
-            elif isinstance(object, five.string_type):
-                return five.string_type
-            return object.__class__
-    else:
-        def typeof(self, object):
-            return object.__class__
+    def typeof(self, object):
+        return object.__class__
 
 
 class StringValidator(RangeValidator):
 
     def validate(self, object):
-        if not isinstance(object, five.string_type):
+        if not isinstance(object, str):
             raise self.error(variation='type')
-        super(StringValidator, self).validate(len(object))
+        super().validate(len(object))
 
     def on_component(self, component, element):
         if (self.max is not None
             and self.is_text_input(element)):
-            element.attrib[_MAXLENGTH] = five.str(self.max)
+            element.attrib[_MAXLENGTH] = str(self.max)
 
     def is_text_input(self, element):
         return (element.qname == _INPUT

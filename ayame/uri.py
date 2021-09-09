@@ -6,7 +6,8 @@
 #   SPDX-License-Identifier: MIT
 #
 
-from . import _compat as five
+import urllib.parse
+
 from . import util
 
 
@@ -18,17 +19,17 @@ _safe = "/-._~!$&'()*+,;=:@"
 
 def parse_qs(environ):
     qs = environ.get('QUERY_STRING')
-    return five.urlparse_qs(qs, keep_blank_values=True) if qs else {}
+    return urllib.parse.parse_qs(qs, keep_blank_values=True) if qs else {}
 
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return five.urlquote(util.to_bytes(s, encoding, errors),
-                         util.to_bytes(safe, 'ascii', 'ignore'))
+    return urllib.parse.quote(util.to_bytes(s, encoding, errors),
+                              util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
-    return five.urlquote_plus(util.to_bytes(s, encoding, errors),
-                              util.to_bytes(safe, 'ascii', 'ignore'))
+    return urllib.parse.quote_plus(util.to_bytes(s, encoding, errors),
+                                   util.to_bytes(safe, 'ascii', 'ignore'))
 
 
 def application_uri(environ):
@@ -94,7 +95,7 @@ def is_relative_uri(uri):
     elif (uri is None
           or uri[0] in ('/', '#')):
         return False
-    return not five.urlsplit(uri).scheme
+    return not urllib.parse.urlsplit(uri).scheme
 
 
 def relative_uri(environ, uri):

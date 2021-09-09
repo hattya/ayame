@@ -15,13 +15,13 @@ class BorderTestCase(AyameTestCase):
 
     @classmethod
     def setup_class(cls):
-        super(BorderTestCase, cls).setup_class()
+        super().setup_class()
         cls.app.config['ayame.markup.pretty'] = True
 
     def test_border(self):
         class Spam(MarkupContainer):
             def __init__(self, id):
-                super(Spam, self).__init__(id)
+                super().__init__(id)
                 self.add(SpamBorder('border'))
 
         class SpamBorder(Border):
@@ -146,7 +146,7 @@ class BorderTestCase(AyameTestCase):
     def test_border_with_markup_inheritance(self):
         class Eggs(MarkupContainer):
             def __init__(self, id):
-                super(Eggs, self).__init__(id)
+                super().__init__(id)
                 self.add(HamBorder('border'))
 
         class EggsBorder(Border):
@@ -284,7 +284,7 @@ class BorderTestCase(AyameTestCase):
     def test_invalid_markup_no_ayame_border(self):
         class Toast(MarkupContainer):
             def __init__(self, id):
-                super(Toast, self).__init__(id)
+                super().__init__(id)
                 self.add(ToastBorder('border'))
 
         class ToastBorder(Border):
@@ -298,7 +298,7 @@ class BorderTestCase(AyameTestCase):
     def test_invalid_markup_no_ayame_body(self):
         class Beans(MarkupContainer):
             def __init__(self, id):
-                super(Beans, self).__init__(id)
+                super().__init__(id)
                 self.add(BeansBorder('border'))
 
         class BeansBorder(Border):
@@ -312,7 +312,7 @@ class BorderTestCase(AyameTestCase):
     def test_invalid_markup_unknown_ayame_element(self):
         class Bacon(MarkupContainer):
             def __init__(self, id):
-                super(Bacon, self).__init__(id)
+                super().__init__(id)
                 self.add(BaconBorder('border'))
 
         class BaconBorder(Border):
@@ -326,7 +326,7 @@ class BorderTestCase(AyameTestCase):
     def test_empty_markup(self):
         class Sausage(MarkupContainer):
             def __init__(self, id):
-                super(Sausage, self).__init__(id)
+                super().__init__(id)
                 self.add(SausageBorder('border'))
 
         class SausageBorder(Border):
@@ -417,7 +417,7 @@ class BorderTestCase(AyameTestCase):
     def test_duplicate_ayame_elements(self):
         class Lobster(MarkupContainer):
             def __init__(self, id):
-                super(Lobster, self).__init__(id)
+                super().__init__(id)
                 self.add(LobsterBorder('border'))
 
         class LobsterBorder(Border):
@@ -614,7 +614,7 @@ class BorderTestCase(AyameTestCase):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
             status, headers, content = p()
-        html = self.format(TomatoPage, message=u'\u524d, \u4e2d, \u5f8c')
+        html = self.format(TomatoPage, message='\u524d, \u4e2d, \u5f8c')
         self.assert_equal(status, http.OK.status)
         self.assert_equal(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
@@ -628,14 +628,14 @@ class MarkupContainer(ayame.MarkupContainer):
     def render(self):
         m = self.load_markup()
         self.head = self.find_head(m.root)
-        html = super(MarkupContainer, self).render(m.root)
+        html = super().render(m.root)
         return m, html
 
 
 class Border(border.Border):
 
     def __init__(self, id, model=None):
-        super(Border, self).__init__(id, model)
+        super().__init__(id, model)
         self.add(basic.Label('class', self.__class__.__name__))
         self.body.find('class').render_body_only = True
 
@@ -647,7 +647,7 @@ class Border(border.Border):
 
 class TomatoPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -661,7 +661,7 @@ class TomatoPage(ayame.Page):
 """
 
     def __init__(self):
-        super(TomatoPage, self).__init__()
+        super().__init__()
         self.add(TomatoBorder('border'))
 
 
@@ -671,7 +671,7 @@ class TomatoBorder(Border):
 
 class ShallotsPage(ayame.Page):
 
-    html_t = u"""\
+    html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}">
@@ -699,11 +699,11 @@ class ShallotsPage(ayame.Page):
         <div class="field">
           <input name="field:field_body:text" type="text" value="" /><br />
         </div>\
-"""
+""",
     }
 
     def __init__(self):
-        super(ShallotsPage, self).__init__()
+        super().__init__()
         self.add(form.Form('form'))
         self.find('form').add(border.FeedbackFieldBorder('field'))
         self.find('form:field').add(form.TextField('text'))

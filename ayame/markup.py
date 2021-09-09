@@ -8,10 +8,11 @@
 
 import abc
 import collections
+import collections.abc
+import html.parser
 import io
 import re
 
-from . import _compat as five
 from . import util
 from .exception import MarkupError, RenderingError
 
@@ -25,9 +26,9 @@ __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'MarkupHandler', 'MarkupPrettifier', 'XMLHandler', 'XHTML1Handler']
 
 # namespace URI
-XML_NS = u'http://www.w3.org/XML/1998/namespace'
-XHTML_NS = u'http://www.w3.org/1999/xhtml'
-AYAME_NS = u'http://hattya.github.io/ayame'
+XML_NS = 'http://www.w3.org/XML/1998/namespace'
+XHTML_NS = 'http://www.w3.org/1999/xhtml'
+AYAME_NS = 'http://hattya.github.io/ayame'
 
 # XML declaration
 _xml_decl_re = re.compile(r"""
@@ -52,8 +53,8 @@ _xml_decl_re = re.compile(r"""
 """, re.VERBOSE)
 
 # DOCTYPE of (X)HTML
-XHTML1_STRICT = (u'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
-                 u' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
+XHTML1_STRICT = ('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
+                 ' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
 _xhtml1_strict_re = re.compile(r"""
     \A
     DOCTYPE \s+ html
@@ -79,8 +80,7 @@ _xhtml1_block = frozenset((
     'table',
 ))
 _xhtml1_Block = (
-    _xhtml1_block
-    | frozenset((
+    _xhtml1_block | frozenset((
         'form',
         'noscript', 'ins', 'del', 'script',  # %misc;
     ))
@@ -106,37 +106,37 @@ class QName(collections.namedtuple('QName', 'ns_uri, name')):
     __slots__ = ()
 
     def __repr__(self):
-        return u'{{{}}}{}'.format(*self)
+        return '{{{}}}{}'.format(*self)
 
 
 # HTML elements
-HTML = QName(XHTML_NS, u'html')
-HEAD = QName(XHTML_NS, u'head')
-DIV = QName(XHTML_NS, u'div')
+HTML = QName(XHTML_NS, 'html')
+HEAD = QName(XHTML_NS, 'head')
+DIV = QName(XHTML_NS, 'div')
 
 # ayame elements
-AYAME_CONTAINER = QName(AYAME_NS, u'container')
-AYAME_ENCLOSURE = QName(AYAME_NS, u'enclosure')
-AYAME_EXTEND = QName(AYAME_NS, u'extend')
-AYAME_CHILD = QName(AYAME_NS, u'child')
-AYAME_PANEL = QName(AYAME_NS, u'panel')
-AYAME_BORDER = QName(AYAME_NS, u'border')
-AYAME_BODY = QName(AYAME_NS, u'body')
-AYAME_HEAD = QName(AYAME_NS, u'head')
-AYAME_MESSAGE = QName(AYAME_NS, u'message')
-AYAME_REMOVE = QName(AYAME_NS, u'remove')
+AYAME_CONTAINER = QName(AYAME_NS, 'container')
+AYAME_ENCLOSURE = QName(AYAME_NS, 'enclosure')
+AYAME_EXTEND = QName(AYAME_NS, 'extend')
+AYAME_CHILD = QName(AYAME_NS, 'child')
+AYAME_PANEL = QName(AYAME_NS, 'panel')
+AYAME_BORDER = QName(AYAME_NS, 'border')
+AYAME_BODY = QName(AYAME_NS, 'body')
+AYAME_HEAD = QName(AYAME_NS, 'head')
+AYAME_MESSAGE = QName(AYAME_NS, 'message')
+AYAME_REMOVE = QName(AYAME_NS, 'remove')
 
 # ayame attributes
-AYAME_ID = QName(AYAME_NS, u'id')
-# AYAME_CHILD = QName(AYAME_NS, u'child')
-AYAME_KEY = QName(AYAME_NS, u'key')
-# AYAME_MESSAGE = QName(AYAME_NS, u'message')
+AYAME_ID = QName(AYAME_NS, 'id')
+# AYAME_CHILD = QName(AYAME_NS, 'child')
+AYAME_KEY = QName(AYAME_NS, 'key')
+# AYAME_MESSAGE = QName(AYAME_NS, 'message')
 
 
 MarkupType = collections.namedtuple('MarkupType', 'extension, mime_type, scope')
 
 
-class Markup(object):
+class Markup:
 
     __slots__ = ('xml_decl', 'lang', 'doctype', 'root')
 
@@ -164,7 +164,7 @@ class Markup(object):
     copy = __copy__
 
 
-class Element(object):
+class Element:
 
     __slots__ = ('qname', 'attrib', 'type', 'ns', 'children')
 
@@ -183,14 +183,10 @@ class Element(object):
         self.children = []
 
     def __repr__(self):
-        return '<{} {!r} at 0x{:x}>'.format(util.fqon_of(self), self.qname, id(self))
+        return f'<{util.fqon_of(self)} {self.qname!r} at 0x{id(self):x}>'
 
-    if five.PY2:
-        def __nonzero__(self):
-            return True
-    else:
-        def __bool__(self):
-            return True
+    def __bool__(self):
+        return True
 
     def __len__(self):
         return self.children.__len__()
@@ -248,15 +244,15 @@ class Element(object):
         beg = end = 0
         children = []
         for i, node in enumerate(self):
-            if isinstance(node, five.string_type):
+            if isinstance(node, str):
                 end = i + 1
             else:
                 if beg < end:
-                    children.append(u''.join(self[beg:end]))
+                    children.append(''.join(self[beg:end]))
                 children.append(node)
                 beg = i + 1
         if beg < end:
-            children.append(u''.join(self[beg:end]))
+            children.append(''.join(self[beg:end]))
         self[:] = children
 
 
@@ -267,7 +263,7 @@ class _AttributeDict(util.FilterDict):
     def __convert__(self, key):
         if isinstance(key, QName):
             return QName(key.ns_uri, key.name.lower())
-        elif isinstance(key, five.string_type):
+        elif isinstance(key, str):
             return key.lower()
         return key
 
@@ -287,14 +283,14 @@ _space_re = re.compile(r'\s{2,}')
 _newline_re = re.compile(r'[\n\r]+')
 
 
-class MarkupLoader(five.HTMLParser):
+class MarkupLoader(html.parser.HTMLParser):
 
     def __init__(self):
-        super(MarkupLoader, self).__init__(convert_charrefs=False)
+        super().__init__(convert_charrefs=False)
         self._stack = collections.deque()
         self._cache = {}
 
-    def load(self, object, src, lang=u'xhtml1'):
+    def load(self, object, src, lang='xhtml1'):
         self.reset()
         self._stack.clear()
         self._cache.clear()
@@ -314,10 +310,10 @@ class MarkupLoader(five.HTMLParser):
         return self._markup
 
     def close(self):
-        super(MarkupLoader, self).close()
+        super().close()
         if self._stack:
             raise MarkupError(self._object, self.getpos(),
-                              u"end tag for element '{}' omitted".format(self._peek().qname))
+                              f"end tag for element '{self._peek().qname}' omitted")
 
     def handle_starttag(self, name, attrs):
         if self._remove:
@@ -373,20 +369,20 @@ class MarkupLoader(five.HTMLParser):
         self._append_text(data)
 
     def handle_charref(self, name):
-        self._append_text(u''.join(('&#', name, ';')))
+        self._append_text(''.join(('&#', name, ';')))
 
     def handle_entityref(self, name):
-        self._append_text(u''.join(('&', name, ';')))
+        self._append_text(''.join(('&', name, ';')))
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
-            self._markup.lang = u'xhtml1'
+            self._markup.lang = 'xhtml1'
             self._markup.doctype = XHTML1_STRICT
         elif _html_re.match(decl):
             raise MarkupError(self._object, self.getpos(),
                               'unsupported HTML version')
         else:
-            self._markup.doctype = u''.join(('<!', decl, '>'))
+            self._markup.doctype = f'<!{decl}>'
 
     def handle_pi(self, data):
         if data.startswith('xml '):
@@ -394,9 +390,9 @@ class MarkupLoader(five.HTMLParser):
             if not m:
                 raise MarkupError(self._object, self.getpos(),
                                   'malformed XML declaration')
-            self._markup.lang = u'xml'
+            self._markup.lang = 'xml'
 
-            for k, v in five.items(m.groupdict()):
+            for k, v in m.groupdict().items():
                 if not v:
                     continue
                 elif v[0] != v[-1]:
@@ -406,7 +402,7 @@ class MarkupLoader(five.HTMLParser):
 
     def _new_qname(self, name, ns=None):
         def ns_uri_of(pfx):
-            for i in five.range(len(self._stack) - 1, -1, -1):
+            for i in range(len(self._stack) - 1, -1, -1):
                 elem = self._at(i)
                 if pfx in elem.ns:
                     return elem.ns[pfx]
@@ -419,7 +415,7 @@ class MarkupLoader(five.HTMLParser):
             uri = ns[prefix] if prefix in ns else ns_uri_of(prefix)
             if uri is None:
                 raise MarkupError(self._object, self.getpos(),
-                                  u"unknown namespace prefix '{}'".format(prefix))
+                                  f"unknown namespace prefix '{prefix}'")
         else:
             uri = ns[''] if '' in ns else ns_uri_of('')
             if uri is None:
@@ -445,12 +441,12 @@ class MarkupLoader(five.HTMLParser):
         if (not self._stack
             or self._peek().qname != qname):
             raise MarkupError(self._object, self.getpos(),
-                              u"end tag for element '{}' which is not open".format(qname))
+                              f"end tag for element '{qname}' which is not open")
         return self._stack.pop()
 
     def _flush_text(self):
         if self._text:
-            self._peek().append(u''.join(self._text))
+            self._peek().append(''.join(self._text))
             del self._text[:]
 
     def _peek(self):
@@ -464,7 +460,7 @@ class MarkupLoader(five.HTMLParser):
         xmlns = {}
         for n, v in tuple(attrs):
             if n == 'xmlns':
-                xmlns[u''] = v
+                xmlns[''] = v
             elif n.startswith('xmlns:'):
                 xmlns[n[6:]] = v
             else:
@@ -477,30 +473,30 @@ class MarkupLoader(five.HTMLParser):
                 raise MarkupError(self._object, self.getpos(),
                                   'XML declaration is not found')
             # declare xml ns
-            xmlns[u'xml'] = XML_NS
+            xmlns['xml'] = XML_NS
             # declare default ns
             if '' not in xmlns:
                 if self._markup.lang == 'xhtml1':
-                    xmlns[u''] = XHTML_NS
+                    xmlns[''] = XHTML_NS
                 else:
-                    xmlns[u''] = u''
+                    xmlns[''] = ''
 
         new_qname = self._new_qname
         elem = Element(new_qname(name, xmlns),
                        type=type,
                        ns=xmlns.copy())
         # convert attr name to qname
-        xmlns[u''] = elem.qname.ns_uri
+        xmlns[''] = elem.qname.ns_uri
         for n, v in attrs:
             qname = new_qname(n, xmlns)
             if qname in elem.attrib:
                 raise MarkupError(self._object, self.getpos(),
-                                  u"attribute '{}' already exists".format(qname))
+                                  f"attribute '{qname}' already exists")
             elem.attrib[qname] = v
         return elem
 
 
-class MarkupRenderer(object):
+class MarkupRenderer:
 
     _registry = {}
 
@@ -520,10 +516,9 @@ class MarkupRenderer(object):
         try:
             h = self._registry[markup.lang.lower()](self)
         except KeyError:
-            raise RenderingError(self.object,
-                                 u"unknown markup language '{}'".format(markup.lang))
+            raise RenderingError(self.object, f"unknown markup language '{markup.lang}'")
         if pretty:
-            if not isinstance(pretty, collections.Mapping):
+            if not isinstance(pretty, collections.abc.Mapping):
                 pretty = {}
             h = MarkupPrettifier(h, **pretty)
 
@@ -546,15 +541,14 @@ class MarkupRenderer(object):
                 if node.type == Element.OPEN:
                     # push children
                     queue.extend((i, node[i])
-                                 for i in five.range(len(node) - 1, -1, -1))
+                                 for i in range(len(node) - 1, -1, -1))
                 else:
                     self.pop()
-            elif isinstance(node, five.string_type):
+            elif isinstance(node, str):
                 # render text
                 h.text(index, node)
             else:
-                raise RenderingError(self.object,
-                                     u"invalid type '{}'".format(type(node)))
+                raise RenderingError(self.object, f"invalid type '{type(node)}'")
             # render end tags
             while (self._stack
                    and self.peek().pending == 0):
@@ -567,34 +561,28 @@ class MarkupRenderer(object):
             self._buf.close()
 
     def xml_decl(self, xml_decl, encoding):
-        self.write(u'<?xml',
+        self.write('<?xml',
                    # VersionInfo
-                   u' version="', xml_decl.get('version', u'1.0'), u'"')
+                   ' version="', xml_decl.get('version', '1.0'), '"')
         # EncodingDecl
         encoding = xml_decl.get('encoding', encoding).upper()
         if (encoding != 'UTF-8'
             and not encoding.startswith('UTF-16')):
-            self.write(u' encoding="', encoding, u'"')
+            self.write(' encoding="', encoding, '"')
         # SDDecl
         standalone = xml_decl.get('standalone')
         if standalone:
-            self.write(u' standalone="', standalone, u'"')
+            self.write(' standalone="', standalone, '"')
 
-        self.writeln(u'?>')
+        self.writeln('?>')
 
-    if five.PY2:
-        def write(self, *args):
-            write = self._buf.write
-            for s in args:
-                write(five.str(s) if (not isinstance(s, five.str) and isinstance(s, five.string_type)) else s)
-    else:
-        def write(self, *args):
-            write = self._buf.write
-            for s in args:
-                write(s)
+    def write(self, *args):
+        write = self._buf.write
+        for s in args:
+            write(s)
 
     def writeln(self, *args):
-        self.write(*args + (u'\n',))
+        self.write(*args + ('\n',))
 
     def push(self, index, element):
         self._stack.append(_ElementState(index, element))
@@ -613,20 +601,18 @@ class MarkupRenderer(object):
 
     def prefix_for(self, ns_uri):
         known = set()
-        for i in five.range(len(self._stack) - 1, -1, -1):
+        for i in range(len(self._stack) - 1, -1, -1):
             elem = self.at(i).element
             for pfx in elem.ns:
                 if pfx in known:
-                    raise RenderingError(self.object,
-                                         u"namespace URI for '{}' was overwritten".format(pfx))
+                    raise RenderingError(self.object, f"namespace URI for '{pfx}' was overwritten")
                 elif elem.ns[pfx] == ns_uri:
                     return pfx
                 known.add(pfx)
-        raise RenderingError(self.object,
-                             u"unknown namespace URI '{}'".format(ns_uri))
+        raise RenderingError(self.object, f"unknown namespace URI '{ns_uri}'")
 
 
-class _ElementState(object):
+class _ElementState:
 
     __slots__ = ('index', 'element', 'pending', 'flags')
 
@@ -641,7 +627,7 @@ class _ElementState(object):
         self.flags = 0
 
 
-class Space(five.str):
+class Space(str):
 
     __slots__ = ()
 
@@ -652,7 +638,7 @@ class Space(five.str):
 Space = Space()
 
 
-class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
+class MarkupHandler(metaclass=abc.ABCMeta):
 
     INDENT_BEFORE = 1 << 0
     INDENT_INSIDE = 1 << 1
@@ -715,12 +701,12 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
                 lv = r.depth() - 1
         elif pos == self.INDENT_TEXT:
             if not curr.flags & self.INDENT_TEXT:
-                r.write(u' ')
+                r.write(' ')
                 return False
             lv = r.depth()
         # indent
         if lv >= 0:
-            r.write(u'\n', u' ' * (indent * lv))
+            r.write('\n', ' ' * (indent * lv))
             return True
         return False
 
@@ -731,7 +717,7 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
             if isinstance(node, Element):
                 flags = self.INDENT_ALL
                 children.append(node)
-            elif isinstance(node, five.string_type):
+            elif isinstance(node, str):
                 if not node:
                     continue
                 # 2+ newlines -> newline
@@ -756,8 +742,7 @@ class MarkupHandler(object, five.with_metaclass(abc.ABCMeta)):
                     if s != l:
                         children.append(Space)
             else:
-                raise RenderingError(self.renderer.object,
-                                     "invalid type '{}'".format(type(node)))
+                raise RenderingError(self.renderer.object, f"invalid type '{type(node)}'")
         if (children
             and children[-1] is Space):
             flags = self.INDENT_ALL
@@ -843,51 +828,50 @@ class XMLHandler(MarkupHandler):
     def is_empty(self, element):
         return not element.children
 
-    def start_tag(self, empty=u'/>'):
+    def start_tag(self, empty='/>'):
         r = self.renderer
 
         elem = r.peek().element
         epfx = r.prefix_for(elem.qname.ns_uri)
-        r.write(u'<')
+        r.write('<')
         if epfx != '':
-            r.write(epfx, u':')
+            r.write(epfx, ':')
         r.write(elem.qname.name)
         # xmlns attributes
         for pfx in sorted(elem.ns):
             ns_uri = elem.ns[pfx]
             if ns_uri != XML_NS:
-                r.write(u' xmlns')
+                r.write(' xmlns')
                 if pfx != '':
-                    r.write(u':', pfx)
-                r.write(u'="', ns_uri, u'"')
+                    r.write(':', pfx)
+                r.write('="', ns_uri, '"')
         # attributes
         default_ns = False
         for pfx, n, v in sorted([(r.prefix_for(a.ns_uri), a.name, v)
-                                 for a, v in five.items(elem.attrib)]):
-            r.write(u' ')
+                                 for a, v in elem.attrib.items()]):
+            r.write(' ')
             if pfx == '':
                 default_ns = True
             elif pfx != epfx:
-                r.write(pfx, u':')
+                r.write(pfx, ':')
             elif default_ns:
-                raise RenderingError(self.renderer.object,
-                                     'cannot combine with default namespace')
-            r.write(n, u'="', v, u'"')
-        r.write(u'>' if elem.type != Element.EMPTY else empty)
+                raise RenderingError(self.renderer.object, 'cannot combine with default namespace')
+            r.write(n, '="', v, '"')
+        r.write('>' if elem.type != Element.EMPTY else empty)
 
     def end_tag(self):
         r = self.renderer
 
         elem = r.peek().element
         pfx = r.prefix_for(elem.qname.ns_uri)
-        r.write(u'</')
+        r.write('</')
         if pfx != '':
-            r.write(pfx, u':')
-        r.write(elem.qname.name, u'>')
+            r.write(pfx, ':')
+        r.write(elem.qname.name, '>')
 
     def compile(self, element):
         if element.children:
-            return super(XMLHandler, self).compile(element)
+            return super().compile(element)
         return self.INDENT_AROUND
 
 
@@ -903,11 +887,11 @@ class XHTML1Handler(XMLHandler):
         return element.qname.name in _xhtml1__EMPTY__
 
     def start_tag(self):
-        super(XHTML1Handler, self).start_tag(u' />')
+        super().start_tag(' />')
 
     def compile(self, element):
         if element.qname.ns_uri != XHTML_NS:
-            return super(XHTML1Handler, self).compile(element)
+            return super().compile(element)
 
         name = element.qname.name
         # reset XML and XHTML namespaces
@@ -915,8 +899,8 @@ class XHTML1Handler(XMLHandler):
             for pfx in tuple(element.ns):
                 if element.ns[pfx] in (XML_NS, XHTML_NS):
                     del element.ns[pfx]
-            element.ns[u'xml'] = XML_NS
-            element.ns[u''] = XHTML_NS
+            element.ns['xml'] = XML_NS
+            element.ns[''] = XHTML_NS
 
         flags = 0
         if name in _xhtml1__EMPTY__:
@@ -927,7 +911,7 @@ class XHTML1Handler(XMLHandler):
                 flags = self.INDENT_AROUND
         elif name not in _xhtml1__PCDATA__all:
             element[:] = (n for n in element
-                          if not isinstance(n, five.string_type))
+                          if not isinstance(n, str))
             flags = self.INDENT_ALL ^ self.INDENT_TEXT
         elif name == 'pre':
             flags = self.INDENT_AROUND
@@ -936,7 +920,7 @@ class XHTML1Handler(XMLHandler):
             children = []
             indent = 0
             for n in element:
-                if isinstance(n, five.string_type):
+                if isinstance(n, str):
                     for l in n.splitlines(True):
                         s = l.lstrip()
                         if not s:
@@ -960,7 +944,7 @@ class XHTML1Handler(XMLHandler):
                         children[i] = s[indent:]
             element.children = children
         else:
-            super(XHTML1Handler, self).compile(element)
+            super().compile(element)
             if name in ('fieldset', 'object'):
                 flags = self.INDENT_ALL
             elif name in _xhtml1_Block_all:

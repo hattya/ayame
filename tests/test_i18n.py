@@ -6,10 +6,7 @@
 #   SPDX-License-Identifier: MIT
 #
 
-import io
-
 import ayame
-from ayame import _compat as five
 from ayame import i18n
 from base import AyameTestCase
 
@@ -18,7 +15,7 @@ class I18nTestCase(AyameTestCase):
 
     @classmethod
     def setup_class(cls):
-        super(I18nTestCase, cls).setup_class()
+        super().setup_class()
         cls.app = Application(__name__)
 
     def test_iter_class(self):
@@ -73,7 +70,7 @@ class I18nTestCase(AyameTestCase):
             ])
 
     def test_load(self):
-        with io.open(self.path_for('i18n.txt')) as fp:
+        with open(self.path_for('i18n.txt')) as fp:
             l = i18n.Localizer()
             self.assert_equal(l._load(fp), {
                 'spam': 'spam',
@@ -115,8 +112,8 @@ class I18nTestCase(AyameTestCase):
     def _test_get(self, page, locale):
         with self.application():
             l = i18n.Localizer()
-            for i in five.range(1, 3):
-                c = page.find('a{}:b'.format(i))
+            for i in range(1, 3):
+                c = page.find(f'a{i}:b')
                 for k in ('spam', 'eggs', 'ham', 'toast', 'beans', 'bacon'):
                     v = k
                     if k in ('ham', 'toast'):
@@ -130,11 +127,11 @@ class I18nTestCase(AyameTestCase):
                 locale = (None,) * 2
                 l = i18n.Localizer()
                 p = Page()
-                for i in five.range(1, 3):
+                for i in range(1, 3):
                     self.app.config['ayame.resource.loader'] = self.new_resource_loader()
                     self.app.config['ayame.i18n.cache'] = config['ayame.i18n.cache'].copy()
 
-                    c = p.find('a{}:b'.format(i))
+                    c = p.find(f'a{i}:b')
                     self.assert_equal(l.get(c, locale, 'spam'), 'spam')
                     self.assert_is_none(l.get(c, locale, 'spam'))
                     self.assert_is_none(l.get(c, locale, 'eggs'))
@@ -149,7 +146,7 @@ class Application(ayame.Ayame):
 class Page(ayame.Page):
 
     def __init__(self):
-        super(Page, self).__init__()
+        super().__init__()
         self.add(MarkupContainer('a1'))
         self.find('a1').add(Component('b'))
         self.add(self.MarkupContainer('a2'))

@@ -26,7 +26,7 @@ class URITestCase(AyameTestCase):
         self.assert_equal(v, '/a/=/1')
 
         # iroha in hiragana
-        v = uri.quote(u'/\u3044\u308d\u306f')
+        v = uri.quote('/\u3044\u308d\u306f')
         self.assert_is_instance(v, str)
         self.assert_equal(v, '/%E3%81%84%E3%82%8D%E3%81%AF')
 
@@ -48,11 +48,11 @@ class URITestCase(AyameTestCase):
         self.assert_equal(v, 'abc')
 
         # iroha in hiragana
-        v = uri.quote_plus(u'\u3044 \u308d \u306f')
+        v = uri.quote_plus('\u3044 \u308d \u306f')
         self.assert_is_instance(v, str)
         self.assert_equal(v, '%E3%81%84+%E3%82%8D+%E3%81%AF')
 
-        v = uri.quote_plus(u'\u3044\u308d\u306f')
+        v = uri.quote_plus('\u3044\u308d\u306f')
         self.assert_is_instance(v, str)
         self.assert_equal(v, '%E3%81%84%E3%82%8D%E3%81%AF')
 
@@ -75,17 +75,17 @@ class URITestCase(AyameTestCase):
         })
 
     def test_parse_qs_utf_8(self):
-        query = (u'\u3044=\u58f1&'
-                 u'\u308d=\u58f1&'
-                 u'\u308d=\u5f10&'
-                 u'\u306f=\u58f1&'
-                 u'\u306f=\u5f10&'
-                 u'\u306f=\u53c2')
+        query = ('\u3044=\u58f1&'
+                 '\u308d=\u58f1&'
+                 '\u308d=\u5f10&'
+                 '\u306f=\u58f1&'
+                 '\u306f=\u5f10&'
+                 '\u306f=\u53c2')
         environ = {'QUERY_STRING': uri.quote(query)}
         self.assert_equal(uri.parse_qs(environ), {
-            u'\u3044': [u'\u58f1'],
-            u'\u308d': [u'\u58f1', u'\u5f10'],
-            u'\u306f': [u'\u58f1', u'\u5f10', u'\u53c2'],
+            '\u3044': ['\u58f1'],
+            '\u308d': ['\u58f1', '\u5f10'],
+            '\u306f': ['\u58f1', '\u5f10', '\u53c2'],
         })
 
     def test_application_uri_server_name(self):

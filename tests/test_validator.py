@@ -7,7 +7,6 @@
 #
 
 import ayame
-from ayame import _compat as five
 from ayame import markup, validator
 from base import AyameTestCase
 
@@ -46,7 +45,7 @@ class ValidatorTestCase(AyameTestCase):
     def test_validator(self):
         class Validator(validator.Validator):
             def validate(self, object):
-                return super(Validator, self).validate(object)
+                return super().validate(object)
 
         with self.assert_raises(TypeError):
             validator.Validator()
@@ -63,7 +62,7 @@ class ValidatorTestCase(AyameTestCase):
             with self.assert_raises(ayame.ValidationError) as cm:
                 v.validate(o)
             e = cm.exception
-            self.assert_equal(five.str(e), '')
+            self.assert_equal(str(e), '')
             self.assert_equal(e.keys, ['EmailValidator'])
             self.assert_equal(e.vars, {'pattern': v.regex.pattern})
 
@@ -92,7 +91,7 @@ class ValidatorTestCase(AyameTestCase):
             with self.assert_raises(ayame.ValidationError) as cm:
                 v.validate(o)
             e = cm.exception
-            self.assert_equal(five.str(e), '')
+            self.assert_equal(str(e), '')
             self.assert_equal(e.keys, ['URLValidator'])
             self.assert_equal(e.vars, {'pattern': v.regex.pattern})
 
@@ -112,7 +111,7 @@ class ValidatorTestCase(AyameTestCase):
             with self.assert_raises(ayame.ValidationError) as cm:
                 v.validate(o)
             e = cm.exception
-            self.assert_equal(five.str(e), '')
+            self.assert_equal(str(e), '')
             self.assert_equal(e.keys, ['RangeValidator.type'])
             self.assert_equal(e.vars, {})
 
@@ -135,7 +134,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate(-1)
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.minimum'])
         self.assert_equal(e.vars, {'min': 0})
 
@@ -145,7 +144,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate(10)
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.maximum'])
         self.assert_equal(e.vars, {'max': 9})
 
@@ -155,7 +154,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate(-1)
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.range'])
         self.assert_equal(e.vars, {
             'min': 0,
@@ -167,7 +166,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate(10)
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['RangeValidator.exact'])
         self.assert_equal(e.vars, {'exact': 9})
 
@@ -182,7 +181,7 @@ class ValidatorTestCase(AyameTestCase):
             with self.assert_raises(ayame.ValidationError) as cm:
                 v.validate(o)
             e = cm.exception
-            self.assert_equal(five.str(e), '')
+            self.assert_equal(str(e), '')
             self.assert_equal(e.keys, ['StringValidator.type'])
             self.assert_equal(e.vars, {})
 
@@ -196,7 +195,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate('.jp')
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['StringValidator.minimum'])
         self.assert_equal(e.vars, {'min': 4})
 
@@ -206,7 +205,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate('.info')
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['StringValidator.maximum'])
         self.assert_equal(e.vars, {'max': 4})
 
@@ -216,7 +215,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate('.jp')
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['StringValidator.range'])
         self.assert_equal(e.vars, {
             'min': 4,
@@ -228,7 +227,7 @@ class ValidatorTestCase(AyameTestCase):
         with self.assert_raises(ayame.ValidationError) as cm:
             v.validate('.info')
         e = cm.exception
-        self.assert_equal(five.str(e), '')
+        self.assert_equal(str(e), '')
         self.assert_equal(e.keys, ['StringValidator.exact'])
         self.assert_equal(e.vars, {'exact': 4})
 

@@ -30,7 +30,7 @@ class ModelTestCase(AyameTestCase):
     def test_inheritable_model(self):
         class InheritableModel(model.InheritableModel):
             def wrap(self, component):
-                return super(InheritableModel, self).wrap(component)
+                return super().wrap(component)
 
         m = InheritableModel(None)
         self.assert_is_none(m.wrap(None))
@@ -39,13 +39,13 @@ class ModelTestCase(AyameTestCase):
         class WrapModel(model.WrapModel):
             @property
             def object(self):
-                return super(WrapModel, self).object
+                return super().object
 
         m = WrapModel(None)
         self.assert_is_none(m.object)
 
     def test_compound_model_attr(self):
-        class Object(object):
+        class Object:
             attr = 'value'
 
         o = Object()
@@ -61,7 +61,7 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_property(self):
-        class Object(object):
+        class Object:
             def __init__(self):
                 self.__attr = 'value'
 
@@ -89,7 +89,7 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_method(self):
-        class Object(object):
+        class Object:
             def __init__(self):
                 self.__method = 'value'
 
@@ -112,7 +112,7 @@ class ModelTestCase(AyameTestCase):
         self.assert_equal(mc.find('method').model.object, 'new_value')
 
     def test_compound_model_method_noncallable(self):
-        class Object(object):
+        class Object:
             get_method = set_method = None
 
         o = Object()
@@ -141,7 +141,7 @@ class ModelTestCase(AyameTestCase):
     def test_compound_model_replace(self):
         o = {
             'b': 'b',
-            'c': 'c'
+            'c': 'c',
         }
         m = model.CompoundModel(o)
         mc = ayame.MarkupContainer('a', m)

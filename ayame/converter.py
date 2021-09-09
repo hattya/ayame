@@ -8,10 +8,9 @@
 
 import abc
 import collections
+import collections.abc
 import datetime
-import sys
 
-from . import _compat as five
 from .exception import ConversionError
 
 
@@ -20,7 +19,7 @@ __all__ = ['ConverterRegistry', 'Converter', 'BooleanConverter',
            'TimeConverter', 'DateTimeConverter']
 
 
-class ConverterRegistry(object):
+class ConverterRegistry:
 
     def __init__(self):
         self.__registry = {}
@@ -38,7 +37,7 @@ class ConverterRegistry(object):
             return self.__registry[type]
 
     def converter_for(self, value):
-        class_ = value if isinstance(value, five.class_types) else value.__class__
+        class_ = value if isinstance(value, type) else value.__class__
 
         queue = collections.deque((class_,))
         while queue:
@@ -51,7 +50,7 @@ class ConverterRegistry(object):
         return self.get(object)
 
     def add(self, converter):
-        if isinstance(converter.type, collections.Iterable):
+        if isinstance(converter.type, collections.abc.Iterable):
             self.__registry.update((t, converter) for t in converter.type
                                    if t is not None)
         elif converter.type is not None:
@@ -62,7 +61,7 @@ class ConverterRegistry(object):
             del self.__registry[type]
 
 
-class Converter(five.with_metaclass(abc.ABCMeta, object)):
+class Converter(metaclass=abc.ABCMeta):
 
     @abc.abstractproperty
     def type(self):
@@ -77,13 +76,13 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
         if e is not None:
             raise e
 
-        return five.str(value)
+        return str(value)
 
     def check_type(self, value):
         if not (self.type is None
                 or isinstance(value, self.type)):
             q = "'{}'".format
-            if isinstance(self.type, collections.Iterable):
+            if isinstance(self.type, collections.abc.Iterable):
                 et = []
                 for t in self.type:
                     if et:
@@ -94,13 +93,13 @@ class Converter(five.with_metaclass(abc.ABCMeta, object)):
                 et = ''.join(et)
             else:
                 et = q(self.type)
-            return self.error(value, message="expected {} but got '{}'".format(et, type(value)))
+            return self.error(value, message=f"expected {et} but got '{type(value)}'")
 
     def error(self, value, type=None, message=None):
         if type is None:
             type = self.type
         if message is None:
-            message = u"cannot convert '{}' to '{}'".format(value, type)
+            message = f"cannot convert '{value}' to '{type}'"
 
         return ConversionError(message,
                                converter=self,
@@ -125,7 +124,7 @@ class BooleanConverter(Converter):
         return bool
 
     def to_python(self, value):
-        if isinstance(value, five.string_type):
+        if isinstance(value, str):
             if value.lower() in ('false', 'off', 'no', 'n'):
                 return False
         return bool(value)
@@ -136,14 +135,6 @@ class FloatConverter(Converter):
     @property
     def type(self):
         return float
-
-    if sys.version_info < (3, 2):
-        def to_string(self, value):
-            e = self.check_type(value)
-            if e is not None:
-                raise e
-
-            return repr(value)
 
     def to_python(self, value):
         try:
@@ -156,13 +147,13 @@ class IntegerConverter(Converter):
 
     @property
     def type(self):
-        return five.integer_types
+        return int
 
     def to_python(self, value):
         try:
-            return five.int(value) if value is not None else five.int()
+            return int(value) if value is not None else int()
         except (TypeError, ValueError):
-            raise self.error(value, type=five.int)
+            raise self.error(value, type=int)
 
 
 class DateConverter(Converter):
@@ -185,9 +176,9 @@ class DateConverter(Converter):
             raise e
 
         try:
-            return five.str(value.strftime(self._format))
+            return str(value.strftime(self._format))
         except ValueError as e:
-            raise self.error(value, message=five.str(e))
+            raise self.error(value, message=str(e))
 
 
 class TimeConverter(Converter):
@@ -209,7 +200,7 @@ class TimeConverter(Converter):
         if e is not None:
             raise e
 
-        return five.str(value.strftime(self._format))
+        return str(value.strftime(self._format))
 
 
 class DateTimeConverter(Converter):
@@ -219,7 +210,7 @@ class DateTimeConverter(Converter):
         return datetime.datetime
 
     def to_python(self, value):
-        if not isinstance(value, five.string_type):
+        if not isinstance(value, str):
             raise self.error(value)
 
         ds = value
@@ -258,7 +249,7 @@ class DateTimeConverter(Converter):
             dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             raise self.error(value)
-        return dt.replace(tzinfo=five.UTC) + datetime.timedelta(minutes=off)
+        return dt.replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(minutes=off)
 
     def to_string(self, value):
         e = self.check_type(value)
@@ -268,10 +259,10 @@ class DateTimeConverter(Converter):
         try:
             off = value.utcoffset()
         except TypeError as e:
-            raise self.error(value, message=five.str(e))
+            raise self.error(value, message=str(e))
         if not off:
             z = 'Z'
         else:
             mins = off.total_seconds() / 60
-            z = '{:+03.0f}:{:02.0f}'.format(mins / 60, mins % 60)
-        return u'{:%Y-%m-%d %H:%M:%S}{Z}'.format(value, Z=z)
+            z = f'{mins / 60:+03.0f}:{mins % 60:02.0f}'
+        return f'{value:%Y-%m-%d %H:%M:%S}{z}'

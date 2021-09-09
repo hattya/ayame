@@ -7,13 +7,9 @@
 #
 
 import io
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 import ayame
-from ayame import _compat as five
 from ayame import markup
 from base import AyameTestCase
 
@@ -79,25 +75,25 @@ class MarkupTestCase(AyameTestCase):
         self.assert_equal(f[2], 'after')
 
     def test_space(self):
-        self.assert_is_instance(markup.Space, five.str)
+        self.assert_is_instance(markup.Space, str)
         self.assert_equal(repr(markup.Space), 'Space')
 
     def test_markup_handler(self):
         class MarkupHandler(markup.MarkupHandler):
             @property
             def xml(self):
-                return super(MarkupHandler, self).xml
+                return super().xml
 
             def is_empty(self, element):
-                return super(MarkupHandler, self).is_empty(element)
+                return super().is_empty(element)
 
             def start_tag(self):
-                super(MarkupHandler, self).start_tag()
-                self.renderer.write(u'start_tag\n')
+                super().start_tag()
+                self.renderer.write('start_tag\n')
 
             def end_tag(self):
-                super(MarkupHandler, self).end_tag()
-                self.renderer.write(u'end_tag\n')
+                super().end_tag()
+                self.renderer.write('end_tag\n')
 
         class MarkupRenderer(io.StringIO):
             def peek(self):
@@ -106,7 +102,7 @@ class MarkupTestCase(AyameTestCase):
             def writeln(self, *args):
                 for a in args:
                     self.write(a)
-                self.write(u'\n')
+                self.write('\n')
 
         with self.assert_raises(TypeError):
             markup.MarkupHandler(None)
@@ -115,13 +111,13 @@ class MarkupTestCase(AyameTestCase):
         h = MarkupHandler(r)
         self.assert_is_none(h.xml)
         self.assert_is_none(h.is_empty(None))
-        h.doctype(u'doctype')
+        h.doctype('doctype')
         h.start_tag()
         h.end_tag()
-        h.text(0, u'')
-        h.text(0, u'text\n')
+        h.text(0, '')
+        h.text(0, 'text\n')
         h.indent(0, 0)
-        self.assert_equal(r.getvalue(), u'doctype\nstart_tag\nend_tag\ntext\n')
+        self.assert_equal(r.getvalue(), 'doctype\nstart_tag\nend_tag\ntext\n')
 
         elem = markup.Element(None)
         elem[:] = ('',) * 3
@@ -144,21 +140,21 @@ class MarkupTestCase(AyameTestCase):
                 pass
 
             def indent(self, pos):
-                self.renderer.write(u'indent\n')
+                self.renderer.write('indent\n')
 
             def compile(self, element):
-                self.renderer.write(u'compile\n')
+                self.renderer.write('compile\n')
 
         r = io.StringIO()
         h = markup.MarkupPrettifier(MarkupHandler(r))
         h._bol = True
-        h.text(0, u'')
+        h.text(0, '')
         self.assert_true(h._bol)
-        h.text(0, u'text\n')
+        h.text(0, 'text\n')
         self.assert_false(h._bol)
         h.indent(0)
         h.compile(None)
-        self.assert_equal(r.getvalue(), u'text\nindent\ncompile\n')
+        self.assert_equal(r.getvalue(), 'text\nindent\ncompile\n')
 
 
 class MarkupLoaderTestCase(AyameTestCase):
@@ -183,7 +179,7 @@ class MarkupLoaderTestCase(AyameTestCase):
 
     def test_load(self):
         # unknown processing instruction
-        src = io.StringIO(u'<?php echo "Hello World!"?>')
+        src = io.StringIO('<?php echo "Hello World!"?>')
         m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {})
         self.assert_equal(m.lang, 'xml')
@@ -191,7 +187,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         self.assert_is_none(m.root)
 
         # no root element
-        src = io.StringIO(u'&amp; &#38;')
+        src = io.StringIO('&amp; &#38;')
         m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {})
         self.assert_equal(m.lang, 'xml')
@@ -200,7 +196,7 @@ class MarkupLoaderTestCase(AyameTestCase):
 
     def test_unsupported_html(self):
         # xhtml1 frameset
-        html = u"""\
+        html = """\
 <?xml version="1.0"?>
 <!DOCTYPE html PUBLIC "-//W3C/DTD XHTML 1.0 Frameset//EN"\
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
@@ -214,49 +210,49 @@ class MarkupLoaderTestCase(AyameTestCase):
                               io.StringIO(xml), lang='xml')
 
         # malformed xml declaration
-        xml = u'<?xml standalone="yes"?>'
+        xml = '<?xml standalone="yes"?>'
         assert_xml((1, 0), r'^malformed XML declaration$',
                    xml)
 
         # unquoted xml attributes
-        xml = u'<?xml version=1.0?>'
+        xml = '<?xml version=1.0?>'
         assert_xml((1, 0), r'^malformed XML declaration$',
                    xml)
 
         # mismatched quotes in xml declaration
-        for xml in (u'<?xml version="1.0\'?>',
-                    u'<?xml version=\'1.0"?>'):
+        for xml in ('<?xml version="1.0\'?>',
+                    '<?xml version=\'1.0"?>'):
             assert_xml((1, 0), r'^mismatched quotes$',
                        xml)
 
         # no xml declaration
-        xml = u'<spam></spam>'
+        xml = '<spam></spam>'
         assert_xml((1, 0), r'^XML declaration is not found$',
                    xml)
 
         # multiple root elements
-        for xml in (u'<?xml version="1.0"?>\n<spam/>\n<eggs/>',
-                    u'<?xml version="1.0"?>\n<spam></spam>\n<eggs></eggs>'):
+        for xml in ('<?xml version="1.0"?>\n<spam/>\n<eggs/>',
+                    '<?xml version="1.0"?>\n<spam></spam>\n<eggs></eggs>'):
             assert_xml((3, 0), r' multiple root elements$',
                        xml)
 
         # omitted end tag for root element
-        xml = u'<?xml version="1.0"?>\n<spam>'
+        xml = '<?xml version="1.0"?>\n<spam>'
         assert_xml((2, 6), r"^end tag .* '{}spam' omitted$",
                    xml)
 
         # mismatched tag
-        xml = u'<?xml version="1.0"?>\n<spam></eggs>'
+        xml = '<?xml version="1.0"?>\n<spam></eggs>'
         assert_xml((2, 6), r"^end tag .* '{}eggs' .* not open$",
                    xml)
 
         # attribute duplication
-        xml = u'<?xml version="1.0"?>\n<spam a="1" a="2"/>'
+        xml = '<?xml version="1.0"?>\n<spam a="1" a="2"/>'
         assert_xml((2, 0), r"^attribute '{}a' already exists$",
                    xml)
 
     def test_empty_xml(self):
-        src = io.StringIO(u'<?xml version="1.0"?>')
+        src = io.StringIO('<?xml version="1.0"?>')
         m = self.load(src, lang='xml')
         self.assert_equal(m.xml_decl, {'version': '1.0'})
         self.assert_equal(m.lang, 'xml')
@@ -264,7 +260,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         self.assert_is_none(m.root)
 
     def test_xml(self):
-        xml = u"""\
+        xml = """\
 <?xml version="1.0"?>\
 <!DOCTYPE spam SYSTEM "spam.dtd">\
 <spam xmlns="spam" id="spam">\
@@ -301,7 +297,7 @@ x\
         self.assert_equal(eggs.children, [])
 
     def test_xml_with_prefix(self):
-        xml = u"""\
+        xml = """\
 <?xml version="1.0"?>\
 <spam xmlns="spam" xmlns:eggs="eggs">\
 <eggs:eggs/>\
@@ -335,7 +331,7 @@ x\
         # no default namespace
         class Loader(markup.MarkupLoader):
             def _new_element(self, *args, **kwargs):
-                elem = super(Loader, self)._new_element(*args, **kwargs)
+                elem = super()._new_element(*args, **kwargs)
                 elem.ns.pop('', None)
                 return elem
 
@@ -347,7 +343,7 @@ x\
         # no eggs namespace
         class Loader(markup.MarkupLoader):
             def _new_element(self, *args, **kwargs):
-                elem = super(Loader, self)._new_element(*args, **kwargs)
+                elem = super()._new_element(*args, **kwargs)
                 elem.ns.pop('eggs', None)
                 return elem
 
@@ -362,7 +358,7 @@ x\
                               io.StringIO(self.format(html_t)), lang='xhtml1')
 
         # no xml declaration
-        html_t = u"""\
+        html_t = """\
 {doctype}
 <html xmlns="http://www.w3.org/1999/xhtml">
 </html>
@@ -371,7 +367,7 @@ x\
                       html_t)
 
         # multiple root elements
-        html_t = u"""\
+        html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="http://www.w3.org/1999/xhtml" />
@@ -381,7 +377,7 @@ x\
                       html_t)
 
         # omitted end tag for root element
-        html_t = u"""\
+        html_t = """\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -390,7 +386,7 @@ x\
                       html_t)
 
     def test_xhtml1(self):
-        html = self.format(u"""\
+        html = self.format("""\
 <?xml version="1.0"?>\
 {doctype}\
 <html xmlns="{xhtml}">\
@@ -466,7 +462,7 @@ x\
 
     def test_ayame_remove(self):
         # descendant of root element
-        html = self.format(u"""\
+        html = self.format("""\
 <?xml version="1.0"?>
 {doctype}
 <html xmlns="{xhtml}" xmlns:ayame="{ayame}">\
@@ -497,7 +493,7 @@ x\
         self.assert_equal(html.children, [])
 
         # multiple root elements
-        html = self.format(u"""\
+        html = self.format("""\
 <?xml version="1.0"?>
 {doctype}
 <ayame:remove xmlns:ayame="{ayame}">
@@ -550,14 +546,14 @@ class MarkupRendererTestCase(AyameTestCase):
     def new_markup(self, lang):
         m = markup.Markup()
         m.xml_decl = {
-            u'version': u'1.0',
-            u'standalone': u'yes'
+            'version': '1.0',
+            'standalone': 'yes',
         }
         m.lang = lang
-        spam = markup.Element(markup.QName(u'spam', u'spam'),
-                              attrib={markup.QName(u'spam', u'id'): u'a'},
-                              ns={u'': u'spam'})
-        eggs = markup.Element(markup.QName(u'spam', u'eggs'))
+        spam = markup.Element(markup.QName('spam', 'spam'),
+                              attrib={markup.QName('spam', 'id'): 'a'},
+                              ns={'': 'spam'})
+        eggs = markup.Element(markup.QName('spam', 'eggs'))
         eggs.append(0)
         spam.append(eggs)
         m.root = spam
@@ -589,27 +585,27 @@ class MarkupRendererTestCase(AyameTestCase):
 
     def test_overwrite_ns_uri(self):
         m = self.new_markup('xml')
-        m.root[0].ns[u''] = u'eggs'
-        ham = markup.Element(markup.QName(u'spam', u'ham'))
+        m.root[0].ns[''] = 'eggs'
+        ham = markup.Element(markup.QName('spam', 'ham'))
         m.root[0][:] = [ham]
         self.assert_error(r"namespace URI .*''.* overwritten$",
                           m)
 
     def test_default_ns_attr(self):
         m = self.new_markup('xml')
-        eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
+        eggs = markup.Element(markup.QName('eggs', 'eggs'),
                               attrib={
-                                  markup.QName(u'eggs', u'a'): u'1',
-                                  markup.QName(u'spam', u'a'): u'2',
+                                  markup.QName('eggs', 'a'): '1',
+                                  markup.QName('spam', 'a'): '2',
                               },
-                              ns={u'eggs': u'eggs'})
+                              ns={'eggs': 'eggs'})
         m.root[:] = [eggs]
         self.assert_error(r' default namespace$',
                           m)
 
     def test_render_xml(self):
         renderer = markup.MarkupRenderer()
-        xml = u"""\
+        xml = """\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!DOCTYPE spam SYSTEM "spam.dtd">
 <spam xmlns="spam" a="a">
@@ -629,39 +625,39 @@ class MarkupRendererTestCase(AyameTestCase):
         # pretty output
         m = markup.Markup()
         m.xml_decl = {
-            'version': u'1.0',
-            'encoding': u'iso-8859-1'
+            'version': '1.0',
+            'encoding': 'iso-8859-1',
         }
         m.lang = 'xml'
-        m.doctype = u'<!DOCTYPE spam SYSTEM "spam.dtd">'
-        m.root = markup.Element(markup.QName(u'spam', u'spam'),
-                                attrib={markup.QName(u'spam', u'a'): u'a'},
+        m.doctype = '<!DOCTYPE spam SYSTEM "spam.dtd">'
+        m.root = markup.Element(markup.QName('spam', 'spam'),
+                                attrib={markup.QName('spam', 'a'): 'a'},
                                 type=markup.Element.OPEN,
-                                ns={u'': u'spam'})
-        m.root.append(u'\n'
-                      u'    a\n'
-                      u'    \n')
-        eggs = markup.Element(markup.QName(u'spam', u'eggs'),
+                                ns={'': 'spam'})
+        m.root.append('\n'
+                      '    a\n'
+                      '    \n')
+        eggs = markup.Element(markup.QName('spam', 'eggs'),
                               type=markup.Element.EMPTY)
         m.root.append(eggs)
-        m.root.append(u'\n'
-                      u'    b\n'
-                      u'    c\n')
-        eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
+        m.root.append('\n'
+                      '    b\n'
+                      '    c\n')
+        eggs = markup.Element(markup.QName('eggs', 'eggs'),
                               attrib={
-                                  markup.QName(u'eggs', u'a'): u'1',
-                                  markup.QName(u'ham', u'a'): u'2',
+                                  markup.QName('eggs', 'a'): '1',
+                                  markup.QName('ham', 'a'): '2',
                               },
                               type=markup.Element.OPEN,
                               ns={
-                                  u'eggs': u'eggs',
-                                  u'ham': u'ham',
+                                  'eggs': 'eggs',
+                                  'ham': 'ham',
                               })
-        ham = markup.Element(markup.QName(u'spam', u'ham'),
+        ham = markup.Element(markup.QName('spam', 'ham'),
                              type=markup.Element.OPEN)
-        ham.append(u'\n'
-                   u'    1\n'
-                   u'    2\n')
+        ham.append('\n'
+                   '    1\n'
+                   '    2\n')
         eggs.append(ham)
         m.root.append(eggs)
         self.assert_equal(renderer.render(self, m, pretty=True), xml)
@@ -669,53 +665,53 @@ class MarkupRendererTestCase(AyameTestCase):
         # raw output
         m = markup.Markup()
         m.xml_decl = {
-            'version': u'1.0',
-            'encoding': u'iso-8859-1'
+            'version': '1.0',
+            'encoding': 'iso-8859-1',
         }
         m.lang = 'xml'
-        m.doctype = u'<!DOCTYPE spam SYSTEM "spam.dtd">'
-        m.root = markup.Element(markup.QName(u'spam', u'spam'),
-                                attrib={markup.QName(u'spam', u'a'): u'a'},
+        m.doctype = '<!DOCTYPE spam SYSTEM "spam.dtd">'
+        m.root = markup.Element(markup.QName('spam', 'spam'),
+                                attrib={markup.QName('spam', 'a'): 'a'},
                                 type=markup.Element.OPEN,
-                                ns={u'': u'spam'})
-        m.root.append(u'\n'
-                      u'  a\n'
-                      u'  ')
-        eggs = markup.Element(markup.QName(u'spam', u'eggs'))
+                                ns={'': 'spam'})
+        m.root.append('\n'
+                      '  a\n'
+                      '  ')
+        eggs = markup.Element(markup.QName('spam', 'eggs'))
         eggs.type = markup.Element.EMPTY
         m.root.append(eggs)
-        m.root.append(u'\n'
-                      u'  b\n'
-                      u'  c\n'
-                      u'  ')
-        eggs = markup.Element(markup.QName(u'eggs', u'eggs'),
+        m.root.append('\n'
+                      '  b\n'
+                      '  c\n'
+                      '  ')
+        eggs = markup.Element(markup.QName('eggs', 'eggs'),
                               attrib={
-                                  markup.QName(u'eggs', u'a'): u'1',
-                                  markup.QName(u'ham', u'a'): u'2',
+                                  markup.QName('eggs', 'a'): '1',
+                                  markup.QName('ham', 'a'): '2',
                               },
                               type=markup.Element.OPEN,
                               ns={
-                                  u'eggs': u'eggs',
-                                  u'ham': u'ham',
+                                  'eggs': 'eggs',
+                                  'ham': 'ham',
                               })
-        eggs.append(u'\n'
-                    u'    ')
-        ham = markup.Element(markup.QName(u'spam', u'ham'),
+        eggs.append('\n'
+                    '    ')
+        ham = markup.Element(markup.QName('spam', 'ham'),
                              type=markup.Element.OPEN)
-        ham.append(u'\n'
-                   u'      1\n'
-                   u'      2\n'
-                   u'    ')
+        ham.append('\n'
+                   '      1\n'
+                   '      2\n'
+                   '    ')
         eggs.append(ham)
-        eggs.append(u'\n'
-                    u'  ')
+        eggs.append('\n'
+                    '  ')
         m.root.append(eggs)
-        m.root.append(u'\n')
+        m.root.append('\n')
         self.assert_equal(renderer.render(self, m), xml)
 
     def test_render_xhtml1(self):
         renderer = markup.MarkupRenderer()
-        html = self.format(u"""\
+        html = self.format("""\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 {doctype}
 <html xmlns="{xhtml}" xmlns:ayame="{ayame}" xml:lang="en">
@@ -832,245 +828,245 @@ class MarkupRendererTestCase(AyameTestCase):
             kwargs['type'] = markup.Element.OPEN
             return markup.Element(self.ayame_of(name), **kwargs)
 
-        br = new_element(u'br',
+        br = new_element('br',
                          type=markup.Element.EMPTY)
 
         m = markup.Markup()
         m.xml_decl = {
-            'version': u'1.0',
-            'encoding': u'iso-8859-1'
+            'version': '1.0',
+            'encoding': 'iso-8859-1',
         }
         m.lang = 'xhtml1'
         m.doctype = markup.XHTML1_STRICT
-        m.root = new_element(u'html',
-                             attrib={self.xml_of(u'lang'): u'en'},
+        m.root = new_element('html',
+                             attrib={self.xml_of('lang'): 'en'},
                              ns={
-                                 u'a': markup.XML_NS,
-                                 u'b': markup.XHTML_NS,
-                                 u'ayame': markup.AYAME_NS,
+                                 'a': markup.XML_NS,
+                                 'b': markup.XHTML_NS,
+                                 'ayame': markup.AYAME_NS,
                              })
 
-        head = new_element(u'head')
-        meta = new_element(u'meta',
+        head = new_element('head')
+        meta = new_element('meta',
                            attrib={
-                               self.html_of(u'name'): u'keywords',
-                               self.html_of(u'content'): u'',
+                               self.html_of('name'): 'keywords',
+                               self.html_of('content'): '',
                            })
-        meta.append(u'a')
+        meta.append('a')
         head.append(meta)
 
-        title = new_element(u'title')
-        title.append(u'title')
-        span = new_element(u'span')
+        title = new_element('title')
+        title.append('title')
+        span = new_element('span')
         title.append(span)
         head.append(title)
 
-        style = new_element(u'style',
-                            attrib={self.html_of(u'type'): u'text/css'})
-        style.append(u'\n'
-                     u'      h1 {\n'
-                     u'        font-size: 120%;\n'
-                     u'      }\n'
-                     u'\n'
-                     u'      p {\n'
-                     u'        font-size: 90%;\n'
-                     u'      }\n'
-                     u'\n')
+        style = new_element('style',
+                            attrib={self.html_of('type'): 'text/css'})
+        style.append('\n'
+                     '      h1 {\n'
+                     '        font-size: 120%;\n'
+                     '      }\n'
+                     '\n'
+                     '      p {\n'
+                     '        font-size: 90%;\n'
+                     '      }\n'
+                     '\n')
         head.append(style)
 
-        script = new_element(u'script',
-                             attrib={self.html_of(u'type'): u'text/javascript'})
-        script.append(u'\n'
-                      u'     <!--\n'
-                      u'     var x = 0;\n'
-                      u'     var y = 0;\n'
-                      u'     // -->\n'
-                      u'\n')
+        script = new_element('script',
+                             attrib={self.html_of('type'): 'text/javascript'})
+        script.append('\n'
+                      '     <!--\n'
+                      '     var x = 0;\n'
+                      '     var y = 0;\n'
+                      '     // -->\n'
+                      '\n')
         head.append(script)
         m.root.append(head)
 
-        body = new_element(u'body')
-        remove = new_ayame_element(u'remove')
-        p = new_element(u'p')
-        p.append(u'Hello World!')
+        body = new_element('body')
+        remove = new_ayame_element('remove')
+        p = new_element('p')
+        p.append('Hello World!')
         remove.append(p)
         body.append(remove)
 
-        h1 = new_element(u'h1')
-        h1.append(u'\n'
-                  u'  spam\n')
-        span = new_element(u'span',
-                           attrib={self.html_of(u'class'): u'yellow'})
-        span.append(u'\n'
-                    u'  eggs  \n')
+        h1 = new_element('h1')
+        h1.append('\n'
+                  '  spam\n')
+        span = new_element('span',
+                           attrib={self.html_of('class'): 'yellow'})
+        span.append('\n'
+                    '  eggs  \n')
         h1.append(span)
-        h1.append(u'\n'
-                  u'  ham  \n')
+        h1.append('\n'
+                  '  ham  \n')
         body.append(h1)
 
-        blockquote = new_element(u'blockquote',
-                                 attrib={self.html_of(u'cite'): u'http://example.com/'})
-        blockquote.append(u'before')
-        p = new_element(u'p')
-        p.append(u'citation')
+        blockquote = new_element('blockquote',
+                                 attrib={self.html_of('cite'): 'http://example.com/'})
+        blockquote.append('before')
+        p = new_element('p')
+        p.append('citation')
         blockquote.append(p)
-        blockquote.append(u'after')
+        blockquote.append('after')
         body.append(blockquote)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'text'})
-        div.append(u'\n'
-                   u'spam   \n'
-                   u'\n')
-        i = new_element(u'i')
-        i.append(u'eggs')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'text'})
+        div.append('\n'
+                   'spam   \n'
+                   '\n')
+        i = new_element('i')
+        i.append('eggs')
         div.append(i)
-        div.append(u'  ham')
+        div.append('  ham')
         body.append(div)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'ayame'})
-        ins = new_element(u'ins')
-        remove = new_ayame_element(u'remove')
-        remove.append(u'spam')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'ayame'})
+        ins = new_element('ins')
+        remove = new_ayame_element('remove')
+        remove.append('spam')
         remove.append(br.copy())
-        remove.append(u'eggs')
+        remove.append('eggs')
         ins.append(remove)
         div.append(ins)
-        p = new_element(u'p')
-        remove = new_ayame_element(u'remove')
-        remove.append(u'ham\n')
+        p = new_element('p')
+        remove = new_ayame_element('remove')
+        remove.append('ham\n')
         p.append(remove)
-        p.append(u'toast')
+        p.append('toast')
         div.append(p)
-        ul = new_element(u'ul')
-        container = new_ayame_element(u'container',
-                                      attrib={markup.AYAME_ID: u'a'})
-        li = new_element(u'li')
-        li.append(u'spam')
+        ul = new_element('ul')
+        container = new_ayame_element('container',
+                                      attrib={markup.AYAME_ID: 'a'})
+        li = new_element('li')
+        li.append('spam')
         container.append(li)
-        li = new_element(u'li')
-        li.append(u'eggs')
+        li = new_element('li')
+        li.append('eggs')
         container.append(li)
         ul.append(container)
         div.append(ul)
         body.append(div)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'block'})
-        div.append(u'Planets')
-        ul = new_element(u'ul')
-        li = new_element(u'li')
-        li.append(u'\n'
-                  u' Mercury '
-                  u'\n')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'block'})
+        div.append('Planets')
+        ul = new_element('ul')
+        li = new_element('li')
+        li.append('\n'
+                  ' Mercury '
+                  '\n')
         ul.append(li)
-        li = new_element(u'li')
-        li.append(u'  Venus  ')
+        li = new_element('li')
+        li.append('  Venus  ')
         ul.append(li)
-        li = new_element(u'li')
-        li.append(u'Earth')
+        li = new_element('li')
+        li.append('Earth')
         ul.append(li)
         div.append(ul)
-        div.append(u'\n')
+        div.append('\n')
         body.append(div)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'inline-ins-del'})
-        p = new_element(u'p')
-        del_ = new_element(u'del')
-        del_.append(u'old')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'inline-ins-del'})
+        p = new_element('p')
+        del_ = new_element('del')
+        del_.append('old')
         p.append(del_)
-        ins = new_element(u'ins')
-        ins.append(u'new')
+        ins = new_element('ins')
+        ins.append('new')
         p.append(ins)
         div.append(p)
         body.append(div)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'block-ins-del'})
-        del_ = new_element(u'del')
-        pre = new_element(u'pre')
-        pre.append(u'old')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'block-ins-del'})
+        del_ = new_element('del')
+        pre = new_element('pre')
+        pre.append('old')
         del_.append(pre)
         div.append(del_)
-        ins = new_element(u'ins')
-        pre = new_element(u'pre')
-        pre.append(u'new')
+        ins = new_element('ins')
+        pre = new_element('pre')
+        pre.append('new')
         ins.append(pre)
         div.append(ins)
         body.append(div)
 
-        pre = new_element(u'pre')
-        pre.append(u'\n'
-                   u'  * 1\n'
-                   u'    * 2\n'
-                   u'      * 3\n'
-                   u'    * 4\n'
-                   u'  * 5\n')
+        pre = new_element('pre')
+        pre.append('\n'
+                   '  * 1\n'
+                   '    * 2\n'
+                   '      * 3\n'
+                   '    * 4\n'
+                   '  * 5\n')
         body.append(pre)
 
-        div = new_element(u'div',
-                          attrib={self.html_of(u'class'): u'br'})
-        h2 = new_element(u'h2')
-        h2.append(u'The Solar System')
+        div = new_element('div',
+                          attrib={self.html_of('class'): 'br'})
+        h2 = new_element('h2')
+        h2.append('The Solar System')
         div.append(h2)
-        p = new_element(u'p')
-        em = new_element(u'em')
-        em.append(u'Mercury')
+        p = new_element('p')
+        em = new_element('em')
+        em.append('Mercury')
         p.append(em)
-        p.append(u' is the first planet.')
+        p.append(' is the first planet.')
         p.append(br.copy())
-        p.append(u'\n')
-        em = new_element(u'em')
-        em.append(u'Venus')
+        p.append('\n')
+        em = new_element('em')
+        em.append('Venus')
         p.append(em)
-        p.append(u' is the second planet.')
-        p.append(u'\n')
+        p.append(' is the second planet.')
+        p.append('\n')
         div.append(p)
-        div.append(u'\n')
-        p = new_element(u'p')
-        em = new_element(u'em')
-        em.append(u'Earth')
+        div.append('\n')
+        p = new_element('p')
+        em = new_element('em')
+        em.append('Earth')
         p.append(em)
-        p.append(u' is the third planet.')
+        p.append(' is the third planet.')
         div.append(p)
-        remove = new_ayame_element(u'remove')
-        p = new_element(u'p')
-        em = new_element(u'em')
-        em.append(u'Mars')
+        remove = new_ayame_element('remove')
+        p = new_element('p')
+        em = new_element('em')
+        em.append('Mars')
         p.append(em)
-        p.append(u' is the fourth planet.')
+        p.append(' is the fourth planet.')
         p.append(br.copy())
-        em = new_element(u'em')
-        em.append(u'Jupiter')
+        em = new_element('em')
+        em.append('Jupiter')
         p.append(em)
-        p.append(u' is the fifth planet.')
+        p.append(' is the fifth planet.')
         remove.append(p)
         div.append(remove)
-        ul = new_element(u'ul')
-        li = new_element(u'li')
-        li.append(u'1')
+        ul = new_element('ul')
+        li = new_element('li')
+        li.append('1')
         li.append(br.copy())
-        li.append(u'2')
+        li.append('2')
         li.append(br.copy())
-        li.append(u'3')
+        li.append('3')
         ul.append(li)
         div.append(ul)
-        div.append(u'\n')
+        div.append('\n')
         body.append(div)
 
-        form = new_element(u'form',
+        form = new_element('form',
                            attrib={
-                               self.html_of(u'action'): u'/',
-                               self.html_of(u'method'): u'post',
+                               self.html_of('action'): '/',
+                               self.html_of('method'): 'post',
                            })
-        fieldset = new_element(u'fieldset')
-        legend = new_element(u'legend')
-        legend.append(u'form')
+        fieldset = new_element('fieldset')
+        legend = new_element('legend')
+        legend.append('form')
         fieldset.append(legend)
-        textarea = new_element(u'textarea')
-        textarea.append(u'Sun\n')
+        textarea = new_element('textarea')
+        textarea.append('Sun\n')
         fieldset.append(textarea)
         form.append(fieldset)
         body.append(form)
@@ -1086,7 +1082,7 @@ class ElementTestCase(AyameTestCase):
                               type=markup.Element.OPEN,
                               ns={'': markup.XHTML_NS})
         if attrib:
-            for n, v in five.items(attrib):
+            for n, v in attrib.items():
                 elem.attrib[self.html_of(n)] = v
         return elem
 
@@ -1097,8 +1093,8 @@ class ElementTestCase(AyameTestCase):
         self.assert_equal(div.type, markup.Element.OPEN)
         self.assert_equal(div.ns, {'': markup.XHTML_NS})
         self.assert_equal(div.children, [])
-        self.assert_equal(repr(div.qname), '{{{}}}div'.format(markup.XHTML_NS))
-        self.assert_regex(repr(div), r' {{{}}}div '.format(markup.XHTML_NS))
+        self.assert_equal(repr(div.qname), f'{{{markup.XHTML_NS}}}div')
+        self.assert_regex(repr(div), fr' {{{markup.XHTML_NS}}}div ')
         self.assert_equal(len(div), 0)
         self.assert_true(div)
 
@@ -1107,7 +1103,7 @@ class ElementTestCase(AyameTestCase):
         div = self.new_element('div', {'ID': 'spam'})
         div.attrib['CLASS'] = 'eggs'
         div.attrib[o] = 'ham'
-        self.assert_equal(list(sorted(five.items(div.attrib), key=lambda t: t[1])), [
+        self.assert_equal(list(sorted(div.attrib.items(), key=lambda t: t[1])), [
             ('class', 'eggs'),
             (o, 'ham'),
             (self.html_of('id'), 'spam'),

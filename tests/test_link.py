@@ -14,7 +14,7 @@ from base import AyameTestCase
 class LinkTestCase(AyameTestCase):
 
     def setup(self):
-        super(LinkTestCase, self).setup()
+        super().setup()
         self.app = ayame.Ayame(__name__)
 
     def test_link_href(self):
@@ -153,18 +153,18 @@ class SpamPage(ayame.Page):
 </html>
 """
     kwargs = {
-        'query': uri.quote('{}=link'.format(ayame.AYAME_PATH), '/=')
+        'query': uri.quote(f'{ayame.AYAME_PATH}=link', '/='),
     }
 
     def __init__(self):
-        super(SpamPage, self).__init__()
+        super().__init__()
         self.add(ActionLink('link'))
 
 
 class ActionLink(link.ActionLink):
 
     def on_click(self):
-        super(ActionLink, self).on_click()
+        super().on_click()
         raise Clicked()
 
 

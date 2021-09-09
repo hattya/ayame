@@ -6,17 +6,13 @@
 #   SPDX-License-Identifier: MIT
 #
 
-import collections
+import collections.abc
 import os
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 import random
 import threading
 import time
 
-from ayame import _compat as five
 from ayame import util
 from base import AyameTestCase
 
@@ -34,27 +30,14 @@ class UtilTestCase(AyameTestCase):
         self.assert_equal(util.fqon_of(3.14), 'float')
 
     def test_fqon_of_class(self):
-        class O:
+        class C:
             pass
 
-        class N(object):
-            pass
-
-        self.assert_equal(util.fqon_of(O), __name__ + '.O')
-        self.assert_equal(util.fqon_of(O()), __name__ + '.O')
-        O.__module__ = None
-        self.assert_equal(util.fqon_of(O), '<unknown>.O')
-        self.assert_equal(util.fqon_of(O()), '<unknown>.O')
-        if five.PY2:
-            del O.__module__
-            self.assert_equal(util.fqon_of(O), 'O')
-            self.assert_equal(util.fqon_of(O()), 'O')
-
-        self.assert_equal(util.fqon_of(N), __name__ + '.N')
-        self.assert_equal(util.fqon_of(N()), __name__ + '.N')
-        N.__module__ = None
-        self.assert_equal(util.fqon_of(N), '<unknown>.N')
-        self.assert_equal(util.fqon_of(N()), '<unknown>.N')
+        self.assert_equal(util.fqon_of(C), __name__ + '.C')
+        self.assert_equal(util.fqon_of(C()), __name__ + '.C')
+        C.__module__ = None
+        self.assert_equal(util.fqon_of(C), '<unknown>.C')
+        self.assert_equal(util.fqon_of(C()), '<unknown>.C')
 
     def test_fqon_of_function(self):
         def f():
@@ -76,16 +59,16 @@ class UtilTestCase(AyameTestCase):
 
     def test_to_bytes(self):
         # iroha in hiragana
-        v = util.to_bytes(u'\u3044\u308d\u306f')
+        v = util.to_bytes('\u3044\u308d\u306f')
         self.assert_is_instance(v, bytes)
         self.assert_equal(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
 
-        v = util.to_bytes(u'\u3044\u308d\u306f', 'ascii', 'ignore')
+        v = util.to_bytes('\u3044\u308d\u306f', 'ascii', 'ignore')
         self.assert_is_instance(v, bytes)
         self.assert_equal(v, b'')
 
         with self.assert_raises(UnicodeEncodeError):
-            util.to_bytes(u'\u3044\u308d\u306f', 'ascii')
+            util.to_bytes('\u3044\u308d\u306f', 'ascii')
 
         v = util.to_bytes(b'abc')
         self.assert_is_instance(v, bytes)
@@ -124,9 +107,9 @@ class UtilTestCase(AyameTestCase):
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):
             def __convert__(self, key):
-                if isinstance(key, five.string_type):
+                if isinstance(key, str):
                     return key.lower()
-                return super(LowerDict, self).__convert__(key)
+                return super().__convert__(key)
 
         d = LowerDict(a=-1, A=0)
         self.assert_equal(d['A'], 0)
@@ -184,7 +167,7 @@ class RWLockTestCase(AyameTestCase):
                 time.sleep(0.01)
 
         lock = util.RWLock()
-        for _ in five.range(10):
+        for _ in range(10):
             thr = threading.Thread(target=random.choice((reader, writer)))
             thr.daemon = True
             thr.start()
@@ -206,7 +189,7 @@ class LRUCacheTestCase(AyameTestCase):
 
     def lru_cache(self, n):
         c = LRUCache(n)
-        for i in five.range(n):
+        for i in range(n):
             c[chr(ord('a') + i)] = i + 1
         return c
 
@@ -214,7 +197,7 @@ class LRUCacheTestCase(AyameTestCase):
         c = LRUCache(3)
         self.assert_equal(c.cap, 3)
         self.assert_equal(len(c), 0)
-        self.assert_is_instance(c, collections.MutableMapping)
+        self.assert_is_instance(c, collections.abc.MutableMapping)
 
     def test_repr(self):
         c = self.lru_cache(0)
@@ -316,7 +299,7 @@ class LRUCacheTestCase(AyameTestCase):
 
         c = self.lru_cache(3)
         n = len(c)
-        for i in five.range(1, n + 1):
+        for i in range(1, n + 1):
             self.assert_equal(len(c.popitem()), 2)
             self.assert_equal(len(c), n - i)
             self.assert_equal(len(c.evicted), i)
@@ -391,11 +374,11 @@ class LRUCacheTestCase(AyameTestCase):
 class LRUCache(util.LRUCache):
 
     def on_init(self):
-        super(LRUCache, self).on_init()
+        super().on_init()
         self.evicted = []
 
     def on_evicted(self, k, v):
-        super(LRUCache, self).on_evicted(k, v)
+        super().on_evicted(k, v)
         self.evicted.append((k, v))
 
 
@@ -403,7 +386,7 @@ class LFUCacheTestCase(AyameTestCase):
 
     def lfu_cache(self, n):
         c = LFUCache(n)
-        for i in five.range(n):
+        for i in range(n):
             c[chr(ord('a') + i)] = i + 1
         return c
 
@@ -411,7 +394,7 @@ class LFUCacheTestCase(AyameTestCase):
         c = LFUCache(3)
         self.assert_equal(c.cap, 3)
         self.assert_equal(len(c), 0)
-        self.assert_is_instance(c, collections.MutableMapping)
+        self.assert_is_instance(c, collections.abc.MutableMapping)
         with self.assert_raises(RuntimeError):
             c._lfu()
 
@@ -515,7 +498,7 @@ class LFUCacheTestCase(AyameTestCase):
 
         c = self.lfu_cache(3)
         n = len(c)
-        for i in five.range(1, n + 1):
+        for i in range(1, n + 1):
             self.assert_equal(len(c.popitem()), 2)
             self.assert_equal(len(c), n - i)
             self.assert_equal(len(c.evicted), i)
@@ -619,9 +602,9 @@ class LFUCacheTestCase(AyameTestCase):
 class LFUCache(util.LFUCache):
 
     def on_init(self):
-        super(LFUCache, self).on_init()
+        super().on_init()
         self.evicted = []
 
     def on_evicted(self, k, v):
-        super(LFUCache, self).on_evicted(k, v)
+        super().on_evicted(k, v)
         self.evicted.append((k, v))

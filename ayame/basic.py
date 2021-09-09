@@ -6,9 +6,8 @@
 #   SPDX-License-Identifier: MIT
 #
 
-import collections
+import collections.abc
 
-from . import _compat as five
 from . import core, markup, uri
 from . import model as mm
 
@@ -20,9 +19,9 @@ __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
 class Label(core.Component):
 
     def __init__(self, id, model=None):
-        if isinstance(model, five.string_type):
+        if isinstance(model, str):
             model = mm.Model(model)
-        super(Label, self).__init__(id, model)
+        super().__init__(id, model)
 
     def on_render(self, element):
         element[:] = (self.model_object_as_string(),)
@@ -32,19 +31,19 @@ class Label(core.Component):
 class ListView(core.MarkupContainer):
 
     def __init__(self, id, model=None, populate_item=None):
-        if isinstance(model, collections.Sequence):
+        if isinstance(model, collections.abc.Sequence):
             model = mm.Model(model)
-        super(ListView, self).__init__(id, model)
+        super().__init__(id, model)
         self._populate_item = populate_item
 
     def on_before_render(self):
         o = self.model_object
         if o is not None:
-            for i in five.range(len(o)):
+            for i in range(len(o)):
                 li = self.new_item(i)
                 self.add(li)
                 self.populate_item(li)
-        super(ListView, self).on_before_render()
+        super().on_before_render()
 
     def on_render(self, element):
         skel = element.copy()
@@ -68,7 +67,7 @@ class ListView(core.MarkupContainer):
 class _ListItem(core.MarkupContainer):
 
     def __init__(self, index, model):
-        super(_ListItem, self).__init__(five.str(index), model)
+        super().__init__(str(index), model)
         self.__index = index
 
     @property
@@ -97,13 +96,13 @@ class _ListItemModel(mm.Model):
 class PropertyListView(ListView):
 
     def new_model(self, index):
-        return mm.CompoundModel(super(PropertyListView, self).new_model(index))
+        return mm.CompoundModel(super().new_model(index))
 
 
 class ContextPathGenerator(core.AttributeModifier):
 
     def __init__(self, attr, rel_path):
-        super(ContextPathGenerator, self).__init__(attr, mm.Model(rel_path))
+        super().__init__(attr, mm.Model(rel_path))
 
     def new_value(self, value, new_value):
         return uri.relative_uri(self.environ, new_value)
@@ -112,12 +111,12 @@ class ContextPathGenerator(core.AttributeModifier):
 class ContextImage(core.Component):
 
     def __init__(self, id, rel_path):
-        super(ContextImage, self).__init__(id)
-        self.add(ContextPathGenerator(u'src', rel_path))
+        super().__init__(id)
+        self.add(ContextPathGenerator('src', rel_path))
 
 
 class ContextLink(core.Component):
 
     def __init__(self, id, rel_path):
-        super(ContextLink, self).__init__(id)
-        self.add(ContextPathGenerator(u'href', rel_path))
+        super().__init__(id)
+        self.add(ContextPathGenerator('href', rel_path))

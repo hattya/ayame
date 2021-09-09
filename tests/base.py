@@ -14,7 +14,6 @@ import unittest
 import wsgiref.util
 
 import ayame
-from ayame import _compat as five
 from ayame import local, markup, res, uri, util
 
 
@@ -40,11 +39,6 @@ _ASSERT_MAP = {a: _method_of(a)
                          'assert_regex', 'assert_not_regex',
                          'assert_items_equal')}
 
-if sys.version_info < (3, 2):
-    _ASSERT_MAP.update(assert_raises_regex='assertRaisesRegexp',
-                       assert_regex='assertRegexpMatches',
-                       assert_not_regex='assertNotRegexpMatches')
-
 
 class AyameTestCase(unittest.TestCase):
 
@@ -52,7 +46,7 @@ class AyameTestCase(unittest.TestCase):
         try:
             return getattr(self, _ASSERT_MAP[name])
         except KeyError:
-            raise AttributeError("'{}' object has no attribute {!r}".format(util.fqon_of(self.__class__), name))
+            raise AttributeError(f"'{util.fqon_of(self.__class__)}' object has no attribute {name!r}")
 
     @classmethod
     def setUpClass(cls):
@@ -106,17 +100,17 @@ class AyameTestCase(unittest.TestCase):
         self.assert_is_instance(b.children, list)
         self.assert_is_not(a.children, b.children)
         self.assert_equal(len(a.children), len(b.children))
-        for i in five.range(len(a.children)):
+        for i in range(len(a.children)):
             if isinstance(a[i], markup.Element):
                 self.assert_is_instance(b[i], markup.Element)
                 self.assert_element_equal(a[i], b[i])
             else:
-                self.assert_is_instance(a[i], five.string_type)
-                self.assert_is_instance(b[i], five.string_type)
+                self.assert_is_instance(a[i], str)
+                self.assert_is_instance(b[i], str)
                 self.assert_equal(a[i], b[i])
 
     def assert_ws(self, seq, i):
-        self.assert_is_instance(seq[i], five.string_type)
+        self.assert_is_instance(seq[i], str)
         self.assert_regex(seq[i], r'^\s*$')
 
     def path_for(self, path):
@@ -145,14 +139,14 @@ class AyameTestCase(unittest.TestCase):
         class StringIO(io.StringIO):
             def __init__(self, path, encoding):
                 self._path = path
-                with io.open(self._path, encoding=encoding) as fp:
-                    super(StringIO, self).__init__(fp.read())
+                with open(self._path, encoding=encoding) as fp:
+                    super().__init__(fp.read())
 
             def read(self, *args, **kwargs):
-                return self._wrap(super(StringIO, self).read, args, kwargs)
+                return self._wrap(super().read, args, kwargs)
 
             def readline(self, *args, **kwargs):
-                return self._wrap(super(StringIO, self).readline, args, kwargs)
+                return self._wrap(super().readline, args, kwargs)
 
             def _wrap(self, func, args, kwargs):
                 if ref[self._path] > 2:
@@ -181,15 +175,14 @@ class AyameTestCase(unittest.TestCase):
             'REQUEST_METHOD': method,
             'PATH_INFO': path,
             'QUERY_STRING': query,
-            'ayame.session': {}
+            'ayame.session': {},
         }
         wsgiref.util.setup_testing_defaults(environ)
 
         if data is not None:
             environ['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         elif form is not None:
-            environ['CONTENT_TYPE'] = ('multipart/form-data; '
-                                       'boundary={}').format(self.boundary)
+            environ['CONTENT_TYPE'] = 'multipart/form-data; boundary=' + self.boundary
             data = form
         else:
             data = ''
@@ -202,17 +195,17 @@ class AyameTestCase(unittest.TestCase):
         return environ
 
     def form_data(self, *args):
-        self.assert_is_instance(self.boundary, five.string_type)
+        self.assert_is_instance(self.boundary, str)
         self.assert_true(self.boundary)
         buf = []
         for n, v in args:
             buf.append('--' + self.boundary)
             if isinstance(v, tuple):
-                buf.append(u'Content-Disposition: form-data; name="{}"; filename="{}"'.format(n, v[0]))
+                buf.append(f'Content-Disposition: form-data; name="{n}"; filename="{v[0]}"')
                 buf.append('Content-Type: ' + v[2])
                 v = v[1]
             else:
-                buf.append(u'Content-Disposition: form-data; name="{}"'.format(n))
+                buf.append(f'Content-Disposition: form-data; name="{n}"')
             buf.append('')
             buf.append(v)
         buf.append('--' + self.boundary + '--')
@@ -236,7 +229,7 @@ class AyameTestCase(unittest.TestCase):
                       xml=markup.XML_NS,
                       ayame=markup.AYAME_NS,
                       path=ayame.AYAME_PATH)
-        for k, v in five.items(getattr(class_, 'kwargs', {})):
+        for k, v in getattr(class_, 'kwargs', {}).items():
             if callable(v):
                 v = v(*[kwargs[k]] if k in kwargs else [])
             elif k in kwargs:

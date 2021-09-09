@@ -15,7 +15,7 @@ __all__ = ['HTTPStatusPage']
 class HTTPStatusPage(core.Page):
 
     def __init__(self, error):
-        super(HTTPStatusPage, self).__init__()
+        super().__init__()
         self._error = error
         self.status = error.status
         for name, value in error.headers:

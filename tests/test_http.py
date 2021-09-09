@@ -16,7 +16,7 @@ class HTTPTestCase(AyameTestCase):
     def assert_status_class(self, st, code, reason, superclass=None):
         self.assert_equal(st.code, code)
         self.assert_equal(st.reason, reason)
-        self.assert_equal(st.status, '' if code == 0 else '{} {}'.format(code, reason))
+        self.assert_equal(st.status, '' if code == 0 else f'{code} {reason}')
         if superclass is None:
             self.assert_is_instance(st, object)
             self.assert_equal(str(st), st.status)
@@ -25,9 +25,9 @@ class HTTPTestCase(AyameTestCase):
             self.assert_true(issubclass(st, superclass))
 
     def new_environ(self, data=None, form=None):
-        return super(HTTPTestCase, self).new_environ(method='POST',
-                                                     data=data,
-                                                     form=form)
+        return super().new_environ(method='POST',
+                                   data=data,
+                                   form=form)
 
     def test_parse_accept(self):
         self.assert_equal(http.parse_accept(''), ())
@@ -69,38 +69,38 @@ class HTTPTestCase(AyameTestCase):
         })
 
     def test_parse_form_data_utf_8(self):
-        data = (u'\u3082=\u767e&'
-                u'\u305b=\u767e&'
-                u'\u305b=\u5343&'
-                u'\u3059=\u767e&'
-                u'\u3059=\u5343&'
-                u'\u3059=\u4e07')
+        data = ('\u3082=\u767e&'
+                '\u305b=\u767e&'
+                '\u305b=\u5343&'
+                '\u3059=\u767e&'
+                '\u3059=\u5343&'
+                '\u3059=\u4e07')
         self.assert_equal(http.parse_form_data(self.new_environ(data=data)), {
-            u'\u3082': [u'\u767e'],
-            u'\u305b': [u'\u767e', u'\u5343'],
-            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07'],
+            '\u3082': ['\u767e'],
+            '\u305b': ['\u767e', '\u5343'],
+            '\u3059': ['\u767e', '\u5343', '\u4e07'],
         })
 
-        data = self.form_data((u'\u3082', u'\u767e'),
-                              (u'\u305b', u'\u767e'),
-                              (u'\u305b', u'\u5343'),
-                              (u'\u3059', u'\u767e'),
-                              (u'\u3059', u'\u5343'),
-                              (u'\u3059', u'\u4e07'))
+        data = self.form_data(('\u3082', '\u767e'),
+                              ('\u305b', '\u767e'),
+                              ('\u305b', '\u5343'),
+                              ('\u3059', '\u767e'),
+                              ('\u3059', '\u5343'),
+                              ('\u3059', '\u4e07'))
         self.assert_equal(http.parse_form_data(self.new_environ(form=data)), {
-            u'\u3082': [u'\u767e'],
-            u'\u305b': [u'\u767e', u'\u5343'],
-            u'\u3059': [u'\u767e', u'\u5343', u'\u4e07'],
+            '\u3082': ['\u767e'],
+            '\u305b': ['\u767e', '\u5343'],
+            '\u3059': ['\u767e', '\u5343', '\u4e07'],
         })
 
     def test_parse_form_data_post(self):
-        data = self.form_data(('a', (u'\u3044', 'spam\neggs\nham\n', 'text/plain')))
+        data = self.form_data(('a', ('\u3044', 'spam\neggs\nham\n', 'text/plain')))
         form_data = http.parse_form_data(self.new_environ(form=data))
         self.assert_equal(list(form_data), ['a'])
         self.assert_equal(len(form_data['a']), 1)
         a = form_data['a'][0]
         self.assert_equal(a.name, 'a')
-        self.assert_equal(a.filename, u'\u3044')
+        self.assert_equal(a.filename, '\u3044')
         self.assert_equal(a.value, b'spam\neggs\nham\n')
 
     def test_parse_form_data_put(self):

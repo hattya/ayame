@@ -8,13 +8,11 @@
 
 import abc
 
-from . import _compat as five
-
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
 
 
-class Model(object):
+class Model:
 
     def __init__(self, object):
         self.__object = object
@@ -31,17 +29,17 @@ class Model(object):
     object = property(**object())
 
 
-class InheritableModel(five.with_metaclass(abc.ABCMeta, Model)):
+class InheritableModel(Model, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def wrap(self, component):
         pass
 
 
-class WrapModel(five.with_metaclass(abc.ABCMeta, Model)):
+class WrapModel(Model, metaclass=abc.ABCMeta):
 
     def __init__(self, model):
-        super(WrapModel, self).__init__(None)
+        super().__init__(None)
         self.__wrapped_model = model
 
     @property
@@ -59,7 +57,7 @@ class CompoundModel(InheritableModel):
         class CompoundWrapModel(WrapModel):
 
             def __init__(self, model):
-                super(CompoundWrapModel, self).__init__(model)
+                super().__init__(model)
                 self._component = component
 
             def object():

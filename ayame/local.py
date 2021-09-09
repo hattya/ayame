@@ -16,7 +16,7 @@ __all__ = ['push', 'pop', 'context', 'app']
 _local = threading.local()
 
 
-class _Context(object):
+class _Context:
 
     def __init__(self, app, environ):
         self.app = app
@@ -46,7 +46,7 @@ def context():
     try:
         return _local.stack[-1]
     except (AttributeError, IndexError):
-        raise AyameError(u"there is no application attached to '{}'".format(threading.current_thread().name))
+        raise AyameError(f"there is no application attached to '{threading.current_thread().name}'")
 
 
 def app():

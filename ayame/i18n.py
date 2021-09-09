@@ -41,11 +41,11 @@ _ctrl_chr = {
     'f': '\f',
     'n': '\n',
     'r': '\r',
-    't': '\t'
+    't': '\t',
 }
 
 
-class Localizer(object):
+class Localizer:
 
     extension = '.properties'
 
@@ -79,7 +79,7 @@ class Localizer(object):
                     with r.open() as fp:
                         bundle = self._load(fp)
                     cache[key] = (r.mtime, bundle)
-            except (OSError, IOError, ResourceError):
+            except (OSError, ResourceError):
                 bundle = None
                 try:
                     del cache[key]

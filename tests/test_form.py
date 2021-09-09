@@ -9,7 +9,6 @@
 import datetime
 
 import ayame
-from ayame import _compat as five
 from ayame import basic, form, http, markup, model, validator
 from base import AyameTestCase
 
@@ -18,13 +17,13 @@ class FormTestCase(AyameTestCase):
 
     @classmethod
     def setup_class(cls):
-        super(FormTestCase, cls).setup_class()
+        super().setup_class()
         cls.app.config['ayame.markup.pretty'] = True
 
     def assert_required_error(self, fc, input):
         e = fc.error
         self.assert_is_instance(e, ayame.ValidationError)
-        self.assert_equal(five.str(e), "'{}' is required".format(fc.id))
+        self.assert_equal(str(e), f"'{fc.id}' is required")
         self.assert_equal(e.keys, ['Required'])
         self.assert_equal(e.vars, {
             'input': input,
@@ -36,10 +35,10 @@ class FormTestCase(AyameTestCase):
         e = fc.error
         self.assert_is_instance(e, ayame.ValidationError)
         if fc.multiple:
-            self.assert_regex(five.str(e), r"'{}' contain invalid choices$".format(fc.id))
+            self.assert_regex(str(e), fr"'{fc.id}' contain invalid choices$")
             self.assert_equal(e.keys, ['Choice.multiple'])
         else:
-            self.assert_regex(five.str(e), r"'{}' is not a valid choice$".format(fc.id))
+            self.assert_regex(str(e), fr"'{fc.id}' is not a valid choice$")
             self.assert_equal(e.keys, ['Choice.single'])
         self.assert_equal(e.vars, {
             'input': input,
@@ -48,10 +47,10 @@ class FormTestCase(AyameTestCase):
         })
 
     def new_environ(self, method='GET', query='', form=None):
-        return super(FormTestCase, self).new_environ(method=method,
-                                                     path='/form',
-                                                     query=query,
-                                                     form=form)
+        return super().new_environ(method=method,
+                                   path='/form',
+                                   query=query,
+                                   form=form)
 
     def test_form_invalid_markup(self):
         # not form element
@@ -61,7 +60,7 @@ class FormTestCase(AyameTestCase):
 
         # method is not found
         root = markup.Element(form._FORM,
-                              attrib={form._ACTION: u'/'})
+                              attrib={form._ACTION: '/'})
         f = form.Form('a')
         with self.assert_raises_regex(ayame.RenderingError, r"'method' .* required .* 'form'"):
             f.render(root)
@@ -94,7 +93,7 @@ class FormTestCase(AyameTestCase):
     def test_form_duplicate_buttons(self):
         class Button(form.Button):
             def relative_path(self):
-                return super(Button, self).relative_path()[:-1]
+                return super().relative_path()[:-1]
 
             def on_submit(self):
                 raise Valid(self.id)
@@ -322,7 +321,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' is not a valid type 'int'")
+            self.assert_regex(str(e), r"'a' is not a valid type 'int'")
             self.assert_equal(e.keys, [
                 'Converter.int',
                 'Converter',
@@ -347,7 +346,7 @@ class FormTestCase(AyameTestCase):
                 fc.validate(o)
                 e = fc.error
                 self.assert_is_instance(e, ayame.ValidationError)
-                self.assert_regex(five.str(e), r"'a' cannot validate$")
+                self.assert_regex(str(e), r"'a' cannot validate$")
                 self.assert_equal(e.keys, ['RangeValidator.type'])
                 self.assert_equal(e.vars, {
                     'input': o,
@@ -363,7 +362,7 @@ class FormTestCase(AyameTestCase):
             fc.validate(0)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be at least 5$")
+            self.assert_regex(str(e), r"'a' must be at least 5$")
             self.assert_equal(e.keys, ['RangeValidator.minimum'])
             self.assert_equal(e.vars, {
                 'input': 0,
@@ -377,7 +376,7 @@ class FormTestCase(AyameTestCase):
             fc.validate(5)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be at most 3$")
+            self.assert_regex(str(e), r"'a' must be at most 3$")
             self.assert_equal(e.keys, ['RangeValidator.maximum'])
             self.assert_equal(e.vars, {
                 'input': 5,
@@ -391,7 +390,7 @@ class FormTestCase(AyameTestCase):
             fc.validate(0)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be between 3 and 5$")
+            self.assert_regex(str(e), r"'a' must be between 3 and 5$")
             self.assert_equal(e.keys, ['RangeValidator.range'])
             self.assert_equal(e.vars, {
                 'input': 0,
@@ -405,7 +404,7 @@ class FormTestCase(AyameTestCase):
             fc.validate(5)
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be exactly 3$")
+            self.assert_regex(str(e), r"'a' must be exactly 3$")
             self.assert_equal(e.keys, ['RangeValidator.exact'])
             self.assert_equal(e.vars, {
                 'input': 5,
@@ -427,7 +426,7 @@ class FormTestCase(AyameTestCase):
                 fc.validate(o)
                 e = fc.error
                 self.assert_is_instance(e, ayame.ValidationError)
-                self.assert_regex(five.str(e), r"'a' cannot validate$")
+                self.assert_regex(str(e), r"'a' cannot validate$")
                 self.assert_equal(e.keys, ['StringValidator.type'])
                 self.assert_equal(e.vars, {
                     'input': o,
@@ -444,7 +443,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('.jp')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be at least 4 ")
+            self.assert_regex(str(e), r"'a' must be at least 4 ")
             self.assert_equal(e.keys, ['StringValidator.minimum'])
             self.assert_equal(e.vars, {
                 'input': '.jp',
@@ -458,7 +457,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('.info')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be at most 4 ")
+            self.assert_regex(str(e), r"'a' must be at most 4 ")
             self.assert_equal(e.keys, ['StringValidator.maximum'])
             self.assert_equal(e.vars, {
                 'input': '.info',
@@ -472,7 +471,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('.jp')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be between 4 and 5 ")
+            self.assert_regex(str(e), r"'a' must be between 4 and 5 ")
             self.assert_equal(e.keys, ['StringValidator.range'])
             self.assert_equal(e.vars, {
                 'input': '.jp',
@@ -486,7 +485,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('.info')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' must be exactly 4 ")
+            self.assert_regex(str(e), r"'a' must be exactly 4 ")
             self.assert_equal(e.keys, ['StringValidator.exact'])
             self.assert_equal(e.vars, {
                 'input': '.info',
@@ -504,7 +503,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' does not match pattern ")
+            self.assert_regex(str(e), r"'a' does not match pattern ")
             self.assert_equal(e.keys, ['RegexValidator'])
             self.assert_equal(e.vars, {
                 'input': 'a',
@@ -523,7 +522,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' is not a valid email address$")
+            self.assert_regex(str(e), r"'a' is not a valid email address$")
             self.assert_equal(e.keys, ['EmailValidator'])
             self.assert_equal(e.vars, {
                 'input': 'a',
@@ -542,7 +541,7 @@ class FormTestCase(AyameTestCase):
             fc.validate('a')
             e = fc.error
             self.assert_is_instance(e, ayame.ValidationError)
-            self.assert_regex(five.str(e), r"'a' is not a valid URL$")
+            self.assert_regex(str(e), r"'a' is not a valid URL$")
             self.assert_equal(e.keys, ['URLValidator'])
             self.assert_equal(e.vars, {
                 'input': 'a',
@@ -1160,18 +1159,18 @@ class SpamPage(ayame.Page):
 """
 
     def __init__(self):
-        super(SpamPage, self).__init__()
+        super().__init__()
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(basic.Label('legend', 'form'))
         self.find('form').add(form.TextField('text'))
-        self.find('form:text').model_object = u''
+        self.find('form:text').model_object = ''
         self.find('form:text').add(ayame.Behavior())
         self.find('form').add(form.PasswordField('password'))
-        self.find('form:password').model_object = u''
+        self.find('form:password').model_object = ''
         self.find('form').add(form.HiddenField('hidden'))
-        self.find('form:hidden').model_object = u''
+        self.find('form:hidden').model_object = ''
         self.find('form').add(form.TextArea('area'))
-        self.find('form:area').model_object = u'Hello World!\n'
+        self.find('form:area').model_object = 'Hello World!\n'
         self.find('form').add(form.CheckBox('checkbox'))
         self.find('form:checkbox').model_object = True
         self.find('form').add(form.FileUploadField('file'))
@@ -1208,11 +1207,11 @@ class EggsPage(ayame.Page):
           <input id="radio-1" name="radio" type="radio" value="1" /><label for="radio-1">2012-01-02</label><br />
           <input id="radio-2" name="radio" type="radio" value="2" /><label for="radio-2">2012-01-03</label>
         \
-""" if v else ''
+""" if v else '',
     }
 
     def __init__(self):
-        super(EggsPage, self).__init__()
+        super().__init__()
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.RadioChoice('radio', choices=self.choices))
         self.find('form:radio').model_object = self.choices[0]
@@ -1247,11 +1246,11 @@ class HamPage(ayame.Page):
           <input {}id="checkbox-1" name="checkbox" type="checkbox" value="1" /><label for="checkbox-1">2012-01-02</label><br />
           <input {}id="checkbox-2" name="checkbox" type="checkbox" value="2" /><label for="checkbox-2">2012-01-03</label>
         \
-""".format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else ''
+""".format(*('checked="checked" ',) * v + ('',) * (3 - v)) if v else '',
     }
 
     def __init__(self, multiple=True):
-        super(HamPage, self).__init__()
+        super().__init__()
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.CheckBoxChoice('checkbox',
                                                   choices=self.choices))
@@ -1289,11 +1288,11 @@ class SelectChoicePage(ayame.Page):
           <option {}value="0">2013-01-01</option>
           <option {}value="1">2013-01-02</option>
           <option {}value="2">2013-01-03</option>\
-""".format(*('selected="selected" ',) * v + ('',) * (3 - v)) if v else ''
+""".format(*('selected="selected" ',) * v + ('',) * (3 - v)) if v else '',
     }
 
     def __init__(self, multiple=True):
-        super(SelectChoicePage, self).__init__()
+        super().__init__()
         self.kwargs['title'] = self.__class__.__name__
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.SelectChoice('select',
@@ -1313,23 +1312,23 @@ class BeansPage(SelectChoicePage):
 class Form(form.Form):
 
     def on_submit(self):
-        super(Form, self).on_submit()
+        super().on_submit()
         raise Valid(self.id)
 
     def on_error(self):
-        super(Form, self).on_error()
+        super().on_error()
         raise Invalid(self.id)
 
 
 class Button(form.Button):
 
     def on_submit(self):
-        super(Button, self).on_submit()
+        super().on_submit()
         self.model_object = 'submitted'
         raise Valid(self.id)
 
     def on_error(self):
-        super(Button, self).on_error()
+        super().on_error()
         raise Invalid(self.id)
 
 

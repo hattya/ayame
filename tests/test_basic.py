@@ -7,7 +7,6 @@
 #
 
 import ayame
-from ayame import _compat as five
 from ayame import basic, markup, model
 from base import AyameTestCase
 
@@ -76,7 +75,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
-        m = model.Model([str(i) for i in five.range(3)])
+        m = model.Model([str(i) for i in range(3)])
         mc.add(basic.ListView('b', m, None))
 
         with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
@@ -92,7 +91,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         mc = ayame.MarkupContainer('a')
-        m = model.Model([str(i) for i in five.range(3)])
+        m = model.Model([str(i) for i in range(3)])
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
@@ -145,7 +144,7 @@ class BasicTestCase(AyameTestCase):
         root.append(label)
         root.append(']')
         mc = ayame.MarkupContainer('a')
-        mc.add(basic.ListView('b', [str(i) for i in five.range(3)], populate_item))
+        mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
 
         root = mc.render(root)
         self.assert_equal(root.qname, self.of('root'))
@@ -163,7 +162,7 @@ class BasicTestCase(AyameTestCase):
         label = markup.Element(self.of('label'),
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
-        m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
+        m = model.CompoundModel({'b': [str(i) for i in range(3)]})
         mc = ayame.MarkupContainer('a', m)
         mc.add(basic.PropertyListView('b', None, populate_item))
 
@@ -216,7 +215,7 @@ class BasicTestCase(AyameTestCase):
                                attrib={markup.AYAME_ID: 'c'})
         root.append(label)
         root.append(']')
-        m = model.CompoundModel({'b': [str(i) for i in five.range(3)]})
+        m = model.CompoundModel({'b': [str(i) for i in range(3)]})
         mc = ayame.MarkupContainer('a', m)
         mc.add(basic.PropertyListView('b', None, populate_item))
 

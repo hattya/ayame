@@ -16,7 +16,7 @@ __all__ = ['Border', 'FeedbackFieldBorder']
 class Border(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        super(Border, self).__init__(id, model)
+        super().__init__(id, model)
         self.has_markup = True
         self.render_body_only = True
         # ayame:body element
@@ -25,7 +25,7 @@ class Border(core.MarkupContainer):
         self.__body = False
 
     def add_to_border(self, *args):
-        return super(Border, self).add(*args)
+        return super().add(*args)
 
     def add(self, *args):
         for o in args:
@@ -70,7 +70,7 @@ class Border(core.MarkupContainer):
             self.page().head.extend(ayame_head)
         # render border
         element[:] = ayame_border
-        return super(Border, self).on_render(element)
+        return super().on_render(element)
 
     def on_render_element(self, element):
         if element.qname == markup.AYAME_BODY:
@@ -79,29 +79,29 @@ class Border(core.MarkupContainer):
                 element.attrib[markup.AYAME_ID] = self.body.id
                 self.__body = True
             return element
-        return super(Border, self).on_render_element(element)
+        return super().on_render_element(element)
 
 
 class _BorderBodyContainer(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        super(_BorderBodyContainer, self).__init__(id + u'_body', model)
+        super().__init__(id + '_body', model)
         self.render_body_only = True
 
     def on_render_element(self, element):
         if element.qname == markup.AYAME_BODY:
             return element
-        return super(_BorderBodyContainer, self).on_render_element(element)
+        return super().on_render_element(element)
 
     def tr(self, key, component=None):
         # retrieve message from parent of Border
-        return super(_BorderBodyContainer, self).tr(key, self.parent.parent)
+        return super().tr(key, self.parent.parent)
 
 
 class FeedbackFieldBorder(Border):
 
     def __init__(self, id):
-        super(FeedbackFieldBorder, self).__init__(id)
+        super().__init__(id)
         self.render_body_only = False
 
         self.__feedback = basic.Label('feedback', '')
