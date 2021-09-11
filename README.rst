@@ -28,6 +28,7 @@ Requirements
 ------------
 
 - Python 3.6+
+- setuptools
 - Werkzeug
 - secure-cookie
 
