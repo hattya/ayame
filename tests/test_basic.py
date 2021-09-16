@@ -15,40 +15,40 @@ class BasicTestCase(AyameTestCase):
 
     def test_label(self):
         c = basic.Label('a')
-        self.assert_is_none(c.model)
+        self.assertIsNone(c.model)
 
         elem = c.render(markup.Element(None))
-        self.assert_equal(elem.attrib, {})
-        self.assert_equal(elem.children, [''])
+        self.assertEqual(elem.attrib, {})
+        self.assertEqual(elem.children, [''])
 
     def test_label_with_object_model(self):
         with self.application():
             m = model.Model([])
             c = basic.Label('a', m)
-            self.assert_is(c.model, m)
+            self.assertIs(c.model, m)
 
             elem = c.render(markup.Element(None))
-            self.assert_equal(elem.attrib, {})
-            self.assert_equal(elem.children, ['[]'])
+            self.assertEqual(elem.attrib, {})
+            self.assertEqual(elem.children, ['[]'])
 
     def test_label_with_string_model(self):
         with self.application():
             m = model.Model('<tag>')
             c = basic.Label('a', m)
-            self.assert_is(c.model, m)
+            self.assertIs(c.model, m)
 
             elem = c.render(markup.Element(None))
-            self.assert_equal(elem.attrib, {})
-            self.assert_equal(elem.children, ['&lt;tag&gt;'])
+            self.assertEqual(elem.attrib, {})
+            self.assertEqual(elem.children, ['&lt;tag&gt;'])
 
     def test_label_with_string(self):
         with self.application():
             c = basic.Label('a', '<tag>')
-            self.assert_equal(c.model.object, '<tag>')
+            self.assertEqual(c.model.object, '<tag>')
 
             elem = c.render(markup.Element(None))
-            self.assert_equal(elem.attrib, {})
-            self.assert_equal(elem.children, ['&lt;tag&gt;'])
+            self.assertEqual(elem.attrib, {})
+            self.assertEqual(elem.children, ['&lt;tag&gt;'])
 
     def test_list_view_empty_model(self):
         def populate_item(li):
@@ -64,9 +64,9 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, self.of('root'))
-        self.assert_equal(root.attrib, {})
-        self.assert_equal(root.children, [])
+        self.assertEqual(root.qname, self.of('root'))
+        self.assertEqual(root.attrib, {})
+        self.assertEqual(root.children, [])
 
     def test_list_view_error(self):
         root = markup.Element(self.of('root'),
@@ -78,7 +78,7 @@ class BasicTestCase(AyameTestCase):
         m = model.Model([str(i) for i in range(3)])
         mc.add(basic.ListView('b', m, None))
 
-        with self.assert_raises_regex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
+        with self.assertRaisesRegex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
             mc.render(root)
 
     def test_list_view(self):
@@ -95,41 +95,41 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', m, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, self.of('root'))
-        self.assert_equal(root.attrib, {})
-        self.assert_equal(len(root), 3)
+        self.assertEqual(root.qname, self.of('root'))
+        self.assertEqual(root.attrib, {})
+        self.assertEqual(len(root), 3)
 
         label = root[0]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['0'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['0'])
 
         label = root[1]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['1'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['1'])
 
         label = root[2]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['2'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['2'])
 
-        self.assert_equal(len(mc.children), 1)
+        self.assertEqual(len(mc.children), 1)
         lv = mc.children[0]
-        self.assert_equal(len(lv.children), 3)
-        self.assert_equal(lv.children[0].index, 0)
-        self.assert_equal(lv.children[1].index, 1)
-        self.assert_equal(lv.children[2].index, 2)
+        self.assertEqual(len(lv.children), 3)
+        self.assertEqual(lv.children[0].index, 0)
+        self.assertEqual(lv.children[1].index, 1)
+        self.assertEqual(lv.children[2].index, 2)
 
-        self.assert_is_instance(lv.children[0].model, basic._ListItemModel)
-        self.assert_is_instance(lv.children[1].model, basic._ListItemModel)
-        self.assert_is_instance(lv.children[2].model, basic._ListItemModel)
+        self.assertIsInstance(lv.children[0].model, basic._ListItemModel)
+        self.assertIsInstance(lv.children[1].model, basic._ListItemModel)
+        self.assertIsInstance(lv.children[2].model, basic._ListItemModel)
         lv.children[0].model.object = 10
         lv.children[1].model.object = 11
         lv.children[2].model.object = 12
-        self.assert_equal(lv.children[0].model.object, 10)
-        self.assert_equal(lv.children[1].model.object, 11)
-        self.assert_equal(lv.children[2].model.object, 12)
+        self.assertEqual(lv.children[0].model.object, 10)
+        self.assertEqual(lv.children[1].model.object, 11)
+        self.assertEqual(lv.children[2].model.object, 12)
 
     def test_list_view_render_body_only(self):
         def populate_item(li):
@@ -147,11 +147,11 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, self.of('root'))
-        self.assert_equal(root.attrib, {})
-        self.assert_equal(len(root), 9)
+        self.assertEqual(root.qname, self.of('root'))
+        self.assertEqual(root.attrib, {})
+        self.assertEqual(len(root), 9)
         root.normalize()
-        self.assert_equal(root.children, ['[0][1][2]'])
+        self.assertEqual(root.children, ['[0][1][2]'])
 
     def test_property_list_view(self):
         def populate_item(li):
@@ -167,41 +167,41 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, self.of('root'))
-        self.assert_equal(root.attrib, {})
-        self.assert_equal(len(root), 3)
+        self.assertEqual(root.qname, self.of('root'))
+        self.assertEqual(root.attrib, {})
+        self.assertEqual(len(root), 3)
 
         label = root[0]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['0'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['0'])
 
         label = root[1]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['1'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['1'])
 
         label = root[2]
-        self.assert_equal(label.qname, self.of('label'))
-        self.assert_equal(label.attrib, {})
-        self.assert_equal(label.children, ['2'])
+        self.assertEqual(label.qname, self.of('label'))
+        self.assertEqual(label.attrib, {})
+        self.assertEqual(label.children, ['2'])
 
-        self.assert_equal(len(mc.children), 1)
+        self.assertEqual(len(mc.children), 1)
         lv = mc.children[0]
-        self.assert_equal(len(lv.children), 3)
-        self.assert_equal(lv.children[0].index, 0)
-        self.assert_equal(lv.children[1].index, 1)
-        self.assert_equal(lv.children[2].index, 2)
+        self.assertEqual(len(lv.children), 3)
+        self.assertEqual(lv.children[0].index, 0)
+        self.assertEqual(lv.children[1].index, 1)
+        self.assertEqual(lv.children[2].index, 2)
 
-        self.assert_is_instance(lv.children[0].model, model.CompoundModel)
-        self.assert_is_instance(lv.children[1].model, model.CompoundModel)
-        self.assert_is_instance(lv.children[2].model, model.CompoundModel)
+        self.assertIsInstance(lv.children[0].model, model.CompoundModel)
+        self.assertIsInstance(lv.children[1].model, model.CompoundModel)
+        self.assertIsInstance(lv.children[2].model, model.CompoundModel)
         lv.children[0].model.object = 10
         lv.children[1].model.object = 11
         lv.children[2].model.object = 12
-        self.assert_equal(lv.children[0].model.object, 10)
-        self.assert_equal(lv.children[1].model.object, 11)
-        self.assert_equal(lv.children[2].model.object, 12)
+        self.assertEqual(lv.children[0].model.object, 10)
+        self.assertEqual(lv.children[1].model.object, 11)
+        self.assertEqual(lv.children[2].model.object, 12)
 
     def test_property_list_view_render_body_only(self):
         def populate_item(li):
@@ -220,44 +220,47 @@ class BasicTestCase(AyameTestCase):
         mc.add(basic.PropertyListView('b', None, populate_item))
 
         root = mc.render(root)
-        self.assert_equal(root.qname, self.of('root'))
-        self.assert_equal(root.attrib, {})
-        self.assert_equal(len(root), 9)
+        self.assertEqual(root.qname, self.of('root'))
+        self.assertEqual(root.attrib, {})
+        self.assertEqual(len(root), 9)
         root.normalize()
-        self.assert_equal(root.children, ['[0][1][2]'])
+        self.assertEqual(root.children, ['[0][1][2]'])
 
     def test_context_path_generator(self):
-        def assert_a(path, value):
-            a = markup.Element(self.html_of('a'))
-            href = self.html_of('href')
-            with self.application(self.new_environ(path=path)):
-                am = basic.ContextPathGenerator(href, 'eggs.html')
-                am.on_component(None, a)
-            self.assert_equal(a.attrib, {href: value})
-
-        assert_a('/spam', 'eggs.html')
-        assert_a('/spam/', '../eggs.html')
+        for path, value in (
+            ('/spam', 'eggs.html'),
+            ('/spam/', '../eggs.html'),
+        ):
+            with self.subTest(path=path, value=value):
+                a = markup.Element(self.html_of('a'))
+                href = self.html_of('href')
+                with self.application(self.new_environ(path=path)):
+                    am = basic.ContextPathGenerator(href, 'eggs.html')
+                    am.on_component(None, a)
+                self.assertEqual(a.attrib, {href: value})
 
     def test_context_image(self):
-        def assert_img(path, value):
-            img = markup.Element(self.html_of('img'))
-            src = self.html_of('src')
-            with self.application(self.new_environ(path=path)):
-                c = basic.ContextImage(src, 'eggs.gif')
-                img = c.render(img)
-            self.assert_equal(img.attrib, {src: value})
-
-        assert_img('/spam', 'eggs.gif')
-        assert_img('/spam/', '../eggs.gif')
+        for path, value in (
+            ('/spam', 'eggs.gif'),
+            ('/spam/', '../eggs.gif'),
+        ):
+            with self.subTest(path=path, value=value):
+                img = markup.Element(self.html_of('img'))
+                src = self.html_of('src')
+                with self.application(self.new_environ(path=path)):
+                    c = basic.ContextImage(src, 'eggs.gif')
+                    img = c.render(img)
+                self.assertEqual(img.attrib, {src: value})
 
     def test_context_link(self):
-        def assert_meta(path, value):
-            meta = markup.Element(self.html_of('meta'))
-            href = self.html_of('href')
-            with self.application(self.new_environ(path=path)):
-                c = basic.ContextLink(href, 'eggs.css')
-                meta = c.render(meta)
-            self.assert_equal(meta.attrib, {href: value})
-
-        assert_meta('/spam', 'eggs.css')
-        assert_meta('/spam/', '../eggs.css')
+        for path, value in (
+            ('/spam', 'eggs.css'),
+            ('/spam/', '../eggs.css'),
+        ):
+            with self.subTest(path=path, value=value):
+                meta = markup.Element(self.html_of('meta'))
+                href = self.html_of('href')
+                with self.application(self.new_environ(path=path)):
+                    c = basic.ContextLink(href, 'eggs.css')
+                    meta = c.render(meta)
+                self.assertEqual(meta.attrib, {href: value})

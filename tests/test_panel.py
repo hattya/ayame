@@ -6,6 +6,8 @@
 #   SPDX-License-Identifier: MIT
 #
 
+import textwrap
+
 import ayame
 from ayame import basic, form, http, markup, panel
 from base import AyameTestCase
@@ -14,8 +16,8 @@ from base import AyameTestCase
 class PanelTestCase(AyameTestCase):
 
     @classmethod
-    def setup_class(cls):
-        super().setup_class()
+    def setUpClass(cls):
+        super().setUpClass()
         cls.app.config['ayame.markup.pretty'] = True
 
     def test_panel(self):
@@ -29,101 +31,101 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Spam('a')
-            self.assert_true(mc.find('panel').render_body_only)
-            self.assert_true(mc.find('panel').has_markup)
+            self.assertTrue(mc.find('panel').render_body_only)
+            self.assertTrue(mc.find('panel').has_markup)
             m, html = mc.render()
-        self.assert_equal(m.xml_decl, {'version': '1.0'})
-        self.assert_equal(m.lang, 'xhtml1')
-        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
-        self.assert_true(m.root)
+        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.lang, 'xhtml1')
+        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+        self.assertTrue(m.root)
 
-        self.assert_equal(html.qname, self.html_of('html'))
-        self.assert_equal(html.attrib, {})
-        self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {
+        self.assertEqual(html.qname, self.html_of('html'))
+        self.assertEqual(html.attrib, {})
+        self.assertEqual(html.type, markup.Element.OPEN)
+        self.assertEqual(html.ns, {
             '': markup.XHTML_NS,
             'xml': markup.XML_NS,
             'ayame': markup.AYAME_NS,
         })
-        self.assert_equal(len(html), 5)
-        self.assert_ws(html, 0)
-        self.assert_ws(html, 2)
-        self.assert_ws(html, 4)
+        self.assertEqual(len(html), 5)
+        self.assertWS(html, 0)
+        self.assertWS(html, 2)
+        self.assertWS(html, 4)
 
         head = html[1]
-        self.assert_equal(head.qname, self.html_of('head'))
-        self.assert_equal(head.attrib, {})
-        self.assert_equal(head.type, markup.Element.OPEN)
-        self.assert_equal(head.ns, {})
-        self.assert_equal(len(head), 8)
-        self.assert_ws(head, 0)
-        self.assert_ws(head, 2)
-        self.assert_ws(head, 4)
-        self.assert_ws(head, 5)
-        self.assert_ws(head, 7)
+        self.assertEqual(head.qname, self.html_of('head'))
+        self.assertEqual(head.attrib, {})
+        self.assertEqual(head.type, markup.Element.OPEN)
+        self.assertEqual(head.ns, {})
+        self.assertEqual(len(head), 8)
+        self.assertWS(head, 0)
+        self.assertWS(head, 2)
+        self.assertWS(head, 4)
+        self.assertWS(head, 5)
+        self.assertWS(head, 7)
 
         title = head[1]
-        self.assert_equal(title.qname, self.html_of('title'))
-        self.assert_equal(title.attrib, {})
-        self.assert_equal(title.type, markup.Element.OPEN)
-        self.assert_equal(title.ns, {})
-        self.assert_equal(title.children, ['Spam'])
+        self.assertEqual(title.qname, self.html_of('title'))
+        self.assertEqual(title.attrib, {})
+        self.assertEqual(title.type, markup.Element.OPEN)
+        self.assertEqual(title.ns, {})
+        self.assertEqual(title.children, ['Spam'])
 
         meta = head[3]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'Spam',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         meta = head[6]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'SpamPanel',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         body = html[3]
-        self.assert_equal(body.qname, self.html_of('body'))
-        self.assert_equal(body.attrib, {})
-        self.assert_equal(body.type, markup.Element.OPEN)
-        self.assert_equal(body.ns, {})
-        self.assert_equal(len(body), 9)
-        self.assert_ws(body, 0)
-        self.assert_ws(body, 2)
-        self.assert_ws(body, 3)
-        self.assert_ws(body, 5)
-        self.assert_ws(body, 6)
-        self.assert_ws(body, 8)
+        self.assertEqual(body.qname, self.html_of('body'))
+        self.assertEqual(body.attrib, {})
+        self.assertEqual(body.type, markup.Element.OPEN)
+        self.assertEqual(body.ns, {})
+        self.assertEqual(len(body), 9)
+        self.assertWS(body, 0)
+        self.assertWS(body, 2)
+        self.assertWS(body, 3)
+        self.assertWS(body, 5)
+        self.assertWS(body, 6)
+        self.assertWS(body, 8)
 
         p = body[1]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['before panel (Spam)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['before panel (Spam)'])
 
         p = body[4]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(len(p), 3)
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(len(p), 3)
         p.normalize()
-        self.assert_equal(p.children, ['inside ayame:panel (SpamPanel)'])
+        self.assertEqual(p.children, ['inside ayame:panel (SpamPanel)'])
 
         p = body[7]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['after panel (Spam)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['after panel (Spam)'])
 
     def test_panel_with_markup_inheritance(self):
         class Eggs(MarkupContainer):
@@ -140,110 +142,110 @@ class PanelTestCase(AyameTestCase):
         with self.application():
             mc = Eggs('a')
             m, html = mc.render()
-        self.assert_equal(m.xml_decl, {'version': '1.0'})
-        self.assert_equal(m.lang, 'xhtml1')
-        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
-        self.assert_true(m.root)
+        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.lang, 'xhtml1')
+        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+        self.assertTrue(m.root)
 
-        self.assert_equal(html.qname, self.html_of('html'))
-        self.assert_equal(html.attrib, {})
-        self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {
+        self.assertEqual(html.qname, self.html_of('html'))
+        self.assertEqual(html.attrib, {})
+        self.assertEqual(html.type, markup.Element.OPEN)
+        self.assertEqual(html.ns, {
             '': markup.XHTML_NS,
             'xml': markup.XML_NS,
             'ayame': markup.AYAME_NS,
         })
-        self.assert_equal(len(html), 5)
-        self.assert_ws(html, 0)
-        self.assert_ws(html, 2)
-        self.assert_ws(html, 4)
+        self.assertEqual(len(html), 5)
+        self.assertWS(html, 0)
+        self.assertWS(html, 2)
+        self.assertWS(html, 4)
 
         head = html[1]
-        self.assert_equal(head.qname, self.html_of('head'))
-        self.assert_equal(head.attrib, {})
-        self.assert_equal(head.type, markup.Element.OPEN)
-        self.assert_equal(head.ns, {})
-        self.assert_equal(len(head), 11)
-        self.assert_ws(head, 0)
-        self.assert_ws(head, 2)
-        self.assert_ws(head, 4)
-        self.assert_ws(head, 5)
-        self.assert_ws(head, 7)
-        self.assert_ws(head, 8)
-        self.assert_ws(head, 10)
+        self.assertEqual(head.qname, self.html_of('head'))
+        self.assertEqual(head.attrib, {})
+        self.assertEqual(head.type, markup.Element.OPEN)
+        self.assertEqual(head.ns, {})
+        self.assertEqual(len(head), 11)
+        self.assertWS(head, 0)
+        self.assertWS(head, 2)
+        self.assertWS(head, 4)
+        self.assertWS(head, 5)
+        self.assertWS(head, 7)
+        self.assertWS(head, 8)
+        self.assertWS(head, 10)
 
         title = head[1]
-        self.assert_equal(title.qname, self.html_of('title'))
-        self.assert_equal(title.attrib, {})
-        self.assert_equal(title.type, markup.Element.OPEN)
-        self.assert_equal(title.ns, {})
-        self.assert_equal(title.children, ['Eggs'])
+        self.assertEqual(title.qname, self.html_of('title'))
+        self.assertEqual(title.attrib, {})
+        self.assertEqual(title.type, markup.Element.OPEN)
+        self.assertEqual(title.ns, {})
+        self.assertEqual(title.children, ['Eggs'])
 
         meta = head[3]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'Eggs',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         meta = head[6]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'EggsPanel',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         meta = head[9]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'HamPanel',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         body = html[3]
-        self.assert_equal(body.qname, self.html_of('body'))
-        self.assert_equal(body.attrib, {})
-        self.assert_equal(body.type, markup.Element.OPEN)
-        self.assert_equal(body.ns, {})
-        self.assert_equal(len(body), 9)
-        self.assert_ws(body, 0)
-        self.assert_ws(body, 2)
-        self.assert_ws(body, 3)
-        self.assert_ws(body, 5)
-        self.assert_ws(body, 6)
-        self.assert_ws(body, 8)
+        self.assertEqual(body.qname, self.html_of('body'))
+        self.assertEqual(body.attrib, {})
+        self.assertEqual(body.type, markup.Element.OPEN)
+        self.assertEqual(body.ns, {})
+        self.assertEqual(len(body), 9)
+        self.assertWS(body, 0)
+        self.assertWS(body, 2)
+        self.assertWS(body, 3)
+        self.assertWS(body, 5)
+        self.assertWS(body, 6)
+        self.assertWS(body, 8)
 
         p = body[1]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['before panel (Eggs)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['before panel (Eggs)'])
 
         p = body[4]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(len(p), 3)
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(len(p), 3)
         p.normalize()
-        self.assert_equal(p.children, ['inside ayame:panel (HamPanel)'])
+        self.assertEqual(p.children, ['inside ayame:panel (HamPanel)'])
 
         p = body[7]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['after panel (Eggs)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['after panel (Eggs)'])
 
     def test_invalid_markup_no_ayame_panel(self):
         class Toast(MarkupContainer):
@@ -256,7 +258,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Toast('a')
-            with self.assert_raises_regex(ayame.RenderingError, r"'ayame:panel' .* not found\b"):
+            with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:panel' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_no_head(self):
@@ -270,7 +272,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Beans('a')
-            with self.assert_raises_regex(ayame.RenderingError, r"'head' .* not found\b"):
+            with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
                 mc.render()
 
     def test_invalid_markup_unknown_ayame_element(self):
@@ -284,7 +286,7 @@ class PanelTestCase(AyameTestCase):
 
         with self.application():
             mc = Bacon('a')
-            with self.assert_raises_regex(ayame.RenderingError, r"\bunknown .* 'ayame:bacon'"):
+            with self.assertRaisesRegex(ayame.RenderingError, r"\bunknown .* 'ayame:bacon'"):
                 mc.render()
 
     def test_empty_markup(self):
@@ -299,84 +301,84 @@ class PanelTestCase(AyameTestCase):
         with self.application():
             mc = Sausage('a')
             m, html = mc.render()
-        self.assert_equal(m.xml_decl, {'version': '1.0'})
-        self.assert_equal(m.lang, 'xhtml1')
-        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
-        self.assert_true(m.root)
+        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.lang, 'xhtml1')
+        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+        self.assertTrue(m.root)
 
-        self.assert_equal(html.qname, self.html_of('html'))
-        self.assert_equal(html.attrib, {})
-        self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {
+        self.assertEqual(html.qname, self.html_of('html'))
+        self.assertEqual(html.attrib, {})
+        self.assertEqual(html.type, markup.Element.OPEN)
+        self.assertEqual(html.ns, {
             '': markup.XHTML_NS,
             'xml': markup.XML_NS,
             'ayame': markup.AYAME_NS,
         })
-        self.assert_equal(len(html), 5)
-        self.assert_ws(html, 0)
-        self.assert_ws(html, 2)
-        self.assert_ws(html, 4)
+        self.assertEqual(len(html), 5)
+        self.assertWS(html, 0)
+        self.assertWS(html, 2)
+        self.assertWS(html, 4)
 
         head = html[1]
-        self.assert_equal(head.qname, self.html_of('head'))
-        self.assert_equal(head.attrib, {})
-        self.assert_equal(head.type, markup.Element.OPEN)
-        self.assert_equal(head.ns, {})
-        self.assert_equal(len(head), 5)
-        self.assert_ws(head, 0)
-        self.assert_ws(head, 2)
-        self.assert_ws(head, 4)
+        self.assertEqual(head.qname, self.html_of('head'))
+        self.assertEqual(head.attrib, {})
+        self.assertEqual(head.type, markup.Element.OPEN)
+        self.assertEqual(head.ns, {})
+        self.assertEqual(len(head), 5)
+        self.assertWS(head, 0)
+        self.assertWS(head, 2)
+        self.assertWS(head, 4)
 
         title = head[1]
-        self.assert_equal(title.qname, self.html_of('title'))
-        self.assert_equal(title.attrib, {})
-        self.assert_equal(title.type, markup.Element.OPEN)
-        self.assert_equal(title.ns, {})
-        self.assert_equal(title.children, ['Sausage'])
+        self.assertEqual(title.qname, self.html_of('title'))
+        self.assertEqual(title.attrib, {})
+        self.assertEqual(title.type, markup.Element.OPEN)
+        self.assertEqual(title.ns, {})
+        self.assertEqual(title.children, ['Sausage'])
 
         meta = head[3]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'Sausage',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         body = html[3]
-        self.assert_equal(body.qname, self.html_of('body'))
-        self.assert_equal(body.attrib, {})
-        self.assert_equal(body.type, markup.Element.OPEN)
-        self.assert_equal(body.ns, {})
-        self.assert_equal(len(body), 9)
-        self.assert_ws(body, 0)
-        self.assert_ws(body, 2)
-        self.assert_ws(body, 3)
-        self.assert_ws(body, 5)
-        self.assert_ws(body, 6)
-        self.assert_ws(body, 8)
+        self.assertEqual(body.qname, self.html_of('body'))
+        self.assertEqual(body.attrib, {})
+        self.assertEqual(body.type, markup.Element.OPEN)
+        self.assertEqual(body.ns, {})
+        self.assertEqual(len(body), 9)
+        self.assertWS(body, 0)
+        self.assertWS(body, 2)
+        self.assertWS(body, 3)
+        self.assertWS(body, 5)
+        self.assertWS(body, 6)
+        self.assertWS(body, 8)
 
         p = body[1]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['before panel (Sausage)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['before panel (Sausage)'])
 
         p = body[4]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['inside panel (Sausage)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['inside panel (Sausage)'])
 
         p = body[7]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['after panel (Sausage)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['after panel (Sausage)'])
 
     def test_duplicate_ayame_elements(self):
         class Lobster(MarkupContainer):
@@ -390,110 +392,110 @@ class PanelTestCase(AyameTestCase):
         with self.application():
             mc = Lobster('a')
             m, html = mc.render()
-        self.assert_equal(m.xml_decl, {'version': '1.0'})
-        self.assert_equal(m.lang, 'xhtml1')
-        self.assert_equal(m.doctype, markup.XHTML1_STRICT)
-        self.assert_true(m.root)
+        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.lang, 'xhtml1')
+        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+        self.assertTrue(m.root)
 
-        self.assert_equal(html.qname, self.html_of('html'))
-        self.assert_equal(html.attrib, {})
-        self.assert_equal(html.type, markup.Element.OPEN)
-        self.assert_equal(html.ns, {
+        self.assertEqual(html.qname, self.html_of('html'))
+        self.assertEqual(html.attrib, {})
+        self.assertEqual(html.type, markup.Element.OPEN)
+        self.assertEqual(html.ns, {
             '': markup.XHTML_NS,
             'xml': markup.XML_NS,
             'ayame': markup.AYAME_NS,
         })
-        self.assert_equal(len(html), 5)
-        self.assert_ws(html, 0)
-        self.assert_ws(html, 2)
-        self.assert_ws(html, 4)
+        self.assertEqual(len(html), 5)
+        self.assertWS(html, 0)
+        self.assertWS(html, 2)
+        self.assertWS(html, 4)
 
         head = html[1]
-        self.assert_equal(head.qname, self.html_of('head'))
-        self.assert_equal(head.attrib, {})
-        self.assert_equal(head.type, markup.Element.OPEN)
-        self.assert_equal(head.ns, {})
-        self.assert_equal(len(head), 8)
-        self.assert_ws(head, 0)
-        self.assert_ws(head, 2)
-        self.assert_ws(head, 4)
-        self.assert_ws(head, 5)
-        self.assert_ws(head, 7)
+        self.assertEqual(head.qname, self.html_of('head'))
+        self.assertEqual(head.attrib, {})
+        self.assertEqual(head.type, markup.Element.OPEN)
+        self.assertEqual(head.ns, {})
+        self.assertEqual(len(head), 8)
+        self.assertWS(head, 0)
+        self.assertWS(head, 2)
+        self.assertWS(head, 4)
+        self.assertWS(head, 5)
+        self.assertWS(head, 7)
 
         title = head[1]
-        self.assert_equal(title.qname, self.html_of('title'))
-        self.assert_equal(title.attrib, {})
-        self.assert_equal(title.type, markup.Element.OPEN)
-        self.assert_equal(title.ns, {})
-        self.assert_equal(title.children, ['Lobster'])
+        self.assertEqual(title.qname, self.html_of('title'))
+        self.assertEqual(title.attrib, {})
+        self.assertEqual(title.type, markup.Element.OPEN)
+        self.assertEqual(title.ns, {})
+        self.assertEqual(title.children, ['Lobster'])
 
         meta = head[3]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'Lobster',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         meta = head[6]
-        self.assert_equal(meta.qname, self.html_of('meta'))
-        self.assert_equal(meta.attrib, {
+        self.assertEqual(meta.qname, self.html_of('meta'))
+        self.assertEqual(meta.attrib, {
             self.html_of('name'): 'class',
             self.html_of('content'): 'LobsterPanel',
         })
-        self.assert_equal(meta.type, markup.Element.EMPTY)
-        self.assert_equal(meta.ns, {})
-        self.assert_equal(meta.children, [])
+        self.assertEqual(meta.type, markup.Element.EMPTY)
+        self.assertEqual(meta.ns, {})
+        self.assertEqual(meta.children, [])
 
         body = html[3]
-        self.assert_equal(body.qname, self.html_of('body'))
-        self.assert_equal(body.attrib, {})
-        self.assert_equal(body.type, markup.Element.OPEN)
-        self.assert_equal(body.ns, {})
-        self.assert_equal(len(body), 9)
-        self.assert_ws(body, 0)
-        self.assert_ws(body, 2)
-        self.assert_ws(body, 3)
-        self.assert_ws(body, 5)
-        self.assert_ws(body, 6)
-        self.assert_ws(body, 8)
+        self.assertEqual(body.qname, self.html_of('body'))
+        self.assertEqual(body.attrib, {})
+        self.assertEqual(body.type, markup.Element.OPEN)
+        self.assertEqual(body.ns, {})
+        self.assertEqual(len(body), 9)
+        self.assertWS(body, 0)
+        self.assertWS(body, 2)
+        self.assertWS(body, 3)
+        self.assertWS(body, 5)
+        self.assertWS(body, 6)
+        self.assertWS(body, 8)
 
         p = body[1]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['before panel (Lobster)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['before panel (Lobster)'])
 
         p = body[4]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(len(p), 3)
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(len(p), 3)
         p.normalize()
-        self.assert_equal(p.children, ['inside ayame:panel (LobsterPanel)'])
+        self.assertEqual(p.children, ['inside ayame:panel (LobsterPanel)'])
 
         p = body[7]
-        self.assert_equal(p.qname, self.html_of('p'))
-        self.assert_equal(p.attrib, {})
-        self.assert_equal(p.type, markup.Element.OPEN)
-        self.assert_equal(p.ns, {})
-        self.assert_equal(p.children, ['after panel (Lobster)'])
+        self.assertEqual(p.qname, self.html_of('p'))
+        self.assertEqual(p.attrib, {})
+        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.ns, {})
+        self.assertEqual(p.children, ['after panel (Lobster)'])
 
     def test_feedback_panel(self):
         with self.application(self.new_environ()):
             p = ShallotsPage()
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
     def test_feedback_panel_valid(self):
         query = ('{path}=form&'
@@ -502,12 +504,12 @@ class PanelTestCase(AyameTestCase):
             p = ShallotsPage()
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
     def test_feedback_panel_invalid(self):
         query = ('{path}=form&'
@@ -516,12 +518,12 @@ class PanelTestCase(AyameTestCase):
             p = ShallotsPage()
             status, headers, content = p()
         html = self.format(ShallotsPage, error=True)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
     def test_feedback_panel_nonexistent_path(self):
         query = '{path}=panel'
@@ -529,36 +531,36 @@ class PanelTestCase(AyameTestCase):
             p = ShallotsPage()
             status, headers, content = p()
         html = self.format(ShallotsPage, error=False)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
     def test_render_ayame_message(self):
         with self.application(self.new_environ(accept='en')):
             p = TomatoPage()
             status, headers, content = p()
         html = self.format(TomatoPage, message='Hello World!')
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
     def test_render_ayame_message_ja(self):
         with self.application(self.new_environ(accept='ja, en')):
             p = TomatoPage()
             status, headers, content = p()
         html = self.format(TomatoPage, message='\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_equal(content, [html])
+        self.assertEqual(content, [html])
 
 
 class MarkupContainer(ayame.MarkupContainer):
@@ -585,18 +587,18 @@ class Panel(panel.Panel):
 
 class TomatoPage(ayame.Page):
 
-    html_t = """\
-<?xml version="1.0"?>
-{doctype}
-<html xmlns="{xhtml}">
-  <head>
-    <title>TomatoPage</title>
-  </head>
-  <body>
-    <p>{message}</p>
-  </body>
-</html>
-"""
+    html_t = textwrap.dedent("""\
+        <?xml version="1.0"?>
+        {doctype}
+        <html xmlns="{xhtml}">
+          <head>
+            <title>TomatoPage</title>
+          </head>
+          <body>
+            <p>{message}</p>
+          </body>
+        </html>
+    """)
 
     def __init__(self):
         super().__init__()
@@ -609,30 +611,30 @@ class TomatoPanel(Panel):
 
 class ShallotsPage(ayame.Page):
 
-    html_t = """\
-<?xml version="1.0"?>
-{doctype}
-<html xmlns="{xhtml}">
-  <head>
-    <title>ShallotsPage</title>
-  </head>
-  <body>
-    <form action="/" method="post">
-      <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
-      <fieldset>
-        <legend>form</legend>
-        <input name="text" type="text" value="" /><br />
-      </fieldset>
-    </form>{error}
-  </body>
-</html>
-"""
+    html_t = textwrap.dedent("""\
+        <?xml version="1.0"?>
+        {doctype}
+        <html xmlns="{xhtml}">
+          <head>
+            <title>ShallotsPage</title>
+          </head>
+          <body>
+            <form action="/" method="post">
+              <div class="ayame-hidden"><input name="{path}" type="hidden" value="form" /></div>
+              <fieldset>
+                <legend>form</legend>
+                <input name="text" type="text" value="" /><br />
+              </fieldset>
+            </form>{error}
+          </body>
+        </html>
+    """)
     kwargs = {
-        'error': lambda v=False: """
-    <ul class="feedback-panel">
-      <li>&#x27;text&#x27; is required</li>
-    </ul>\
-""" if v else '',
+        'error': lambda v=False: textwrap.indent(textwrap.dedent("""
+            <ul class="feedback-panel">
+              <li>&#x27;text&#x27; is required</li>
+            </ul>
+        """), ' ' * 4).rstrip() if v else '',
     }
 
     def __init__(self):

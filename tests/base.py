@@ -14,104 +14,54 @@ import unittest
 import wsgiref.util
 
 import ayame
-from ayame import local, markup, res, uri, util
+from ayame import local, markup, res, uri
 
 
 __all__ = ['AyameTestCase']
 
 
-def _method_of(name):
-    return ''.join(s.title() if i > 0 else s
-                   for i, s in enumerate(name.split('_')))
-
-
-_ASSERT_MAP = {a: _method_of(a)
-               for a in ('assert_equal', 'assert_not_equal',
-                         'assert_true', 'assert_false',
-                         'assert_is', 'assert_is_not',
-                         'assert_is_none', 'assert_is_not_none',
-                         'assert_in', 'assert_not_in',
-                         'assert_is_instance', 'assert_not_is_instance',
-                         'assert_raises', 'assert_raises_regex',
-                         'assert_almost_equal', 'assert_not_almost_equal',
-                         'assert_greater', 'assert_greater_equal',
-                         'assert_less', 'assert_less_equal',
-                         'assert_regex', 'assert_not_regex',
-                         'assert_items_equal')}
-
-
 class AyameTestCase(unittest.TestCase):
-
-    def __getattr__(self, name):
-        try:
-            return getattr(self, _ASSERT_MAP[name])
-        except KeyError:
-            raise AttributeError(f"'{util.fqon_of(self.__class__)}' object has no attribute {name!r}")
 
     @classmethod
     def setUpClass(cls):
-        cls.setup_class()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.teardown_class()
-
-    @classmethod
-    def setup_class(cls):
         cls.app = ayame.Ayame(cls.__module__)
         cls.boundary = 'ayame.' + cls.__module__[5:]
 
-    @classmethod
-    def teardown_class(cls):
-        pass
-
-    def setUp(self):
-        self.setup()
-
-    def tearDown(self):
-        self.teardown()
-
-    def setup(self):
-        pass
-
-    def teardown(self):
-        pass
-
-    def assert_element_equal(self, a, b):
-        self.assert_is_not(a, b)
+    def assertElementEqual(self, a, b):
+        self.assertIsNot(a, b)
         # qname
-        self.assert_is_instance(a.qname, markup.QName)
-        self.assert_is_instance(b.qname, markup.QName)
-        self.assert_equal(a.qname, b.qname)
+        self.assertIsInstance(a.qname, markup.QName)
+        self.assertIsInstance(b.qname, markup.QName)
+        self.assertEqual(a.qname, b.qname)
         # attrib
-        self.assert_is_instance(a.attrib, markup._AttributeDict)
-        self.assert_is_instance(b.attrib, markup._AttributeDict)
-        self.assert_is_not(a.attrib, b.attrib)
-        self.assert_equal(a.attrib, b.attrib)
+        self.assertIsInstance(a.attrib, markup._AttributeDict)
+        self.assertIsInstance(b.attrib, markup._AttributeDict)
+        self.assertIsNot(a.attrib, b.attrib)
+        self.assertEqual(a.attrib, b.attrib)
         # type
-        self.assert_equal(a.type, b.type)
+        self.assertEqual(a.type, b.type)
         # ns
-        self.assert_is_instance(a.ns, dict)
-        self.assert_is_instance(b.ns, dict)
-        self.assert_is_not(a.ns, b.ns)
-        self.assert_equal(a.ns, b.ns)
+        self.assertIsInstance(a.ns, dict)
+        self.assertIsInstance(b.ns, dict)
+        self.assertIsNot(a.ns, b.ns)
+        self.assertEqual(a.ns, b.ns)
         # children
-        self.assert_is_instance(a.children, list)
-        self.assert_is_instance(b.children, list)
-        self.assert_is_not(a.children, b.children)
-        self.assert_equal(len(a.children), len(b.children))
+        self.assertIsInstance(a.children, list)
+        self.assertIsInstance(b.children, list)
+        self.assertIsNot(a.children, b.children)
+        self.assertEqual(len(a.children), len(b.children))
         for i in range(len(a.children)):
             if isinstance(a[i], markup.Element):
-                self.assert_is_instance(b[i], markup.Element)
-                self.assert_element_equal(a[i], b[i])
+                self.assertIsInstance(b[i], markup.Element)
+                self.assertElementEqual(a[i], b[i])
             else:
-                self.assert_is_instance(a[i], str)
-                self.assert_is_instance(b[i], str)
-                self.assert_equal(a[i], b[i])
+                self.assertIsInstance(a[i], str)
+                self.assertIsInstance(b[i], str)
+                self.assertEqual(a[i], b[i])
 
-    def assert_ws(self, seq, i):
-        self.assert_is_instance(seq[i], str)
-        self.assert_regex(seq[i], r'^\s*$')
+    def assertWS(self, seq, i):
+        self.assertIsInstance(seq[i], str)
+        self.assertRegex(seq[i], r'^\s*$')
 
     def path_for(self, path):
         return os.path.join(os.path.splitext(sys.modules[self.__class__.__module__].__file__)[0], path)
@@ -195,8 +145,8 @@ class AyameTestCase(unittest.TestCase):
         return environ
 
     def form_data(self, *args):
-        self.assert_is_instance(self.boundary, str)
-        self.assert_true(self.boundary)
+        self.assertIsInstance(self.boundary, str)
+        self.assertTrue(self.boundary)
         buf = []
         for n, v in args:
             buf.append('--' + self.boundary)

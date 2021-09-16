@@ -14,27 +14,27 @@ from base import AyameTestCase
 class LocalTestCase(AyameTestCase):
 
     def test_empty(self):
-        self.assert_is_none(local.pop())
+        self.assertIsNone(local.pop())
 
-        with self.assert_raises(ayame.AyameError):
+        with self.assertRaises(ayame.AyameError):
             local.context()
-        with self.assert_raises(ayame.AyameError):
+        with self.assertRaises(ayame.AyameError):
             local.app()
 
     def test_push(self):
         ctx = local.push(0, 1)
-        self.assert_equal(ctx.app, 0)
-        self.assert_equal(ctx.environ, 1)
-        self.assert_is_none(ctx.request)
-        self.assert_is_none(ctx._router)
+        self.assertEqual(ctx.app, 0)
+        self.assertEqual(ctx.environ, 1)
+        self.assertIsNone(ctx.request)
+        self.assertIsNone(ctx._router)
 
-        self.assert_is(local.context(), ctx)
-        self.assert_is(local.app(), ctx.app)
-        self.assert_is(local.pop(), ctx)
+        self.assertIs(local.context(), ctx)
+        self.assertIs(local.app(), ctx.app)
+        self.assertIs(local.pop(), ctx)
 
-        self.assert_is_none(local.pop())
+        self.assertIsNone(local.pop())
 
-        with self.assert_raises(ayame.AyameError):
+        with self.assertRaises(ayame.AyameError):
             local.context()
-        with self.assert_raises(ayame.AyameError):
+        with self.assertRaises(ayame.AyameError):
             local.app()

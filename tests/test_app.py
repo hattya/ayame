@@ -8,8 +8,8 @@
 
 import locale
 import os
-import shutil
 import tempfile
+import textwrap
 
 import ayame
 from ayame import basic, http, uri
@@ -18,8 +18,7 @@ from base import AyameTestCase
 
 class AppTestCase(AyameTestCase):
 
-    def setup(self):
-        super().setup()
+    def setUp(self):
         self.locale = locale.getdefaultlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
@@ -28,173 +27,172 @@ class AppTestCase(AyameTestCase):
             self.locale = (None,) * 2
         self._getdefaultlocale = locale.getdefaultlocale
 
-    def teardown(self):
-        super().teardown()
+    def tearDown(self):
         locale.getdefaultlocale = self._getdefaultlocale
 
     def test_ayame(self):
         app = ayame.Ayame(None)
-        self.assert_is_none(app._name)
-        self.assert_equal(app._root, os.getcwd())
+        self.assertIsNone(app._name)
+        self.assertEqual(app._root, os.getcwd())
 
         app = ayame.Ayame(__name__)
-        self.assert_equal(app._name, __name__)
-        self.assert_equal(app._root, os.path.dirname(__file__))
+        self.assertEqual(app._name, __name__)
+        self.assertEqual(app._root, os.path.dirname(__file__))
 
     def test_request_empty(self):
         environ = self.new_environ(method='POST')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'POST')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
     def test_request_post_empty(self):
         environ = self.new_environ(method='POST', data='')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'POST')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
         environ = self.new_environ(method='POST', form='')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'POST')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
     def test_request_get(self):
         query = '{path}=spam'
         data = '{path}=eggs'
         environ = self.new_environ(method='GET', query=query, data=data)
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'GET')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
-        self.assert_equal(request.form_data, {})
-        self.assert_equal(request.path, 'spam')
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'GET')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {ayame.AYAME_PATH: ['spam']})
+        self.assertEqual(request.form_data, {})
+        self.assertEqual(request.path, 'spam')
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
     def test_request_post(self):
         query = '{path}=spam'
         data = '{path}=eggs'
         environ = self.new_environ(method='POST', query=query, data=data)
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'POST')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
-        self.assert_equal(request.form_data, {ayame.AYAME_PATH: ['eggs']})
-        self.assert_equal(request.path, 'eggs')
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {ayame.AYAME_PATH: ['spam']})
+        self.assertEqual(request.form_data, {ayame.AYAME_PATH: ['eggs']})
+        self.assertEqual(request.path, 'eggs')
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
         query = '{path}=spam'
         data = self.form_data(('{path}', 'eggs'))
         environ = self.new_environ(method='POST', query=query, form=data)
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'POST')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {ayame.AYAME_PATH: ['spam']})
-        self.assert_equal(request.form_data, {ayame.AYAME_PATH: ['eggs']})
-        self.assert_equal(request.path, 'eggs')
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {ayame.AYAME_PATH: ['spam']})
+        self.assertEqual(request.form_data, {ayame.AYAME_PATH: ['eggs']})
+        self.assertEqual(request.path, 'eggs')
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
     def test_request_put(self):
         data = 'spam\neggs\nham\n'
         environ = self.new_environ(method='PUT', data=data)
         environ['CONTENT_TYPE'] = 'text/plain'
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'PUT')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        self.assert_equal(request.input.read(), b'spam\neggs\nham\n')
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'PUT')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        self.assertEqual(request.input.read(), b'spam\neggs\nham\n')
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, self.locale)
+        self.assertEqual(request.locale, self.locale)
 
     def test_request_posix_locale(self):
         locale.getdefaultlocale = lambda: (None, None)
 
         environ = self.new_environ(method='GET')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'GET')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'GET')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, (None, None))
+        self.assertEqual(request.locale, (None, None))
 
     def test_request_accept_language_en(self):
         environ = self.new_environ(method='GET', accept='en')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'GET')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'GET')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, ('en', None))
+        self.assertEqual(request.locale, ('en', None))
 
     def test_request_accept_language_en_us(self):
         environ = self.new_environ(method='GET', accept='en-us, en')
         request = ayame.Request(environ, {})
-        self.assert_is(request.environ, environ)
-        self.assert_equal(request.method, 'GET')
-        self.assert_equal(request.uri, {})
-        self.assert_equal(request.query, {})
-        self.assert_equal(request.form_data, {})
-        self.assert_is_none(request.path)
-        with self.assert_raises(ayame.AyameError):
+        self.assertIs(request.environ, environ)
+        self.assertEqual(request.method, 'GET')
+        self.assertEqual(request.uri, {})
+        self.assertEqual(request.query, {})
+        self.assertEqual(request.form_data, {})
+        self.assertIsNone(request.path)
+        with self.assertRaises(ayame.AyameError):
             request.session
-        self.assert_equal(request.locale, ('en', 'US'))
+        self.assertEqual(request.locale, ('en', 'US'))
 
 
 class SimpleAppTestCase(AyameTestCase):
 
     @classmethod
-    def setup_class(cls):
-        cls.session_dir = tempfile.mkdtemp()
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.session_dir = tempfile.TemporaryDirectory(prefix='ayame-')
 
     @classmethod
-    def teardown_class(cls):
-        shutil.rmtree(cls.session_dir)
+    def tearDownClass(cls):
+        cls.session_dir.cleanup()
 
-    def setup(self):
-        super().setup()
+    def setUp(self):
         self.app = ayame.Ayame(__name__)
-        self.app.config['ayame.session.store'].path = self.session_dir
+        self.app.config['ayame.session.store'].path = self.session_dir.name
         map = self.app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)
@@ -212,83 +210,80 @@ class SimpleAppTestCase(AyameTestCase):
 
         wsgi = {}
         content = self.app(environ, start_response)
-        content = list(content)
-        if hasattr(content, 'close'):
-            content.close()
-        return wsgi['status'], wsgi['headers'], wsgi['exc_info'], content
+        return wsgi['status'], wsgi['headers'], wsgi['exc_info'], list(content)
 
     def test_get_page(self):
         # GET /page -> OK
         environ = self.new_environ('GET', '/page')
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_is_none(exc_info)
-        self.assert_equal(content, [html])
+        self.assertIsNone(exc_info)
+        self.assertEqual(content, [html])
 
         # GET /page?{query in EUC-JP} -> OK
         query = uri.quote('\u3044\u308d\u306f', encoding='euc-jp')
         environ = self.new_environ('GET', '/page', query=query)
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage)
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(headers, [
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
             ('Content-Length', str(len(html))),
         ])
-        self.assert_is_none(exc_info)
-        self.assert_equal(content, [html])
+        self.assertIsNone(exc_info)
+        self.assertEqual(content, [html])
 
     def test_get_int(self):
         # GET /int -> NotFound
         environ = self.new_environ('GET', '/int')
         status, headers, exc_info, content = self.wsgi_call(environ)
-        self.assert_equal(status, http.NotFound.status)
-        self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)
-        self.assert_is_none(exc_info)
-        self.assert_true(content)
+        self.assertEqual(status, http.NotFound.status)
+        self.assertIn(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assertIsNone(exc_info)
+        self.assertTrue(content)
 
     def test_get_class(self):
         # GET /class -> NotFound
         environ = self.new_environ('GET', '/class')
         status, headers, exc_info, content = self.wsgi_call(environ)
-        self.assert_equal(status, http.NotFound.status)
-        self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)
-        self.assert_is_none(exc_info)
-        self.assert_true(content)
+        self.assertEqual(status, http.NotFound.status)
+        self.assertIn(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assertIsNone(exc_info)
+        self.assertTrue(content)
 
     def test_get_redir_http_500(self):
         # GET /redir -> InternalServerError
         environ = self.new_environ('GET', '/redir')
         status, headers, exc_info, content = self.wsgi_call(environ)
-        self.assert_equal(status, http.InternalServerError.status)
-        self.assert_equal(headers, [])
-        self.assert_is_not_none(exc_info)
-        self.assert_equal(content, [])
+        self.assertEqual(status, http.InternalServerError.status)
+        self.assertEqual(headers, [])
+        self.assertIsNotNone(exc_info)
+        self.assertEqual(content, [])
 
     def test_get_redir_http_301(self):
         # GET /redir?type=permanent -> MovedPermanently
         query = 'type=permanent'
         environ = self.new_environ('GET', '/redir', query=query)
         status, headers, exc_info, content = self.wsgi_call(environ)
-        self.assert_equal(status, http.MovedPermanently.status)
-        self.assert_in(('Location', 'http://localhost/redir?p=1'), headers)
-        self.assert_is_none(exc_info)
-        self.assert_true(content)
+        self.assertEqual(status, http.MovedPermanently.status)
+        self.assertIn(('Location', 'http://localhost/redir?p=1'), headers)
+        self.assertIsNone(exc_info)
+        self.assertTrue(content)
 
     def test_get_redir_http_302(self):
         # GET /redir?type=temporary -> Found
         query = 'type=temporary'
         environ = self.new_environ('GET', '/redir', query=query)
         status, headers, exc_info, content = self.wsgi_call(environ)
-        self.assert_equal(status, http.Found.status)
-        self.assert_in(('Location', 'http://localhost/redir?t=1'), headers)
-        self.assert_is_none(exc_info)
-        self.assert_true(content)
+        self.assertEqual(status, http.Found.status)
+        self.assertIn(('Location', 'http://localhost/redir?t=1'), headers)
+        self.assertIsNone(exc_info)
+        self.assertTrue(content)
 
     def test_get_redir(self):
         # GET /redir?message=Salve+Munde! -> OK
@@ -296,28 +291,28 @@ class SimpleAppTestCase(AyameTestCase):
         environ = self.new_environ('GET', '/redir', query=query)
         status, headers, exc_info, content = self.wsgi_call(environ)
         html = self.format(SimplePage, message='Salve Munde!')
-        self.assert_equal(status, http.OK.status)
-        self.assert_equal(len(headers), 3)
-        self.assert_in(('Content-Type', 'text/html; charset=UTF-8'), headers)
-        self.assert_in(('Content-Length', str(len(html))), headers)
-        self.assert_is_none(exc_info)
-        self.assert_equal(content, [html])
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(len(headers), 3)
+        self.assertIn(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assertIn(('Content-Length', str(len(html))), headers)
+        self.assertIsNone(exc_info)
+        self.assertEqual(content, [html])
 
 
 class SimplePage(ayame.Page):
 
-    html_t = """\
-<?xml version="1.0"?>
-{doctype}
-<html xmlns="{xhtml}">
-  <head>
-    <title>SimplePage</title>
-  </head>
-  <body>
-    <p>{message}</p>
-  </body>
-</html>
-"""
+    html_t = textwrap.dedent("""\
+        <?xml version="1.0"?>
+        {doctype}
+        <html xmlns="{xhtml}">
+          <head>
+            <title>SimplePage</title>
+          </head>
+          <body>
+            <p>{message}</p>
+          </body>
+        </html>
+    """)
     kwargs = {
         'message': 'Hello World!',
     }

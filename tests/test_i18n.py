@@ -14,15 +14,15 @@ from base import AyameTestCase
 class I18nTestCase(AyameTestCase):
 
     @classmethod
-    def setup_class(cls):
-        super().setup_class()
+    def setUpClass(cls):
+        super().setUpClass()
         cls.app = Application(__name__)
 
     def test_iter_class(self):
         with self.application():
             l = i18n.Localizer()
             p = Page()
-            self.assert_equal(list(l._iter_class(p.find('a1:b'))), [
+            self.assertEqual(list(l._iter_class(p.find('a1:b'))), [
                 (Page, (), 'a1.b'),
                 (ayame.Page, (), 'a1.b'),
                 (MarkupContainer, (), 'b'),
@@ -32,7 +32,7 @@ class I18nTestCase(AyameTestCase):
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
-            self.assert_equal(list(l._iter_class(p.find('a2:b'))), [
+            self.assertEqual(list(l._iter_class(p.find('a2:b'))), [
                 (Page, (), 'a2.b'),
                 (ayame.Page, (), 'a2.b'),
                 (Page.MarkupContainer, (Page,), 'b'),
@@ -42,7 +42,7 @@ class I18nTestCase(AyameTestCase):
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
-            self.assert_equal(list(l._iter_class(p.find('a1'))), [
+            self.assertEqual(list(l._iter_class(p.find('a1'))), [
                 (Page, (), 'a1'),
                 (ayame.Page, (), 'a1'),
                 (MarkupContainer, (), ''),
@@ -50,7 +50,7 @@ class I18nTestCase(AyameTestCase):
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
-            self.assert_equal(list(l._iter_class(p.find('a2'))), [
+            self.assertEqual(list(l._iter_class(p.find('a2'))), [
                 (Page, (), 'a2'),
                 (ayame.Page, (), 'a2'),
                 (Page.MarkupContainer, (Page,), ''),
@@ -58,13 +58,13 @@ class I18nTestCase(AyameTestCase):
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
-            self.assert_equal(list(l._iter_class(p)), [
+            self.assertEqual(list(l._iter_class(p)), [
                 (Page, (), ''),
                 (ayame.Page, (), ''),
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
-            self.assert_equal(list(l._iter_class(None)), [
+            self.assertEqual(list(l._iter_class(None)), [
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])
@@ -72,7 +72,7 @@ class I18nTestCase(AyameTestCase):
     def test_load(self):
         with open(self.path_for('i18n.txt')) as fp:
             l = i18n.Localizer()
-            self.assert_equal(l._load(fp), {
+            self.assertEqual(l._load(fp), {
                 'spam': 'spam',
                 'eggs': 'eggs',
                 'ham': 'ham',
@@ -118,7 +118,8 @@ class I18nTestCase(AyameTestCase):
                     v = k
                     if k in ('ham', 'toast'):
                         v += str(i)
-                    self.assert_equal(l.get(c, locale, k), v)
+                    with self.subTest(path=c.path(), locale=locale, key=k):
+                        self.assertEqual(l.get(c, locale, k), v)
 
     def test_cache(self):
         config = self.app.config.copy()
@@ -132,9 +133,10 @@ class I18nTestCase(AyameTestCase):
                     self.app.config['ayame.i18n.cache'] = config['ayame.i18n.cache'].copy()
 
                     c = p.find(f'a{i}:b')
-                    self.assert_equal(l.get(c, locale, 'spam'), 'spam')
-                    self.assert_is_none(l.get(c, locale, 'spam'))
-                    self.assert_is_none(l.get(c, locale, 'eggs'))
+                    with self.subTest(path=c.path()):
+                        self.assertEqual(l.get(c, locale, 'spam'), 'spam')
+                        self.assertIsNone(l.get(c, locale, 'spam'))
+                        self.assertIsNone(l.get(c, locale, 'eggs'))
         finally:
             self.app.config = config
 

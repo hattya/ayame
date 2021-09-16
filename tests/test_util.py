@@ -20,89 +20,89 @@ from base import AyameTestCase
 class UtilTestCase(AyameTestCase):
 
     def test_fqon_of_builtin(self):
-        self.assert_equal(util.fqon_of(None), 'NoneType')
-        self.assert_equal(util.fqon_of(True), 'bool')
-        self.assert_equal(util.fqon_of(False), 'bool')
-        self.assert_equal(util.fqon_of(''), 'str')
-        self.assert_equal(util.fqon_of([]), 'list')
-        self.assert_equal(util.fqon_of({}), 'dict')
-        self.assert_equal(util.fqon_of(1), 'int')
-        self.assert_equal(util.fqon_of(3.14), 'float')
+        self.assertEqual(util.fqon_of(None), 'NoneType')
+        self.assertEqual(util.fqon_of(True), 'bool')
+        self.assertEqual(util.fqon_of(False), 'bool')
+        self.assertEqual(util.fqon_of(''), 'str')
+        self.assertEqual(util.fqon_of([]), 'list')
+        self.assertEqual(util.fqon_of({}), 'dict')
+        self.assertEqual(util.fqon_of(1), 'int')
+        self.assertEqual(util.fqon_of(3.14), 'float')
 
     def test_fqon_of_class(self):
         class C:
             pass
 
-        self.assert_equal(util.fqon_of(C), __name__ + '.C')
-        self.assert_equal(util.fqon_of(C()), __name__ + '.C')
+        self.assertEqual(util.fqon_of(C), __name__ + '.C')
+        self.assertEqual(util.fqon_of(C()), __name__ + '.C')
         C.__module__ = None
-        self.assert_equal(util.fqon_of(C), '<unknown>.C')
-        self.assert_equal(util.fqon_of(C()), '<unknown>.C')
+        self.assertEqual(util.fqon_of(C), '<unknown>.C')
+        self.assertEqual(util.fqon_of(C()), '<unknown>.C')
 
     def test_fqon_of_function(self):
         def f():
             pass
 
-        self.assert_equal(util.fqon_of(f), __name__ + '.f')
+        self.assertEqual(util.fqon_of(f), __name__ + '.f')
         del f.__module__
-        self.assert_equal(util.fqon_of(f), '<unknown>.f')
+        self.assertEqual(util.fqon_of(f), '<unknown>.f')
 
         f = lambda: None
 
-        self.assert_equal(util.fqon_of(f), __name__ + '.<lambda>')
+        self.assertEqual(util.fqon_of(f), __name__ + '.<lambda>')
         del f.__module__
-        self.assert_equal(util.fqon_of(f), '<unknown>.<lambda>')
+        self.assertEqual(util.fqon_of(f), '<unknown>.<lambda>')
 
     def test_fqon_of_module(self):
-        self.assert_equal(util.fqon_of(os), 'os')
-        self.assert_equal(util.fqon_of(util), 'ayame.util')
+        self.assertEqual(util.fqon_of(os), 'os')
+        self.assertEqual(util.fqon_of(util), 'ayame.util')
 
     def test_to_bytes(self):
         # iroha in hiragana
         v = util.to_bytes('\u3044\u308d\u306f')
-        self.assert_is_instance(v, bytes)
-        self.assert_equal(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
+        self.assertIsInstance(v, bytes)
+        self.assertEqual(v, b'\xe3\x81\x84\xe3\x82\x8d\xe3\x81\xaf')
 
         v = util.to_bytes('\u3044\u308d\u306f', 'ascii', 'ignore')
-        self.assert_is_instance(v, bytes)
-        self.assert_equal(v, b'')
+        self.assertIsInstance(v, bytes)
+        self.assertEqual(v, b'')
 
-        with self.assert_raises(UnicodeEncodeError):
+        with self.assertRaises(UnicodeEncodeError):
             util.to_bytes('\u3044\u308d\u306f', 'ascii')
 
         v = util.to_bytes(b'abc')
-        self.assert_is_instance(v, bytes)
-        self.assert_equal(v, b'abc')
+        self.assertIsInstance(v, bytes)
+        self.assertEqual(v, b'abc')
 
         v = util.to_bytes(0)
-        self.assert_is_instance(v, bytes)
-        self.assert_equal(v, b'0')
+        self.assertIsInstance(v, bytes)
+        self.assertEqual(v, b'0')
 
         v = util.to_bytes(3.14)
-        self.assert_is_instance(v, bytes)
-        self.assert_equal(v, b'3.14')
+        self.assertIsInstance(v, bytes)
+        self.assertEqual(v, b'3.14')
 
     def test_to_list(self):
-        self.assert_equal(util.to_list(None), [])
-        self.assert_equal(util.to_list('abc'), ['abc'])
-        self.assert_equal(util.to_list(''), [''])
-        self.assert_equal(util.to_list(1), [1])
-        self.assert_equal(util.to_list(3.14), [3.14])
-        self.assert_equal(util.to_list((1,)), [1])
-        self.assert_equal(util.to_list([1]), [1])
-        self.assert_equal(util.to_list({'a': 1}), ['a'])
+        self.assertEqual(util.to_list(None), [])
+        self.assertEqual(util.to_list('abc'), ['abc'])
+        self.assertEqual(util.to_list(''), [''])
+        self.assertEqual(util.to_list(1), [1])
+        self.assertEqual(util.to_list(3.14), [3.14])
+        self.assertEqual(util.to_list((1,)), [1])
+        self.assertEqual(util.to_list([1]), [1])
+        self.assertEqual(util.to_list({'a': 1}), ['a'])
 
     def test_new_token(self):
         a = util.new_token()
         b = util.new_token()
-        self.assert_not_equal(a, b)
+        self.assertNotEqual(a, b)
 
     def test_iterable(self):
-        self.assert_true(util.iterable(()))
-        self.assert_true(util.iterable([]))
-        self.assert_true(util.iterable({}))
+        self.assertTrue(util.iterable(()))
+        self.assertTrue(util.iterable([]))
+        self.assertTrue(util.iterable({}))
 
-        self.assert_false(util.iterable(''))
+        self.assertFalse(util.iterable(''))
 
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):
@@ -112,43 +112,43 @@ class UtilTestCase(AyameTestCase):
                 return super().__convert__(key)
 
         d = LowerDict(a=-1, A=0)
-        self.assert_equal(d['A'], 0)
-        self.assert_equal(d['a'], 0)
-        self.assert_in('A', d)
-        self.assert_in('a', d)
-        self.assert_equal(d.get('A'), 0)
-        self.assert_equal(d.get('a'), 0)
+        self.assertEqual(d['A'], 0)
+        self.assertEqual(d['a'], 0)
+        self.assertIn('A', d)
+        self.assertIn('a', d)
+        self.assertEqual(d.get('A'), 0)
+        self.assertEqual(d.get('a'), 0)
         d.setdefault('a', -1)
-        self.assert_equal(d, {'a': 0})
+        self.assertEqual(d, {'a': 0})
 
         d['B'] = 1
-        self.assert_equal(d['B'], 1)
-        self.assert_equal(d['b'], 1)
-        self.assert_in('B', d)
-        self.assert_in('b', d)
-        self.assert_equal(d.get('B'), 1)
-        self.assert_equal(d.get('b'), 1)
+        self.assertEqual(d['B'], 1)
+        self.assertEqual(d['b'], 1)
+        self.assertIn('B', d)
+        self.assertIn('b', d)
+        self.assertEqual(d.get('B'), 1)
+        self.assertEqual(d.get('b'), 1)
         d.setdefault('b', -1)
-        self.assert_equal(d, {'a': 0, 'b': 1})
+        self.assertEqual(d, {'a': 0, 'b': 1})
 
         del d['b']
-        self.assert_equal(d, {'a': 0})
-        self.assert_equal(d.pop('a'), 0)
-        self.assert_equal(d, {})
+        self.assertEqual(d, {'a': 0})
+        self.assertEqual(d.pop('a'), 0)
+        self.assertEqual(d, {})
 
         d.update(A=0)
-        self.assert_equal(d, {'a': 0})
+        self.assertEqual(d, {'a': 0})
         d.update(A=0, b=1)
-        self.assert_equal(d, {'a': 0, 'b': 1})
+        self.assertEqual(d, {'a': 0, 'b': 1})
         d[0] = 'a'
-        self.assert_equal(d, {'a': 0, 'b': 1, 0: 'a'})
+        self.assertEqual(d, {'a': 0, 'b': 1, 0: 'a'})
 
         x = d.copy()
-        self.assert_is_instance(x, LowerDict)
-        self.assert_equal(x, d)
+        self.assertIsInstance(x, LowerDict)
+        self.assertEqual(x, d)
         x[0] = 'b'
-        self.assert_equal(d, {'a': 0, 'b': 1, 0: 'a'})
-        self.assert_equal(x, {'a': 0, 'b': 1, 0: 'b'})
+        self.assertEqual(d, {'a': 0, 'b': 1, 0: 'a'})
+        self.assertEqual(x, {'a': 0, 'b': 1, 0: 'b'})
 
 
 class RWLockTestCase(AyameTestCase):
@@ -156,14 +156,14 @@ class RWLockTestCase(AyameTestCase):
     def test_rwlock(self):
         def reader():
             with lock.read():
-                self.assert_greater(lock._rcnt, 0)
-                self.assert_equal(lock._rwait, 0)
+                self.assertGreater(lock._rcnt, 0)
+                self.assertEqual(lock._rwait, 0)
                 time.sleep(0.01)
 
         def writer():
             with lock.write():
-                self.assert_equal(lock._rcnt, -1)
-                self.assert_equal(lock._rwait, 0)
+                self.assertEqual(lock._rcnt, -1)
+                self.assertEqual(lock._rwait, 0)
                 time.sleep(0.01)
 
         lock = util.RWLock()
@@ -173,15 +173,15 @@ class RWLockTestCase(AyameTestCase):
             thr.start()
             time.sleep(0.01)
         time.sleep(0.17)
-        self.assert_equal(lock._rcnt, 0)
-        self.assert_equal(lock._rwait, 0)
-        self.assert_equal(threading.active_count(), 1)
+        self.assertEqual(lock._rcnt, 0)
+        self.assertEqual(lock._rwait, 0)
+        self.assertEqual(threading.active_count(), 1)
 
     def test_release(self):
         lock = util.RWLock()
-        with self.assert_raises(RuntimeError):
+        with self.assertRaises(RuntimeError):
             lock.release_read()
-        with self.assert_raises(RuntimeError):
+        with self.assertRaises(RuntimeError):
             lock.release_write()
 
 
@@ -195,164 +195,164 @@ class LRUCacheTestCase(AyameTestCase):
 
     def test_lru_cache(self):
         c = LRUCache(3)
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(len(c), 0)
-        self.assert_is_instance(c, collections.abc.MutableMapping)
+        self.assertEqual(c.cap, 3)
+        self.assertEqual(len(c), 0)
+        self.assertIsInstance(c, collections.abc.MutableMapping)
 
     def test_repr(self):
         c = self.lru_cache(0)
-        self.assert_equal(repr(c), 'LRUCache([])')
+        self.assertEqual(repr(c), 'LRUCache([])')
         c = self.lru_cache(3)
-        self.assert_equal(repr(c), "LRUCache([('c', 3), ('b', 2), ('a', 1)])")
+        self.assertEqual(repr(c), "LRUCache([('c', 3), ('b', 2), ('a', 1)])")
 
     def test_set(self):
         c = self.lru_cache(3)
-        self.assert_equal(len(c), 3)
-        self.assert_equal(list(c), ['c', 'b', 'a'])
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_in('a', c)
-        self.assert_in('b', c)
-        self.assert_in('c', c)
-        self.assert_equal(list(c.keys()), ['c', 'b', 'a'])
-        self.assert_equal(list(c.values()), [3, 2, 1])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(len(c), 3)
+        self.assertEqual(list(c), ['c', 'b', 'a'])
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertIn('a', c)
+        self.assertIn('b', c)
+        self.assertIn('c', c)
+        self.assertEqual(list(c.keys()), ['c', 'b', 'a'])
+        self.assertEqual(list(c.values()), [3, 2, 1])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
         c['c'] = 3.0
         c['b'] = 2.0
         c['a'] = 1.0
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1.0), ('b', 2.0), ('c', 3.0)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1.0), ('b', 2.0), ('c', 3.0)])
+        self.assertEqual(c.evicted, [])
 
         c['a'] = 1
         c['b'] = 2
         c['c'] = 3
         c['d'] = 4
-        self.assert_equal(list(reversed(c)), ['b', 'c', 'd'])
-        self.assert_equal(list(c.items()), [('d', 4), ('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted[0:], [('a', 1.0)])
+        self.assertEqual(list(reversed(c)), ['b', 'c', 'd'])
+        self.assertEqual(list(c.items()), [('d', 4), ('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted[0:], [('a', 1.0)])
 
-        self.assert_equal(c.setdefault('c', 0), 3)
-        self.assert_equal(c.setdefault('d', 0), 4)
-        self.assert_equal(c.setdefault('e', 5), 5)
-        self.assert_equal(list(reversed(c)), ['c', 'd', 'e'])
-        self.assert_equal(list(c.items()), [('e', 5), ('d', 4), ('c', 3)])
-        self.assert_equal(c.evicted[1:], [('b', 2)])
+        self.assertEqual(c.setdefault('c', 0), 3)
+        self.assertEqual(c.setdefault('d', 0), 4)
+        self.assertEqual(c.setdefault('e', 5), 5)
+        self.assertEqual(list(reversed(c)), ['c', 'd', 'e'])
+        self.assertEqual(list(c.items()), [('e', 5), ('d', 4), ('c', 3)])
+        self.assertEqual(c.evicted[1:], [('b', 2)])
 
     def test_get(self):
         c = self.lru_cache(3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c['c'], 3)
-        self.assert_equal(c['b'], 2)
-        self.assert_equal(c['a'], 1)
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c['c'], 3)
+        self.assertEqual(c['b'], 2)
+        self.assertEqual(c['a'], 1)
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c.peek('a'), 1)
-        self.assert_equal(c.peek('b'), 2)
-        self.assert_equal(c.peek('c'), 3)
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c.peek('a'), 1)
+        self.assertEqual(c.peek('b'), 2)
+        self.assertEqual(c.peek('c'), 3)
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c.get('a'), 1)
-        self.assert_equal(c.get('b'), 2)
-        self.assert_equal(c.get('c'), 3)
-        self.assert_equal(c.get('z', 26), 26)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c.get('a'), 1)
+        self.assertEqual(c.get('b'), 2)
+        self.assertEqual(c.get('c'), 3)
+        self.assertEqual(c.get('z', 26), 26)
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
     def test_del(self):
         c = self.lru_cache(3)
         del c['a']
-        self.assert_equal(list(reversed(c)), ['b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted, [('a', 1)])
+        self.assertEqual(list(reversed(c)), ['b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted, [('a', 1)])
 
         c = self.lru_cache(3)
         del c['b']
-        self.assert_equal(list(reversed(c)), ['a', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('a', 1)])
-        self.assert_equal(c.evicted, [('b', 2)])
+        self.assertEqual(list(reversed(c)), ['a', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('a', 1)])
+        self.assertEqual(c.evicted, [('b', 2)])
 
         c = self.lru_cache(3)
         del c['c']
-        self.assert_equal(list(reversed(c)), ['a', 'b'])
-        self.assert_equal(list(c.items()), [('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [('c', 3)])
+        self.assertEqual(list(reversed(c)), ['a', 'b'])
+        self.assertEqual(list(c.items()), [('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [('c', 3)])
 
         c = self.lru_cache(3)
-        self.assert_equal(c.pop('b'), 2)
-        self.assert_equal(list(reversed(c)), ['a', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('a', 1)])
-        self.assert_equal(c.evicted, [('b', 2)])
+        self.assertEqual(c.pop('b'), 2)
+        self.assertEqual(list(reversed(c)), ['a', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('a', 1)])
+        self.assertEqual(c.evicted, [('b', 2)])
 
-        with self.assert_raises(KeyError):
+        with self.assertRaises(KeyError):
             c.pop('b')
-        self.assert_is_none(c.pop('b', None))
+        self.assertIsNone(c.pop('b', None))
 
         c = self.lru_cache(3)
         n = len(c)
         for i in range(1, n + 1):
-            self.assert_equal(len(c.popitem()), 2)
-            self.assert_equal(len(c), n - i)
-            self.assert_equal(len(c.evicted), i)
-        with self.assert_raises(KeyError):
+            self.assertEqual(len(c.popitem()), 2)
+            self.assertEqual(len(c), n - i)
+            self.assertEqual(len(c.evicted), i)
+        with self.assertRaises(KeyError):
             c.popitem()
 
     def test_resize(self):
         c = self.lru_cache(3)
 
         c.cap = 2
-        self.assert_equal(list(reversed(c)), ['b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted[0:], [('a', 1)])
+        self.assertEqual(list(reversed(c)), ['b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted[0:], [('a', 1)])
 
         c['d'] = 4
-        self.assert_equal(list(reversed(c)), ['c', 'd'])
-        self.assert_equal(list(c.items()), [('d', 4), ('c', 3)])
-        self.assert_equal(c.evicted[1:], [('b', 2)])
+        self.assertEqual(list(reversed(c)), ['c', 'd'])
+        self.assertEqual(list(c.items()), [('d', 4), ('c', 3)])
+        self.assertEqual(c.evicted[1:], [('b', 2)])
 
         c.cap = 1
-        self.assert_equal(list(reversed(c)), ['d'])
-        self.assert_equal(list(c.items()), [('d', 4)])
-        self.assert_equal(c.evicted[2:], [('c', 3)])
+        self.assertEqual(list(reversed(c)), ['d'])
+        self.assertEqual(list(c.items()), [('d', 4)])
+        self.assertEqual(c.evicted[2:], [('c', 3)])
 
         c['e'] = 5
-        self.assert_equal(list(reversed(c)), ['e'])
-        self.assert_equal(list(c.items()), [('e', 5)])
-        self.assert_equal(c.evicted[3:], [('d', 4)])
+        self.assertEqual(list(reversed(c)), ['e'])
+        self.assertEqual(list(c.items()), [('e', 5)])
+        self.assertEqual(c.evicted[3:], [('d', 4)])
 
         c.cap = 0
-        self.assert_equal(list(reversed(c)), [])
-        self.assert_equal(list(c.items()), [])
-        self.assert_equal(c.evicted[4:], [('e', 5)])
+        self.assertEqual(list(reversed(c)), [])
+        self.assertEqual(list(c.items()), [])
+        self.assertEqual(c.evicted[4:], [('e', 5)])
 
         c.cap = -1
         c['f'] = 6
         c['g'] = 7
         c['h'] = 8
         c['i'] = 9
-        self.assert_equal(list(reversed(c)), ['f', 'g', 'h', 'i'])
-        self.assert_equal(list(c.items()), [('i', 9), ('h', 8), ('g', 7), ('f', 6)])
-        self.assert_equal(c.evicted[5:], [])
+        self.assertEqual(list(reversed(c)), ['f', 'g', 'h', 'i'])
+        self.assertEqual(list(c.items()), [('i', 9), ('h', 8), ('g', 7), ('f', 6)])
+        self.assertEqual(c.evicted[5:], [])
 
     def test_clear(self):
         c = self.lru_cache(3)
         c.clear()
-        self.assert_equal(list(reversed(c)), [])
-        self.assert_equal(list(c.items()), [])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(list(reversed(c)), [])
+        self.assertEqual(list(c.items()), [])
+        self.assertEqual(c.evicted, [])
 
     def test_update(self):
         c = self.lru_cache(3)
-        with self.assert_raises(NotImplementedError):
+        with self.assertRaises(NotImplementedError):
             c.update()
 
     def test_copy(self):
@@ -364,11 +364,11 @@ class LRUCacheTestCase(AyameTestCase):
     def _test_dup(self, dup):
         r = self.lru_cache(3)
         c = dup(r)
-        self.assert_is_not(c, r)
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertIsNot(c, r)
+        self.assertEqual(c.cap, 3)
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
 
 class LRUCache(util.LRUCache):
@@ -392,164 +392,164 @@ class LFUCacheTestCase(AyameTestCase):
 
     def test_lfu_cache(self):
         c = LFUCache(3)
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(len(c), 0)
-        self.assert_is_instance(c, collections.abc.MutableMapping)
-        with self.assert_raises(RuntimeError):
+        self.assertEqual(c.cap, 3)
+        self.assertEqual(len(c), 0)
+        self.assertIsInstance(c, collections.abc.MutableMapping)
+        with self.assertRaises(RuntimeError):
             c._lfu()
 
     def test_repr(self):
         c = self.lfu_cache(0)
-        self.assert_equal(repr(c), 'LFUCache([])')
+        self.assertEqual(repr(c), 'LFUCache([])')
         c = self.lfu_cache(3)
-        self.assert_equal(repr(c), "LFUCache([('c', 3), ('b', 2), ('a', 1)])")
+        self.assertEqual(repr(c), "LFUCache([('c', 3), ('b', 2), ('a', 1)])")
 
     def test_set(self):
         c = self.lfu_cache(3)
-        self.assert_equal(len(c), 3)
-        self.assert_equal(list(c), ['c', 'b', 'a'])
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_in('a', c)
-        self.assert_in('b', c)
-        self.assert_in('c', c)
-        self.assert_equal(list(c.keys()), ['c', 'b', 'a'])
-        self.assert_equal(list(c.values()), [3, 2, 1])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(len(c), 3)
+        self.assertEqual(list(c), ['c', 'b', 'a'])
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertIn('a', c)
+        self.assertIn('b', c)
+        self.assertIn('c', c)
+        self.assertEqual(list(c.keys()), ['c', 'b', 'a'])
+        self.assertEqual(list(c.values()), [3, 2, 1])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
         c['c'] = 3.0
         c['b'] = 2.0
         c['a'] = 1.0
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1.0), ('b', 2.0), ('c', 3.0)])
-        self.assert_equal(c.evicted[0:], [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1.0), ('b', 2.0), ('c', 3.0)])
+        self.assertEqual(c.evicted[0:], [('c', 3), ('b', 2), ('a', 1)])
 
         c['a'] = 1
         c['b'] = 2
         c['c'] = 3
         c['d'] = 4
-        self.assert_equal(list(reversed(c)), ['b', 'c', 'd'])
-        self.assert_equal(list(c.items()), [('d', 4), ('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted[3:], [('a', 1.0), ('b', 2.0), ('c', 3.0), ('a', 1)])
+        self.assertEqual(list(reversed(c)), ['b', 'c', 'd'])
+        self.assertEqual(list(c.items()), [('d', 4), ('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted[3:], [('a', 1.0), ('b', 2.0), ('c', 3.0), ('a', 1)])
 
-        self.assert_equal(c.setdefault('d', 0), 4)
-        self.assert_equal(c.setdefault('e', 5), 5)
-        self.assert_equal(c.setdefault('c', 0), 3)
-        self.assert_equal(list(reversed(c)), ['e', 'd', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('d', 4), ('e', 5)])
-        self.assert_equal(c.evicted[7:], [('b', 2)])
+        self.assertEqual(c.setdefault('d', 0), 4)
+        self.assertEqual(c.setdefault('e', 5), 5)
+        self.assertEqual(c.setdefault('c', 0), 3)
+        self.assertEqual(list(reversed(c)), ['e', 'd', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('d', 4), ('e', 5)])
+        self.assertEqual(c.evicted[7:], [('b', 2)])
 
     def test_get(self):
         c = self.lfu_cache(3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c['c'], 3)
-        self.assert_equal(c['b'], 2)
-        self.assert_equal(c['a'], 1)
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c['c'], 3)
+        self.assertEqual(c['b'], 2)
+        self.assertEqual(c['a'], 1)
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c.peek('a'), 1)
-        self.assert_equal(c.peek('b'), 2)
-        self.assert_equal(c.peek('c'), 3)
-        self.assert_equal(list(reversed(c)), ['c', 'b', 'a'])
-        self.assert_equal(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c.peek('a'), 1)
+        self.assertEqual(c.peek('b'), 2)
+        self.assertEqual(c.peek('c'), 3)
+        self.assertEqual(list(reversed(c)), ['c', 'b', 'a'])
+        self.assertEqual(list(c.items()), [('a', 1), ('b', 2), ('c', 3)])
+        self.assertEqual(c.evicted, [])
 
-        self.assert_equal(c.get('a'), 1)
-        self.assert_equal(c.get('b'), 2)
-        self.assert_equal(c.get('c'), 3)
-        self.assert_equal(c.get('z', 26), 26)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(c.get('a'), 1)
+        self.assertEqual(c.get('b'), 2)
+        self.assertEqual(c.get('c'), 3)
+        self.assertEqual(c.get('z', 26), 26)
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
 
     def test_del(self):
         c = self.lfu_cache(3)
         del c['a']
-        self.assert_equal(list(reversed(c)), ['b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted, [('a', 1)])
+        self.assertEqual(list(reversed(c)), ['b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted, [('a', 1)])
 
         c = self.lfu_cache(3)
         del c['b']
-        self.assert_equal(list(reversed(c)), ['a', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('a', 1)])
-        self.assert_equal(c.evicted, [('b', 2)])
+        self.assertEqual(list(reversed(c)), ['a', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('a', 1)])
+        self.assertEqual(c.evicted, [('b', 2)])
 
         c = self.lfu_cache(3)
         del c['c']
-        self.assert_equal(list(reversed(c)), ['a', 'b'])
-        self.assert_equal(list(c.items()), [('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [('c', 3)])
+        self.assertEqual(list(reversed(c)), ['a', 'b'])
+        self.assertEqual(list(c.items()), [('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [('c', 3)])
 
         c = self.lfu_cache(3)
-        self.assert_equal(c.pop('b'), 2)
-        self.assert_equal(list(reversed(c)), ['a', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('a', 1)])
-        self.assert_equal(c.evicted, [('b', 2)])
+        self.assertEqual(c.pop('b'), 2)
+        self.assertEqual(list(reversed(c)), ['a', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('a', 1)])
+        self.assertEqual(c.evicted, [('b', 2)])
 
-        with self.assert_raises(KeyError):
+        with self.assertRaises(KeyError):
             c.pop('b')
-        self.assert_is_none(c.pop('b', None))
+        self.assertIsNone(c.pop('b', None))
 
         c = self.lfu_cache(3)
         n = len(c)
         for i in range(1, n + 1):
-            self.assert_equal(len(c.popitem()), 2)
-            self.assert_equal(len(c), n - i)
-            self.assert_equal(len(c.evicted), i)
-        with self.assert_raises(KeyError):
+            self.assertEqual(len(c.popitem()), 2)
+            self.assertEqual(len(c), n - i)
+            self.assertEqual(len(c.evicted), i)
+        with self.assertRaises(KeyError):
             c.popitem()
 
     def test_resize(self):
         c = self.lfu_cache(3)
 
         c.cap = 2
-        self.assert_equal(list(reversed(c)), ['b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2)])
-        self.assert_equal(c.evicted[0:], [('a', 1)])
+        self.assertEqual(list(reversed(c)), ['b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2)])
+        self.assertEqual(c.evicted[0:], [('a', 1)])
         c['d'] = 4
-        self.assert_equal(list(reversed(c)), ['c', 'd'])
-        self.assert_equal(list(c.items()), [('d', 4), ('c', 3)])
-        self.assert_equal(c.evicted[1:], [('b', 2)])
+        self.assertEqual(list(reversed(c)), ['c', 'd'])
+        self.assertEqual(list(c.items()), [('d', 4), ('c', 3)])
+        self.assertEqual(c.evicted[1:], [('b', 2)])
 
         c.cap = 1
-        self.assert_equal(list(reversed(c)), ['d'])
-        self.assert_equal(list(c.items()), [('d', 4)])
-        self.assert_equal(c.evicted[2:], [('c', 3)])
+        self.assertEqual(list(reversed(c)), ['d'])
+        self.assertEqual(list(c.items()), [('d', 4)])
+        self.assertEqual(c.evicted[2:], [('c', 3)])
         c['e'] = 5
-        self.assert_equal(list(reversed(c)), ['e'])
-        self.assert_equal(list(c.items()), [('e', 5)])
-        self.assert_equal(c.evicted[3:], [('d', 4)])
+        self.assertEqual(list(reversed(c)), ['e'])
+        self.assertEqual(list(c.items()), [('e', 5)])
+        self.assertEqual(c.evicted[3:], [('d', 4)])
 
         c.cap = 0
-        self.assert_equal(list(reversed(c)), [])
-        self.assert_equal(list(c.items()), [])
-        self.assert_equal(c.evicted[4:], [('e', 5)])
+        self.assertEqual(list(reversed(c)), [])
+        self.assertEqual(list(c.items()), [])
+        self.assertEqual(c.evicted[4:], [('e', 5)])
 
         c.cap = -1
         c['f'] = 6
         c['g'] = 7
         c['h'] = 8
         c['i'] = 9
-        self.assert_equal(list(reversed(c)), ['f', 'g', 'h', 'i'])
-        self.assert_equal(list(c.items()), [('i', 9), ('h', 8), ('g', 7), ('f', 6)])
-        self.assert_equal(c.evicted[5:], [])
+        self.assertEqual(list(reversed(c)), ['f', 'g', 'h', 'i'])
+        self.assertEqual(list(c.items()), [('i', 9), ('h', 8), ('g', 7), ('f', 6)])
+        self.assertEqual(c.evicted[5:], [])
 
     def test_clear(self):
         c = self.lfu_cache(3)
         c.clear()
-        self.assert_equal(list(reversed(c)), [])
-        self.assert_equal(list(c.items()), [])
-        self.assert_equal(c.evicted, [])
+        self.assertEqual(list(reversed(c)), [])
+        self.assertEqual(list(c.items()), [])
+        self.assertEqual(c.evicted, [])
 
     def test_update(self):
         c = self.lfu_cache(3)
-        with self.assert_raises(NotImplementedError):
+        with self.assertRaises(NotImplementedError):
             c.update()
 
     def test_copy(self):
@@ -561,42 +561,42 @@ class LFUCacheTestCase(AyameTestCase):
     def _test_dup(self, dup):
         f = self.lfu_cache(3)
         c = dup(f)
-        self.assert_is_not(c, f)
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertIsNot(c, f)
+        self.assertEqual(c.cap, 3)
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
         freq = c._head.next
-        self.assert_equal(freq.value, 1)
-        self.assert_equal(freq.len, 3)
-        self.assert_equal(c._head.prev.value, 1)
+        self.assertEqual(freq.value, 1)
+        self.assertEqual(freq.len, 3)
+        self.assertEqual(c._head.prev.value, 1)
 
         f = self.lfu_cache(3)
         f['b']
         f['c']
         f['c']
         c = dup(f)
-        self.assert_is_not(c, f)
-        self.assert_equal(c.cap, 3)
-        self.assert_equal(list(reversed(c)), ['a', 'b', 'c'])
-        self.assert_equal(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
-        self.assert_equal(c.evicted, [])
+        self.assertIsNot(c, f)
+        self.assertEqual(c.cap, 3)
+        self.assertEqual(list(reversed(c)), ['a', 'b', 'c'])
+        self.assertEqual(list(c.items()), [('c', 3), ('b', 2), ('a', 1)])
+        self.assertEqual(c.evicted, [])
         freq = c._head.next
-        self.assert_equal(freq.value, 1)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'a')
-        self.assert_equal(freq.head.value, 1)
+        self.assertEqual(freq.value, 1)
+        self.assertEqual(freq.len, 1)
+        self.assertEqual(freq.head.key, 'a')
+        self.assertEqual(freq.head.value, 1)
         freq = c._head.next.next
-        self.assert_equal(freq.value, 2)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'b')
-        self.assert_equal(freq.head.value, 2)
+        self.assertEqual(freq.value, 2)
+        self.assertEqual(freq.len, 1)
+        self.assertEqual(freq.head.key, 'b')
+        self.assertEqual(freq.head.value, 2)
         freq = c._head.next.next.next
-        self.assert_equal(freq.value, 3)
-        self.assert_equal(freq.len, 1)
-        self.assert_equal(freq.head.key, 'c')
-        self.assert_equal(freq.head.value, 3)
-        self.assert_equal(c._head.prev.value, 3)
+        self.assertEqual(freq.value, 3)
+        self.assertEqual(freq.len, 1)
+        self.assertEqual(freq.head.key, 'c')
+        self.assertEqual(freq.head.value, 3)
+        self.assertEqual(c._head.prev.value, 3)
 
 
 class LFUCache(util.LFUCache):

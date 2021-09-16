@@ -13,6 +13,7 @@ import io
 import os
 import sys
 import tempfile
+import textwrap
 import time
 import types
 import zipfile
@@ -24,12 +25,10 @@ from base import AyameTestCase
 
 class ResTestCase(AyameTestCase):
 
-    def setup(self):
-        super().setup()
+    def setUp(self):
         self._module = sys.modules[__name__]
 
-    def teardown(self):
-        super().teardown()
+    def tearDown(self):
         sys.modules[__name__] = self._module
 
     def new_module(self, loader):
@@ -47,13 +46,13 @@ class ResTestCase(AyameTestCase):
             def open(self, encoding='utf-8'):
                 return super().open(encoding)
 
-        with self.assert_raises(TypeError):
+        with self.assertRaises(TypeError):
             res.Resource(None)
 
         r = Resource(None)
-        self.assert_is_none(r.path)
-        self.assert_is_none(r.mtime)
-        self.assert_is_none(r.open())
+        self.assertIsNone(r.path)
+        self.assertIsNone(r.mtime)
+        self.assertIsNone(r.open())
 
     def test_unknown_module(self):
         loader = res.ResourceLoader()
@@ -66,8 +65,9 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam(), ham):
             o.__module__ = None
-            with self.assert_raises_regex(ayame.ResourceError, r'^cannot find module '):
-                loader.load(o, None)
+            with self.subTest(object=o):
+                with self.assertRaisesRegex(ayame.ResourceError, r'^cannot find module '):
+                    loader.load(o, None)
 
     def test_unknown_module_location(self):
         sys.modules[__name__] = types.ModuleType(__name__)
@@ -84,8 +84,9 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam(), ham, sys.modules[__name__]):
             for p in (os.path.pardir, os.path.join(*(os.path.pardir,) * 2), os.path.sep):
-                with self.assert_raises_regex(ayame.ResourceError, r'^invalid path '):
-                    loader.load(o, p)
+                with self.subTest(object=o, path=p):
+                    with self.assertRaisesRegex(ayame.ResourceError, r'^invalid path '):
+                        loader.load(o, p)
 
     def test_unknown_loader(self):
         sys.modules[__name__] = self.new_module(True)
@@ -102,14 +103,16 @@ class ResTestCase(AyameTestCase):
 
         for o in (Spam, Spam()):
             for p in ('Spam.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError, regex):
-                    loader.load(o, p)
+                with self.subTest(object=o, path=p):
+                    with self.assertRaisesRegex(ayame.ResourceError, regex):
+                        loader.load(o, p)
 
         for p in ('ham.txt', '.txt'):
-            with self.assert_raises_regex(ayame.ResourceError, regex):
-                loader.load(ham, p)
+            with self.subTest(path=p):
+                with self.assertRaisesRegex(ayame.ResourceError, regex):
+                    loader.load(ham, p)
 
-        with self.assert_raises_regex(ayame.ResourceError, regex):
+        with self.assertRaisesRegex(ayame.ResourceError, regex):
             loader.load(sys.modules[__name__], '.txt')
 
     def test_loader(self):
@@ -143,21 +146,23 @@ class ResTestCase(AyameTestCase):
         path = self.path_for('Spam.txt')
         for o in (Spam, Spam()):
             for p in ('Spam.txt', '.txt'):
-                r = loader.load(o, p)
-                self.assert_is_instance(r, res.FileResource)
-                self.assert_equal(r.path, path)
-                self.assert_equal(r.mtime, os.path.getmtime(path))
-                with r.open() as fp:
-                    self.assert_equal(fp.read(), 'test_res/Spam.txt from Loader')
+                with self.subTest(object=o, path=p):
+                    r = loader.load(o, p)
+                    self.assertIsInstance(r, res.FileResource)
+                    self.assertEqual(r.path, path)
+                    self.assertEqual(r.mtime, os.path.getmtime(path))
+                    with r.open() as fp:
+                        self.assertEqual(fp.read(), 'test_res/Spam.txt from Loader')
 
         path = self.path_for('ham.txt')
         for p in ('ham.txt', '.txt'):
-            r = loader.load(ham, p)
-            self.assert_is_instance(r, res.FileResource)
-            self.assert_equal(r.path, path)
-            self.assert_equal(r.mtime, os.path.getmtime(path))
-            with r.open() as fp:
-                self.assert_equal(fp.read(), 'test_res/ham.txt from Loader')
+            with self.subTest(path=p):
+                r = loader.load(ham, p)
+                self.assertIsInstance(r, res.FileResource)
+                self.assertEqual(r.path, path)
+                self.assertEqual(r.mtime, os.path.getmtime(path))
+                with r.open() as fp:
+                    self.assertEqual(fp.read(), 'test_res/ham.txt from Loader')
 
 
 class FileResourceTestCase(AyameTestCase):
@@ -176,17 +181,19 @@ class FileResourceTestCase(AyameTestCase):
 
         for o in (Spam, Spam()):
             for p in ('Spam.txt', '.txt'):
-                r = loader.load(o, p)
-                self.assert_is_instance(r, res.FileResource)
-                self.assert_equal(r.path, path)
-                self.assert_equal(r.mtime, os.path.getmtime(path))
-                with r.open() as fp:
-                    self.assert_equal(fp.read().strip(), 'test_res/Spam.txt')
+                with self.subTest(object=o, path=p):
+                    r = loader.load(o, p)
+                    self.assertIsInstance(r, res.FileResource)
+                    self.assertEqual(r.path, path)
+                    self.assertEqual(r.mtime, os.path.getmtime(path))
+                    with r.open() as fp:
+                        self.assertEqual(fp.read().strip(), 'test_res/Spam.txt')
 
         for o in (Eggs, Eggs()):
             for p in ('Eggx.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError, self.regex):
-                    loader.load(o, p)
+                with self.subTest(object=o, path=p):
+                    with self.assertRaisesRegex(ayame.ResourceError, self.regex):
+                        loader.load(o, p)
 
     def test_load_by_function(self):
         loader = res.ResourceLoader()
@@ -199,28 +206,30 @@ class FileResourceTestCase(AyameTestCase):
             pass
 
         for p in ('ham.txt', '.txt'):
-            r = loader.load(ham, p)
-            self.assert_is_instance(r, res.FileResource)
-            self.assert_equal(r.path, path)
-            self.assert_equal(r.mtime, os.path.getmtime(path))
-            with r.open() as fp:
-                self.assert_equal(fp.read().strip(), 'test_res/ham.txt')
+            with self.subTest(path=p):
+                r = loader.load(ham, p)
+                self.assertIsInstance(r, res.FileResource)
+                self.assertEqual(r.path, path)
+                self.assertEqual(r.mtime, os.path.getmtime(path))
+                with r.open() as fp:
+                    self.assertEqual(fp.read().strip(), 'test_res/ham.txt')
 
         for p in ('toast.txt', '.txt'):
-            with self.assert_raises_regex(ayame.ResourceError, self.regex):
-                loader.load(toast, p)
+            with self.subTest(path=p):
+                with self.assertRaisesRegex(ayame.ResourceError, self.regex):
+                    loader.load(toast, p)
 
     def test_load_by_module(self):
         loader = res.ResourceLoader()
         path = self.path_for('.txt')
 
         r = loader.load(sys.modules[__name__], '.txt')
-        self.assert_equal(r.path, path)
-        self.assert_equal(r.mtime, os.path.getmtime(path))
+        self.assertEqual(r.path, path)
+        self.assertEqual(r.mtime, os.path.getmtime(path))
         with r.open() as fp:
-            self.assert_equal(fp.read().strip(), 'test_res/.txt')
+            self.assertEqual(fp.read().strip(), 'test_res/.txt')
 
-        with self.assert_raises_regex(ayame.ResourceError, self.regex):
+        with self.assertRaisesRegex(ayame.ResourceError, self.regex):
             loader.load(ayame, '.txt')
 
 
@@ -249,53 +258,57 @@ class ZipFileResourceTestCase(AyameTestCase):
     def test_load_by_class(self):
         loader = res.ResourceLoader()
         path = 'm/Spam.txt'
-        src = """\
-class Spam:
-    pass
+        src = textwrap.dedent("""\
+            class Spam:
+                pass
 
-class Eggs:
-    pass
-"""
+            class Eggs:
+                pass
+        """)
 
         with self.import_('m', [('m.py', src),
                                 (path, path + '\n')]) as m:
             for o in (m.Spam, m.Spam()):
                 for p in ('Spam.txt', '.txt'):
-                    r = loader.load(o, p)
-                    self.assert_is_instance(r, res.ZipFileResource)
-                    self.assert_equal(r.path, path)
-                    self.assert_equal(r.mtime, self.mtime)
-                    with r.open() as fp:
-                        self.assert_equal(fp.read().strip(), 'm/Spam.txt')
+                    with self.subTest(object=o, path=p):
+                        r = loader.load(o, p)
+                        self.assertIsInstance(r, res.ZipFileResource)
+                        self.assertEqual(r.path, path)
+                        self.assertEqual(r.mtime, self.mtime)
+                        with r.open() as fp:
+                            self.assertEqual(fp.read().strip(), 'm/Spam.txt')
 
             for o in (m.Eggs, m.Eggs()):
                 for p in ('Eggs.txt', '.txt'):
-                    with self.assert_raises_regex(ayame.ResourceError, self.regex):
-                        loader.load(o, p)
+                    with self.subTest(object=o, path=p):
+                        with self.assertRaisesRegex(ayame.ResourceError, self.regex):
+                            loader.load(o, p)
 
     def test_load_by_function(self):
         loader = res.ResourceLoader()
         path = 'm/ham.txt'
-        src = """\
-def ham():
-    pass
+        src = textwrap.dedent("""\
+            def ham():
+                pass
 
-def toast():
-    pass
-"""
+            def toast():
+                pass
+        """)
 
         with self.import_('m', [('m.py', src),
                                 (path, path + '\n')]) as m:
             for p in ('ham.txt', '.txt'):
-                r = loader.load(m.ham, p)
-                self.assert_is_instance(r, res.ZipFileResource)
-                self.assert_equal(r.mtime, self.mtime)
-                with r.open() as fp:
-                    self.assert_equal(fp.read().strip(), 'm/ham.txt')
+                with self.subTest(path=p):
+                    r = loader.load(m.ham, p)
+                    self.assertIsInstance(r, res.ZipFileResource)
+                    self.assertEqual(r.mtime, self.mtime)
+                    with r.open() as fp:
+                        self.assertEqual(fp.read().strip(), 'm/ham.txt')
 
             for p in ('toast.txt', '.txt'):
-                with self.assert_raises_regex(ayame.ResourceError, self.regex):
-                    loader.load(m.toast, p)
+                with self.subTest(path=p):
+                    with self.assertRaisesRegex(ayame.ResourceError, self.regex):
+                        loader.load(m.toast, p)
 
     def test_load_by_module(self):
         loader = res.ResourceLoader()
@@ -305,8 +318,8 @@ def toast():
                                 (path, path + '\n')]) as m:
             r = loader.load(m, '.txt')
             with r.open() as fp:
-                self.assert_equal(fp.read().strip(), 'm/.txt')
+                self.assertEqual(fp.read().strip(), 'm/.txt')
 
         with self.import_('m', [('m.py', '')]) as m:
-            with self.assert_raises_regex(ayame.ResourceError, self.regex):
+            with self.assertRaisesRegex(ayame.ResourceError, self.regex):
                 loader.load(m, '.txt')
