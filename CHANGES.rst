@@ -4,6 +4,8 @@ Ayame Changelog
 Version 0.2
 -----------
 
+Release date: 2021-09-22
+
 * Support Python 3.5.
 * Support Python 3.6.
 * Drop Python 3.3 support.
