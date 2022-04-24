@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2022 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -847,8 +847,8 @@ class XMLHandler(MarkupHandler):
                 r.write('="', ns_uri, '"')
         # attributes
         default_ns = False
-        for pfx, n, v in sorted([(r.prefix_for(a.ns_uri), a.name, v)
-                                 for a, v in elem.attrib.items()]):
+        for pfx, n, v in sorted((r.prefix_for(a.ns_uri), a.name, v)
+                                for a, v in elem.attrib.items()):
             r.write(' ')
             if pfx == '':
                 default_ns = True

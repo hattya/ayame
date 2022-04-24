@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2022 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -89,7 +89,7 @@ class Rule:
         self.__path = path
         self.__leaf = not path.endswith('/')
         self.__object = object
-        self.__methods = tuple(set(m.upper() for m in methods)) if methods else ('GET', 'POST')
+        self.__methods = tuple({m.upper() for m in methods}) if methods else ('GET', 'POST')
         self.__redirection = redirection
 
         self._regex = None
