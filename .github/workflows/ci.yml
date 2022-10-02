@@ -15,6 +15,7 @@ jobs:
           - py38
           - py39
           - py310
+          - py311
         include:
           - platform: Linux
             os: ubuntu-latest
@@ -30,6 +31,8 @@ jobs:
             python-version: '3.9'
           - toxenv: py310
             python-version: '3.10'
+          - toxenv: py311
+            python-version: '3.11'
       fail-fast: false
     name: tox -e ${{ matrix.toxenv }} on ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}

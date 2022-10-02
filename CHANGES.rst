@@ -6,6 +6,7 @@ Version 0.3
 
 * Support Python 3.10.
 * Drop Python 3.6 support.
+* Support Python 3.11.
 
 
 Version 0.2
