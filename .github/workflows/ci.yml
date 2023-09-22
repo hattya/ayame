@@ -11,7 +11,6 @@ jobs:
           - macOS
           - Windows
         toxenv:
-          - py37
           - py38
           - py39
           - py310
@@ -23,8 +22,6 @@ jobs:
             os: macos-latest
           - platform: Windows
             os: windows-latest
-          - toxenv: py37
-            python-version: '3.7'
           - toxenv: py38
             python-version: '3.8'
           - toxenv: py39

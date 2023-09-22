@@ -24,7 +24,7 @@ Ayame is a component based WSGI framework. It is inspired by
 Requirements
 ------------
 
-- Python 3.7+
+- Python 3.8+
 - setuptools
 - Werkzeug
 - secure-cookie
