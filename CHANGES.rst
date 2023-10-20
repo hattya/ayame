@@ -8,6 +8,7 @@ Version 0.3
 * Drop Python 3.6 support.
 * Support Python 3.11.
 * Drop Python 3.7 support.
+* Support Python 3.12.
 
 
 Version 0.2
