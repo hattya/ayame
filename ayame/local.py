@@ -1,19 +1,19 @@
 #
 # ayame.local
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
-import threading
+import contextvars
 
 from .exception import AyameError
 
 
 __all__ = ['push', 'pop', 'context', 'app']
 
-_local = threading.local()
+_stack = contextvars.ContextVar('ayame.local.stack')
 
 
 class _Context:
@@ -26,27 +26,27 @@ class _Context:
 
 
 def push(app, environ):
-    stack = getattr(_local, 'stack', None)
-    if stack is None:
-        _local.stack = stack = []
-
+    stack = _stack.get([]).copy()
     ctx = _Context(app, environ)
     stack.append(ctx)
+    _stack.set(stack)
     return ctx
 
 
 def pop():
-    stack = getattr(_local, 'stack', None)
-    if (stack is not None
-        and len(stack) > 0):
-        return stack.pop()
+    stack = _stack.get([])
+    if not stack:
+        return
+    ctx = stack.pop()
+    _stack.set(stack)
+    return ctx
 
 
 def context():
     try:
-        return _local.stack[-1]
-    except (AttributeError, IndexError):
-        raise AyameError(f"there is no application attached to '{threading.current_thread().name}'")
+        return _stack.get()[-1]
+    except LookupError:
+        raise AyameError('there is no application attached to this context')
 
 
 def app():
