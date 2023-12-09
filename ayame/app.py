@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -9,6 +9,8 @@
 import locale
 import os
 import sys
+
+import werkzeug.datastructures
 
 from . import (converter, core, http, i18n, local, markup, page, res, route,
                session, uri, util)
@@ -103,7 +105,9 @@ class Ayame:
         except Exception as e:
             status, headers, exc_info, content = self.handle_error(e)
         finally:
-            local.pop()
+            ctx = local.pop()
+            if ctx.request is not None:
+                ctx.request.close()
 
         start_response(status, headers, exc_info)
         return content
@@ -181,3 +185,15 @@ class Request:
     @property
     def session(self):
         return local.context().session
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        for _, data in self.form_data.items():
+            for v in data:
+                if isinstance(v, werkzeug.datastructures.FileStorage):
+                    v.close()

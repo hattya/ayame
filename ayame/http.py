@@ -1,14 +1,16 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
-import cgi
 import html
 import re
+
+import werkzeug.exceptions
+import werkzeug.formparser
 
 from .exception import AyameError
 
@@ -41,27 +43,14 @@ def parse_accept(value):
 
 
 def parse_form_data(environ):
-    ct = cgi.parse_header(environ.get('CONTENT_TYPE', ''))[0]
-    if ct not in ('application/x-www-form-urlencoded', 'multipart/form-data'):
-        return {}
-
-    # isolate QUERY_STRING
-    fs_environ = environ.copy()
-    fs_environ['QUERY_STRING'] = ''
-    fs = cgi.FieldStorage(fp=environ['wsgi.input'],
-                          environ=fs_environ,
-                          keep_blank_values=True)
-
     form_data = {}
-    for field in fs.list:
-        if (isinstance(field, cgi.FieldStorage)
-            and field.done == -1):
+    if environ['REQUEST_METHOD'] in ('POST', 'PUT', 'PATCH'):
+        try:
+            _, form, files = werkzeug.formparser.parse_form_data(environ)
+        except werkzeug.exceptions.ClientDisconnected:
             raise RequestTimeout()
-        value = field if field.filename else field.value
-        if field.name in form_data:
-            form_data[field.name].append(value)
-        else:
-            form_data[field.name] = [value]
+        form_data.update(form.lists())
+        form_data.update(files.lists())
     return form_data
 
 

@@ -1,7 +1,7 @@
 #
 # base
 #
-#   Copyright (c) 2013-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2013-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -108,14 +108,16 @@ class AyameTestCase(unittest.TestCase):
     @contextlib.contextmanager
     def application(self, environ=None):
         app = self.app
-        ctx = local.push(app, environ)
         try:
+            ctx = local.push(app, environ)
             if environ is not None:
                 ctx.request = app.config['ayame.request'](environ, {})
                 ctx._router = app.config['ayame.route.map'].bind(environ)
             yield
         finally:
-            local.pop()
+            ctx = local.pop()
+            if ctx.request is not None:
+                ctx.request.close()
 
     def new_environ(self, method='GET', path='', query='', data=None,
                     form=None, accept=None):
@@ -149,16 +151,16 @@ class AyameTestCase(unittest.TestCase):
         self.assertTrue(self.boundary)
         buf = []
         for n, v in args:
-            buf.append('--' + self.boundary)
+            buf.append(f'--{self.boundary}')
             if isinstance(v, tuple):
                 buf.append(f'Content-Disposition: form-data; name="{n}"; filename="{v[0]}"')
-                buf.append('Content-Type: ' + v[2])
+                buf.append(f'Content-Type: {v[2]}')
                 v = v[1]
             else:
                 buf.append(f'Content-Disposition: form-data; name="{n}"')
             buf.append('')
             buf.append(v)
-        buf.append('--' + self.boundary + '--')
+        buf.append(f'--{self.boundary}--')
         return '\r\n'.join(buf)
 
     def xml_of(self, name):

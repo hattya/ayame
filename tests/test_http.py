@@ -1,7 +1,7 @@
 #
 # test_http
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -101,7 +101,8 @@ class HTTPTestCase(AyameTestCase):
         a = form_data['a'][0]
         self.assertEqual(a.name, 'a')
         self.assertEqual(a.filename, '\u3044')
-        self.assertEqual(a.value, b'spam\neggs\nham\n')
+        self.assertEqual(a.read(), b'spam\neggs\nham\n')
+        a.close()
 
     def test_parse_form_data_put(self):
         data = 'spam\neggs\nham\n'

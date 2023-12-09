@@ -1,7 +1,7 @@
 #
 # test_form
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -113,6 +113,16 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ()):
             p = SpamPage()
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object['text'], '')
+            self.assertEqual(f.model_object['password'], '')
+            self.assertEqual(f.model_object['hidden'], '')
+            self.assertEqual(f.model_object['area'], 'Hello World!\n')
+            self.assertEqual(f.model_object['checkbox'], True)
+            self.assertIsNone(f.model_object['file'])
+            self.assertNotIn('button', f.model_object)
+
         html = self.format(SpamPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -120,15 +130,6 @@ class FormTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        f = p.find('form')
-        self.assertEqual(f.model_object['text'], '')
-        self.assertEqual(f.model_object['password'], '')
-        self.assertEqual(f.model_object['hidden'], '')
-        self.assertEqual(f.model_object['area'], 'Hello World!\n')
-        self.assertEqual(f.model_object['checkbox'], True)
-        self.assertIsNone(f.model_object['file'])
-        self.assertNotIn('button', f.model_object)
 
     def test_form_get(self):
         query = ('{path}=form&'
@@ -141,16 +142,17 @@ class FormTestCase(AyameTestCase):
             p = SpamPage()
             with self.assertRaisesRegex(Valid, r'^form$'):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {
-            'text': 'text',
-            'password': 'password',
-            'hidden': 'hidden',
-            'area': 'area',
-            'checkbox': False,
-            'file': 'a.txt',
-        })
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {
+                'text': 'text',
+                'password': 'password',
+                'hidden': 'hidden',
+                'area': 'area',
+                'checkbox': False,
+                'file': 'a.txt',
+            })
+            self.assertFalse(f.has_error())
 
         query = ('{path}=form&'
                  'text=text&'
@@ -163,17 +165,18 @@ class FormTestCase(AyameTestCase):
             p = SpamPage()
             with self.assertRaisesRegex(Valid, r'^button$'):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {
-            'text': 'text',
-            'password': 'password',
-            'hidden': 'hidden',
-            'area': 'area',
-            'checkbox': False,
-            'file': 'a.txt',
-            'button': 'submitted',
-        })
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {
+                'text': 'text',
+                'password': 'password',
+                'hidden': 'hidden',
+                'area': 'area',
+                'checkbox': False,
+                'file': 'a.txt',
+                'button': 'submitted',
+            })
+            self.assertFalse(f.has_error())
 
     def test_form_post(self):
         data = self.form_data(('{path}', 'form'),
@@ -186,20 +189,20 @@ class FormTestCase(AyameTestCase):
             p = SpamPage()
             with self.assertRaisesRegex(Valid, r'^form$'):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object['text'], 'text')
-        self.assertEqual(f.model_object['password'], 'password')
-        self.assertEqual(f.model_object['hidden'], 'hidden')
-        self.assertEqual(f.model_object['area'], 'area')
-        self.assertEqual(f.model_object['checkbox'], False)
-        self.assertEqual(f.model_object['file'].name, 'file')
-        self.assertEqual(f.model_object['file'].filename, 'a.txt')
-        self.assertEqual(f.model_object['file'].value, b'spam\neggs\nham\n')
-        self.assertIsNotNone(f.model_object['file'].file)
-        self.assertEqual(f.model_object['file'].type, 'text/plain')
-        self.assertEqual(f.model_object['file'].type_options, {})
-        self.assertNotIn('button', f.model_object)
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object['text'], 'text')
+            self.assertEqual(f.model_object['password'], 'password')
+            self.assertEqual(f.model_object['hidden'], 'hidden')
+            self.assertEqual(f.model_object['area'], 'area')
+            self.assertEqual(f.model_object['checkbox'], False)
+            self.assertEqual(f.model_object['file'].name, 'file')
+            self.assertEqual(f.model_object['file'].filename, 'a.txt')
+            self.assertEqual(f.model_object['file'].read(), b'spam\neggs\nham\n')
+            self.assertEqual(f.model_object['file'].mimetype, 'text/plain')
+            self.assertEqual(f.model_object['file'].mimetype_params, {})
+            self.assertNotIn('button', f.model_object)
+            self.assertFalse(f.has_error())
 
         data = self.form_data(('{path}', 'form'),
                               ('text', 'text'),
@@ -212,20 +215,20 @@ class FormTestCase(AyameTestCase):
             p = SpamPage()
             with self.assertRaisesRegex(Valid, r'^button$'):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object['text'], 'text')
-        self.assertEqual(f.model_object['password'], 'password')
-        self.assertEqual(f.model_object['hidden'], 'hidden')
-        self.assertEqual(f.model_object['area'], 'area')
-        self.assertEqual(f.model_object['checkbox'], False)
-        self.assertEqual(f.model_object['file'].name, 'file')
-        self.assertEqual(f.model_object['file'].filename, 'a.txt')
-        self.assertEqual(f.model_object['file'].value, b'spam\neggs\nham\n')
-        self.assertIsNotNone(f.model_object['file'].file)
-        self.assertEqual(f.model_object['file'].type, 'text/plain')
-        self.assertEqual(f.model_object['file'].type_options, {})
-        self.assertEqual(f.model_object['button'], 'submitted')
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object['text'], 'text')
+            self.assertEqual(f.model_object['password'], 'password')
+            self.assertEqual(f.model_object['hidden'], 'hidden')
+            self.assertEqual(f.model_object['area'], 'area')
+            self.assertEqual(f.model_object['checkbox'], False)
+            self.assertEqual(f.model_object['file'].name, 'file')
+            self.assertEqual(f.model_object['file'].filename, 'a.txt')
+            self.assertEqual(f.model_object['file'].read(), b'spam\neggs\nham\n')
+            self.assertEqual(f.model_object['file'].mimetype, 'text/plain')
+            self.assertEqual(f.model_object['file'].mimetype_params, {})
+            self.assertEqual(f.model_object['button'], 'submitted')
+            self.assertFalse(f.has_error())
 
     def test_form_required_error(self):
         query = ('{path}=form&'
@@ -239,6 +242,7 @@ class FormTestCase(AyameTestCase):
             p.find('form:hidden').required = True
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {
                 'text': '',
@@ -262,7 +266,7 @@ class FormTestCase(AyameTestCase):
             p = SpamPage()
             p.add(Form('__form__'))
             p()
-        self.assertIsNone(p.find('__form__').model_object)
+            self.assertIsNone(p.find('__form__').model_object)
 
     def test_form_invisible_form_component(self):
         query = ('{path}=form&'
@@ -279,6 +283,7 @@ class FormTestCase(AyameTestCase):
             p.find('form:hidden').required = True
             with self.assertRaises(Valid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {
                 'text': '',
@@ -310,6 +315,7 @@ class FormTestCase(AyameTestCase):
 
             fc.validate(None)
             self.assertRequiredError(fc, None)
+
             fc.validate('')
             self.assertRequiredError(fc, '')
 
@@ -556,6 +562,7 @@ class FormTestCase(AyameTestCase):
     def test_form_component_no_model(self):
         with self.application():
             fc = form.FormComponent('a')
+
             fc.validate('a')
             self.assertIsNone(fc.error)
             self.assertIsNone(fc.model)
@@ -572,6 +579,7 @@ class FormTestCase(AyameTestCase):
             f.add(form.Button('b'))
             element = f.render(element)
         self.assertEqual(len(element), 2)
+
         button = element.children[1]
         self.assertEqual(button.attrib, {form._NAME: 'b'})
 
@@ -614,6 +622,7 @@ class FormTestCase(AyameTestCase):
             f.add(form.CheckBox('b'))
             f.render(element)
         self.assertEqual(len(element), 2)
+
         input = element.children[1]
         self.assertEqual(input.attrib, {
             form._NAME: 'b',
@@ -641,6 +650,10 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ()):
             p = EggsPage()
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': p.choices[0]})
+
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -648,15 +661,16 @@ class FormTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': p.choices[0]})
 
     def test_radio_choice_with_renderer(self):
         with self.application(self.new_environ()):
             p = EggsPage()
             p.find('form:radio').renderer = ChoiceRenderer()
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': p.choices[0]})
+
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -665,14 +679,15 @@ class FormTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': p.choices[0]})
-
     def test_radio_choice_no_choices(self):
         with self.application(self.new_environ()):
             p = EggsPage()
             p.find('form:radio').choices = []
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': p.choices[0]})
+
         html = self.format(EggsPage, choices=False)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -681,9 +696,6 @@ class FormTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': p.choices[0]})
-
     def test_radio_choice_post(self):
         data = self.form_data(('{path}', 'form'),
                               ('radio', '1'))
@@ -691,9 +703,10 @@ class FormTestCase(AyameTestCase):
             p = EggsPage()
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': p.choices[1]})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': p.choices[1]})
+            self.assertFalse(f.has_error())
 
     def test_radio_choice_post_no_choices(self):
         data = self.form_data(('{path}', 'form'),
@@ -703,9 +716,10 @@ class FormTestCase(AyameTestCase):
             p.find('form:radio').choices = []
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': p.choices[0]})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': p.choices[0]})
+            self.assertFalse(f.has_error())
 
     def test_radio_choice_post_empty(self):
         data = self.form_data(('{path}', 'form'))
@@ -713,9 +727,10 @@ class FormTestCase(AyameTestCase):
             p = EggsPage()
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'radio': None})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'radio': None})
+            self.assertFalse(f.has_error())
 
     def test_radio_choice_required_error(self):
         data = self.form_data(('{path}', 'form'))
@@ -724,6 +739,7 @@ class FormTestCase(AyameTestCase):
             p.find('form:radio').required = True
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'radio': p.choices[0]})
             self.assertTrue(f.has_error())
@@ -736,6 +752,7 @@ class FormTestCase(AyameTestCase):
             p = EggsPage()
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'radio': p.choices[0]})
             self.assertTrue(f.has_error())
@@ -748,6 +765,7 @@ class FormTestCase(AyameTestCase):
             p = EggsPage()
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'radio': p.choices[0]})
             self.assertTrue(f.has_error())
@@ -757,6 +775,10 @@ class FormTestCase(AyameTestCase):
         with self.application(self.new_environ()):
             p = HamPage()
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
+
         html = self.format(HamPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -765,13 +787,14 @@ class FormTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
-
     def test_check_box_choice_single(self):
         with self.application(self.new_environ()):
             p = HamPage(multiple=False)
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[0]})
+
         html = self.format(HamPage, choices=1)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -780,14 +803,15 @@ class FormTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[0]})
-
     def test_check_box_choice_with_renderer(self):
         with self.application(self.new_environ()):
             p = HamPage()
             p.find('form:checkbox').renderer = ChoiceRenderer()
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
+
         html = self.format(HamPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -796,14 +820,15 @@ class FormTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
-
     def test_check_box_choice_no_choices(self):
         with self.application(self.new_environ()):
             p = HamPage()
             p.find('form:checkbox').choices = []
             status, headers, content = p()
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
+
         html = self.format(HamPage, choices=0)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -811,9 +836,6 @@ class FormTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
 
     def test_check_box_choice_post(self):
         data = self.form_data(('{path}', 'form'),
@@ -826,9 +848,10 @@ class FormTestCase(AyameTestCase):
             p = HamPage()
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices})
+            self.assertFalse(f.has_error())
 
     def test_check_box_choice_post_single(self):
         data = self.form_data(('{path}', 'form'),
@@ -837,9 +860,10 @@ class FormTestCase(AyameTestCase):
             p = HamPage(multiple=False)
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[1]})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[1]})
+            self.assertFalse(f.has_error())
 
     def test_check_box_choice_post_no_choices(self):
         data = self.form_data(('{path}', 'form'),
@@ -851,9 +875,10 @@ class FormTestCase(AyameTestCase):
             p.find('form:checkbox').choices = []
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
+            self.assertFalse(f.has_error())
 
     def test_check_box_choice_post_no_model(self):
         data = self.form_data(('{path}', 'form'),
@@ -865,9 +890,10 @@ class FormTestCase(AyameTestCase):
             p.find('form').model = None
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertIsNone(f.model_object)
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertIsNone(f.model_object)
+            self.assertFalse(f.has_error())
 
     def test_check_box_choice_post_empty(self):
         data = self.form_data(('{path}', 'form'))
@@ -875,9 +901,10 @@ class FormTestCase(AyameTestCase):
             p = HamPage()
             with self.assertRaises(Valid):
                 p()
-        f = p.find('form')
-        self.assertEqual(f.model_object, {'checkbox': []})
-        self.assertFalse(f.has_error())
+
+            f = p.find('form')
+            self.assertEqual(f.model_object, {'checkbox': []})
+            self.assertFalse(f.has_error())
 
     def test_check_box_choice_required_error(self):
         data = self.form_data(('{path}', 'form'))
@@ -886,6 +913,7 @@ class FormTestCase(AyameTestCase):
             p.find('form:checkbox').required = True
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
             self.assertTrue(f.has_error())
@@ -900,6 +928,7 @@ class FormTestCase(AyameTestCase):
             p = HamPage()
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
             self.assertTrue(f.has_error())
@@ -912,6 +941,7 @@ class FormTestCase(AyameTestCase):
             p = HamPage()
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
             self.assertTrue(f.has_error())
@@ -928,6 +958,7 @@ class FormTestCase(AyameTestCase):
             p = HamPage()
             with self.assertRaises(Invalid):
                 p()
+
             f = p.find('form')
             self.assertEqual(f.model_object, {'checkbox': p.choices[:2]})
             self.assertTrue(f.has_error())
@@ -944,6 +975,10 @@ class FormTestCase(AyameTestCase):
                 with self.application(self.new_environ()):
                     p = class_()
                     status, headers, content = p()
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[:2]})
+
                 html = self.format(class_)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
@@ -952,15 +987,16 @@ class FormTestCase(AyameTestCase):
                 ])
                 self.assertEqual(content, [html])
 
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[:2]})
-
     def test_select_choice_single(self):
         for class_ in (ToastPage, BeansPage):
             with self.subTest(page=class_):
                 with self.application(self.new_environ()):
                     p = class_(multiple=False)
                     status, headers, content = p()
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[0]})
+
                 html = self.format(class_, multiple=False, choices=1)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
@@ -969,9 +1005,6 @@ class FormTestCase(AyameTestCase):
                 ])
                 self.assertEqual(content, [html])
 
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[0]})
-
     def test_select_choice_with_renderer(self):
         for class_ in (ToastPage, BeansPage):
             with self.subTest(page=class_):
@@ -979,6 +1012,10 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     p.find('form:select').renderer = ChoiceRenderer()
                     status, headers, content = p()
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[:2]})
+
                 html = self.format(class_)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
@@ -987,9 +1024,6 @@ class FormTestCase(AyameTestCase):
                 ])
                 self.assertEqual(content, [html])
 
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[:2]})
-
     def test_select_choice_no_choices(self):
         for class_ in (ToastPage, BeansPage):
             with self.subTest(page=class_):
@@ -997,6 +1031,10 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     p.find('form:select').choices = []
                     status, headers, content = p()
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[:2]})
+
                 html = self.format(class_, choices=False)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
@@ -1004,9 +1042,6 @@ class FormTestCase(AyameTestCase):
                     ('Content-Length', str(len(html))),
                 ])
                 self.assertEqual(content, [html])
-
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[:2]})
 
     def test_select_choice_post(self):
         data = self.form_data(('{path}', 'form'),
@@ -1021,9 +1056,10 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     with self.assertRaises(Valid):
                         p()
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices})
-                self.assertFalse(f.has_error())
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices})
+                    self.assertFalse(f.has_error())
 
     def test_select_choice_post_single(self):
         data = self.form_data(('{path}', 'form'),
@@ -1034,9 +1070,10 @@ class FormTestCase(AyameTestCase):
                     p = class_(multiple=False)
                     with self.assertRaises(Valid):
                         p()
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[1]})
-                self.assertFalse(f.has_error())
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[1]})
+                    self.assertFalse(f.has_error())
 
     def test_select_choice_post_no_choices(self):
         data = self.form_data(('{path}', 'form'),
@@ -1050,9 +1087,10 @@ class FormTestCase(AyameTestCase):
                     p.find('form:select').choices = []
                     with self.assertRaises(Valid):
                         p()
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': p.choices[:2]})
-                self.assertFalse(f.has_error())
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': p.choices[:2]})
+                    self.assertFalse(f.has_error())
 
     def test_select_choice_post_no_model(self):
         data = self.form_data(('{path}', 'form'),
@@ -1066,9 +1104,10 @@ class FormTestCase(AyameTestCase):
                     p.find('form').model = None
                     with self.assertRaises(Valid):
                         p()
-                f = p.find('form')
-                self.assertIsNone(f.model_object)
-                self.assertFalse(f.has_error())
+
+                    f = p.find('form')
+                    self.assertIsNone(f.model_object)
+                    self.assertFalse(f.has_error())
 
     def test_select_choice_post_empty(self):
         data = self.form_data(('{path}', 'form'))
@@ -1078,9 +1117,10 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     with self.assertRaises(Valid):
                         p()
-                f = p.find('form')
-                self.assertEqual(f.model_object, {'select': []})
-                self.assertFalse(f.has_error())
+
+                    f = p.find('form')
+                    self.assertEqual(f.model_object, {'select': []})
+                    self.assertFalse(f.has_error())
 
     def test_select_choice_required_error(self):
         data = self.form_data(('{path}', 'form'))
@@ -1091,6 +1131,7 @@ class FormTestCase(AyameTestCase):
                     p.find('form:select').required = True
                     with self.assertRaises(Invalid):
                         p()
+
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
                     self.assertTrue(f.has_error())
@@ -1107,6 +1148,7 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     with self.assertRaises(Invalid):
                         p()
+
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
                     self.assertTrue(f.has_error())
@@ -1121,6 +1163,7 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     with self.assertRaises(Invalid):
                         p()
+
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
                     self.assertTrue(f.has_error())
@@ -1139,6 +1182,7 @@ class FormTestCase(AyameTestCase):
                     p = class_()
                     with self.assertRaises(Invalid):
                         p()
+
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
                     self.assertTrue(f.has_error())

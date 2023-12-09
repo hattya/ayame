@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -1343,6 +1343,10 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(query=query)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 1,
+                'clay2': 0,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1350,11 +1354,6 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 1,
-            'clay2': 0,
-        })
 
     def test_fire_get_duplicate_ayame_path(self):
         query = ('{path}=clay1&'
@@ -1362,6 +1361,10 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(query=query)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 1,
+                'clay2': 0,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1369,17 +1372,16 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 1,
-            'clay2': 0,
-        })
 
     def test_fire_get_nonexistent_path(self):
         query = '{path}=clay2'
         with self.application(self.new_environ(query=query)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 0,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1387,11 +1389,6 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 0,
-        })
 
     def test_fire_get_invisible_component(self):
         query = '{path}=clay1'
@@ -1399,6 +1396,10 @@ class CoreTestCase(AyameTestCase):
             p = EggsPage()
             p.find('clay1').visible = False
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 0,
+            })
         html = self.format(EggsPage, clay1=False)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1407,16 +1408,15 @@ class CoreTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 0,
-        })
-
     def test_fire_post(self):
         data = self.form_data(('{path}', 'obstacle:clay2'))
         with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 1,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1424,11 +1424,6 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 1,
-        })
 
     def test_fire_post_duplicate_ayame_path(self):
         data = self.form_data(('{path}', 'obstacle:clay2'),
@@ -1436,6 +1431,10 @@ class CoreTestCase(AyameTestCase):
         with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 1,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1443,17 +1442,16 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 1,
-        })
 
     def test_fire_post_nonexistent_path(self):
         data = self.form_data(('{path}', 'clay2'))
         with self.application(self.new_environ(method='POST', form=data)):
             p = EggsPage()
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 0,
+            })
         html = self.format(EggsPage)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1461,11 +1459,6 @@ class CoreTestCase(AyameTestCase):
             ('Content-Length', str(len(html))),
         ])
         self.assertEqual(content, [html])
-
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 0,
-        })
 
     def test_fire_post_invisible_component(self):
         data = self.form_data(('{path}', 'clay1'))
@@ -1473,6 +1466,10 @@ class CoreTestCase(AyameTestCase):
             p = EggsPage()
             p.find('clay1').visible = False
             status, headers, content = p()
+            self.assertEqual(p.model_object, {
+                'clay1': 0,
+                'clay2': 0,
+            })
         html = self.format(EggsPage, clay1=False)
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
@@ -1481,24 +1478,19 @@ class CoreTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        self.assertEqual(p.model_object, {
-            'clay1': 0,
-            'clay2': 0,
-        })
-
     def test_fire_component(self):
         query = '{path}=c'
         with self.application(self.new_environ(query=query)):
             c = Component('c')
             c.fire()
-        self.assertEqual(c.model_object, 1)
+            self.assertEqual(c.model_object, 1)
 
     def test_fire_component_uknown_path(self):
         query = '{path}=g'
         with self.application(self.new_environ(query=query)):
             c = Component('c')
             c.fire()
-        self.assertEqual(c.model_object, 0)
+            self.assertEqual(c.model_object, 0)
 
     def test_fire_component_invisible(self):
         query = '{path}=c'
@@ -1506,7 +1498,7 @@ class CoreTestCase(AyameTestCase):
             c = Component('c')
             c.visible = False
             c.fire()
-        self.assertEqual(c.model_object, 0)
+            self.assertEqual(c.model_object, 0)
 
     def test_nested(self):
         regex = r' not .* subclass of MarkupContainer$'
