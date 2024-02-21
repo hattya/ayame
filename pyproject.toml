@@ -1,6 +1,71 @@
 [build-system]
 requires = [
-    "setuptools >= 42",
+    "setuptools >= 61.0",
     "scmver",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "ayame"
+description = "An Apache Wicket-like component based WSGI framework"
+readme = "README.rst"
+authors = [
+    {name = "Akinori Hattori", email = "hattya@gmail.com"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">= 3.8"
+dependencies = [
+    "Werkzeug",
+    "secure-cookie",
+]
+dynamic = [
+    "version",
+]
+
+[project.urls]
+Homepage = "https://github.com/hattya/ayame"
+
+[tool.setuptools]
+include-package-data = false
+packages = [
+    "ayame",
+    "ayame.app",
+    "ayame.border",
+    "ayame.page",
+    "ayame.panel",
+]
+
+[tool.setuptools.package-data]
+"*" = [
+    "*.html",
+    "*.properties",
+]
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/_compat.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "except ImportError:",
+]
