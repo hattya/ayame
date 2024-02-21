@@ -1,7 +1,7 @@
 #
 # test_res
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -16,6 +16,7 @@ import tempfile
 import textwrap
 import time
 import types
+import unittest.mock
 import zipfile
 
 import ayame
@@ -23,13 +24,8 @@ from ayame import res
 from base import AyameTestCase
 
 
+@unittest.mock.patch.dict('sys.modules')
 class ResTestCase(AyameTestCase):
-
-    def setUp(self):
-        self._module = sys.modules[__name__]
-
-    def tearDown(self):
-        sys.modules[__name__] = self._module
 
     def new_module(self, loader):
         class Module(types.ModuleType):

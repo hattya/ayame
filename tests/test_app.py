@@ -1,7 +1,7 @@
 #
 # test_app
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -10,6 +10,7 @@ import locale
 import os
 import tempfile
 import textwrap
+import unittest.mock
 
 import ayame
 from ayame import basic, http, uri
@@ -25,10 +26,6 @@ class AppTestCase(AyameTestCase):
             self.locale = (v[0].lower(), v[1].upper()) if len(v) > 1 else (v[0].lower() if len(v) == 1 else None, None)
         else:
             self.locale = (None,) * 2
-        self._getdefaultlocale = locale.getdefaultlocale
-
-    def tearDown(self):
-        locale.getdefaultlocale = self._getdefaultlocale
 
     def test_ayame(self):
         app = ayame.Ayame(None)
@@ -137,8 +134,9 @@ class AppTestCase(AyameTestCase):
             request.session
         self.assertEqual(request.locale, self.locale)
 
-    def test_request_posix_locale(self):
-        locale.getdefaultlocale = lambda: (None, None)
+    @unittest.mock.patch('locale.getdefaultlocale')
+    def test_request_posix_locale(self, getdefaultlocale):
+        getdefaultlocale.return_value = (None, None)
 
         environ = self.new_environ(method='GET')
         request = ayame.Request(environ, {})

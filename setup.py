@@ -25,7 +25,6 @@ class test(Command):
     def run(self):
         import unittest
 
-        self.run_command('egg_info')
         # run unittest discover
         argv = [sys.argv[0], 'discover', '--start-directory', 'tests']
         if self.verbose:
@@ -35,14 +34,14 @@ class test(Command):
         unittest.main(None, argv=argv)
 
 
-cmdclass = {
-    'test': test,
-}
-
-setup(cmdclass=cmdclass,
-      scmver={
-          'root': os.path.dirname(os.path.abspath(__file__)),
-          'spec': 'micro',
-          'write_to': os.path.join('ayame', '__version__.py'),
-          'fallback': ['__version__:version', 'ayame'],
-      })
+setup(
+    cmdclass={
+        'test': test,
+    },
+    scmver={
+        'root': os.path.dirname(os.path.abspath(__file__)),
+        'spec': 'micro',
+        'write_to': os.path.join('ayame', '__version__.py'),
+        'fallback': ['__version__:version', 'ayame'],
+    },
+)
