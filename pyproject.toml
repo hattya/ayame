@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools >= 61.0",
-    "scmver",
+    "scmver[toml] >= 1.7",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -57,6 +57,11 @@ packages = [
     "*.html",
     "*.properties",
 ]
+
+[tool.scmver]
+spec = "micro"
+write-to = "ayame/__version__.py"
+fallback = {attr = "__version__:version", path = "ayame"}
 
 [tool.coverage.run]
 branch = true

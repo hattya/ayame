@@ -3,7 +3,6 @@
 # setup.py -- ayame setup script
 #
 
-import os
 import sys
 
 from setuptools import setup, Command
@@ -37,11 +36,5 @@ class test(Command):
 setup(
     cmdclass={
         'test': test,
-    },
-    scmver={
-        'root': os.path.dirname(os.path.abspath(__file__)),
-        'spec': 'micro',
-        'write_to': os.path.join('ayame', '__version__.py'),
-        'fallback': ['__version__:version', 'ayame'],
     },
 )
