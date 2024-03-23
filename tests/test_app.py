@@ -20,7 +20,7 @@ from base import AyameTestCase
 class AppTestCase(AyameTestCase):
 
     def setUp(self):
-        self.locale = locale.getdefaultlocale()[0]
+        self.locale = locale.getlocale()[0]
         if self.locale:
             v = self.locale.split('_', 1)
             self.locale = (v[0].lower(), v[1].upper()) if len(v) > 1 else (v[0].lower() if len(v) == 1 else None, None)
@@ -134,9 +134,9 @@ class AppTestCase(AyameTestCase):
             request.session
         self.assertEqual(request.locale, self.locale)
 
-    @unittest.mock.patch('locale.getdefaultlocale')
-    def test_request_posix_locale(self, getdefaultlocale):
-        getdefaultlocale.return_value = (None, None)
+    @unittest.mock.patch('locale.getlocale')
+    def test_request_posix_locale(self, getlocale):
+        getlocale.return_value = (None, None)
 
         environ = self.new_environ(method='GET')
         request = ayame.Request(environ, {})

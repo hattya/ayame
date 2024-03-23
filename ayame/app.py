@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -171,7 +171,7 @@ class Request:
             v = values[0][0]
             sep = '-'
         else:
-            v = locale.getdefaultlocale()[0]
+            v = locale.getlocale()[0]
             sep = '_'
         if v:
             v = v.split(sep, 1)
