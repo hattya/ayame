@@ -48,12 +48,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install -U pip setuptools wheel
-          pip install -U coverage tox
+          python -m pip install -U pip
+          python -m pip install -U coverage tox
       - name: Test
         run: tox
-      - name: Generate XML coverage report
-        run: coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
