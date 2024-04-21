@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2022 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -814,8 +814,8 @@ class MarkupPrettifier(MarkupHandler):
             if text:
                 self._bol = False
 
-    def indent(self, pos):
-        return self._handler.indent(pos)
+    def indent(self, pos, indent=-1):
+        return self._handler.indent(pos, self._indent)
 
     def compile(self, element):
         return self._handler.compile(element)

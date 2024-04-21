@@ -1,7 +1,7 @@
 #
 # test_markup
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -127,9 +127,7 @@ class MarkupTestCase(AyameTestCase):
 
     def test_markup_prettifier(self):
         class MarkupHandler(markup.MarkupHandler):
-            @property
-            def xml(self):
-                pass
+            xml = False
 
             def is_empty(self, element):
                 pass
@@ -140,7 +138,7 @@ class MarkupTestCase(AyameTestCase):
             def end_tag(self):
                 pass
 
-            def indent(self, pos):
+            def indent(self, pos, indent):
                 self.renderer.write('indent\n')
 
             def compile(self, element):
