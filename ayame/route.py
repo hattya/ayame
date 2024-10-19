@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2022 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -373,8 +373,7 @@ class Router:
                     location = _simple_rule_re.sub(repl, rule.object)
                 else:
                     location = rule.object(**values)
-                environ = self.environ.copy()
-                environ['PATH_INFO'] = location
+                environ = self.environ | {'PATH_INFO': location}
                 raise http.MovedPermanently(uri.request_uri(environ, True))
             return rule if as_rule else rule.object, values
         if allow:

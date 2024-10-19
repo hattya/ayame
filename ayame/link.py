@@ -1,7 +1,7 @@
 #
 # ayame.link
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -65,10 +65,8 @@ class ActionLink(Link):
         self.on_click()
 
     def new_uri(self, _):
-        query = self.request.query.copy()
-        query[core.AYAME_PATH] = [self.path()]
-        environ = self.environ.copy()
-        environ['QUERY_STRING'] = urllib.parse.urlencode(query, doseq=True)
+        query = self.request.query | {core.AYAME_PATH: [self.path()]}
+        environ = self.environ | {'QUERY_STRING': urllib.parse.urlencode(query, doseq=True)}
         return uri.request_uri(environ, True)
 
     def on_click(self):

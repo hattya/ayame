@@ -1,6 +1,12 @@
 Ayame Changelog
 ===============
 
+Version 0.4
+-----------
+
+* Drop Python 3.8 support.
+
+
 Version 0.3
 -----------
 
