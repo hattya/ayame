@@ -79,7 +79,7 @@ class ResTestCase(AyameTestCase):
             pass
 
         for o in (Spam, Spam(), ham, sys.modules[__name__]):
-            for p in (os.path.pardir, os.path.join(*(os.path.pardir,) * 2), os.path.sep):
+            for p in (os.path.pardir, os.path.join(*(os.path.pardir,) * 2), os.path.abspath(os.path.sep)):
                 with self.subTest(object=o, path=p):
                     with self.assertRaisesRegex(ayame.ResourceError, r'^invalid path '):
                         loader.load(o, p)
