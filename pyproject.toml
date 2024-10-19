@@ -74,3 +74,32 @@ exclude_lines = [
     "pragma: no cover",
     "except ImportError:",
 ]
+
+[tool.ruff]
+line-length = 160
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "UP",
+    "C4",
+]
+ignore = [
+    "E74",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"ayame/__init__.py" = [
+    "F403",
+]
+"doc/conf.py" = [
+    "UP",
+]
+"tests/test_util.py" = [
+    "E731",
+]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true

@@ -1,7 +1,7 @@
 #
 # ayame.converter
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -138,7 +138,7 @@ class FloatConverter(Converter):
 
     def to_python(self, value):
         try:
-            return float(value) if value is not None else float()
+            return float(value) if value is not None else 0.0
         except (TypeError, ValueError):
             raise self.error(value)
 
@@ -151,7 +151,7 @@ class IntegerConverter(Converter):
 
     def to_python(self, value):
         try:
-            return int(value) if value is not None else int()
+            return int(value) if value is not None else 0
         except (TypeError, ValueError):
             raise self.error(value, type=int)
 

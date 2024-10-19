@@ -1067,7 +1067,7 @@ class ElementTestCase(AyameTestCase):
         div = self.new_element('div', {'ID': 'spam'})
         div.attrib['CLASS'] = 'eggs'
         div.attrib[o] = 'ham'
-        self.assertEqual(list(sorted(div.attrib.items(), key=lambda t: t[1])), [
+        self.assertEqual(sorted(div.attrib.items(), key=lambda t: t[1]), [
             ('class', 'eggs'),
             (o, 'ham'),
             (self.html_of('id'), 'spam'),

@@ -1,7 +1,7 @@
 #
 # ayame.validator
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -19,16 +19,15 @@ __all__ = ['Validator', 'RegexValidator', 'EmailValidator', 'URLValidator',
 # from RFC 1035 and RFC 2822
 _atext = r"[A-Z0-9!#$%&'*+\-/=?^_`{|}~]"
 _label = r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)'
-_email = r"""
+_email = fr"""
     \A
     # local part
-    {atext}+ (?:\. {atext}+)*
+    {_atext}+ (?:\. {_atext}+)*
     @
     # domain
-    {label} (?:\. {label})*
+    {_label} (?:\. {_label})*
     \Z
-""".format(atext=_atext,
-           label=_label)
+"""
 
 # from RFC 3986
 _pct_encoded = r'(?:%[0-9A-F][0-9A-F])'
@@ -36,24 +35,24 @@ _unreserved = r'[A-Z0-9\-._~]'
 _sub_delims = r"[!$&'()*+,;=]"
 _pchar = fr'(?:{_unreserved}|{_pct_encoded}|{_sub_delims}|[:@])'
 _ipv4 = r'(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-_url = r"""
+_url = fr"""
     \A
     # scheme
     (?:https? | ftp) : //
     # authority
     (?:
         # userinfo
-        (?:{unreserved} | {pct_encoded} | {sub_delims})+
+        (?:{_unreserved} | {_pct_encoded} | {_sub_delims})+
         (?:
             :
-            (?:{unreserved} | {pct_encoded} | {sub_delims})+
+            (?:{_unreserved} | {_pct_encoded} | {_sub_delims})+
         )?
         @
     )?
     (?:
         # host
-        (?:{label} (?:\. {label})*) |
-        {ipv4}
+        (?:{_label} (?:\. {_label})*) |
+        {_ipv4}
     )
     (?:
         # port
@@ -61,24 +60,19 @@ _url = r"""
         \d+
     )?
     # path
-    (?:/ {pchar}*)*
+    (?:/ {_pchar}*)*
     # query
     (?:
         \?
-        (?:{pchar} | [/?])*
+        (?:{_pchar} | [/?])*
     )?
     # fragment
     (?:
         \#
-        (?:{pchar} | [/?])*
+        (?:{_pchar} | [/?])*
     )?
     \Z
-""".format(unreserved=_unreserved,
-           pct_encoded=_pct_encoded,
-           sub_delims=_sub_delims,
-           label=_label,
-           ipv4=_ipv4,
-           pchar=_pchar)
+"""
 
 # HTML elements
 _INPUT = markup.QName(markup.XHTML_NS, 'input')

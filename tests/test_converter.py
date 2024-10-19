@@ -1,7 +1,7 @@
 #
 # test_converter
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -29,7 +29,7 @@ class ConverterTestCase(AyameTestCase):
         class O:
             pass
 
-        class N(object):
+        class N:
             pass
 
         # single inheritance
@@ -173,24 +173,17 @@ class ConverterTestCase(AyameTestCase):
         class O:
             pass
 
-        class N(object):
-            pass
-
         o = O()
-        n = N()
 
         c = converter._ObjectConverter()
         self.assertIs(c.type, object)
         self.assertIsInstance(o, c.type)
-        self.assertIsInstance(n, c.type)
 
         self.assertIsNone(c.to_python(None))
         self.assertIs(c.to_python(o), o)
-        self.assertIs(c.to_python(n), n)
 
         self.assertEqual(c.to_string(None), 'None')
         self.assertEqual(c.to_string(o), str(o))
-        self.assertEqual(c.to_string(n), str(n))
 
     def test_boolean(self):
         c = converter.BooleanConverter()
@@ -254,7 +247,7 @@ class ConverterTestCase(AyameTestCase):
     def test_int(self):
         c = converter.IntegerConverter()
         self.assertEqual(c.type, int)
-        self.assertIsInstance(int(0), c.type)
+        self.assertIsInstance(0, c.type)
 
         self.assertEqual(c.to_python('-8192'), -8192)
         self.assertEqual(c.to_python('-0'), 0)
@@ -266,10 +259,10 @@ class ConverterTestCase(AyameTestCase):
                 with self.assertRaises(ayame.ConversionError):
                     c.to_python(v)
 
-        self.assertEqual(c.to_string(int(-8192)), '-8192')
-        self.assertEqual(c.to_string(int(-0)), '0')
-        self.assertEqual(c.to_string(int(0)), '0')
-        self.assertEqual(c.to_string(int(8192)), '8192')
+        self.assertEqual(c.to_string(-8192), '-8192')
+        self.assertEqual(c.to_string(-0), '0')
+        self.assertEqual(c.to_string(0), '0')
+        self.assertEqual(c.to_string(8192), '8192')
         for v in (None, '', object()):
             with self.subTest(value=v):
                 with self.assertRaises(ayame.ConversionError):
