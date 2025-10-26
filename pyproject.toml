@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools >= 61.0",
+    "setuptools >= 77.0",
     "scmver[toml] >= 1.7",
 ]
 build-backend = "setuptools.build_meta"
@@ -12,12 +12,11 @@ readme = "README.rst"
 authors = [
     {name = "Akinori Hattori", email = "hattya@gmail.com"},
 ]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
