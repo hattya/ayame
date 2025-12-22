@@ -1,7 +1,7 @@
 #
 # test_app
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -209,6 +209,15 @@ class SimpleAppTestCase(AyameTestCase):
         wsgi = {}
         content = self.app(environ, start_response)
         return wsgi['status'], wsgi['headers'], wsgi['exc_info'], list(content)
+
+    def test_get_not_found(self):
+        # GET / -> NotFound
+        environ = self.new_environ('GET', '/')
+        status, headers, exc_info, content = self.wsgi_call(environ)
+        self.assertEqual(status, http.NotFound.status)
+        self.assertIn(('Content-Type', 'text/html; charset=UTF-8'), headers)
+        self.assertIsNone(exc_info)
+        self.assertTrue(content)
 
     def test_get_page(self):
         # GET /page -> OK

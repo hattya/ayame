@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -103,11 +103,11 @@ class Ayame:
             if set_cookie:
                 headers.append(set_cookie)
         except Exception as e:
+            ctx.request = self.config['ayame.request'](environ, {})
             status, headers, exc_info, content = self.handle_error(e)
         finally:
-            ctx = local.pop()
-            if ctx.request is not None:
-                ctx.request.close()
+            ctx.request.close()
+            local.pop()
 
         start_response(status, headers, exc_info)
         return content
