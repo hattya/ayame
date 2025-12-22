@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -337,7 +337,8 @@ class MarkupContainer(Component):
             else:
                 ayame_id = None
             if ayame_id is None:
-                if util.iterable(value):
+                if (isinstance(value, collections.abc.Iterable)
+                    and not isinstance(value, str)):
                     # replace ayame element (parent)
                     if parent is None:
                         element = value
@@ -372,7 +373,8 @@ class MarkupContainer(Component):
                 # update indices (decrease)
                 queue.extend(reversed([(t[0], t[1] - 1, t[2])
                                        for t in pop_while(queue, parent)]))
-            elif util.iterable(value):
+            elif (isinstance(value, collections.abc.Iterable)
+                  and not isinstance(value, str)):
                 # replace element
                 parent[i:i + 1] = value
                 # update indices (increase)

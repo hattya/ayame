@@ -1,7 +1,7 @@
 #
 # ayame.util
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -40,7 +40,8 @@ def to_bytes(s, encoding='utf-8', errors='strict'):
 def to_list(o):
     if o is None:
         return []
-    elif iterable(o):
+    elif (isinstance(o, collections.abc.Iterable)
+          and not isinstance(o, str)):
         return list(o)
     return [o]
 
@@ -49,11 +50,6 @@ def new_token(algorithm='sha1'):
     m = hashlib.new(algorithm)
     m.update(to_bytes(random.random()))
     return m.hexdigest()
-
-
-def iterable(o):
-    return (isinstance(o, collections.abc.Iterable)
-            and not isinstance(o, str))
 
 
 class FilterDict(dict):

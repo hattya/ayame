@@ -1,7 +1,7 @@
 #
 # test_util
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -96,13 +96,6 @@ class UtilTestCase(AyameTestCase):
         a = util.new_token()
         b = util.new_token()
         self.assertNotEqual(a, b)
-
-    def test_iterable(self):
-        self.assertTrue(util.iterable(()))
-        self.assertTrue(util.iterable([]))
-        self.assertTrue(util.iterable({}))
-
-        self.assertFalse(util.iterable(''))
 
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):
