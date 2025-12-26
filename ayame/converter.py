@@ -1,14 +1,13 @@
 #
 # ayame.converter
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 import abc
 import collections
-import collections.abc
 import datetime
 
 from .exception import ConversionError
@@ -33,24 +32,22 @@ class ConverterRegistry:
         self.add(_ObjectConverter())
 
     def get(self, type):
-        if type in self.__registry:
-            return self.__registry[type]
+        return self.__registry.get(type)
 
     def converter_for(self, value):
-        class_ = value if isinstance(value, type) else value.__class__
+        cls = value if isinstance(value, type) else type(value)
 
-        queue = collections.deque((class_,))
+        queue = collections.deque((cls,))
         while queue:
-            class_ = queue.pop()
-            conv = self.get(class_)
-            if conv is not None:
-                return conv
-            queue.extend(c for c in reversed(class_.__bases__)
+            cls = queue.pop()
+            if cls in self.__registry:
+                return self.__registry[cls]
+            queue.extend(c for c in reversed(cls.__bases__)
                          if c is not object)
-        return self.get(object)
+        return self.__registry[object]
 
     def add(self, converter):
-        if isinstance(converter.type, collections.abc.Iterable):
+        if isinstance(converter.type, tuple):
             self.__registry.update((t, converter) for t in converter.type
                                    if t is not None)
         elif converter.type is not None:
@@ -63,17 +60,17 @@ class ConverterRegistry:
 
 class Converter(metaclass=abc.ABCMeta):
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def type(self):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def to_python(self, value):
-        return value
+        raise NotImplementedError
 
     def to_string(self, value):
-        e = self.check_type(value)
-        if e is not None:
+        if (e := self.check_type(value)) is not None:
             raise e
 
         return str(value)
@@ -82,7 +79,7 @@ class Converter(metaclass=abc.ABCMeta):
         if not (self.type is None
                 or isinstance(value, self.type)):
             q = "'{}'".format
-            if isinstance(self.type, collections.abc.Iterable):
+            if isinstance(self.type, tuple):
                 et = []
                 for t in self.type:
                     if et:
@@ -96,15 +93,10 @@ class Converter(metaclass=abc.ABCMeta):
             return self.error(value, message=f"expected {et} but got '{type(value)}'")
 
     def error(self, value, type=None, message=None):
-        if type is None:
-            type = self.type
-        if message is None:
-            message = f"cannot convert '{value}' to '{type}'"
-
-        return ConversionError(message,
+        return ConversionError(message if message is not None else f"cannot convert '{value}' to '{type}'",
                                converter=self,
                                value=value,
-                               type=type)
+                               type=type if type is not None else self.type)
 
 
 class _ObjectConverter(Converter):
@@ -153,7 +145,7 @@ class IntegerConverter(Converter):
         try:
             return int(value) if value is not None else 0
         except (TypeError, ValueError):
-            raise self.error(value, type=int)
+            raise self.error(value)
 
 
 class DateConverter(Converter):
@@ -171,14 +163,10 @@ class DateConverter(Converter):
             raise self.error(value)
 
     def to_string(self, value):
-        e = self.check_type(value)
-        if e is not None:
+        if (e := self.check_type(value)) is not None:
             raise e
 
-        try:
-            return str(value.strftime(self._format))
-        except ValueError as e:
-            raise self.error(value, message=str(e))
+        return str(value.strftime(self._format))
 
 
 class TimeConverter(Converter):
@@ -196,8 +184,7 @@ class TimeConverter(Converter):
             raise self.error(value)
 
     def to_string(self, value):
-        e = self.check_type(value)
-        if e is not None:
+        if (e := self.check_type(value)) is not None:
             raise e
 
         return str(value.strftime(self._format))
@@ -240,10 +227,9 @@ class DateTimeConverter(Converter):
                 raise self.error(value)
         # parse date and time
         if 'T' not in ds:
-            if ' ' in ds:
-                ds = ds.replace(' ', 'T')
-            else:
+            if ' ' not in ds:
                 raise self.error(value)
+            ds = ds.replace(' ', 'T')
         # datetime
         try:
             dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
@@ -252,8 +238,7 @@ class DateTimeConverter(Converter):
         return dt.replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(minutes=off)
 
     def to_string(self, value):
-        e = self.check_type(value)
-        if e is not None:
+        if (e := self.check_type(value)) is not None:
             raise e
 
         try:

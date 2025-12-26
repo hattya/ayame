@@ -1,13 +1,13 @@
 #
 # test_local
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 import ayame
-from ayame import local
+from ayame import app as am, local
 from base import AyameTestCase
 
 
@@ -22,11 +22,12 @@ class LocalTestCase(AyameTestCase):
             local.app()
 
     def test_push(self):
-        ctx = local.push(0, 1)
-        self.assertEqual(ctx.app, 0)
-        self.assertEqual(ctx.environ, 1)
-        self.assertIsNone(ctx.request)
-        self.assertIsNone(ctx._router)
+        app = am.Ayame(__name__)
+        environ = {}
+
+        ctx = local.push(app, environ)
+        self.assertIs(ctx.app, app)
+        self.assertIs(ctx.environ, environ)
 
         self.assertIs(local.context(), ctx)
         self.assertIs(local.app(), ctx.app)

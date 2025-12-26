@@ -1,7 +1,7 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -54,7 +54,7 @@ def parse_form_data(environ):
     return form_data
 
 
-class _HTTPStatusMetaclass(type):
+class _HTTPStatusMeta(type):
 
     def __new__(cls, name, bases, ns):
         if 'code' not in ns:
@@ -77,7 +77,7 @@ class _HTTPStatusMetaclass(type):
         return type.__new__(cls, name, bases, ns)
 
 
-class HTTPStatus(AyameError, metaclass=_HTTPStatusMetaclass):
+class HTTPStatus(AyameError, metaclass=_HTTPStatusMeta):
 
     def __init__(self, description='', headers=None):
         super().__init__(self.status)
@@ -115,8 +115,7 @@ class HTTPRedirection(HTTPStatus):
 
 class _HTTPMove(HTTPRedirection):
 
-    _template = ('The requested resource has moved to '
-                 '<a href="{location}">{location}</a>.')
+    _template = 'The requested resource has moved to <a href="{location}">{location}</a>.'
 
     def __init__(self, location, headers=None):
         if headers is None:
@@ -133,8 +132,7 @@ class MovedPermanently(_HTTPMove):
 class Found(_HTTPMove):
 
     code = 302
-    _template = ('The requested resource was found at '
-                 '<a href="{location}">{location}</a>.')
+    _template = 'The requested resource was found at <a href="{location}">{location}</a>.'
 
 
 class SeeOther(_HTTPMove):
@@ -165,8 +163,7 @@ class Unauthrized(HTTPClientError):
     code = 401
 
     def __init__(self, headers=None):
-        super().__init__('This server could not verify that you are '
-                         'authorized to access the requested resource.',
+        super().__init__('This server could not verify that you are authorized to access the requested resource.',
                          headers)
 
 

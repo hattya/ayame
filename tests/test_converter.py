@@ -1,7 +1,7 @@
 #
 # test_converter
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -47,7 +47,7 @@ class ConverterTestCase(AyameTestCase):
             pass
 
         # converters
-        class OConverter:
+        class OConverter(converter.Converter):
             @property
             def type(self):
                 return O
@@ -55,7 +55,7 @@ class ConverterTestCase(AyameTestCase):
             def to_python(self, value):
                 return str(value)
 
-        class NConverter:
+        class NConverter(converter.Converter):
             @property
             def type(self):
                 return N
@@ -126,7 +126,7 @@ class ConverterTestCase(AyameTestCase):
         self.assertIsNot(registry.converter_for(None), c)
         self.assertIs(registry.converter_for(None), registry.get(object))
 
-        registry.remove(None)
+        registry.remove(type(None))
         self.assertIs(registry.converter_for(None), registry.get(object))
 
     def test_converter(self):
@@ -142,9 +142,12 @@ class ConverterTestCase(AyameTestCase):
             converter.Converter()
 
         c = Converter()
-        self.assertIsNone(c.type)
-        self.assertIsNone(c.to_python(None))
-        self.assertEqual(c.to_string(None), 'None')
+        with self.assertRaises(NotImplementedError):
+            c.type
+        with self.assertRaises(NotImplementedError):
+            c.to_python(None)
+        with self.assertRaises(NotImplementedError):
+            c.to_string(None)
 
     def test_conversion_error(self):
         class Converter(converter.Converter):
@@ -210,7 +213,7 @@ class ConverterTestCase(AyameTestCase):
                     c.to_string(v)
 
     def test_float(self):
-        pi = '3.141592653589793'[:sys.float_info.dig + 1]
+        pi = '3.141592653589793'[:sys.float_info.dig+1]
         inf = float('inf')
         nan = float('nan')
 
@@ -219,7 +222,7 @@ class ConverterTestCase(AyameTestCase):
         self.assertIsInstance(3.14, c.type)
 
         self.assertEqual(c.to_python('-inf'), -inf)
-        self.assertEqual(c.to_python('-' + pi), -float(pi))
+        self.assertEqual(c.to_python(f'-{pi}'), -float(pi))
         self.assertEqual(c.to_python('-0'), 0.0)
         self.assertEqual(c.to_python(None), 0.0)
         self.assertEqual(c.to_python('0'), 0.0)
@@ -233,7 +236,7 @@ class ConverterTestCase(AyameTestCase):
                     c.to_python(v)
 
         self.assertEqual(c.to_string(-inf), '-inf')
-        self.assertEqual(c.to_string(-float(pi)), '-' + pi)
+        self.assertEqual(c.to_string(-float(pi)), f'-{pi}')
         self.assertEqual(c.to_string(-0.0), '-0.0')
         self.assertEqual(c.to_string(0.0), '0.0')
         self.assertEqual(c.to_string(float(pi)), pi)
@@ -350,7 +353,7 @@ class ConverterTestCase(AyameTestCase):
                 return self.offset
 
             def tzname(self, dt):
-                return self.__class__.__name__
+                return type(self).__name__
 
             def dst(self, dt):
                 return self.offset

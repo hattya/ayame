@@ -1,7 +1,7 @@
 #
 # test_form
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -970,16 +970,16 @@ class FormTestCase(AyameTestCase):
             fc.render(markup.Element(markup.DIV))
 
     def test_select_choice(self):
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ()):
-                    p = class_()
+                    p = cls()
                     status, headers, content = p()
 
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
 
-                html = self.format(class_)
+                html = self.format(cls)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
                     ('Content-Type', 'text/html; charset=UTF-8'),
@@ -988,16 +988,16 @@ class FormTestCase(AyameTestCase):
                 self.assertEqual(content, [html])
 
     def test_select_choice_single(self):
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ()):
-                    p = class_(multiple=False)
+                    p = cls(multiple=False)
                     status, headers, content = p()
 
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[0]})
 
-                html = self.format(class_, multiple=False, choices=1)
+                html = self.format(cls, multiple=False, choices=1)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
                     ('Content-Type', 'text/html; charset=UTF-8'),
@@ -1006,17 +1006,17 @@ class FormTestCase(AyameTestCase):
                 self.assertEqual(content, [html])
 
     def test_select_choice_with_renderer(self):
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ()):
-                    p = class_()
+                    p = cls()
                     p.find('form:select').renderer = ChoiceRenderer()
                     status, headers, content = p()
 
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
 
-                html = self.format(class_)
+                html = self.format(cls)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
                     ('Content-Type', 'text/html; charset=UTF-8'),
@@ -1025,17 +1025,17 @@ class FormTestCase(AyameTestCase):
                 self.assertEqual(content, [html])
 
     def test_select_choice_no_choices(self):
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ()):
-                    p = class_()
+                    p = cls()
                     p.find('form:select').choices = []
                     status, headers, content = p()
 
                     f = p.find('form')
                     self.assertEqual(f.model_object, {'select': p.choices[:2]})
 
-                html = self.format(class_, choices=False)
+                html = self.format(cls, choices=False)
                 self.assertEqual(status, http.OK.status)
                 self.assertEqual(headers, [
                     ('Content-Type', 'text/html; charset=UTF-8'),
@@ -1050,10 +1050,10 @@ class FormTestCase(AyameTestCase):
                               ('select', '1'),
                               ('select', '1'),
                               ('select', '2'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     with self.assertRaises(Valid):
                         p()
 
@@ -1064,10 +1064,10 @@ class FormTestCase(AyameTestCase):
     def test_select_choice_post_single(self):
         data = self.form_data(('{path}', 'form'),
                               ('select', '1'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_(multiple=False)
+                    p = cls(multiple=False)
                     with self.assertRaises(Valid):
                         p()
 
@@ -1080,10 +1080,10 @@ class FormTestCase(AyameTestCase):
                               ('select', '0'),
                               ('select', '1'),
                               ('select', '2'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     p.find('form:select').choices = []
                     with self.assertRaises(Valid):
                         p()
@@ -1097,10 +1097,10 @@ class FormTestCase(AyameTestCase):
                               ('select', '0'),
                               ('select', '1'),
                               ('select', '2'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     p.find('form').model = None
                     with self.assertRaises(Valid):
                         p()
@@ -1111,10 +1111,10 @@ class FormTestCase(AyameTestCase):
 
     def test_select_choice_post_empty(self):
         data = self.form_data(('{path}', 'form'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     with self.assertRaises(Valid):
                         p()
 
@@ -1124,10 +1124,10 @@ class FormTestCase(AyameTestCase):
 
     def test_select_choice_required_error(self):
         data = self.form_data(('{path}', 'form'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     p.find('form:select').required = True
                     with self.assertRaises(Invalid):
                         p()
@@ -1142,10 +1142,10 @@ class FormTestCase(AyameTestCase):
                               ('select', '-1'),
                               ('select', '0'),
                               ('select', '3'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     with self.assertRaises(Invalid):
                         p()
 
@@ -1157,10 +1157,10 @@ class FormTestCase(AyameTestCase):
     def test_select_choice_validation_error_no_value(self):
         data = self.form_data(('{path}', 'form'),
                               ('select', ''))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     with self.assertRaises(Invalid):
                         p()
 
@@ -1176,10 +1176,10 @@ class FormTestCase(AyameTestCase):
                               ('select', '1'),
                               ('select', ''),
                               ('select', '2'))
-        for class_ in (ToastPage, BeansPage):
-            with self.subTest(page=class_):
+        for cls in (ToastPage, BeansPage):
+            with self.subTest(page=cls):
                 with self.application(self.new_environ(method='POST', form=data)):
-                    p = class_()
+                    p = cls()
                     with self.assertRaises(Invalid):
                         p()
 
@@ -1351,7 +1351,7 @@ class SelectChoicePage(ayame.Page):
 
     def __init__(self, multiple=True):
         super().__init__()
-        self.kwargs['title'] = self.__class__.__name__
+        self.kwargs['title'] = type(self).__name__
         self.add(Form('form', model.CompoundModel({})))
         self.find('form').add(form.SelectChoice('select',
                                                 choices=self.choices))

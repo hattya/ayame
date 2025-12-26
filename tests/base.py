@@ -1,7 +1,7 @@
 #
 # base
 #
-#   Copyright (c) 2013-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2013-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -25,7 +25,7 @@ class AyameTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = ayame.Ayame(cls.__module__)
-        cls.boundary = 'ayame.' + cls.__module__[5:]
+        cls.boundary = f'ayame.{cls.__module__[5:]}'
 
     def assertElementEqual(self, a, b):
         self.assertIsNot(a, b)
@@ -64,7 +64,7 @@ class AyameTestCase(unittest.TestCase):
         self.assertRegex(seq[i], r'^\s*$')
 
     def path_for(self, path):
-        return os.path.join(os.path.splitext(sys.modules[self.__class__.__module__].__file__)[0], path)
+        return os.path.join(os.path.splitext(sys.modules[type(self).__module__].__file__)[0], path)
 
     def new_resource_loader(self):
         ref = {}
@@ -115,9 +115,9 @@ class AyameTestCase(unittest.TestCase):
                 ctx._router = app.config['ayame.route.map'].bind(environ)
             yield
         finally:
-            ctx = local.pop()
-            if ctx.request is not None:
+            if environ is not None:
                 ctx.request.close()
+            local.pop()
 
     def new_environ(self, method='GET', path='', query='', data=None,
                     form=None, accept=None):
@@ -134,7 +134,7 @@ class AyameTestCase(unittest.TestCase):
         if data is not None:
             environ['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
         elif form is not None:
-            environ['CONTENT_TYPE'] = 'multipart/form-data; boundary=' + self.boundary
+            environ['CONTENT_TYPE'] = f'multipart/form-data; boundary={self.boundary}'
             data = form
         else:
             data = ''
@@ -163,6 +163,9 @@ class AyameTestCase(unittest.TestCase):
         buf.append(f'--{self.boundary}--')
         return '\r\n'.join(buf)
 
+    def empty_element(self):
+        return markup.Element(self.of(''))
+
     def xml_of(self, name):
         return markup.QName(markup.XML_NS, name)
 
@@ -175,16 +178,16 @@ class AyameTestCase(unittest.TestCase):
     def of(self, name):
         return markup.QName('', name)
 
-    def format(self, class_, *args, **kwargs):
+    def format(self, cls, *args, **kwargs):
         kwargs.update(doctype=markup.XHTML1_STRICT,
                       xhtml=markup.XHTML_NS,
                       xml=markup.XML_NS,
                       ayame=markup.AYAME_NS,
                       path=ayame.AYAME_PATH)
-        for k, v in getattr(class_, 'kwargs', {}).items():
+        for k, v in getattr(cls, 'kwargs', {}).items():
             if callable(v):
                 v = v(*[kwargs[k]] if k in kwargs else [])
             elif k in kwargs:
                 continue
             kwargs[k] = v
-        return class_.html_t.format(*args, **kwargs).encode(kwargs.pop('encoding', 'utf-8'))
+        return cls.html_t.format(*args, **kwargs).encode(kwargs.pop('encoding', 'utf-8'))

@@ -1,7 +1,7 @@
 #
 # test_model
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -33,7 +33,8 @@ class ModelTestCase(AyameTestCase):
                 return super().wrap(component)
 
         m = InheritableModel(None)
-        self.assertIsNone(m.wrap(None))
+        with self.assertRaises(NotImplementedError):
+            m.wrap(None)
 
     def test_wrap_model(self):
         class WrapModel(model.WrapModel):
@@ -41,8 +42,15 @@ class ModelTestCase(AyameTestCase):
             def object(self):
                 return super().object
 
-        m = WrapModel(None)
-        self.assertIsNone(m.object)
+            @object.setter
+            def object(self, object):
+                model.WrapModel.object.__set__(self, object)
+
+        m = WrapModel(model.Model(None))
+        with self.assertRaises(NotImplementedError):
+            m.object
+        with self.assertRaises(NotImplementedError):
+            m.object = ''
 
     def test_compound_model_attr(self):
         class Object:
@@ -65,16 +73,13 @@ class ModelTestCase(AyameTestCase):
             def __init__(self):
                 self.__attr = 'value'
 
-            def attr():
-                def fget(self):
-                    return self.__attr
+            @property
+            def attr(self):
+                return self.__attr
 
-                def fset(self, attr):
-                    self.__attr = attr
-
-                return locals()
-
-            attr = property(**attr())
+            @attr.setter
+            def attr(self, attr):
+                self.__attr = attr
 
         o = Object()
         m = model.CompoundModel(o)
@@ -161,4 +166,3 @@ class ModelTestCase(AyameTestCase):
             setattr(mc.find('b').model, 'object', '')
         with self.assertRaisesRegex(AttributeError, r'^c$'):
             setattr(mc.find('b:c').model, 'object', '')
-        self.assertEqual(mc.render(''), '')

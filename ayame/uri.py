@@ -1,7 +1,7 @@
 #
 # ayame.uri
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -18,8 +18,7 @@ _safe = "/-._~!$&'()*+,;=:@"
 
 
 def parse_qs(environ):
-    qs = environ.get('QUERY_STRING')
-    return urllib.parse.parse_qs(qs, keep_blank_values=True) if qs else {}
+    return urllib.parse.parse_qs(qs, keep_blank_values=True) if (qs := environ.get('QUERY_STRING')) else {}
 
 
 def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
@@ -54,16 +53,14 @@ def application_uri(environ):
             uri.append(':')
             uri.append(port)
     # SCRIPT_NAME
-    script_name = environ.get('SCRIPT_NAME')
-    uri.append(quote(script_name) if script_name else '/')
+    uri.append(quote(script_name) if (script_name := environ.get('SCRIPT_NAME')) else '/')
     return ''.join(uri)
 
 
 def request_uri(environ, query=False):
     uri = [application_uri(environ)]
     # PATH_INFO
-    path_info = environ.get('PATH_INFO')
-    if path_info:
+    if path_info := environ.get('PATH_INFO'):
         if not environ.get('SCRIPT_NAME'):
             path_info = path_info[1:]
         uri.append(quote(path_info))
@@ -81,8 +78,7 @@ def request_path(environ):
     script_name = environ.get('SCRIPT_NAME')
     path.append(quote(script_name) if script_name else '/')
     # PATH_INFO
-    path_info = environ.get('PATH_INFO')
-    if path_info:
+    if path_info := environ.get('PATH_INFO'):
         if not script_name:
             path_info = path_info[1:]
         path.append(quote(path_info))

@@ -1,7 +1,7 @@
 #
 # ayame.i18n
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -53,29 +53,25 @@ class Localizer:
         for bundle, prefix in self._iter_resource(component, locale):
             if bundle:
                 if prefix:
-                    v = bundle.get(prefix + '.' + key)
-                    if v is not None:
+                    if (v := bundle.get(f'{prefix}.{key}')) is not None:
                         return v
-                v = bundle.get(key)
-                if v is not None:
+                if (v := bundle.get(key)) is not None:
                     return v
 
     def _iter_resource(self, component, locale):
-        res = component.config['ayame.resource.loader']
+        rl = component.config['ayame.resource.loader']
         sep = component.config['ayame.markup.separator']
         cache = component.config['ayame.i18n.cache']
 
         def load(module, *args):
             name = '_'.join(args)
-            key = module.__name__ + ':' + name
+            key = f'{module.__name__}:{name}'
             try:
                 mtime, bundle = cache[key]
             except KeyError:
-                mtime = -1
-                bundle = None
+                mtime, bundle = -1, None
             try:
-                r = res.load(module, name + self.extension)
-                if mtime < r.mtime:
+                if (r := rl.load(module, name + self.extension)).mtime > mtime:
                     with r.open() as fp:
                         bundle = self._load(fp)
                     cache[key] = (r.mtime, bundle)
@@ -87,10 +83,9 @@ class Localizer:
                     pass
             return bundle
 
-        for class_, scope, prefix in self._iter_class(component):
-            m = sys.modules.get(class_.__module__)
-            if m:
-                n = sep.join(c.__name__ for c in scope + (class_,)) if scope else class_.__name__
+        for cls, scope, prefix in self._iter_class(component):
+            if m := sys.modules.get(cls.__module__):
+                n = sep.join(c.__name__ for c in scope + (cls,)) if scope else cls.__name__
                 lc, cc = locale[:2]
                 if lc:
                     if cc:
@@ -100,35 +95,33 @@ class Localizer:
 
     def _iter_class(self, component):
         queue = collections.deque()
-        if isinstance(component, core.Component):
-            path = component.path().split(':')
-            scope = ()
-            for i, c in enumerate(reversed(tuple(component.iter_parent()))):
-                c = c.__class__
-                if c.markup_type.scope:
-                    scope = c.markup_type.scope
-                queue.appendleft((c, scope, '.'.join(path[i:])))
-            queue.appendleft((component.__class__, self._scope_of(component.__class__), ''))
-        queue.appendleft((local.app().__class__, (), ''))
+        path = component.path().split(':')
+        scope = ()
+        for i, c in enumerate(reversed(tuple(component.iter_parent()))):
+            cls = type(c)
+            if cls.markup_type.scope:
+                scope = cls.markup_type.scope
+            queue.appendleft((cls, scope, '.'.join(path[i:])))
+        queue.appendleft((type(component), self._scope_of(type(component)), ''))
+        queue.appendleft((type(local.app()), (), ''))
 
         while queue:
-            class_, scope, prefix = queue.pop()
-            yield class_, scope, prefix
-            if (not self._is_base_class(class_)
-                and class_.__bases__):
-                queue.extend((c, self._scope_of(c), prefix)
-                             for c in class_.__bases__
+            cls, scope, prefix = queue.pop()
+            yield cls, scope, prefix
+            if (not self._is_base_class(cls)
+                and cls.__bases__):
+                queue.extend((c, self._scope_of(c), prefix) for c in cls.__bases__
                              if self._is_target_class(c))
 
-    def _is_base_class(self, class_):
-        return class_ in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
+    def _is_base_class(self, cls):
+        return cls in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
 
-    def _is_target_class(self, class_):
-        return issubclass(class_, (core.Component, ayame.Ayame))
+    def _is_target_class(self, cls):
+        return issubclass(cls, (core.Component, ayame.Ayame))
 
-    def _scope_of(self, class_):
-        if issubclass(class_, core.MarkupContainer):
-            return class_.markup_type.scope
+    def _scope_of(self, cls):
+        if issubclass(cls, core.MarkupContainer):
+            return cls.markup_type.scope
         return ()
 
     def _load(self, fp):

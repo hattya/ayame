@@ -1,7 +1,7 @@
 #
 # test_basic
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -17,9 +17,9 @@ class BasicTestCase(AyameTestCase):
         c = basic.Label('a')
         self.assertIsNone(c.model)
 
-        elem = c.render(markup.Element(None))
-        self.assertEqual(elem.attrib, {})
-        self.assertEqual(elem.children, [''])
+        el = c.render(self.empty_element())
+        self.assertEqual(el.attrib, {})
+        self.assertEqual(el.children, [''])
 
     def test_label_with_object_model(self):
         with self.application():
@@ -27,9 +27,9 @@ class BasicTestCase(AyameTestCase):
             c = basic.Label('a', m)
             self.assertIs(c.model, m)
 
-            elem = c.render(markup.Element(None))
-            self.assertEqual(elem.attrib, {})
-            self.assertEqual(elem.children, ['[]'])
+            el = c.render(self.empty_element())
+            self.assertEqual(el.attrib, {})
+            self.assertEqual(el.children, ['[]'])
 
     def test_label_with_string_model(self):
         with self.application():
@@ -37,18 +37,18 @@ class BasicTestCase(AyameTestCase):
             c = basic.Label('a', m)
             self.assertIs(c.model, m)
 
-            elem = c.render(markup.Element(None))
-            self.assertEqual(elem.attrib, {})
-            self.assertEqual(elem.children, ['&lt;tag&gt;'])
+            el = c.render(self.empty_element())
+            self.assertEqual(el.attrib, {})
+            self.assertEqual(el.children, ['&lt;tag&gt;'])
 
     def test_label_with_string(self):
         with self.application():
             c = basic.Label('a', '<tag>')
             self.assertEqual(c.model.object, '<tag>')
 
-            elem = c.render(markup.Element(None))
-            self.assertEqual(elem.attrib, {})
-            self.assertEqual(elem.children, ['&lt;tag&gt;'])
+            el = c.render(self.empty_element())
+            self.assertEqual(el.attrib, {})
+            self.assertEqual(el.children, ['&lt;tag&gt;'])
 
     def test_list_view_empty_model(self):
         def populate_item(li):

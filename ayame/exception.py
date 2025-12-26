@@ -1,7 +1,7 @@
 #
 # ayame.exception
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -67,7 +67,7 @@ class ValidationError(AyameError):
 
         validator = kwargs.get('validator')
         if validator:
-            key = validator.__class__.__name__
+            key = type(validator).__name__
             variation = kwargs.get('variation')
             if variation:
                 key += '.' + variation
@@ -75,12 +75,11 @@ class ValidationError(AyameError):
 
     def __repr__(self):
         args = repr(self.args)[1:-1].rstrip(',') + ', ' if self.args else ''
-        return f'{self.__class__.__name__}({args}keys={self.keys}, vars={list(self.vars)})'
+        return f'{type(self).__name__}({args}keys={self.keys}, vars={list(self.vars)})'
 
     def __str__(self):
         if self.component:
             for key in self.keys:
-                msg = self.component.tr(key)
-                if msg is not None:
+                if (msg := self.component.tr(key)) is not None:
                     return msg.format(**self.vars)
         return str(self.args[0]) if len(self.args) > 0 else ''

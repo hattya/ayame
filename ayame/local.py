@@ -1,7 +1,7 @@
 #
 # ayame.local
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -21,8 +21,6 @@ class _Context:
     def __init__(self, app, environ):
         self.app = app
         self.environ = environ
-        self.request = None
-        self._router = None
 
 
 def push(app, environ):

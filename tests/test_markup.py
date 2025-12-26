@@ -1,7 +1,7 @@
 #
 # test_markup
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -90,44 +90,46 @@ class MarkupTestCase(AyameTestCase):
 
             def start_tag(self):
                 super().start_tag()
-                self.renderer.write('start_tag\n')
 
             def end_tag(self):
                 super().end_tag()
-                self.renderer.write('end_tag\n')
 
-        class MarkupRenderer(io.StringIO):
+        class MarkupRenderer(markup.MarkupRenderer):
+            def __init__(self):
+                self._buf = io.StringIO()
+
             def peek(self):
                 pass
 
-            def writeln(self, *args):
-                for a in args:
-                    self.write(a)
-                self.write('\n')
-
         with self.assertRaises(TypeError):
-            markup.MarkupHandler(None)
+            markup.MarkupHandler(MarkupRenderer())
 
         r = MarkupRenderer()
         h = MarkupHandler(r)
-        self.assertIsNone(h.xml)
-        self.assertIsNone(h.is_empty(None))
+        with self.assertRaises(NotImplementedError):
+            h.xml
+        with self.assertRaises(NotImplementedError):
+            h.is_empty(self.empty_element())
         h.doctype('doctype')
-        h.start_tag()
-        h.end_tag()
+        with self.assertRaises(NotImplementedError):
+            h.start_tag()
+        with self.assertRaises(NotImplementedError):
+            h.end_tag()
         h.text(0, '')
         h.text(0, 'text\n')
         h.indent(0, 0)
-        self.assertEqual(r.getvalue(), 'doctype\nstart_tag\nend_tag\ntext\n')
+        self.assertEqual(r._buf.getvalue(), 'doctype\ntext\n')
 
-        elem = markup.Element(None)
-        elem[:] = ('',) * 3
-        h.compile(elem)
-        self.assertEqual(elem.children, [])
+        el = self.empty_element()
+        el[:] = ('',) * 3
+        h.compile(el)
+        self.assertEqual(el.children, [])
 
     def test_markup_prettifier(self):
         class MarkupHandler(markup.MarkupHandler):
-            xml = False
+            @property
+            def xml(self):
+                return False
 
             def is_empty(self, element):
                 pass
@@ -144,16 +146,21 @@ class MarkupTestCase(AyameTestCase):
             def compile(self, element):
                 self.renderer.write('compile\n')
 
-        r = io.StringIO()
+        class MarkupRenderer(markup.MarkupRenderer):
+            def __init__(self):
+                self._buf = io.StringIO()
+
+            def peek(self):
+                pass
+
+        r = MarkupRenderer()
         h = markup.MarkupPrettifier(MarkupHandler(r))
         h._bol = True
-        h.text(0, '')
-        self.assertTrue(h._bol)
         h.text(0, 'text\n')
         self.assertFalse(h._bol)
         h.indent(0)
-        h.compile(None)
-        self.assertEqual(r.getvalue(), 'text\nindent\ncompile\n')
+        h.compile(self.empty_element())
+        self.assertEqual(r._buf.getvalue(), 'text\nindent\ncompile\n')
 
 
 class MarkupLoaderTestCase(AyameTestCase):
@@ -182,7 +189,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         m = self.load(src, lang='xml')
         self.assertEqual(m.xml_decl, {})
         self.assertEqual(m.lang, 'xml')
-        self.assertIsNone(m.doctype)
+        self.assertEqual(m.doctype, '')
         self.assertIsNone(m.root)
 
         # no root element
@@ -190,7 +197,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         m = self.load(src, lang='xml')
         self.assertEqual(m.xml_decl, {})
         self.assertEqual(m.lang, 'xml')
-        self.assertIsNone(m.doctype)
+        self.assertEqual(m.doctype, '')
         self.assertIsNone(m.root)
 
     def test_unsupported_html(self):
@@ -239,7 +246,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         m = self.load(src, lang='xml')
         self.assertEqual(m.xml_decl, {'version': '1.0'})
         self.assertEqual(m.lang, 'xml')
-        self.assertIsNone(m.doctype)
+        self.assertEqual(m.doctype, '')
         self.assertIsNone(m.root)
 
     def test_xml(self):
@@ -290,7 +297,7 @@ class MarkupLoaderTestCase(AyameTestCase):
         m = self.load(src, lang='xml')
         self.assertEqual(m.xml_decl, {'version': '1.0'})
         self.assertEqual(m.lang, 'xml')
-        self.assertIsNone(m.doctype)
+        self.assertEqual(m.doctype, '')
         self.assertTrue(m.root)
 
         spam = m.root
@@ -314,9 +321,9 @@ class MarkupLoaderTestCase(AyameTestCase):
         # no default namespace
         class Loader(markup.MarkupLoader):
             def _new_element(self, *args, **kwargs):
-                elem = super()._new_element(*args, **kwargs)
-                elem.ns.pop('', None)
-                return elem
+                el = super()._new_element(*args, **kwargs)
+                el.ns.pop('', None)
+                return el
 
         src = io.StringIO(xml)
         self.assertError(src, (1, 70), r' no default namespace$', lang='xml', loader=Loader)
@@ -324,9 +331,9 @@ class MarkupLoaderTestCase(AyameTestCase):
         # no eggs namespace
         class Loader(markup.MarkupLoader):
             def _new_element(self, *args, **kwargs):
-                elem = super()._new_element(*args, **kwargs)
-                elem.ns.pop('eggs', None)
-                return elem
+                el = super()._new_element(*args, **kwargs)
+                el.ns.pop('eggs', None)
+                return el
 
         src = io.StringIO(xml)
         self.assertError(src, (1, 58), r"^unknown .* prefix 'eggs'$", lang='xml', loader=Loader)
@@ -1042,13 +1049,13 @@ class MarkupRendererTestCase(AyameTestCase):
 class ElementTestCase(AyameTestCase):
 
     def new_element(self, name, attrib=None):
-        elem = markup.Element(self.html_of(name),
-                              type=markup.Element.OPEN,
-                              ns={'': markup.XHTML_NS})
+        el = markup.Element(self.html_of(name),
+                            type=markup.Element.OPEN,
+                            ns={'': markup.XHTML_NS})
         if attrib:
             for n, v in attrib.items():
-                elem.attrib[self.html_of(n)] = v
-        return elem
+                el.attrib[self.html_of(n)] = v
+        return el
 
     def test_element(self):
         div = self.new_element('div', {'id': 'spam'})
@@ -1063,13 +1070,10 @@ class ElementTestCase(AyameTestCase):
         self.assertTrue(div)
 
     def test_attrib(self):
-        o = object()
         div = self.new_element('div', {'ID': 'spam'})
         div.attrib['CLASS'] = 'eggs'
-        div.attrib[o] = 'ham'
         self.assertEqual(sorted(div.attrib.items(), key=lambda t: t[1]), [
             ('class', 'eggs'),
-            (o, 'ham'),
             (self.html_of('id'), 'spam'),
         ])
 
@@ -1160,19 +1164,19 @@ class ElementTestCase(AyameTestCase):
         p[:] = ['ham', br]
         div[:] = ['toast', p, 'beans', br]
 
-        elem = dup(div)
+        el = dup(div)
         # div#spam
-        self.assertElementEqual(elem, div)
-        self.assertEqual(elem[0], 'toast')
-        self.assertEqual(elem[2], 'beans')
+        self.assertElementEqual(el, div)
+        self.assertEqual(el[0], 'toast')
+        self.assertEqual(el[2], 'beans')
         # div#spam p#eggs
-        self.assertElementEqual(elem[1], p)
-        self.assertEqual(elem[1][0], 'ham')
+        self.assertElementEqual(el[1], p)
+        self.assertEqual(el[1][0], 'ham')
         # div#spam p#eggs br
-        self.assertElementEqual(elem[1][1], br)
+        self.assertElementEqual(el[1][1], br)
         # div#spam br
-        self.assertElementEqual(elem[3], br)
-        return elem
+        self.assertElementEqual(el[3], br)
+        return el
 
     def test_walk(self):
         root = self.new_element('div', {'id': 'root'})

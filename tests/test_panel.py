@@ -1,7 +1,7 @@
 #
 # test_panel
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -576,13 +576,13 @@ class Panel(panel.Panel):
 
     def __init__(self, id, model=None):
         super().__init__(id, model)
-        self.add(basic.Label('class', self.__class__.__name__))
+        self.add(basic.Label('class', type(self).__name__))
         self.find('class').render_body_only = True
 
     def page(self):
-        for parent in self.iter_parent():
+        for par in self.iter_parent():
             pass
-        return parent
+        return par
 
 
 class TomatoPage(ayame.Page):

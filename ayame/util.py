@@ -6,6 +6,7 @@
 #   SPDX-License-Identifier: MIT
 #
 
+import abc
 import collections.abc
 import hashlib
 import itertools
@@ -17,24 +18,25 @@ __all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',
            'RWLock', 'LRUCache', 'LFUCache']
 
 
-def fqon_of(object):
-    if not hasattr(object, '__name__'):
-        object = object.__class__
+def fqon_of(o):
+    if not hasattr(o, '__name__'):
+        o = type(o)
 
-    if hasattr(object, '__module__'):
-        if object.__module__ is None:
-            return '.'.join(('<unknown>', object.__name__))
-        elif object.__module__ != 'builtins':
-            return '.'.join((object.__module__, object.__name__))
-    return object.__name__
+    if hasattr(o, '__module__'):
+        match o.__module__:
+            case None:
+                return f'<unknown>.{o.__name__}'
+            case 'builtins':
+                pass
+            case _:
+                return f'{o.__module__}.{o.__name__}'
+    return o.__name__
 
 
 def to_bytes(s, encoding='utf-8', errors='strict'):
     if isinstance(s, bytes):
         return s
-    elif not isinstance(s, str):
-        s = str(s)
-    return s.encode(encoding, errors)
+    return (s if isinstance(s, str) else str(s)).encode(encoding, errors)
 
 
 def to_list(o):
@@ -70,16 +72,16 @@ class FilterDict(dict):
         return super().__getitem__(self.__convert__(key))
 
     def __setitem__(self, key, value):
-        return super().__setitem__(self.__convert__(key), value)
+        super().__setitem__(self.__convert__(key), value)
 
     def __delitem__(self, key):
         super().__delitem__(self.__convert__(key))
 
-    def __contains__(self, item):
-        return super().__contains__(self.__convert__(item))
+    def __contains__(self, key):
+        return super().__contains__(self.__convert__(key))
 
     def __copy__(self):
-        return self.__class__(self)
+        return type(self)(self)
 
     copy = __copy__
 
@@ -176,7 +178,7 @@ class RWLock:
             self._release()
 
 
-class _Cache:
+class _Cache(metaclass=abc.ABCMeta):
 
     __slots__ = ('_cap', '_ref', '_head', '_lock')
 
@@ -184,26 +186,31 @@ class _Cache:
         self._cap = cap
         self.on_init()
 
-    def cap():
-        def fget(self):
-            with self._lock.read():
-                return self._cap
+    @property
+    def cap(self):
+        with self._lock.read():
+            return self._cap
 
-        def fset(self, cap):
-            with self._lock.write():
-                self._cap = cap
-                self._sweep()
-
-        return locals()
-
-    cap = property(**cap())
+    @cap.setter
+    def cap(self, cap):
+        with self._lock.write():
+            self._cap = cap
+            self._sweep()
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({list(self.items())})'
+        return f'{type(self).__name__}({list(self.items())})'
 
     def __len__(self):
         with self._lock.read():
             return len(self._ref)
+
+    @abc.abstractmethod
+    def __getitem__(self, key):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __setitem__(self, key, value):
+        raise NotImplementedError
 
     def __delitem__(self, key):
         with self._lock.write():
@@ -241,20 +248,6 @@ class _Cache:
         except KeyError:
             return default
 
-    def peek(self, key):
-        with self._lock.read():
-            return self._ref[key].value
-
-    def setdefault(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            self[key] = default
-            return default
-
-    def update(self, *args, **kwargs):
-        raise NotImplementedError
-
     def pop(self, key, *args):
         with self._lock.write():
             e = self._ref.pop(key, *args)
@@ -271,7 +264,21 @@ class _Cache:
             # reset for evict
             self._ref[k] = e
             self._evict(e)
-            return (e.key, e.value)
+            return e.key, e.value
+
+    def setdefault(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = default
+            return default
+
+    def update(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def peek(self, key):
+        with self._lock.read():
+            return self._ref[key].value
 
     def on_init(self):
         self._ref = {}
@@ -280,7 +287,20 @@ class _Cache:
     def on_evicted(self, key, value):
         pass
 
+    @abc.abstractmethod
+    def _iter(self, reverse=False):
+        raise NotImplementedError
 
+    @abc.abstractmethod
+    def _sweep(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _evict(self, e):
+        self.on_evicted(e.key, e.value)
+
+
+@collections.abc.MutableMapping.register
 class LRUCache(_Cache):
 
     __slots__ = ()
@@ -305,14 +325,14 @@ class LRUCache(_Cache):
 
     def __copy__(self):
         with self._lock.read():
-            c = self.__class__(self._cap)
+            c = type(self)(self._cap)
             for e in self._iter(reverse=True):
                 c[e.key] = e.value
             return c
 
     def __getstate__(self):
         with self._lock.read():
-            return (self._cap, tuple((e.key, e.value) for e in self._iter()))
+            return self._cap, tuple((e.key, e.value) for e in self._iter())
 
     def __setstate__(self, state):
         self._cap = state[0]
@@ -354,21 +374,6 @@ class LRUCache(_Cache):
                     break
                 e = p
 
-    def _move_to_front(self, e):
-        if e is self._head:
-            # already at front
-            return e
-        # remove from current position
-        if e.next is not None:
-            e.next.prev = e.prev
-            e.prev.next = e.next
-        # insert at front
-        n = self._head
-        e.next = n
-        e.prev = n.prev
-        self._head = n.prev.next = n.prev = e
-        return e
-
     def _sweep(self):
         if self._cap >= 0:
             it = self._iter(reverse=True)
@@ -387,6 +392,22 @@ class LRUCache(_Cache):
                 self._head = e.next
         self.on_evicted(e.key, e.value)
 
+    def _move_to_front(self, e):
+        if e is self._head:
+            # already at front
+            return e
+        # remove from current position
+        if (e.next is not None
+            and e.prev is not None):
+            e.next.prev = e.prev
+            e.prev.next = e.next
+        # insert at front
+        n = self._head
+        e.next = n
+        e.prev = n.prev
+        self._head = n.prev.next = n.prev = e
+        return e
+
     class _Entry:
 
         __slots__ = ('key', 'value', 'next', 'prev')
@@ -397,9 +418,7 @@ class LRUCache(_Cache):
             self.next = self.prev = None
 
 
-collections.abc.MutableMapping.register(LRUCache)
-
-
+@collections.abc.MutableMapping.register
 class LFUCache(_Cache):
     """An implementation of LFU cache algorithm
 
@@ -438,7 +457,7 @@ class LFUCache(_Cache):
 
     def __copy__(self):
         with self._lock.read():
-            c = self.__class__(self._cap)
+            c = type(self)(self._cap)
             for fv, g in itertools.groupby(self._iter(), lambda e: e.parent.value):
                 for e in reversed(tuple(g)):
                     c[e.key] = e.value
@@ -499,13 +518,6 @@ class LFUCache(_Cache):
                     e = n
                 freq = freq.next
 
-    def _new_freq(self, v, next):
-        freq = self._Frequency(v)
-        freq.next = next
-        freq.prev = next.prev
-        next.prev.next = next.prev = freq
-        return freq
-
     def _sweep(self, cap=None):
         if cap is None:
             cap = self._cap
@@ -519,6 +531,13 @@ class LFUCache(_Cache):
         del self._ref[e.key]
         self.on_evicted(e.key, e.value)
 
+    def _new_freq(self, v, next):
+        freq = self._Frequency(v)
+        freq.next = next
+        freq.prev = next.prev
+        next.prev.next = next.prev = freq
+        return freq
+
     def _remove(self, e):
         freq = e.parent
         freq.remove(e)
@@ -528,8 +547,18 @@ class LFUCache(_Cache):
 
     def _lfu(self):
         if self._head.next is self._head:
-            raise RuntimeError(f"'{self.__class__.__name__}' is empty")
+            raise RuntimeError(f"'{type(self).__name__}' is empty")
         return self._ref[self._head.next.head.key]
+
+    class _Entry:
+
+        __slots__ = ('key', 'value', 'parent', 'next', 'prev')
+
+        def __init__(self, key, value):
+            self.key = key
+            self.value = value
+            self.parent = None
+            self.next = self.prev = None
 
     class _Frequency:
 
@@ -562,16 +591,3 @@ class LFUCache(_Cache):
                     self.head = e.next
             e.parent = None
             self.len -= 1
-
-    class _Entry:
-
-        __slots__ = ('key', 'value', 'parent', 'next', 'prev')
-
-        def __init__(self, key, value):
-            self.key = key
-            self.value = value
-            self.parent = None
-            self.next = self.prev = None
-
-
-collections.abc.MutableMapping.register(LFUCache)

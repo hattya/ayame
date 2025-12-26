@@ -1,7 +1,7 @@
 #
 # ayame.model
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -17,23 +17,20 @@ class Model:
     def __init__(self, object):
         self.__object = object
 
-    def object():
-        def fget(self):
-            return self.__object.object if isinstance(self.__object, Model) else self.__object
+    @property
+    def object(self):
+        return self.__object.object if isinstance(self.__object, Model) else self.__object
 
-        def fset(self, object):
-            self.__object = object
-
-        return locals()
-
-    object = property(**object())
+    @object.setter
+    def object(self, object):
+        self.__object = object
 
 
 class InheritableModel(Model, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def wrap(self, component):
-        pass
+        raise NotImplementedError
 
 
 class WrapModel(Model, metaclass=abc.ABCMeta):
@@ -46,9 +43,15 @@ class WrapModel(Model, metaclass=abc.ABCMeta):
     def wrapped_model(self):
         return self.__wrapped_model
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def object(self):
-        pass
+        raise NotImplementedError
+
+    @object.setter
+    @abc.abstractmethod
+    def object(self, object):
+        raise NotImplementedError
 
 
 class CompoundModel(InheritableModel):
@@ -60,55 +63,57 @@ class CompoundModel(InheritableModel):
                 super().__init__(model)
                 self._component = component
 
-            def object():
-                def fget(self):
-                    o = self.wrapped_model.object
-                    name = self._component.id
-                    # instance variable
-                    try:
-                        return getattr(o, name)
-                    except AttributeError:
-                        pass
-                    # getter method
-                    try:
-                        getter = getattr(o, 'get_' + name)
-                        if callable(getter):
-                            return getter()
-                    except AttributeError:
-                        pass
-                    # __getitem__
-                    try:
-                        return o.__getitem__(name)
-                    except (AttributeError, LookupError):
-                        pass
+            @property
+            def object(self):
+                o = self.wrapped_model.object
+                name = self._component.id
+                # instance variable
+                try:
+                    return getattr(o, name)
+                except AttributeError:
+                    pass
+                # getter method
+                try:
+                    getter = getattr(o, 'get_' + name)
+                    if callable(getter):
+                        return getter()
+                except AttributeError:
+                    pass
+                # __getitem__
+                try:
+                    return o.__getitem__(name)
+                except (AttributeError, LookupError):
+                    pass
 
-                def fset(self, object):
-                    o = self.wrapped_model.object
-                    name = self._component.id
-                    # instance variable
-                    try:
-                        getattr(o, name)
-                    except AttributeError:
-                        pass
-                    else:
-                        return setattr(o, name, object)
-                    # setter method
-                    try:
-                        setter = getattr(o, 'set_' + name)
-                        if callable(setter):
-                            return setter(object)
-                    except AttributeError:
-                        pass
-                    # __setitem__
-                    try:
-                        return o.__setitem__(name, object)
-                    except AttributeError:
-                        pass
+            @object.setter
+            def object(self, object):
+                o = self.wrapped_model.object
+                name = self._component.id
+                # instance variable
+                try:
+                    getattr(o, name)
+                except AttributeError:
+                    pass
+                else:
+                    setattr(o, name, object)
+                    return
+                # setter method
+                try:
+                    setter = getattr(o, 'set_' + name)
+                except AttributeError:
+                    pass
+                else:
+                    if callable(setter):
+                        setter(object)
+                        return
+                # __setitem__
+                try:
+                    o.__setitem__(name, object)
+                except AttributeError:
+                    pass
+                else:
+                    return
 
-                    raise AttributeError(name)
-
-                return locals()
-
-            object = property(**object())
+                raise AttributeError(name)
 
         return CompoundWrapModel(self)

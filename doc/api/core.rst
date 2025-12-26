@@ -59,7 +59,7 @@ Components
    .. method:: converter_for(value)
    .. method:: element()
    .. method:: forward(*args, **kwargs)
-   .. method:: iter_parent(class_=None)
+   .. method:: iter_parent(cls=None)
    .. method:: model_object_as_string()
    .. method:: page()
    .. method:: path()
@@ -105,7 +105,6 @@ Components
    .. attribute:: headers
 
    .. method:: __call__()
-   .. method:: render()
 
 .. decorator:: nested
 

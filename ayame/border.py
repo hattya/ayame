@@ -1,7 +1,7 @@
 #
 # ayame.border
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -36,8 +36,8 @@ class Border(core.MarkupContainer):
         return self
 
     def on_render(self, element):
-        def step(element, depth):
-            return element.qname not in (markup.AYAME_BODY, markup.AYAME_HEAD)
+        def step(el, _):
+            return el.qname not in (markup.AYAME_BODY, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -46,30 +46,30 @@ class Border(core.MarkupContainer):
             return element
 
         ayame_border = ayame_body = ayame_head = None
-        for elem, _ in m.root.walk(step=step):
-            if elem.qname == markup.AYAME_BORDER:
+        for el, _ in m.root.walk(step=step):
+            if el.qname == markup.AYAME_BORDER:
                 if ayame_border is None:
-                    ayame_border = elem
-            elif elem.qname == markup.AYAME_BODY:
+                    ayame_border = el
+            elif el.qname == markup.AYAME_BODY:
                 if (ayame_border is not None
                     and ayame_body is None):
                     # replace children of ayame:body element
-                    ayame_body = elem
+                    ayame_body = el
                     ayame_body.type = markup.Element.OPEN
-                    ayame_body[:] = element
-            elif elem.qname == markup.AYAME_HEAD:
+                    ayame_body.children[:] = element.children
+            elif el.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang
                     and ayame_head is None):
-                    ayame_head = elem
+                    ayame_head = el
         if ayame_border is None:
             raise RenderingError(self, "'ayame:border' element is not found")
         elif ayame_body is None:
             raise RenderingError(self, "'ayame:body' element is not found")
         # append ayame:head element to Page
         if ayame_head is not None:
-            self.page().head.extend(ayame_head)
+            self.page().head.extend(ayame_head.children)
         # render border
-        element[:] = ayame_border
+        element.children[:] = ayame_border.children
         return super().on_render(element)
 
     def on_render_element(self, element):
@@ -116,7 +116,7 @@ class FeedbackFieldBorder(Border):
 
     class _ClassModifier(core.AttributeModifier):
 
-        def new_value(self, value, error):
-            if error:
+        def new_value(self, value, new_value):
+            if new_value:
                 return value + '-error' if value else 'error'
             return value

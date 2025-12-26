@@ -1,7 +1,7 @@
 #
 # test_page
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -24,7 +24,7 @@ class PageTestCase(AyameTestCase):
             ('Content-Length', '931'),
         ])
         self.assertTrue(content)
-        self.assertRegex(content[0], br'<p>.*</p>')
+        self.assertRegex(next(iter(content)), br'<p>.*</p>')
 
     def test_http_304(self):
         with self.application(self.new_environ()):
@@ -36,4 +36,4 @@ class PageTestCase(AyameTestCase):
             ('Content-Length', '852'),
         ])
         self.assertTrue(content)
-        self.assertNotIn(b'<p>', content[0])
+        self.assertNotIn(b'<p>', next(iter(content)))

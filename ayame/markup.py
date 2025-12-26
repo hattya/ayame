@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -106,7 +106,7 @@ class QName(collections.namedtuple('QName', 'ns_uri, name')):
     __slots__ = ()
 
     def __repr__(self):
-        return '{{{}}}{}'.format(*self)
+        return f'{{{self.ns_uri}}}{self.name}'
 
 
 # HTML elements
@@ -142,12 +142,12 @@ class Markup:
 
     def __init__(self):
         self.xml_decl = {}
-        self.lang = None
-        self.doctype = None
+        self.lang = ''
+        self.doctype = ''
         self.root = None
 
     def __copy__(self):
-        m = self.__class__()
+        m = type(self)()
         m.xml_decl = self.xml_decl.copy()
         m.lang = self.lang
         m.doctype = self.doctype
@@ -156,7 +156,7 @@ class Markup:
         return m
 
     def __getstate__(self):
-        return (self.xml_decl, self.lang, self.doctype, self.root)
+        return self.xml_decl, self.lang, self.doctype, self.root
 
     def __setstate__(self, state):
         self.xml_decl, self.lang, self.doctype, self.root = state
@@ -195,22 +195,22 @@ class Element:
         return self.children.__getitem__(key)
 
     def __setitem__(self, key, value):
-        return self.children.__setitem__(key, value)
+        self.children.__setitem__(key, value)
 
     def __delitem__(self, key):
-        return self.children.__delitem__(key)
+        self.children.__delitem__(key)
 
     def __copy__(self):
-        elem = self.__class__(self.qname)
-        elem.attrib = self.attrib.copy()
-        elem.type = self.type
-        elem.ns = self.ns.copy()
-        elem.children = [n.copy() if isinstance(n, Element) else n
-                         for n in self.children]
-        return elem
+        el = type(self)(self.qname)
+        el.attrib = self.attrib.copy()
+        el.type = self.type
+        el.ns = self.ns.copy()
+        el.children = [n.copy() if isinstance(n, Element) else n
+                       for n in self.children]
+        return el
 
     def __getstate__(self):
-        return (self.qname, self.attrib, self.type, self.ns, self.children)
+        return self.qname, self.attrib, self.type, self.ns, self.children
 
     def __setstate__(self, state):
         self.qname, self.attrib, self.type, self.ns, self.children = state
@@ -237,23 +237,24 @@ class Element:
             # push child elements
             if (step is None
                 or step(element, depth)):
-                queue.extend((node, depth + 1) for node in reversed(element)
+                queue.extend((node, depth + 1)
+                             for node in reversed(element)
                              if isinstance(node, Element))
 
     def normalize(self):
-        beg = end = 0
         children = []
-        for i, node in enumerate(self):
+        buf = []
+        for node in self.children:
             if isinstance(node, str):
-                end = i + 1
+                buf.append(node)
             else:
-                if beg < end:
-                    children.append(''.join(self[beg:end]))
+                if buf:
+                    children.append(''.join(buf))
+                    buf.clear()
                 children.append(node)
-                beg = i + 1
-        if beg < end:
-            children.append(''.join(self[beg:end]))
-        self[:] = children
+        if buf:
+            children.append(''.join(buf))
+        self.children[:] = children
 
 
 class _AttributeDict(util.FilterDict):
@@ -261,11 +262,7 @@ class _AttributeDict(util.FilterDict):
     __slots__ = ()
 
     def __convert__(self, key):
-        if isinstance(key, QName):
-            return QName(key.ns_uri, key.name.lower())
-        elif isinstance(key, str):
-            return key.lower()
-        return key
+        return QName(key.ns_uri, key.name.lower()) if isinstance(key, QName) else key.lower()
 
 
 class Fragment(list):
@@ -273,8 +270,8 @@ class Fragment(list):
     __slots__ = ()
 
     def __copy__(self):
-        return self.__class__(node.copy() if isinstance(node, Element) else node
-                              for node in self)
+        return type(self)(node.copy() if isinstance(node, Element) else node
+                          for node in self)
 
     copy = __copy__
 
@@ -288,12 +285,10 @@ class MarkupLoader(html.parser.HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=False)
         self._stack = collections.deque()
-        self._cache = {}
 
     def load(self, object, src, lang='xhtml1'):
         self.reset()
         self._stack.clear()
-        self._cache.clear()
 
         self._object = object
         self._markup = Markup()
@@ -315,47 +310,47 @@ class MarkupLoader(html.parser.HTMLParser):
             raise MarkupError(self._object, self.getpos(),
                               f"end tag for element '{self._peek().qname}' omitted")
 
-    def handle_starttag(self, name, attrs):
+    def handle_starttag(self, tag, attrs):
         if self._remove:
             # children of ayame:remove element
             return
         # new element
-        elem = self._new_element(name, attrs)
+        el = self._new_element(tag, attrs)
         if (not self._stack
             and self._markup.root is not None
-            and elem.qname != AYAME_REMOVE):
+            and el.qname != AYAME_REMOVE):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push element
-        self._push(elem)
-        if elem.qname == AYAME_REMOVE:
+        self._push(el)
+        if el.qname == AYAME_REMOVE:
             self._remove = True
             if len(self._stack) > 1:
                 # remove from parent element
                 del self._at(-2)[-1]
         elif self._markup.root is None:
-            self._markup.root = elem
+            self._markup.root = el
 
-    def handle_startendtag(self, name, attrs):
+    def handle_startendtag(self, tag, attrs):
         if self._remove:
             # children of ayame:remove element
             return
         # new element
-        elem = self._new_element(name, attrs, type=Element.EMPTY)
-        if elem.qname == AYAME_REMOVE:
+        el = self._new_element(tag, attrs, type=Element.EMPTY)
+        if el.qname == AYAME_REMOVE:
             return
         elif (not self._stack
               and self._markup.root is not None):
             raise MarkupError(self._object, self.getpos(),
                               'there are multiple root elements')
         # push and pop element
-        self._push(elem)
+        self._push(el)
         if self._markup.root is None:
-            self._markup.root = elem
-        self._pop(elem.qname)
+            self._markup.root = el
+        self._pop(el.qname)
 
-    def handle_endtag(self, name):
-        qname = self._new_qname(name)
+    def handle_endtag(self, tag):
+        qname = self._new_qname(tag)
         if qname == AYAME_REMOVE:
             # end tag of ayame:remove element
             self._remove = False
@@ -369,10 +364,10 @@ class MarkupLoader(html.parser.HTMLParser):
         self._append_text(data)
 
     def handle_charref(self, name):
-        self._append_text(''.join(('&#', name, ';')))
+        self._append_text(f'&#{name};')
 
     def handle_entityref(self, name):
-        self._append_text(''.join(('&', name, ';')))
+        self._append_text(f'&{name};')
 
     def handle_decl(self, decl):
         if _xhtml1_strict_re.match(decl):
@@ -403,9 +398,8 @@ class MarkupLoader(html.parser.HTMLParser):
     def _new_qname(self, name, ns=None):
         def ns_uri_of(pfx):
             for i in range(len(self._stack) - 1, -1, -1):
-                elem = self._at(i)
-                if pfx in elem.ns:
-                    return elem.ns[pfx]
+                if pfx in (el := self._at(i)).ns:
+                    return el.ns[pfx]
 
         if ns is None:
             ns = {}
@@ -447,7 +441,7 @@ class MarkupLoader(html.parser.HTMLParser):
     def _flush_text(self):
         if self._text:
             self._peek().append(''.join(self._text))
-            del self._text[:]
+            self._text.clear()
 
     def _peek(self):
         return self._stack[-1][1]
@@ -482,18 +476,18 @@ class MarkupLoader(html.parser.HTMLParser):
                     xmlns[''] = ''
 
         new_qname = self._new_qname
-        elem = Element(new_qname(name, xmlns),
-                       type=type,
-                       ns=xmlns.copy())
+        el = Element(new_qname(name, xmlns),
+                     type=type,
+                     ns=xmlns.copy())
         # convert attr name to qname
-        xmlns[''] = elem.qname.ns_uri
+        xmlns[''] = el.qname.ns_uri
         for n, v in attrs:
             qname = new_qname(n, xmlns)
-            if qname in elem.attrib:
+            if qname in el.attrib:
                 raise MarkupError(self._object, self.getpos(),
                                   f"attribute '{qname}' already exists")
-            elem.attrib[qname] = v
-        return elem
+            el.attrib[qname] = v
+        return el
 
 
 class MarkupRenderer:
@@ -518,9 +512,7 @@ class MarkupRenderer:
         except KeyError:
             raise RenderingError(self.object, f"unknown markup language '{markup.lang}'")
         if pretty:
-            if not isinstance(pretty, collections.abc.Mapping):
-                pretty = {}
-            h = MarkupPrettifier(h, **pretty)
+            h = MarkupPrettifier(h, **pretty if isinstance(pretty, collections.abc.Mapping) else {})
 
         # render XML declaration
         if h.xml:
@@ -602,11 +594,11 @@ class MarkupRenderer:
     def prefix_for(self, ns_uri):
         known = set()
         for i in range(len(self._stack) - 1, -1, -1):
-            elem = self.at(i).element
-            for pfx in elem.ns:
+            el = self.at(i).element
+            for pfx in el.ns:
                 if pfx in known:
                     raise RenderingError(self.object, f"namespace URI for '{pfx}' was overwritten")
-                elif elem.ns[pfx] == ns_uri:
+                elif el.ns[pfx] == ns_uri:
                     return pfx
                 known.add(pfx)
         raise RenderingError(self.object, f"unknown namespace URI '{ns_uri}'")
@@ -632,7 +624,7 @@ class Space(str):
     __slots__ = ()
 
     def __repr__(self):
-        return self.__class__.__name__
+        return type(self).__name__
 
 
 Space = Space()
@@ -650,9 +642,10 @@ class MarkupHandler(metaclass=abc.ABCMeta):
     def __init__(self, renderer):
         self.renderer = renderer
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def xml(self):
-        pass
+        raise NotImplementedError
 
     def doctype(self, doctype):
         if doctype:
@@ -660,15 +653,15 @@ class MarkupHandler(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def is_empty(self, element):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def start_tag(self):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def end_tag(self):
-        pass
+        raise NotImplementedError
 
     def text(self, index, text):
         if text:
@@ -676,7 +669,7 @@ class MarkupHandler(metaclass=abc.ABCMeta):
 
     def indent(self, pos, indent):
         def next_nonblank(element, index):
-            for node in element[index:]:
+            for node in element.children[index:]:
                 if node:
                     return node
 
@@ -713,7 +706,7 @@ class MarkupHandler(metaclass=abc.ABCMeta):
     def compile(self, element):
         flags = self.INDENT_AROUND
         children = []
-        for node in element:
+        for node in element.children:
             if isinstance(node, Element):
                 flags = self.INDENT_ALL
                 children.append(node)
@@ -747,7 +740,7 @@ class MarkupHandler(metaclass=abc.ABCMeta):
             and children[-1] is Space):
             flags = self.INDENT_ALL
             del children[-1]
-        element.children = children
+        element.children[:] = children
         return flags
 
 
@@ -763,7 +756,7 @@ class MarkupPrettifier(MarkupHandler):
         return self._handler.xml
 
     def doctype(self, doctype):
-        return self._handler.doctype(doctype)
+        self._handler.doctype(doctype)
 
     def is_empty(self, element):
         return self._handler.is_empty(element)
@@ -811,8 +804,7 @@ class MarkupPrettifier(MarkupHandler):
         else:
             h.text(index, text)
 
-            if text:
-                self._bol = False
+            self._bol = False
 
     def indent(self, pos, indent=-1):
         return self._handler.indent(pos, self._indent)
@@ -823,7 +815,9 @@ class MarkupPrettifier(MarkupHandler):
 
 class XMLHandler(MarkupHandler):
 
-    xml = True
+    @property
+    def xml(self):
+        return True
 
     def is_empty(self, element):
         return not element.children
@@ -831,16 +825,15 @@ class XMLHandler(MarkupHandler):
     def start_tag(self, empty='/>'):
         r = self.renderer
 
-        elem = r.peek().element
-        epfx = r.prefix_for(elem.qname.ns_uri)
+        el = r.peek().element
+        epfx = r.prefix_for(el.qname.ns_uri)
         r.write('<')
         if epfx != '':
             r.write(epfx, ':')
-        r.write(elem.qname.name)
+        r.write(el.qname.name)
         # xmlns attributes
-        for pfx in sorted(elem.ns):
-            ns_uri = elem.ns[pfx]
-            if ns_uri != XML_NS:
+        for pfx in sorted(el.ns):
+            if (ns_uri := el.ns[pfx]) != XML_NS:
                 r.write(' xmlns')
                 if pfx != '':
                     r.write(':', pfx)
@@ -848,7 +841,8 @@ class XMLHandler(MarkupHandler):
         # attributes
         default_ns = False
         for pfx, n, v in sorted((r.prefix_for(a.ns_uri), a.name, v)
-                                for a, v in elem.attrib.items()):
+                                for a, v in el.attrib.items()
+                                if isinstance(a, QName)):
             r.write(' ')
             if pfx == '':
                 default_ns = True
@@ -856,18 +850,18 @@ class XMLHandler(MarkupHandler):
                 r.write(pfx, ':')
             elif default_ns:
                 raise RenderingError(self.renderer.object, 'cannot combine with default namespace')
-            r.write(n, '="', v, '"')
-        r.write('>' if elem.type != Element.EMPTY else empty)
+            r.write(n, '="', v or '', '"')
+        r.write('>' if el.type != Element.EMPTY else empty)
 
     def end_tag(self):
         r = self.renderer
 
-        elem = r.peek().element
-        pfx = r.prefix_for(elem.qname.ns_uri)
+        el = r.peek().element
+        pfx = r.prefix_for(el.qname.ns_uri)
         r.write('</')
         if pfx != '':
             r.write(pfx, ':')
-        r.write(elem.qname.name, '>')
+        r.write(el.qname.name, '>')
 
     def compile(self, element):
         if element.children:
@@ -886,8 +880,8 @@ class XHTML1Handler(XMLHandler):
     def is_empty(self, element):
         return element.qname.name in _xhtml1__EMPTY__
 
-    def start_tag(self):
-        super().start_tag(' />')
+    def start_tag(self, empty=' />'):
+        super().start_tag(empty)
 
     def compile(self, element):
         if element.qname.ns_uri != XHTML_NS:
@@ -904,14 +898,14 @@ class XHTML1Handler(XMLHandler):
 
         flags = 0
         if name in _xhtml1__EMPTY__:
-            del element[:]
+            element.children.clear()
             if name == 'br':
                 flags = self.INDENT_AFTER
             elif name not in ('img', 'input'):
                 flags = self.INDENT_AROUND
         elif name not in _xhtml1__PCDATA__all:
-            element[:] = (n for n in element
-                          if not isinstance(n, str))
+            element.children[:] = (n for n in element.children
+                                   if not isinstance(n, str))
             flags = self.INDENT_ALL ^ self.INDENT_TEXT
         elif name == 'pre':
             flags = self.INDENT_AROUND
@@ -919,7 +913,7 @@ class XHTML1Handler(XMLHandler):
             flags = self.INDENT_AROUND
             children = []
             indent = 0
-            for n in element:
+            for n in element.children:
                 if isinstance(n, str):
                     for l in n.splitlines(True):
                         s = l.lstrip()
@@ -942,7 +936,7 @@ class XHTML1Handler(XMLHandler):
                 for i, s in enumerate(children):
                     if s is not Space:
                         children[i] = s[indent:]
-            element.children = children
+            element.children[:] = children
         else:
             super().compile(element)
             if name in ('fieldset', 'object'):
@@ -957,26 +951,26 @@ class XHTML1Handler(XMLHandler):
         return flags
 
     def _has_block_element(self, root):
-        def step(element, depth):
+        def step(el, depth):
             return (depth == 0
-                    or (element.qname.ns_uri == XHTML_NS
-                        and element.qname.name in ('ins', 'del', 'button')))
+                    or (el.qname.ns_uri == XHTML_NS
+                        and el.qname.name in ('ins', 'del', 'button')))
 
-        for elem, depth in root.walk(step=step):
+        for el, depth in root.walk(step=step):
             if depth > 0:
-                if elem.qname.ns_uri != XHTML_NS:
+                if el.qname.ns_uri != XHTML_NS:
                     return True
-                elif (elem.qname.name not in ('ins', 'del', 'button')
-                      and elem.qname.name in _xhtml1_Block):
+                elif (el.qname.name not in ('ins', 'del', 'button')
+                      and el.qname.name in _xhtml1_Block):
                     return True
 
     def _has_br_element(self, root):
-        def step(element, depth):
-            return element.qname.ns_uri == XHTML_NS
+        def step(el, _):
+            return el.qname.ns_uri == XHTML_NS
 
-        for elem, depth in root.walk(step=step):
+        for el, depth in root.walk(step=step):
             if depth > 0:
-                if elem.qname.name == 'br':
+                if el.qname.name == 'br':
                     return True
 
 

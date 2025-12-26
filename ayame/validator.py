@@ -1,7 +1,7 @@
 #
 # ayame.validator
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -85,7 +85,7 @@ class Validator(core.Behavior, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def validate(self, object):
-        pass
+        raise NotImplementedError
 
     def error(self, **kwargs):
         return ValidationError(validator=self, **kwargs)
@@ -126,9 +126,9 @@ class RangeValidator(Validator):
 
     def validate(self, object):
         if ((self.min is not None
-             and not isinstance(object, self.typeof(self.min)))
+             and not isinstance(object, type(self.min)))
             or (self.max is not None
-                and not isinstance(object, self.typeof(self.max)))):
+                and not isinstance(object, type(self.max)))):
             raise self.error(variation='type')
         elif ((self.min is not None
                and object < self.min)
@@ -151,9 +151,6 @@ class RangeValidator(Validator):
             e = self.error(variation=mode)
             e.vars.update(vars)
             raise e
-
-    def typeof(self, object):
-        return object.__class__
 
 
 class StringValidator(RangeValidator):

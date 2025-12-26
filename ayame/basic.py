@@ -1,15 +1,14 @@
 #
 # ayame.basic
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 import collections.abc
 
-from . import core, markup, uri
-from . import model as mm
+from . import core, markup, model as mm, uri
 
 
 __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
@@ -19,26 +18,21 @@ __all__ = ['Label', 'ListView', 'PropertyListView', 'ContextPathGenerator',
 class Label(core.Component):
 
     def __init__(self, id, model=None):
-        if isinstance(model, str):
-            model = mm.Model(model)
-        super().__init__(id, model)
+        super().__init__(id, mm.Model(model) if isinstance(model, str) else model)
 
     def on_render(self, element):
-        element[:] = (self.model_object_as_string(),)
+        element.children[:] = (self.model_object_as_string(),)
         return element
 
 
 class ListView(core.MarkupContainer):
 
     def __init__(self, id, model=None, populate_item=None):
-        if isinstance(model, collections.abc.Sequence):
-            model = mm.Model(model)
-        super().__init__(id, model)
+        super().__init__(id, mm.Model(model) if isinstance(model, collections.abc.Sequence) else model)
         self._populate_item = populate_item
 
     def on_before_render(self):
-        o = self.model_object
-        if o is not None:
+        if (o := self.model_object) is not None:
             for i in range(len(o)):
                 li = self.new_item(i)
                 self.add(li)
@@ -48,14 +42,14 @@ class ListView(core.MarkupContainer):
     def on_render(self, element):
         skel = element.copy()
         skel.qname = markup.DIV
-        del element[:]
+        element.children.clear()
         for c in self.children:
             element.extend(c.on_render(skel.copy()))
         return element
 
     def populate_item(self, item):
         if callable(self._populate_item):
-            return self._populate_item(item)
+            self._populate_item(item)
 
     def new_item(self, index):
         return _ListItem(index, self.new_model(index))
@@ -81,16 +75,13 @@ class _ListItemModel(mm.Model):
         self.__list_view = list_view
         self.__index = index
 
-    def object():
-        def fget(self):
-            return self.__list_view.model_object[self.__index]
+    @property
+    def object(self):
+        return self.__list_view.model_object[self.__index]
 
-        def fset(self, object):
-            self.__list_view.model_object[self.__index] = object
-
-        return locals()
-
-    object = property(**object())
+    @object.setter
+    def object(self, object):
+        self.__list_view.model_object[self.__index] = object
 
 
 class PropertyListView(ListView):

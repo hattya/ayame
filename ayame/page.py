@@ -1,7 +1,7 @@
 #
 # ayame.page
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -18,8 +18,8 @@ class HTTPStatusPage(core.Page):
         super().__init__()
         self._error = error
         self.status = error.status
-        for name, value in error.headers:
-            self.headers[name] = value
+        for n, v in error.headers:
+            self.headers[n] = v
 
         self.add(basic.Label('status', error.status))
         self.add(basic.Label('reason', error.reason))

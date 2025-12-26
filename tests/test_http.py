@@ -1,7 +1,7 @@
 #
 # test_http
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -129,17 +129,17 @@ class HTTPTestCase(AyameTestCase):
 
         class ST(http.HTTPStatus):
             code = -1
-            reason = None
-            status = None
+            reason = 'reason'
+            status = 'status'
 
         self.assertEqual(ST.code, -1)
-        self.assertIsNone(ST.reason)
-        self.assertIsNone(ST.status)
+        self.assertEqual(ST.reason, 'reason')
+        self.assertEqual(ST.status, 'status')
 
         st = ST()
         self.assertEqual(st.code, -1)
-        self.assertIsNone(st.reason)
-        self.assertIsNone(st.status)
+        self.assertEqual(st.reason, 'reason')
+        self.assertEqual(st.status, 'status')
         self.assertEqual(st.headers, [])
         self.assertEqual(st.description, '')
 

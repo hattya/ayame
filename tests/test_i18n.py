@@ -1,7 +1,7 @@
 #
 # test_i18n
 #
-#   Copyright (c) 2012-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -61,10 +61,6 @@ class I18nTestCase(AyameTestCase):
             self.assertEqual(list(l._iter_class(p)), [
                 (Page, (), ''),
                 (ayame.Page, (), ''),
-                (Application, (), ''),
-                (ayame.Ayame, (), ''),
-            ])
-            self.assertEqual(list(l._iter_class(None)), [
                 (Application, (), ''),
                 (ayame.Ayame, (), ''),
             ])

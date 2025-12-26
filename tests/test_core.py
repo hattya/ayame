@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011-2023 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -17,7 +17,7 @@ class CoreTestCase(AyameTestCase):
 
     def test_component(self):
         with self.assertRaisesRegex(ayame.ComponentError, r' id .* not set\b'):
-            ayame.Component(None)
+            ayame.Component('')
 
         c = ayame.Component('a')
         self.assertEqual(c.id, 'a')
@@ -48,9 +48,10 @@ class CoreTestCase(AyameTestCase):
         c.add(None, True, 0, 3.14, '')
         self.assertEqual(c.behaviors, [])
         self.assertEqual(c.path(), 'a')
-        self.assertEqual(c.render(''), '')
+        el = self.empty_element()
+        self.assertEqual(c.render(el), el)
         c.visible = False
-        self.assertIsNone(c.render(''))
+        self.assertIsNone(c.render(el))
 
     def test_component_with_model(self):
         with self.assertRaisesRegex(ayame.ComponentError, r' not .* instance of Model\b'):
@@ -94,9 +95,10 @@ class CoreTestCase(AyameTestCase):
         c.add(None, True, 0, 3.14, '')
         self.assertEqual(c.behaviors, [])
         self.assertEqual(c.path(), 'a')
-        self.assertEqual(c.render(''), '')
+        el = self.empty_element()
+        self.assertEqual(c.render(el), el)
         c.visible = False
-        self.assertIsNone(c.render(''))
+        self.assertIsNone(c.render(el))
 
         m = model.Model('&<>')
         self.assertEqual(m.object, '&<>')
@@ -172,9 +174,10 @@ class CoreTestCase(AyameTestCase):
             (b2, 1),
         ])
 
-        self.assertEqual(mc.render(''), '')
+        el = self.empty_element()
+        self.assertEqual(mc.render(el), el)
         mc.visible = False
-        self.assertIsNone(mc.render(''))
+        self.assertIsNone(mc.render(el))
 
     def test_render_no_child_component(self):
         root = markup.Element(self.of('root'))
@@ -1100,7 +1103,7 @@ class CoreTestCase(AyameTestCase):
             m = mc.load_markup()
         self.assertEqual(m.xml_decl, {})
         self.assertEqual(m.lang, 'xhtml1')
-        self.assertIsNone(m.doctype)
+        self.assertEqual(m.doctype, '')
         self.assertIsNone(m.root)
 
         class Lobster(ayame.Page):
@@ -1485,7 +1488,7 @@ class CoreTestCase(AyameTestCase):
             c.fire()
             self.assertEqual(c.model_object, 1)
 
-    def test_fire_component_uknown_path(self):
+    def test_fire_component_unknown_path(self):
         query = '{path}=g'
         with self.application(self.new_environ(query=query)):
             c = Component('c')
@@ -1634,14 +1637,14 @@ class Component(ayame.Component):
 
 class AyameHeadContainer(ayame.MarkupContainer):
 
-    def __init__(self, id, elem=None):
+    def __init__(self, id, el=None):
         super().__init__(id)
-        self._elem = elem
+        self._el = el
 
     def on_render(self, element):
         for par in self.iter_parent():
             pass
-        par.head.children.append(self._elem)
+        par.head.children.append(self._el)
         return element
 
 

@@ -1,15 +1,14 @@
 #
 # ayame.link
 #
-#   Copyright (c) 2012-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 import urllib.parse
 
-from . import core, markup, uri, util
-from . import model as mm
+from . import core, markup, model as mm, uri as um, util
 from .exception import ComponentError
 
 
@@ -30,28 +29,23 @@ _SRC = markup.QName(markup.XHTML_NS, 'src')
 class Link(core.MarkupContainer):
 
     def __init__(self, id, model=None):
-        if isinstance(model, str):
-            model = mm.Model(model)
-        super().__init__(id, model)
+        super().__init__(id, mm.Model(model) if isinstance(model, str) else model)
 
     def on_render(self, element):
         # modify attribute
-        attr = None
+        a = None
         if element.qname in (_A, _LINK, _AREA):
-            attr = _HREF
+            a = _HREF
         elif element.qname in (_SCRIPT, _STYLE):
-            attr = _SRC
-        if attr is not None:
-            uri = self.new_uri(element.attrib.get(attr))
-            if uri is None:
-                if attr in element.attrib:
-                    del element.attrib[attr]
-            else:
-                element.attrib[attr] = uri
+            a = _SRC
+        if a is not None:
+            if (uri := self.new_uri(element.attrib.get(a))) is not None:
+                element.attrib[a] = uri
+            elif a in element.attrib:
+                del element.attrib[a]
         # replace children by model object
-        body = self.model_object_as_string()
-        if body:
-            element[:] = (body,)
+        if body := self.model_object_as_string():
+            element.children[:] = (body,)
         # render link
         return super().on_render(element)
 
@@ -64,10 +58,10 @@ class ActionLink(Link):
     def on_fire(self):
         self.on_click()
 
-    def new_uri(self, _):
+    def new_uri(self, uri):
         query = self.request.query | {core.AYAME_PATH: [self.path()]}
         environ = self.environ | {'QUERY_STRING': urllib.parse.urlencode(query, doseq=True)}
-        return uri.request_uri(environ, True)
+        return um.request_uri(environ, True)
 
     def on_click(self):
         pass
@@ -75,10 +69,9 @@ class ActionLink(Link):
 
 class PageLink(Link):
 
-    def __init__(self, id, page, values=None, anchor=''):
+    def __init__(self, id, page, values=None, anchor=None):
         super().__init__(id, None)
-        if (not issubclass(page, core.Page)
-            or page is core.Page):
+        if not issubclass(page, core.Page):
             raise ComponentError(self, f"'{util.fqon_of(page)}' is not a subclass of Page")
         self._page = page
         self._values = values

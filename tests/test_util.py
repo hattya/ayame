@@ -33,8 +33,8 @@ class UtilTestCase(AyameTestCase):
         class C:
             pass
 
-        self.assertEqual(util.fqon_of(C), __name__ + '.C')
-        self.assertEqual(util.fqon_of(C()), __name__ + '.C')
+        self.assertEqual(util.fqon_of(C), f'{__name__}.C')
+        self.assertEqual(util.fqon_of(C()), f'{__name__}.C')
         C.__module__ = None
         self.assertEqual(util.fqon_of(C), '<unknown>.C')
         self.assertEqual(util.fqon_of(C()), '<unknown>.C')
@@ -43,13 +43,13 @@ class UtilTestCase(AyameTestCase):
         def f():
             pass
 
-        self.assertEqual(util.fqon_of(f), __name__ + '.f')
+        self.assertEqual(util.fqon_of(f), f'{__name__ }.f')
         del f.__module__
         self.assertEqual(util.fqon_of(f), '<unknown>.f')
 
         f = lambda: None
 
-        self.assertEqual(util.fqon_of(f), __name__ + '.<lambda>')
+        self.assertEqual(util.fqon_of(f), f'{__name__ }.<lambda>')
         del f.__module__
         self.assertEqual(util.fqon_of(f), '<unknown>.<lambda>')
 
@@ -183,7 +183,7 @@ class LRUCacheTestCase(AyameTestCase):
     def lru_cache(self, n):
         c = LRUCache(n)
         for i in range(n):
-            c[chr(ord('a') + i)] = i + 1
+            c[chr(ord('a')+i)] = i + 1
         return c
 
     def test_lru_cache(self):
@@ -380,7 +380,7 @@ class LFUCacheTestCase(AyameTestCase):
     def lfu_cache(self, n):
         c = LFUCache(n)
         for i in range(n):
-            c[chr(ord('a') + i)] = i + 1
+            c[chr(ord('a')+i)] = i + 1
         return c
 
     def test_lfu_cache(self):

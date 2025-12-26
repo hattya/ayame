@@ -1,62 +1,65 @@
 #
 # test_validator
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 import ayame
-from ayame import markup, validator
+from ayame import core, markup, validator
 from base import AyameTestCase
 
 
 class ValidatorTestCase(AyameTestCase):
 
     def test_validation_error(self):
+        c = core.Component(__name__)
+
         e = ayame.ValidationError()
         self.assertEqual(repr(e), 'ValidationError(keys=[], vars=[])')
         self.assertEqual(str(e), '')
-        e.component = True
+        e.component = c
         self.assertEqual(str(e), '')
 
         e = ayame.ValidationError('a')
         self.assertEqual(repr(e), "ValidationError('a', keys=[], vars=[])")
         self.assertEqual(str(e), 'a')
-        e.component = True
+        e.component = c
         self.assertEqual(str(e), 'a')
         e = ayame.ValidationError('a', 'b')
         self.assertEqual(repr(e), "ValidationError('a', 'b', keys=[], vars=[])")
         self.assertEqual(str(e), 'a')
-        e.component = True
+        e.component = c
         self.assertEqual(str(e), 'a')
 
         e = ayame.ValidationError(0)
         self.assertEqual(repr(e), 'ValidationError(0, keys=[], vars=[])')
         self.assertEqual(str(e), '0')
-        e.component = True
+        e.component = c
         self.assertEqual(str(e), '0')
         e = ayame.ValidationError(0, 1)
         self.assertEqual(repr(e), 'ValidationError(0, 1, keys=[], vars=[])')
         self.assertEqual(str(e), '0')
-        e.component = True
+        e.component = c
         self.assertEqual(str(e), '0')
 
     def test_validator(self):
         class Validator(validator.Validator):
             def validate(self, object):
-                return super().validate(object)
+                super().validate(object)
 
         with self.assertRaises(TypeError):
             validator.Validator()
 
         v = Validator()
-        self.assertFalse(v.validate(None))
+        with self.assertRaises(NotImplementedError):
+            v.validate(None)
 
     def test_email_validator(self):
         v = validator.EmailValidator()
-        self.assertFalse(v.validate('a@example.com'))
-        self.assertFalse(v.validate('a@localhost'))
+        v.validate('a@example.com')
+        v.validate('a@localhost')
 
         for o in (
             None,
@@ -79,16 +82,16 @@ class ValidatorTestCase(AyameTestCase):
                 for s in ('', '/'):
                     o = f'http://{host}{port}{s}'
                     with self.subTest(object=o):
-                        self.assertFalse(v.validate(o))
+                        v.validate(o)
 
-        self.assertFalse(v.validate('http://user@example.com/'))
-        self.assertFalse(v.validate('http://user:password@example.com/'))
-        self.assertFalse(v.validate('http://example.com/?query'))
-        self.assertFalse(v.validate('http://example.com/#fragment'))
-        self.assertFalse(v.validate('http://example.com/?query#fragment'))
-        self.assertFalse(v.validate('http://example.com/segment/?query'))
-        self.assertFalse(v.validate('http://example.com/segment/#fragment'))
-        self.assertFalse(v.validate('http://example.com/segment/?query#fragment'))
+        v.validate('http://user@example.com/')
+        v.validate('http://user:password@example.com/')
+        v.validate('http://example.com/?query')
+        v.validate('http://example.com/#fragment')
+        v.validate('http://example.com/?query#fragment')
+        v.validate('http://example.com/segment/?query')
+        v.validate('http://example.com/segment/#fragment')
+        v.validate('http://example.com/segment/?query#fragment')
 
         for o in (
             None,
@@ -107,9 +110,9 @@ class ValidatorTestCase(AyameTestCase):
     def test_range_validator(self):
         v = validator.RangeValidator()
         v.min = v.max = None
-        self.assertFalse(v.validate(None))
-        self.assertFalse(v.validate(''))
-        self.assertFalse(v.validate(0))
+        v.validate(None)
+        v.validate('')
+        v.validate(0)
 
         for min, max, o in (
             (0, 0, None),
@@ -134,7 +137,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = 0
         v.max = None
-        self.assertFalse(v.validate(0))
+        v.validate(0)
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate(-1)
         e = cm.exception
@@ -144,7 +147,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = None
         v.max = 9
-        self.assertFalse(v.validate(9))
+        v.validate(9)
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate(10)
         e = cm.exception
@@ -154,7 +157,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = 0
         v.max = 9
-        self.assertFalse(v.validate(0))
+        v.validate(0)
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate(-1)
         e = cm.exception
@@ -166,7 +169,7 @@ class ValidatorTestCase(AyameTestCase):
         })
 
         v.min = v.max = 9
-        self.assertFalse(v.validate(9))
+        v.validate(9)
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate(10)
         e = cm.exception
@@ -177,7 +180,7 @@ class ValidatorTestCase(AyameTestCase):
     def test_string_validator(self):
         v = validator.StringValidator()
         v.min = v.max = None
-        self.assertFalse(v.validate(''))
+        v.validate('')
 
         for min, max, o in (
             (None, None, 0),
@@ -196,7 +199,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = 4
         v.max = None
-        self.assertFalse(v.validate('.com'))
+        v.validate('.com')
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate('.jp')
         e = cm.exception
@@ -206,7 +209,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = None
         v.max = 4
-        self.assertFalse(v.validate('.com'))
+        v.validate('.com')
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate('.info')
         e = cm.exception
@@ -216,7 +219,7 @@ class ValidatorTestCase(AyameTestCase):
 
         v.min = 4
         v.max = 5
-        self.assertFalse(v.validate('.com'))
+        v.validate('.com')
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate('.jp')
         e = cm.exception
@@ -228,7 +231,7 @@ class ValidatorTestCase(AyameTestCase):
         })
 
         v.min = v.max = 4
-        self.assertFalse(v.validate('.com'))
+        v.validate('.com')
         with self.assertRaises(ayame.ValidationError) as cm:
             v.validate('.info')
         e = cm.exception

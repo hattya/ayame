@@ -1,7 +1,7 @@
 #
 # test_res
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -43,12 +43,13 @@ class ResTestCase(AyameTestCase):
                 return super().open(encoding)
 
         with self.assertRaises(TypeError):
-            res.Resource(None)
+            res.Resource('')
 
-        r = Resource(None)
-        self.assertIsNone(r.path)
-        self.assertIsNone(r.mtime)
-        self.assertIsNone(r.open())
+        r = Resource('')
+        self.assertEqual(r.path, '')
+        self.assertEqual(r.mtime, 0)
+        with self.assertRaises(NotImplementedError):
+            r.open()
 
     def test_unknown_module(self):
         loader = res.ResourceLoader()
@@ -63,7 +64,7 @@ class ResTestCase(AyameTestCase):
             o.__module__ = None
             with self.subTest(object=o):
                 with self.assertRaisesRegex(ayame.ResourceError, r'^cannot find module '):
-                    loader.load(o, None)
+                    loader.load(o, '')
 
     def test_unknown_module_location(self):
         sys.modules[__name__] = types.ModuleType(__name__)
@@ -115,7 +116,7 @@ class ResTestCase(AyameTestCase):
         class Loader:
             def get_data(self, path):
                 with open(path) as fp:
-                    return fp.read().strip() + ' from Loader'
+                    return f'{fp.read().strip()} from Loader'
 
         sys.modules[__name__] = self.new_module(Loader())
 
@@ -263,7 +264,7 @@ class ZipFileResourceTestCase(AyameTestCase):
         """)
 
         with self.import_('m', [('m.py', src),
-                                (path, path + '\n')]) as m:
+                                (path, f'{path}\n')]) as m:
             for o in (m.Spam, m.Spam()):
                 for p in ('Spam.txt', '.txt'):
                     with self.subTest(object=o, path=p):
@@ -292,7 +293,7 @@ class ZipFileResourceTestCase(AyameTestCase):
         """)
 
         with self.import_('m', [('m.py', src),
-                                (path, path + '\n')]) as m:
+                                (path, f'{path}\n')]) as m:
             for p in ('ham.txt', '.txt'):
                 with self.subTest(path=p):
                     r = loader.load(m.ham, p)
@@ -311,7 +312,7 @@ class ZipFileResourceTestCase(AyameTestCase):
         path = 'm/.txt'
 
         with self.import_('m', [('m.py', ''),
-                                (path, path + '\n')]) as m:
+                                (path, f'{path }\n')]) as m:
             r = loader.load(m, '.txt')
             with r.open() as fp:
                 self.assertEqual(fp.read().strip(), 'm/.txt')

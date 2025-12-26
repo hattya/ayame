@@ -28,8 +28,8 @@ class AppTestCase(AyameTestCase):
             self.locale = (None,) * 2
 
     def test_ayame(self):
-        app = ayame.Ayame(None)
-        self.assertIsNone(app._name)
+        app = ayame.Ayame('')
+        self.assertEqual(app._name, '')
         self.assertEqual(app._root, os.getcwd())
 
         app = ayame.Ayame(__name__)

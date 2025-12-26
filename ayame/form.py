@@ -1,7 +1,7 @@
 #
 # ayame.form
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -56,7 +56,7 @@ class Form(core.MarkupContainer):
         if form is None:
             return
         # submit
-        self._method = form.attrib.get(_METHOD, 'post').upper()
+        self._method = v.upper() if (v := form.attrib.get(_METHOD)) else 'POST'
         try:
             self.submit()
         finally:
@@ -70,7 +70,7 @@ class Form(core.MarkupContainer):
 
         # modify attributes
         element.attrib[_ACTION] = uri.request_path(self.environ)
-        element.attrib[_METHOD] = element.attrib[_METHOD].lower()
+        element.attrib[_METHOD] = v.lower() if (v := element.attrib[_METHOD]) else v
         # insert hidden field for marking
         div = markup.Element(markup.DIV)
         div.attrib[_CLASS] = 'ayame-hidden'
@@ -117,30 +117,30 @@ class Form(core.MarkupContainer):
                         and button is None):
                         button = c
                 elif isinstance(c, Choice):
-                    c.validate(values[name] if name in values else [])
+                    c.validate(v if (v := values.get(name)) else [])
                 else:
-                    c.validate(values[name][0] if name in values else None)
+                    c.validate(v[0] if (v := values.get(name)) else None)
                 if valid:
                     valid = c.error is None
             # push children
             if isinstance(c, core.MarkupContainer):
                 queue.extend(reversed(c.children))
-        if not valid:
-            if button is not None:
-                button.on_error()
-            self.on_error()
-        else:
+        if valid:
             if button is not None:
                 button.on_submit()
             self.on_submit()
+        else:
+            if button is not None:
+                button.on_error()
+            self.on_error()
 
     def on_method_mismatch(self):
         return True  # continue
 
-    def on_error(self):
+    def on_submit(self):
         pass
 
-    def on_submit(self):
+    def on_error(self):
         pass
 
     def has_error(self):
@@ -179,11 +179,10 @@ class FormComponent(core.MarkupContainer):
                 if isinstance(b, validator.Validator):
                     b.validate(o)
         except ValidationError as e:
-            label = self.tr(self.id, self.parent)
             e.component = self
             e.vars.update(input=value,
                           name=self.id,
-                          label=label if label is not None else self.id)
+                          label=s if (s := self.tr(self.id, self.parent)) is not None else self.id)
             self.error = e
             self.on_invalid()
         else:
@@ -225,9 +224,7 @@ class Button(FormComponent):
     def on_render(self, element):
         if element.qname == _INPUT:
             if element.attrib[_TYPE] not in ('submit', 'button', 'image'):
-                raise RenderingError(self,
-                                     "'input' element with 'type' attribute of "
-                                     "'submit', 'button' or 'image' is expected")
+                raise RenderingError(self, "'input' element with 'type' attribute of 'submit', 'button' or 'image' is expected")
         elif element.qname != _BUTTON:
             raise RenderingError(self, "'input' or 'button' element is expected")
 
@@ -236,10 +233,10 @@ class Button(FormComponent):
         # render button
         return super().on_render(element)
 
-    def on_error(self):
+    def on_submit(self):
         pass
 
-    def on_submit(self):
+    def on_error(self):
         pass
 
 
@@ -291,7 +288,7 @@ class TextArea(FormComponent):
         # modify attributes
         element.attrib[_NAME] = self.relative_path()
         # modify children
-        element[:] = (self.model_object_as_string(),)
+        element.children[:] = (self.model_object_as_string(),)
         # render text area
         return super().on_render(element)
 
@@ -306,9 +303,7 @@ class CheckBox(FormComponent):
         if element.qname != _INPUT:
             raise RenderingError(self, "'input' element is expected")
         elif element.attrib[_TYPE] != 'checkbox':
-            raise RenderingError(self,
-                                 "'input' element with 'type' attribute of "
-                                 "'checkbox' is expected")
+            raise RenderingError(self, "'input' element with 'type' attribute of 'checkbox' is expected")
 
         checked = self.converter_for(self.type).to_python(self.model_object)
         # modify attributes
@@ -339,8 +334,7 @@ class Choice(FormComponent):
             values = set(value)
             selected = []
             for i, choice in enumerate(self.choices):
-                v = self.renderer.value_of(i, choice)
-                if v in values:
+                if (v := self.renderer.value_of(i, choice)) in values:
                     values.remove(v)
                     selected.append(choice)
             if values:
@@ -359,8 +353,7 @@ class Choice(FormComponent):
         return e
 
     def _id_prefix_for(self, element):
-        id = element.attrib.get(_ID)
-        return id if id else 'ayame-' + util.new_token()[:7]
+        return element.attrib.get(_ID) or 'ayame-' + util.new_token()[:7]
 
     def render_element(self, element, index, choice):
         return element
@@ -369,8 +362,7 @@ class Choice(FormComponent):
 class ChoiceRenderer:
 
     def label_for(self, object):
-        label = object
-        return label if label is not None else ''
+        return object if object is not None else ''
 
     def value_of(self, index, object):
         return str(index)
@@ -384,7 +376,7 @@ class RadioChoice(Choice):
 
     def on_render(self, element):
         # clear children
-        del element[:]
+        element.children.clear()
 
         if self.choices:
             name = self.relative_path()
@@ -392,7 +384,7 @@ class RadioChoice(Choice):
             pfx = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for i, choice in enumerate(self.choices):
-                id = '-'.join((pfx, str(i)))
+                id = f'{pfx}-{i}'
                 # append prefix
                 element.extend(self.prefix.copy())
                 # radio button
@@ -429,7 +421,7 @@ class CheckBoxChoice(Choice):
 
     def on_render(self, element):
         # clear children
-        del element[:]
+        element.children.clear()
 
         if self.choices:
             name = self.relative_path()
@@ -438,7 +430,7 @@ class CheckBoxChoice(Choice):
             pfx = self._id_prefix_for(element)
             last = len(self.choices) - 1
             for i, choice in enumerate(self.choices):
-                id = '-'.join((pfx, str(i)))
+                id = f'{pfx}-{i}'
                 # append prefix
                 element.extend(self.prefix.copy())
                 # checkbox
@@ -484,7 +476,7 @@ class SelectChoice(Choice):
         elif _MULTIPLE in element.attrib:
             del element.attrib[_MULTIPLE]
         # clear children
-        del element[:]
+        element.children.clear()
 
         if self.choices:
             selected = self.model_object

@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2024 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -140,8 +140,14 @@ class Rule:
                 self._segs.append((False, var))
             elif var in self._vars:
                 raise RouteError(f"variable name '{var}' already in use")
+            elif conv not in self.map.converters:
+                raise RouteError(f"converter '{conv}' not found")
             else:
-                conv = self._new_converter(conv, args)
+                if args:
+                    a, kw = self._parse_args(args)
+                    conv = self.map.converters[conv](self.map, *a, **kw)
+                else:
+                    conv = self.map.converters[conv](self.map)
                 buf.append(fr'(?P<{var}>{conv.pattern})')
                 self._segs.append((True, var))
                 self._convs[var] = conv
@@ -166,16 +172,6 @@ class Rule:
         if pos < len(path):
             yield path[pos:], None, None
 
-    def _new_converter(self, name, args):
-        conv = self.map.converters.get(name)
-        if conv is None:
-            raise RouteError(f"converter '{name}' not found")
-
-        if args:
-            args, kwargs = self._parse_args(args)
-            return conv(self.map, *args, **kwargs)
-        return conv(self.map)
-
     def _parse_args(self, expr):
         def error(msg, offset):
             return SyntaxError(msg, ('<args>', 1, offset, expr))
@@ -194,25 +190,23 @@ class Rule:
                 elif name in kwargs:
                     raise error('keyword argument repeated', m.start('name') + 1)
 
-            for t in ('const', 'int', 'float', 'str'):
-                v = m.group(t)
-                if v is None:
-                    continue
-                elif t == 'const':
-                    if v == 'True':
+            if (v := m.group('const')) is not None:
+                match v:
+                    case 'True':
                         v = True
-                    elif v == 'False':
+                    case 'False':
                         v = False
-                    else:
+                    case _:
                         v = None
-                elif t == 'int':
-                    v = int(v, 0)
-                elif t == 'float':
-                    v = float(v)
-                elif t == 'str':
-                    q = v[0]
-                    v = str(v[1:-1].replace('\\' + q, q))
-                break
+            elif (v := m.group('int')) is not None:
+                v = int(v, 0)
+            elif (v := m.group('float')) is not None:
+                v = float(v)
+            else:
+                v = m.group('str')
+                q = v[0]
+                v = str(v[1:-1].replace('\\' + q, q))
+
             if name is None:
                 args.append(v)
             else:
@@ -269,18 +263,13 @@ class Rule:
                 buf.append(var)
         # query
         if query:
-            query = []
+            qsl = []
             for var, val in values.items():
-                val = [util.to_bytes(v, self.map.encoding)
-                       for v in (cache[var] if var in cache else util.to_list(val))]
-                if not val:
-                    continue
-                var = util.to_bytes(var, self.map.encoding)
-                query.append((var, val))
-            if query:
-                query = sorted(query, key=self.map.sort_key)
+                if val := cache[var] if var in cache else util.to_list(val):
+                    qsl.append((util.to_bytes(var, self.map.encoding), [util.to_bytes(v, self.map.encoding) for v in val]))
+            if qsl:
                 buf.append('?')
-                buf.append(urllib.parse.urlencode(query, doseq=True))
+                buf.append(urllib.parse.urlencode(sorted(qsl, key=self.map.sort_key), doseq=True))
         # anchor
         if anchor:
             buf.append('#')
@@ -319,13 +308,13 @@ class Map:
         self.add(Rule(path, dest, methods, True))
 
     def mount(self, path):
-        return _Submap(self, path)
+        return _SubMap(self, path)
 
     def bind(self, environ):
         return Router(self, environ)
 
 
-class _Submap:
+class _SubMap:
 
     def __init__(self, map, path):
         self.map = map
@@ -348,6 +337,10 @@ class Router:
         self.environ = environ
 
     def match(self, as_rule=False):
+        def repl(m):
+            var = m.group(1)
+            return rule._convs[var].to_uri(values[var])
+
         path = self.environ['PATH_INFO']
         method = self.environ['REQUEST_METHOD']
         allow = set()
@@ -364,15 +357,7 @@ class Router:
                 allow.update(rule.methods)
                 continue
             elif rule.has_redirect():
-                if isinstance(rule.object, str):
-                    def repl(m):
-                        var = m.group(1)
-                        conv = rule._convs[var]
-                        return conv.to_uri(values[var])
-
-                    location = _simple_rule_re.sub(repl, rule.object)
-                else:
-                    location = rule.object(**values)
+                location = _simple_rule_re.sub(repl, rule.object) if isinstance(rule.object, str) else rule.object(**values)
                 environ = self.environ | {'PATH_INFO': location}
                 raise http.MovedPermanently(uri.request_uri(environ, True))
             return rule if as_rule else rule.object, values
@@ -399,7 +384,7 @@ class Converter:
 
     pattern = r'[^/]+'
 
-    def __init__(self, map):
+    def __init__(self, map, *args, **kwargs):
         self.map = map
 
     def to_python(self, value):
@@ -425,16 +410,16 @@ class _StringConverter(Converter):
         self.pattern = fr'[^/]{{{cnt}}}'
 
     def to_uri(self, value):
-        value = super().to_uri(value)
+        uri = super().to_uri(value)
         if self.min is not None:
-            if (len(value) < self.min
+            if (len(uri) < self.min
                 or (self.len is not None
-                    and len(value) > self.len)):
+                    and len(uri) > self.len)):
                 raise ValueError()
         elif (self.len is not None
-              and len(value) != self.len):
+              and len(uri) != self.len):
             raise ValueError()
-        return value
+        return uri
 
 
 class _PathConverter(Converter):
@@ -455,19 +440,19 @@ class _IntegerConverter(Converter):
             self.pattern = fr'\d{{{digits}}}'
 
     def to_python(self, value):
-        value = int(value)
+        v = int(value)
         if ((self.min is not None
-             and value < self.min)
+             and v < self.min)
             or (self.max is not None
-                and value > self.max)):
+                and v > self.max)):
             raise ValueError()
-        return value
+        return v
 
     def to_uri(self, value):
-        value = self.to_python(value)
+        v = self.to_python(value)
         if self.digits is not None:
-            value = f'{value:0{self.digits}d}'
-            if len(value) > self.digits:
+            uri = f'{v:0{self.digits}d}'
+            if len(uri) > self.digits:
                 raise ValueError()
-            return value
-        return str(value)
+            return uri
+        return str(v)

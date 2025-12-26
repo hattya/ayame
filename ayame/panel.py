@@ -1,13 +1,12 @@
 #
 # ayame.panel
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
-from . import core, basic, form, markup
-from . import model as mm
+from . import core, basic, form, markup, model as mm
 from .exception import RenderingError
 
 
@@ -22,8 +21,8 @@ class Panel(core.MarkupContainer):
         self.render_body_only = True
 
     def on_render(self, element):
-        def step(element, depth):
-            return element.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
+        def step(el, _):
+            return el.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
 
         # load markup for Panel
         m = self.load_markup()
@@ -32,21 +31,21 @@ class Panel(core.MarkupContainer):
             return element
 
         ayame_panel = ayame_head = None
-        for elem, _ in m.root.walk(step=step):
-            if elem.qname == markup.AYAME_PANEL:
+        for el, _ in m.root.walk(step=step):
+            if el.qname == markup.AYAME_PANEL:
                 if ayame_panel is None:
-                    ayame_panel = elem
-            elif elem.qname == markup.AYAME_HEAD:
+                    ayame_panel = el
+            elif el.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang
                     and ayame_head is None):
-                    ayame_head = elem
+                    ayame_head = el
         if ayame_panel is None:
             raise RenderingError(self, "'ayame:panel' element is not found")
         # append ayame:head element to Page
         if ayame_head is not None:
-            self.page().head.extend(ayame_head)
+            self.page().head.extend(ayame_head.children)
         # render panel
-        element[:] = ayame_panel
+        element.children[:] = ayame_panel.children
         return super().on_render(element)
 
 
@@ -60,8 +59,7 @@ class FeedbackPanel(Panel):
 
     def on_configure(self):
         if self.request.path:
-            c = self.page().find(self.request.path)
-            if isinstance(c, form.Form):
+            if isinstance((c := self.page().find(self.request.path)), form.Form):
                 for c, _ in c.walk():
                     if (isinstance(c, form.FormComponent)
                         and c.error):

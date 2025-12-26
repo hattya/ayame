@@ -1,7 +1,7 @@
 #
 # ayame.res
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -29,15 +29,15 @@ class ResourceLoader:
             is_module = True
         else:
             if not hasattr(object, '__name__'):
-                object = object.__class__
+                object = type(object)
             try:
                 m = sys.modules[object.__module__]
             except (AttributeError, KeyError):
                 raise ResourceError(f'cannot find module of {object!r}')
             is_module = False
-        try:
-            parent, name = os.path.split(m.__file__)
-        except AttributeError:
+        if file := getattr(m, '__file__', None):
+            parent, name = os.path.split(file)
+        else:
             raise ResourceError(f"cannot determine '{m.__name__}' module location")
         name = os.path.splitext(name)[0]
         # check path
@@ -53,11 +53,7 @@ class ResourceLoader:
         if name.lower() != '__init__':
             path = os.path.join(name, path)
 
-        loader = getattr(m, '__loader__', None)
-        if loader is None:
-            spec = getattr(m, '__spec__', None)
-            if spec:
-                loader = spec.loader
+        loader = spec.loader if (spec := m.__spec__) else None
         r = self.load_from(loader, parent, path)
         if r is None:
             raise ResourceError(f"cannot load '{path}' from loader {loader!r}")
@@ -65,11 +61,11 @@ class ResourceLoader:
 
     def load_from(self, loader, parent, path):
         if (loader is None
-            or (loader.__class__.__module__.startswith('_frozen_importlib')
-                and loader.__class__.__name__ == 'SourceFileLoader')):
+            or (type(loader).__module__.startswith('_frozen_importlib')
+                and type(loader).__name__ == 'SourceFileLoader')):
             return FileResource(os.path.join(parent, path))
-        elif (loader.__class__.__module__ == 'zipimport'
-              and loader.__class__.__name__ == 'zipimporter'):
+        elif (type(loader).__module__ == 'zipimport'
+              and type(loader).__name__ == 'zipimporter'):
             return ZipFileResource(loader, path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
 
 
@@ -77,7 +73,7 @@ class Resource(metaclass=abc.ABCMeta):
 
     def __init__(self, path):
         self._path = path
-        self._mtime = None
+        self._mtime = 0.0
 
     @property
     def path(self):
@@ -89,23 +85,26 @@ class Resource(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def open(self, encoding='utf-8'):
-        pass
+        raise NotImplementedError
 
 
 class FileResource(Resource):
 
     def __init__(self, path):
         super().__init__(path)
-        self._mtime = self._guard(os.stat, self._path).st_mtime
+        try:
+            self._mtime = os.stat(self._path).st_mtime
+        except OSError:
+            raise self._error()
 
     def open(self, encoding='utf-8'):
-        return self._guard(open, self._path, encoding=encoding)
-
-    def _guard(self, func, *args, **kwargs):
         try:
-            return func(*args, **kwargs)
+            return open(self._path, encoding=encoding)
         except OSError:
-            raise ResourceError(f"cannot load '{self._path}'")
+            raise self._error()
+
+    def _error(self):
+        return ResourceError(f"cannot load '{self._path}'")
 
 
 class ZipFileResource(Resource):
@@ -113,15 +112,18 @@ class ZipFileResource(Resource):
     def __init__(self, loader, path):
         super().__init__(path)
         self._loader = loader
-        with self._guard(zipfile.ZipFile, self._loader.archive) as zf:
-            zi = self._guard(zf.getinfo, self._path)
-            self._mtime = time.mktime(datetime.datetime(*zi.date_time).timetuple())
+        try:
+            with zipfile.ZipFile(self._loader.archive) as zf:
+                zi = zf.getinfo(self._path)
+                self._mtime = time.mktime(datetime.datetime(*zi.date_time).timetuple())
+        except (KeyError, OSError):
+            raise self._error()
 
     def open(self, encoding='utf-8'):
-        return io.StringIO(str(self._guard(self._loader.get_data, self._path), encoding))
-
-    def _guard(self, func, *args, **kwargs):
         try:
-            return func(*args, **kwargs)
-        except (OSError, KeyError):
-            raise ResourceError(f"cannot load '{self._path}' from loader {self._loader!r}")
+            return io.StringIO(str(self._loader.get_data(self._path), encoding))
+        except OSError:
+            raise self._error()
+
+    def _error(self):
+        return ResourceError(f"cannot load '{self._path}' from loader {self._loader!r}")

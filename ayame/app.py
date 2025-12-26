@@ -75,10 +75,9 @@ class Ayame:
         return self.context._router
 
     def __call__(self, environ, start_response):
+        ctx = local.push(self, environ)
+        ctx._router = self.config['ayame.route.map'].bind(environ)
         try:
-            ctx = local.push(self, environ)
-            ctx._router = self.config['ayame.route.map'].bind(environ)
-            # dispatch
             o, values = ctx._router.match()
             ctx.request = self.config['ayame.request'](environ, values)
             ctx.session = session.get(self, environ)
@@ -99,8 +98,7 @@ class Ayame:
             else:
                 raise AyameError('reached to the maximum number of internal redirects')
             exc_info = None
-            set_cookie = session.save(self, ctx.session)
-            if set_cookie:
+            if set_cookie := session.save(self, ctx.session):
                 headers.append(set_cookie)
         except Exception as e:
             ctx.request = self.config['ayame.request'](environ, {})
@@ -155,28 +153,27 @@ class Request:
         self.query = uri.parse_qs(environ)
         self.form_data = http.parse_form_data(environ)
         # retrieve ayame:path
+        self.path = None
         if self.method == 'GET':
-            self.path = self.query.get(core.AYAME_PATH)
+            if query := self.query.get(core.AYAME_PATH):
+                self.path = query[0]
         elif self.method == 'POST':
-            self.path = self.form_data.get(core.AYAME_PATH)
-        else:
-            self.path = None
-        if self.path:
-            self.path = self.path[0]
+            if ((data := self.form_data.get(core.AYAME_PATH))
+                and isinstance(data[0], str)):
+                self.path = data[0]
         self.locale = self._parse_locales(environ)
 
     def _parse_locales(self, environ):
-        values = http.parse_accept(environ.get('HTTP_ACCEPT_LANGUAGE'))
-        if values:
-            v = values[0][0]
+        if values := http.parse_accept(environ.get('HTTP_ACCEPT_LANGUAGE')):
+            loc = values[0][0]
             sep = '-'
         else:
-            v = locale.getlocale()[0]
+            loc = locale.getlocale()[0]
             sep = '_'
-        if v:
-            v = v.split(sep, 1)
-            return (v[0].lower(), v[1].upper() if len(v) > 1 else None)
-        return (None,) * 2
+        if loc:
+            v = loc.split(sep, 1)
+            return v[0].lower(), v[1].upper() if len(v) > 1 else None
+        return (None, None)
 
     @property
     def input(self):
@@ -193,7 +190,7 @@ class Request:
         self.close()
 
     def close(self):
-        for _, data in self.form_data.items():
+        for data in self.form_data.values():
             for v in data:
                 if isinstance(v, werkzeug.datastructures.FileStorage):
                     v.close()
