@@ -6,13 +6,19 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import collections
+from collections.abc import Sequence
 import html
 import operator
+from typing import TYPE_CHECKING, Any
 
 from . import core, markup, uri, util, validator
 from .exception import (ComponentError, ConversionError, RenderingError,
                         ValidationError)
+
+if TYPE_CHECKING:
+    from . import model as mm
 
 
 __all__ = ['Form', 'FormComponent', 'Button', 'FileUploadField', 'TextField',
@@ -47,11 +53,13 @@ _SELECTED = markup.QName(markup.XHTML_NS, 'selected')
 
 class Form(core.MarkupContainer):
 
-    def __init__(self, id, model=None):
+    _method: str | None
+
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         super().__init__(id, model)
         self._method = None
 
-    def on_fire(self):
+    def on_fire(self) -> None:
         form = self.element()
         if form is None:
             return
@@ -62,7 +70,7 @@ class Form(core.MarkupContainer):
         finally:
             self._method = None
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _FORM:
             raise RenderingError(self, "'form' element is expected")
         elif _METHOD not in element.attrib:
@@ -83,7 +91,8 @@ class Form(core.MarkupContainer):
         # render form
         return super().on_render(element)
 
-    def submit(self):
+    def submit(self) -> None:
+        values: dict[str, list[Any]]
         if not (self.request.method == self._method
                 or self.on_method_mismatch()):
             # abort
@@ -96,7 +105,7 @@ class Form(core.MarkupContainer):
             # unknown method
             return
 
-        queue = collections.deque((self,))
+        queue: collections.deque[core.Component] = collections.deque((self,))
         form = button = None
         valid = True
         while queue:
@@ -134,16 +143,16 @@ class Form(core.MarkupContainer):
                 button.on_error()
             self.on_error()
 
-    def on_method_mismatch(self):
+    def on_method_mismatch(self) -> bool:
         return True  # continue
 
-    def on_submit(self):
+    def on_submit(self) -> None:
         pass
 
-    def on_error(self):
+    def on_error(self) -> None:
         pass
 
-    def has_error(self):
+    def has_error(self) -> bool:
         for c, _ in self.walk():
             if (isinstance(c, FormComponent)
                 and c.error):
@@ -153,20 +162,24 @@ class Form(core.MarkupContainer):
 
 class FormComponent(core.MarkupContainer):
 
-    def __init__(self, id, model=None):
+    required: bool
+    type: type | None
+    error: ValidationError | None
+
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         super().__init__(id, model)
         self.required = False
         self.type = None
         self.error = None
 
-    def relative_path(self):
+    def relative_path(self) -> str:
         lis = [self.id]
         lis.extend(c.id for c in self.iter_parent(Form))
         # relative path from Form
         del lis[-1]
         return ':'.join(reversed(lis))
 
-    def validate(self, value):
+    def validate(self, value: Any) -> None:
         try:
             # check required
             if (self.required
@@ -190,13 +203,13 @@ class FormComponent(core.MarkupContainer):
                 self.model.object = o
             self.on_valid()
 
-    def on_valid(self):
+    def on_valid(self) -> None:
         pass
 
-    def on_invalid(self):
+    def on_invalid(self) -> None:
         pass
 
-    def convert(self, value):
+    def convert(self, value: Any) -> Any:
         if self.type is None:
             return value
 
@@ -205,12 +218,13 @@ class FormComponent(core.MarkupContainer):
         except ConversionError as e:
             raise self.conversion_error(e)
 
-    def required_error(self):
+    def required_error(self) -> ValidationError:
         e = ValidationError()
         e.keys.append('Required')
         return e
 
-    def conversion_error(self, ce):
+    def conversion_error(self, ce: ConversionError) -> ValidationError:
+        assert self.type is not None
         n = self.type.__name__
         e = ValidationError(str(ce))
         e.keys.append('Converter.' + n)
@@ -221,7 +235,7 @@ class FormComponent(core.MarkupContainer):
 
 class Button(FormComponent):
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname == _INPUT:
             if element.attrib[_TYPE] not in ('submit', 'button', 'image'):
                 raise RenderingError(self, "'input' element with 'type' attribute of 'submit', 'button' or 'image' is expected")
@@ -233,16 +247,16 @@ class Button(FormComponent):
         # render button
         return super().on_render(element)
 
-    def on_submit(self):
+    def on_submit(self) -> None:
         pass
 
-    def on_error(self):
+    def on_error(self) -> None:
         pass
 
 
 class FileUploadField(FormComponent):
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _INPUT:
             raise RenderingError(self, "'input' element is expected")
 
@@ -257,7 +271,7 @@ class TextField(FormComponent):
 
     input_type = 'text'
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _INPUT:
             raise RenderingError(self, "'input' element is expected")
 
@@ -281,7 +295,7 @@ class HiddenField(TextField):
 
 class TextArea(FormComponent):
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _TEXTAREA:
             raise RenderingError(self, "'textarea' element is expected")
 
@@ -295,11 +309,11 @@ class TextArea(FormComponent):
 
 class CheckBox(FormComponent):
 
-    def __init__(self, id, model=None):
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         super().__init__(id, model)
         self.type = bool
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _INPUT:
             raise RenderingError(self, "'input' element is expected")
         elif element.attrib[_TYPE] != 'checkbox':
@@ -317,7 +331,8 @@ class CheckBox(FormComponent):
 
 class Choice(FormComponent):
 
-    def __init__(self, id, model=None, choices=None, renderer=None):
+    def __init__(self, id: str, model: mm.Model | None = None,
+                 choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model)
         self.choices = choices if choices is not None else []
         self.renderer = renderer if renderer is not None else ChoiceRenderer()
@@ -325,11 +340,11 @@ class Choice(FormComponent):
         self.prefix = markup.Fragment()
         self.suffix = markup.Fragment()
 
-    def validate(self, value):
+    def validate(self, value: Any) -> None:
         if self.choices:
             super().validate(value)
 
-    def convert(self, value):
+    def convert(self, value: Any) -> Any:
         if self.multiple:
             values = set(value)
             selected = []
@@ -346,35 +361,37 @@ class Choice(FormComponent):
                 if self.renderer.value_of(i, choice) == v:
                     return choice
             raise self.choice_error()
+        return None
 
-    def choice_error(self):
+    def choice_error(self) -> ValidationError:
         e = ValidationError()
         e.keys.append(f'Choice.{"multiple" if self.multiple else "single"}')
         return e
 
-    def _id_prefix_for(self, element):
+    def _id_prefix_for(self, element: markup.Element) -> str:
         return element.attrib.get(_ID) or 'ayame-' + util.new_token()[:7]
 
-    def render_element(self, element, index, choice):
+    def render_element(self, element: markup.Element, index: int, choice: Any) -> markup.Element:
         return element
 
 
 class ChoiceRenderer:
 
-    def label_for(self, object):
+    def label_for(self, object: Any) -> Any:
         return object if object is not None else ''
 
-    def value_of(self, index, object):
+    def value_of(self, index: int, object: Any) -> str:
         return str(index)
 
 
 class RadioChoice(Choice):
 
-    def __init__(self, id, model=None, choices=None, renderer=None):
+    def __init__(self, id: str, model: mm.Model | None = None,
+                 choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model, choices, renderer)
         self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         # clear children
         element.children.clear()
 
@@ -415,11 +432,12 @@ class RadioChoice(Choice):
 
 class CheckBoxChoice(Choice):
 
-    def __init__(self, id, model=None, choices=None, renderer=None):
+    def __init__(self, id: str, model: mm.Model | None = None,
+                 choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model, choices, renderer)
         self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         # clear children
         element.children.clear()
 
@@ -462,10 +480,11 @@ class CheckBoxChoice(Choice):
 
 class SelectChoice(Choice):
 
-    def __init__(self, id, model=None, choices=None, renderer=None):
+    def __init__(self, id: str, model: mm.Model | None = None,
+                 choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model, choices, renderer)
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if element.qname != _SELECT:
             raise RenderingError(self, "'select' element is expected")
 

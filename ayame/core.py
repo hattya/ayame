@@ -6,12 +6,20 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import collections
+import collections.abc
+from collections.abc import Callable, Iterable, Iterator, MutableMapping
 import html
+from typing import TYPE_CHECKING, cast, Any, TypeAlias
 import wsgiref.headers
 
 from . import http, local, markup, model as mm, util
+from ._typing import Headers, Self, WSGIEnvironment
 from .exception import AyameError, ComponentError, RenderingError
+
+if TYPE_CHECKING:
+    from . import app as am, converter, i18n, res, session
 
 
 __all__ = ['AYAME_PATH', 'Component', 'MarkupContainer', 'Page', 'Behavior',
@@ -23,7 +31,11 @@ AYAME_PATH = 'ayame:path'
 
 class Component:
 
-    def __init__(self, id, model=None):
+    __model: mm.Model | None
+    parent: MarkupContainer | None
+    behaviors: list[Behavior]
+
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         if not (isinstance(self, Page)
                 or id):
             raise ComponentError(self, 'component id is not set')
@@ -37,11 +49,11 @@ class Component:
         self.behaviors = []
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self.__id
 
     @property
-    def model(self):
+    def model(self) -> mm.Model | None:
         if self.__model is not None:
             return self.__model
 
@@ -49,9 +61,10 @@ class Component:
             if isinstance(curr.model, mm.InheritableModel):
                 self.__model = curr.model.wrap(self)
                 return self.__model
+        return None
 
     @model.setter
-    def model(self, model):
+    def model(self, model: mm.Model | None) -> None:
         if not (model is None
                 or isinstance(model, mm.Model)):
             self.__model = None
@@ -63,7 +76,7 @@ class Component:
         if (isinstance(self, MarkupContainer)
             and (prev
                  and isinstance(prev, mm.InheritableModel))):
-            queue = collections.deque((self,))
+            queue: collections.deque[Component] = collections.deque((self,))
             while queue:
                 c = queue.pop()
                 # reset model
@@ -75,46 +88,47 @@ class Component:
                     queue.extend(reversed(c.children))
 
     @property
-    def model_object(self):
+    def model_object(self) -> Any:
         return self.model.object if self.model is not None else None
 
     @model_object.setter
-    def model_object(self, object):
+    def model_object(self, object: Any) -> None:
         if self.model is None:
             raise ComponentError(self, 'model is not set')
         self.model.object = object
 
     @property
-    def app(self):
+    def app(self) -> am.Ayame:
         return local.app()
 
     @property
-    def config(self):
+    def config(self) -> dict[str, Any]:
         return self.app.config
 
     @property
-    def environ(self):
+    def environ(self) -> WSGIEnvironment:
         return self.app.environ
 
     @property
-    def request(self):
+    def request(self) -> am.Request:
         return self.app.request
 
     @property
-    def session(self):
+    def session(self) -> session.Session:
         return self.app.session
 
-    def add(self, *args):
+    def add(self, *args: Any) -> Self:
         for o in args:
             if isinstance(o, Behavior):
                 self.behaviors.append(o)
                 o.component = self
         return self
 
-    def converter_for(self, value):
-        return self.config['ayame.converter.registry'].converter_for(value)
+    def converter_for(self, value: Any) -> converter.Converter:
+        registry: converter.ConverterRegistry = self.config['ayame.converter.registry']
+        return registry.converter_for(value)
 
-    def element(self):
+    def element(self) -> markup.Element | None:
         # find MarkupContainer which has markup
         path = [self.id]
         for par in self.iter_parent():
@@ -122,27 +136,27 @@ class Component:
                 break
             path.append(par.id)
         else:
-            return
+            return None
         path.reverse()
         # find form element
         m = par.load_markup()
         if m.root is None:
             # markup is empty
-            return
+            return None
         el = m.root
         while path:
             for el, _ in el.walk():
                 if el.attrib.get(markup.AYAME_ID) == path[0]:
                     break
             else:
-                return
+                return None
             del path[0]
         return el
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Any) -> None:
         self.app.forward(*args, **kwargs)
 
-    def iter_parent(self, cls=None):
+    def iter_parent(self, cls: type[Component] | None = None) -> Iterator[MarkupContainer]:
         curr = self.parent
         if cls is None:
             while curr is not None:
@@ -156,67 +170,69 @@ class Component:
                 curr = curr.parent
             raise ComponentError(self, f"component is not attached to '{util.fqon_of(cls)}'")
 
-    def model_object_as_string(self):
+    def model_object_as_string(self) -> str:
         if (o := self.model_object) is not None:
             if not isinstance(o, str):
                 o = self.converter_for(o).to_string(o)
             return html.escape(o) if self.escape_model_string else o
         return ''
 
-    def page(self):
+    def page(self) -> Page:
         if isinstance(self, Page):
             return self
         for par in self.iter_parent(Page):
             pass
-        return par
+        return cast(Page, par)
 
-    def path(self):
+    def path(self) -> str:
         lis = [self]
         lis.extend(self.iter_parent())
         if isinstance(lis[-1], Page):
             del lis[-1]
         return ':'.join(c.id for c in reversed(lis))
 
-    def redirect(self, *args, **kwargs):
+    def redirect(self, *args: Any, **kwargs: Any) -> None:
         self.app.redirect(*args, **kwargs)
 
-    def fire(self):
+    def fire(self) -> None:
         if (self.request.path == self.path()
             and self.visible):
             self.on_fire()
 
-    def on_fire(self):
+    def on_fire(self) -> None:
         pass
 
-    def render(self, element):
+    def render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         self.on_configure()
         if self.visible:
             self.on_before_render()
             rv = self.on_render(element)
             self.on_after_render()
             return rv
+        return None
 
-    def on_configure(self):
+    def on_configure(self) -> None:
         for b in self.behaviors:
             b.on_configure(self)
 
-    def on_before_render(self):
+    def on_before_render(self) -> None:
         for b in self.behaviors:
             b.on_before_render(self)
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         for b in self.behaviors:
             b.on_component(self, element)
         return element
 
-    def on_after_render(self):
+    def on_after_render(self) -> None:
         for b in self.behaviors:
             b.on_after_render(self)
 
-    def tr(self, key, component=None):
-        return self.config['ayame.i18n.localizer'].get(component if component is not None else self, self.request.locale, key)
+    def tr(self, key: str, component: Component | None = None) -> str | None:
+        localizer: i18n.Localizer = self.config['ayame.i18n.localizer']
+        return localizer.get(component if component is not None else self, self.request.locale, key)
 
-    def uri_for(self, *args, **kwargs):
+    def uri_for(self, *args: Any, **kwargs: Any) -> str | None:
         return self.app.uri_for(*args, **kwargs)
 
 
@@ -224,7 +240,11 @@ class MarkupContainer(Component):
 
     markup_type = markup.MarkupType('.html', 'text/html', ())
 
-    def __init__(self, id, model=None):
+    children: list[Component]
+    _ref: dict[str, Component]
+    __head: markup.Element | None
+
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         super().__init__(id, model)
         self.children = []
         self.has_markup = False
@@ -232,16 +252,16 @@ class MarkupContainer(Component):
         self.__head = None
 
     @property
-    def head(self):
+    def head(self) -> markup.Element:
         if self.__head is None:
             raise RenderingError(self, "'head' element is not found")
         return self.__head
 
     @head.setter
-    def head(self, head):
+    def head(self, head: markup.Element | None) -> None:
         self.__head = head
 
-    def add(self, *args):
+    def add(self, *args: Any) -> Self:
         for o in args:
             if isinstance(o, Component):
                 if o.id in self._ref:
@@ -253,7 +273,7 @@ class MarkupContainer(Component):
                 super().add(o)
         return self
 
-    def find(self, path):
+    def find(self, path: str | None) -> Component:
         if not path:
             return self
         p = path.split(':', 1)
@@ -262,8 +282,8 @@ class MarkupContainer(Component):
             return c.find(tail) if isinstance(c, MarkupContainer) else c
         raise ComponentError(self, f"component for '{path}' is not found")
 
-    def walk(self, step=None):
-        queue = collections.deque(((self, 0),))
+    def walk(self, step: Callable[[Component, int], bool] | None = None) -> Iterator[tuple[Component, int]]:
+        queue: collections.deque[tuple[Component, int]] = collections.deque(((self, 0),))
         while queue:
             component, depth = queue.pop()
             yield component, depth
@@ -274,7 +294,7 @@ class MarkupContainer(Component):
                 queue.extend((c, depth + 1)
                              for c in reversed(component.children))
 
-    def fire(self):
+    def fire(self) -> None:
         if self.request.path:
             # fire component
             try:
@@ -283,25 +303,28 @@ class MarkupContainer(Component):
             except ComponentError:
                 pass
 
-    def on_configure(self):
+    def on_configure(self) -> None:
         super().on_configure()
         for c in self.children:
             c.on_configure()
 
-    def on_before_render(self):
+    def on_before_render(self) -> None:
         super().on_before_render()
         for c in self.children:
             if c.visible:
                 c.on_before_render()
 
-    def on_render(self, element):
-        def push(queue, node):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
+        V: TypeAlias = tuple[markup.Element | None, int, markup.Element]
+        Q: TypeAlias = collections.deque[V]
+
+        def push(queue: Q, node: Any) -> None:
             if isinstance(node, markup.Element):
                 for i in range(len(node) - 1, -1, -1):
                     if isinstance((n := node[i]), markup.Element):
                         queue.append((node, i, n))
 
-        def pop_while(queue, parent):
+        def pop_while(queue: Q, parent: markup.Element | None) -> Iterator[V]:
             while queue:
                 v = queue.pop()
                 if v[0] != parent:
@@ -312,7 +335,8 @@ class MarkupContainer(Component):
         # notify behaviors
         rv = super().on_render(element)
 
-        queue = collections.deque()
+        iv: markup.Node | list[markup.Node] | None
+        queue: Q = collections.deque()
         if isinstance(rv, markup.Element):
             queue.append((None, -1, rv))
         while queue:
@@ -375,8 +399,8 @@ class MarkupContainer(Component):
                     push(queue, v)
         return rv
 
-    def on_render_element(self, element):
-        def get(e, a, keep=True):
+    def on_render_element(self, element: markup.Element) -> markup.Element | list[markup.Node] | None:
+        def get(e: markup.Element, a: markup.QName, keep: bool = True) -> str | None:
             if a in e.attrib:
                 return e.attrib[a] if keep else e.attrib.pop(a)
             raise RenderingError(self, f"'ayame:{a.name}' attribute is required for 'ayame:{e.qname.name}' element")
@@ -396,7 +420,7 @@ class MarkupContainer(Component):
             return element
         raise RenderingError(self, f"unknown element 'ayame:{element.qname.name}'")
 
-    def on_render_attrib(self, element):
+    def on_render_attrib(self, element: markup.Element) -> tuple[str | None, markup.Node | list[markup.Node] | None]:
         ayame_id = element.attrib.get(markup.AYAME_ID)
         if markup.AYAME_MESSAGE in element.attrib:
             # prepare AttributeModifier
@@ -411,7 +435,7 @@ class MarkupContainer(Component):
             return self.render_component(element)
         return None, element
 
-    def render_component(self, element):
+    def render_component(self, element: markup.Element) -> tuple[str | None, markup.Node | list[markup.Node] | None]:
         # retrieve ayame:id attribute
         ayame_id = None
         for a in tuple(element.attrib):
@@ -432,23 +456,23 @@ class MarkupContainer(Component):
         rv = c.on_render(element)
         return ayame_id, rv.children if c.render_body_only and isinstance(rv, markup.Element) else rv
 
-    def on_after_render(self):
+    def on_after_render(self) -> None:
         super().on_after_render()
         for c in self.children:
             if c.visible:
                 c.on_after_render()
 
-    def load_markup(self):
-        def step(el, _):
+    def load_markup(self) -> markup.Markup:
+        def step(el: markup.Element, _: int) -> bool:
             return el.qname not in (markup.AYAME_CHILD, markup.AYAME_HEAD)
 
-        rl = self.config['ayame.resource.loader']
-        ml = self.config['ayame.markup.loader']()
-        enc = self.config['ayame.markup.encoding']
-        sep = self.config['ayame.markup.separator']
-        cache = self.config['ayame.markup.cache']
+        rl: res.ResourceLoader = self.config['ayame.resource.loader']
+        ml: markup.MarkupLoader = self.config['ayame.markup.loader']()
+        enc: str = self.config['ayame.markup.encoding']
+        sep: str = self.config['ayame.markup.separator']
+        cache: MutableMapping[str, tuple[float, markup.Markup]] = self.config['ayame.markup.cache']
         cls = type(self)
-        extra_head = []
+        extra_head: list[markup.Node] = []
         ayame_head = ayame_child = None
         while True:
             if cls.markup_type.scope:
@@ -477,7 +501,7 @@ class MarkupContainer(Component):
                 # markup is empty
                 break
 
-            stack = []
+            stack: list[markup.Element] = []
             ayame_head = ayame_extend = None
             for el, depth in m.root.walk(step=step):
                 stack[depth:] = (el,)
@@ -523,6 +547,7 @@ class MarkupContainer(Component):
         if extra_head:
             if ayame_head is None:
                 # merge to head element
+                assert m.root is not None
                 for node in m.root.children:
                     if (isinstance(node, markup.Element)
                         and node.qname == markup.HEAD):
@@ -536,7 +561,7 @@ class MarkupContainer(Component):
                 ayame_head.extend(extra_head)
         return m
 
-    def find_head(self, root):
+    def find_head(self, root: markup.Element | None) -> markup.Element | None:
         if not (isinstance(root, markup.Element)
                 and root.qname == markup.HTML):
             raise RenderingError(self, "root element is not 'html'")
@@ -546,11 +571,12 @@ class MarkupContainer(Component):
                 and node.qname == markup.HEAD):
                 node.type = markup.Element.OPEN
                 return node
+        return None
 
 
 class _MessageContainer(MarkupContainer):
 
-    def __init__(self, id, key=None):
+    def __init__(self, id: str, key: str | None = None) -> None:
         if key is not None:
             # ayame:message element
             super().__init__(id, mm.Model(key))
@@ -560,8 +586,9 @@ class _MessageContainer(MarkupContainer):
             super().__init__(id)
             self.add(_AttributeLocalizer())
 
-    def on_render(self, element):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         if (k := self.model_object) is not None:
+            assert self.parent is not None
             if (v := self.parent.tr(k)) is not None:
                 element.children[:] = (v,)
                 return element
@@ -572,27 +599,31 @@ class _MessageContainer(MarkupContainer):
 
 class Page(MarkupContainer):
 
-    def __init__(self):
+    __headers: Headers
+
+    def __init__(self) -> None:
         super().__init__('')
         self.has_markup = True
         self.status = http.OK.status
         self.__headers = []
         self.headers = wsgiref.headers.Headers(self.__headers)
 
-    def __call__(self):
+    def __call__(self) -> tuple[str, Headers, Iterable[bytes]]:
         self.fire()
         # load markup and render components
         if (m := self.load_markup()).root is not None:
             # find head element for ayame:head element
             self.head = self.find_head(m.root)
-            m.root = super().render(m.root)
+            rv = super().render(m.root)
+            assert isinstance(rv, markup.Element)
+            m.root = rv
             # remove ayame namespace from root element
             for pfx in tuple(m.root.ns):
                 if m.root.ns[pfx] == markup.AYAME_NS:
                     del m.root.ns[pfx]
             # render markup
-            mr = self.config['ayame.markup.renderer']()
-            pretty = self.config['ayame.markup.pretty']
+            mr: markup.MarkupRenderer = self.config['ayame.markup.renderer']()
+            pretty: bool = self.config['ayame.markup.pretty']
             content = mr.render(self, m, pretty=pretty)
         else:
             # markup is empty
@@ -605,59 +636,61 @@ class Page(MarkupContainer):
 
 class Behavior:
 
-    def __init__(self):
+    component: Component | None
+
+    def __init__(self) -> None:
         self.component = None
 
     @property
-    def app(self):
+    def app(self) -> am.Ayame:
         return local.app()
 
     @property
-    def config(self):
+    def config(self) -> dict[str, Any]:
         return self.app.config
 
     @property
-    def environ(self):
+    def environ(self) -> WSGIEnvironment:
         return self.app.environ
 
     @property
-    def request(self):
+    def request(self) -> am.Request:
         return self.app.request
 
     @property
-    def session(self):
+    def session(self) -> session.Session:
         return self.app.session
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Any) -> None:
         return self.app.forward(*args, **kwargs)
 
-    def on_configure(self, component):
+    def on_configure(self, component: Component) -> None:
         pass
 
-    def on_before_render(self, component):
+    def on_before_render(self, component: Component) -> None:
         pass
 
-    def on_component(self, component, element):
+    def on_component(self, component: Component, element: markup.Element) -> None:
         pass
 
-    def on_after_render(self, component):
+    def on_after_render(self, component: Component) -> None:
         pass
 
-    def redirect(self, *args, **kwargs):
+    def redirect(self, *args: Any, **kwargs: Any) -> None:
         return self.app.redirect(*args, **kwargs)
 
-    def uri_for(self, *args, **kwargs):
+    def uri_for(self, *args: Any, **kwargs: Any) -> str | None:
         return self.app.uri_for(*args, **kwargs)
 
 
 class AttributeModifier(Behavior):
 
-    def __init__(self, attr, model):
+    def __init__(self, attr: markup.QName | str, model: mm.Model | None) -> None:
         super().__init__()
         self._attr = attr
         self._model = model
 
-    def on_component(self, component, element):
+    def on_component(self, component: Component, element: markup.Element) -> None:
         a = self._attr if isinstance(self._attr, markup.QName) else markup.QName(element.qname.ns_uri, self._attr)
         v = self._model.object if self._model is not None else None
 
@@ -666,13 +699,13 @@ class AttributeModifier(Behavior):
         elif a in element.attrib:
             del element.attrib[a]
 
-    def new_value(self, value, new_value):
+    def new_value(self, value: str | None, new_value: str | None) -> str | None:
         return new_value
 
 
 class _AttributeLocalizer(Behavior):
 
-    def on_component(self, component, element):
+    def on_component(self, component: Component, element: markup.Element) -> None:
         for s in v.split(',') if (v := element.attrib.pop(markup.AYAME_MESSAGE)) else []:
             try:
                 name, key = s.rsplit(':', 1)
@@ -684,7 +717,7 @@ class _AttributeLocalizer(Behavior):
 
 class nested:
 
-    def __init__(self, attr):
+    def __init__(self, attr: Any) -> None:
         if (not isinstance(attr, type)
             or not issubclass(attr, MarkupContainer)
             or attr is MarkupContainer):
@@ -692,7 +725,7 @@ class nested:
         self._attr = attr
         self._arranged = False
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance: Any, owner: type) -> Any:
         attr = self._attr
         if (not self._arranged
             and issubclass(owner, MarkupContainer)):

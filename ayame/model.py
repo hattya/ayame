@@ -6,7 +6,12 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from . import core
 
 
 __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
@@ -14,57 +19,57 @@ __all__ = ['Model', 'InheritableModel', 'WrapModel', 'CompoundModel']
 
 class Model:
 
-    def __init__(self, object):
+    def __init__(self, object: Any) -> None:
         self.__object = object
 
     @property
-    def object(self):
+    def object(self) -> Any:
         return self.__object.object if isinstance(self.__object, Model) else self.__object
 
     @object.setter
-    def object(self, object):
+    def object(self, object: Any) -> None:
         self.__object = object
 
 
 class InheritableModel(Model, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def wrap(self, component):
+    def wrap(self, component: core.Component) -> WrapModel:
         raise NotImplementedError
 
 
 class WrapModel(Model, metaclass=abc.ABCMeta):
 
-    def __init__(self, model):
+    def __init__(self, model: Model) -> None:
         super().__init__(None)
         self.__wrapped_model = model
 
     @property
-    def wrapped_model(self):
+    def wrapped_model(self) -> Model:
         return self.__wrapped_model
 
     @property
     @abc.abstractmethod
-    def object(self):
+    def object(self) -> Any:
         raise NotImplementedError
 
     @object.setter
     @abc.abstractmethod
-    def object(self, object):
+    def object(self, object: Any) -> None:
         raise NotImplementedError
 
 
 class CompoundModel(InheritableModel):
 
-    def wrap(self, component):
+    def wrap(self, component: core.Component) -> WrapModel:
         class CompoundWrapModel(WrapModel):
 
-            def __init__(self, model):
+            def __init__(self, model: Model) -> None:
                 super().__init__(model)
                 self._component = component
 
             @property
-            def object(self):
+            def object(self) -> Any:
                 o = self.wrapped_model.object
                 name = self._component.id
                 # instance variable
@@ -85,8 +90,10 @@ class CompoundModel(InheritableModel):
                 except (AttributeError, LookupError):
                     pass
 
+                return None
+
             @object.setter
-            def object(self, object):
+            def object(self, object: Any) -> None:
                 o = self.wrapped_model.object
                 name = self._component.id
                 # instance variable

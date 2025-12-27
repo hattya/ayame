@@ -6,14 +6,18 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
+from collections.abc import Callable, Iterable
 import locale
 import os
 import sys
+from typing import Any, AnyStr
 
 import werkzeug.datastructures
 
 from . import (converter, core, http, i18n, local, markup, page, res, route,
                session, uri, util)
+from ._typing import Headers, Locale, OptExcInfo, Self, InputStream, StartResponse, WSGIEnvironment
 from .exception import AyameError, _Redirect
 
 
@@ -22,10 +26,12 @@ __all__ = ['Ayame', 'Request']
 
 class Ayame:
 
-    def __init__(self, name):
+    config: dict[str, Any]
+
+    def __init__(self, name: str) -> None:
         self._name = name
         try:
-            self._root = os.path.abspath(os.path.dirname(sys.modules[name].__file__))
+            self._root = os.path.abspath(os.path.dirname(sys.modules[name].__file__ or ''))
         except (AttributeError, KeyError):
             self._root = os.getcwd()
         session_dir = os.path.join(self._root, 'session')
@@ -55,28 +61,29 @@ class Ayame:
         }
 
     @property
-    def context(self):
+    def context(self) -> local.Context:
         return local.context()
 
     @property
-    def environ(self):
+    def environ(self) -> WSGIEnvironment:
         return self.context.environ
 
     @property
-    def request(self):
+    def request(self) -> Request:
         return self.context.request
 
     @property
-    def session(self):
+    def session(self) -> session.Session:
         return self.context.session
 
     @property
-    def _router(self):
+    def _router(self) -> route.Router:
         return self.context._router
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         ctx = local.push(self, environ)
-        ctx._router = self.config['ayame.route.map'].bind(environ)
+        map: route.Map = self.config['ayame.route.map']
+        ctx._router = map.bind(environ)
         try:
             o, values = ctx._router.match()
             ctx.request = self.config['ayame.request'](environ, values)
@@ -110,7 +117,7 @@ class Ayame:
         start_response(status, headers, exc_info)
         return content
 
-    def handle_request(self, object):
+    def handle_request(self, object: Any) -> tuple[str, Headers, Iterable[bytes]]:
         if isinstance(object, type):
             if issubclass(object, core.Page):
                 object = object()
@@ -118,12 +125,13 @@ class Ayame:
                 # type is callable, so it might cause unexpected error
                 object = None
         if callable(object):
-            return object()
+            func: Callable[[], tuple[str, Headers, Iterable[bytes]]] = object
+            return func()
         raise http.NotFound(uri.request_path(self.environ))
 
-    def handle_error(self, error):
+    def handle_error(self, error: Exception) -> tuple[str, Headers, OptExcInfo | None, Iterable[bytes]]:
         if isinstance(error, http.HTTPStatus):
-            page = self.config['ayame.page.http'](error)
+            page: core.Page = self.config['ayame.page.http'](error)
             status, headers, content = page()
             exc_info = None
         else:
@@ -131,13 +139,14 @@ class Ayame:
             exc_info = sys.exc_info()
         return status, headers, exc_info, content
 
-    def forward(self, object, values=None, anchor=None):
+    def forward(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None) -> None:
         raise _Redirect(object, values, anchor, _Redirect.INTERNAL)
 
-    def redirect(self, object, values=None, anchor=None, permanent=False):
+    def redirect(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None,
+                 permanent: bool = False) -> None:
         raise _Redirect(object, values, anchor, _Redirect.PERMANENT if permanent else _Redirect.TEMPORARY)
 
-    def uri_for(self, *args, **kwargs):
+    def uri_for(self, *args: Any, **kwargs: Any) -> str:
         return self._router.build(*args, **kwargs)
 
 
@@ -146,7 +155,7 @@ class Request:
     __slots__ = ('environ', 'method', 'uri', 'query', 'form_data', 'path',
                  'locale')
 
-    def __init__(self, environ, values):
+    def __init__(self, environ: WSGIEnvironment, values: dict[str, Any]) -> None:
         self.environ = environ
         self.method = environ['REQUEST_METHOD']
         self.uri = values
@@ -163,7 +172,8 @@ class Request:
                 self.path = data[0]
         self.locale = self._parse_locales(environ)
 
-    def _parse_locales(self, environ):
+    def _parse_locales(self, environ: WSGIEnvironment) -> Locale:
+        loc: str | None
         if values := http.parse_accept(environ.get('HTTP_ACCEPT_LANGUAGE')):
             loc = values[0][0]
             sep = '-'
@@ -176,20 +186,21 @@ class Request:
         return (None, None)
 
     @property
-    def input(self):
-        return self.environ['wsgi.input']
+    def input(self) -> InputStream:
+        input: InputStream = self.environ['wsgi.input']
+        return input
 
     @property
-    def session(self):
+    def session(self) -> session.Session:
         return local.context().session
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, *exc_info: object) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         for data in self.form_data.values():
             for v in data:
                 if isinstance(v, werkzeug.datastructures.FileStorage):

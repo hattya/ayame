@@ -6,14 +6,18 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
 import datetime
+from importlib.abc import Loader
 import io
 import os
 import sys
 import time
 import types
+from typing import cast, Any, IO
 import zipfile
+import zipimport
 
 from .exception import ResourceError
 
@@ -23,7 +27,7 @@ __all__ = ['ResourceLoader', 'Resource', 'FileResource', 'ZipFileResource']
 
 class ResourceLoader:
 
-    def load(self, object, path):
+    def load(self, object: Any, path: str) -> Resource:
         if isinstance(object, types.ModuleType):
             m = object
             is_module = True
@@ -59,57 +63,58 @@ class ResourceLoader:
             raise ResourceError(f"cannot load '{path}' from loader {loader!r}")
         return r
 
-    def load_from(self, loader, parent, path):
+    def load_from(self, loader: Loader | None, parent: str, path: str) -> Resource | None:
         if (loader is None
             or (type(loader).__module__.startswith('_frozen_importlib')
                 and type(loader).__name__ == 'SourceFileLoader')):
             return FileResource(os.path.join(parent, path))
         elif (type(loader).__module__ == 'zipimport'
               and type(loader).__name__ == 'zipimporter'):
-            return ZipFileResource(loader, path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
+            return ZipFileResource(cast(zipimport.zipimporter, loader), path if os.path.sep == '/' else path.replace(os.path.sep, '/'))
+        return None
 
 
 class Resource(metaclass=abc.ABCMeta):
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         self._path = path
         self._mtime = 0.0
 
     @property
-    def path(self):
+    def path(self) -> str:
         return self._path
 
     @property
-    def mtime(self):
+    def mtime(self) -> float:
         return self._mtime
 
     @abc.abstractmethod
-    def open(self, encoding='utf-8'):
+    def open(self, encoding: str = 'utf-8') -> IO[str]:
         raise NotImplementedError
 
 
 class FileResource(Resource):
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
         try:
             self._mtime = os.stat(self._path).st_mtime
         except OSError:
             raise self._error()
 
-    def open(self, encoding='utf-8'):
+    def open(self, encoding: str = 'utf-8') -> IO[str]:
         try:
             return open(self._path, encoding=encoding)
         except OSError:
             raise self._error()
 
-    def _error(self):
+    def _error(self) -> ResourceError:
         return ResourceError(f"cannot load '{self._path}'")
 
 
 class ZipFileResource(Resource):
 
-    def __init__(self, loader, path):
+    def __init__(self, loader: zipimport.zipimporter, path: str) -> None:
         super().__init__(path)
         self._loader = loader
         try:
@@ -119,11 +124,11 @@ class ZipFileResource(Resource):
         except (KeyError, OSError):
             raise self._error()
 
-    def open(self, encoding='utf-8'):
+    def open(self, encoding: str = 'utf-8') -> IO[str]:
         try:
             return io.StringIO(str(self._loader.get_data(self._path), encoding))
         except OSError:
             raise self._error()
 
-    def _error(self):
+    def _error(self) -> ResourceError:
         return ResourceError(f"cannot load '{self._path}' from loader {self._loader!r}")

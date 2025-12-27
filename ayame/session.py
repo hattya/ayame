@@ -6,24 +6,40 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
+from typing import TYPE_CHECKING, Protocol
+
 import werkzeug.http
-from secure_cookie.session import FilesystemSessionStore as FileSystemSessionStore
+from secure_cookie.session import FilesystemSessionStore as FileSystemSessionStore, Session
+
+from ._typing import WSGIEnvironment
+
+if TYPE_CHECKING:
+    from . import app as am
 
 
-__all__ = ['get', 'save', 'FileSystemSessionStore']
+__all__ = ['get', 'save', 'FileSystemSessionStore', 'Session']
 
 
-def get(app, environ):
-    store = app.config['ayame.session.store']
+class SessionStore(Protocol):
+
+    def new(self) -> Session: ...
+    def get(self, sid: str) -> Session: ...
+    def save(self, sess: Session) -> None: ...
+
+
+def get(app: am.Ayame, environ: WSGIEnvironment) -> Session:
+    store: SessionStore = app.config['ayame.session.store']
     c = werkzeug.http.parse_cookie(environ.get('HTTP_COOKIE', ''))
     sid = c.get(app.config['ayame.session.name'])
     return store.new() if sid is None else store.get(sid)
 
 
-def save(app, sess):
-    if not sess.should_save:
-        return
-    app.config['ayame.session.store'].save(sess)
+def save(app: am.Ayame, sess: Session) -> tuple[str, str] | None:
+    if not sess.modified:
+        return None
+    store: SessionStore = app.config['ayame.session.store']
+    store.save(sess)
     return 'Set-Cookie', werkzeug.http.dump_cookie(app.config['ayame.session.name'],
                                                    sess.sid,
                                                    app.config['ayame.session.max_age'],

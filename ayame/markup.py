@@ -6,14 +6,19 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
 import collections
 import collections.abc
+from collections.abc import Callable, Iterable, Iterator, Mapping
+import dataclasses
 import html.parser
 import io
 import re
+from typing import overload, Any, ClassVar, IO, NamedTuple, TypeAlias
 
 from . import util
+from ._typing import Self
 from .exception import MarkupError, RenderingError
 
 
@@ -22,8 +27,10 @@ __all__ = ['XML_NS', 'XHTML_NS', 'AYAME_NS', 'XHTML1_STRICT', 'QName',
            'AYAME_EXTEND', 'AYAME_CHILD', 'AYAME_PANEL', 'AYAME_BORDER',
            'AYAME_BODY', 'AYAME_HEAD', 'AYAME_MESSAGE', 'AYAME_REMOVE',
            'AYAME_ID', 'AYAME_KEY', 'MarkupType', 'Markup', 'Element',
-           'Fragment', 'MarkupLoader', 'MarkupRenderer', 'Space',
+           'Fragment', 'MarkupLoader', 'MarkupRenderer', 'Node', 'Space',
            'MarkupHandler', 'MarkupPrettifier', 'XMLHandler', 'XHTML1Handler']
+
+Node: TypeAlias = 'Element | str'
 
 # namespace URI
 XML_NS = 'http://www.w3.org/XML/1998/namespace'
@@ -101,11 +108,12 @@ _xhtml1_Block_all = _xhtml1_Block | _xhtml1__Flow__ | frozenset(('dt', 'legend',
 _xhtml1__PCDATA__all = _xhtml1__Inline__ | _xhtml1__Flow__ | _xhtml1__PCDATA__ | frozenset(('object', 'fieldset'))
 
 
-class QName(collections.namedtuple('QName', 'ns_uri, name')):
+class QName(NamedTuple):
 
-    __slots__ = ()
+    ns_uri: str
+    name: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{{{self.ns_uri}}}{self.name}'
 
 
@@ -133,20 +141,29 @@ AYAME_KEY = QName(AYAME_NS, 'key')
 # AYAME_MESSAGE = QName(AYAME_NS, 'message')
 
 
-MarkupType = collections.namedtuple('MarkupType', 'extension, mime_type, scope')
+class MarkupType(NamedTuple):
+
+    extension: str
+    mime_type: str
+    scope: tuple[type, ...]
 
 
 class Markup:
 
     __slots__ = ('xml_decl', 'lang', 'doctype', 'root')
 
-    def __init__(self):
+    xml_decl: dict[str, str]
+    lang: str
+    doctype: str
+    root: Element | None
+
+    def __init__(self) -> None:
         self.xml_decl = {}
         self.lang = ''
         self.doctype = ''
         self.root = None
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         m = type(self)()
         m.xml_decl = self.xml_decl.copy()
         m.lang = self.lang
@@ -155,10 +172,10 @@ class Markup:
             m.root = self.root.copy()
         return m
 
-    def __getstate__(self):
+    def __getstate__(self) -> tuple[dict[str, str], str, str, Element | None]:
         return self.xml_decl, self.lang, self.doctype, self.root
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: tuple[dict[str, str], str, str, Element | None]) -> None:
         self.xml_decl, self.lang, self.doctype, self.root = state
 
     copy = __copy__
@@ -171,7 +188,10 @@ class Element:
     OPEN = 1 << 0
     EMPTY = 1 << 1
 
-    def __init__(self, qname, attrib=None, type=None, ns=None):
+    children: list[Node]
+
+    def __init__(self, qname: QName, attrib: Mapping[QName | str, str | None] | None = None,
+                 type: int | None = None, ns: dict[str, str] | None = None) -> None:
         self.qname = qname
         self.attrib = _AttributeDict()
         if attrib:
@@ -182,25 +202,35 @@ class Element:
             self.ns.update(ns)
         self.children = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{util.fqon_of(self)} {self.qname!r} at 0x{id(self):x}>'
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return True
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.children.__len__()
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: int) -> Node: ...
+    @overload
+    def __getitem__(self, key: slice) -> list[Node]: ...
+
+    def __getitem__(self, key: Any) -> Any:
         return self.children.__getitem__(key)
 
-    def __setitem__(self, key, value):
+    @overload
+    def __setitem__(self, key: int, value: Node) -> None: ...
+    @overload
+    def __setitem__(self, key: slice, value: Iterable[Node]) -> None: ...
+
+    def __setitem__(self, key: Any, value: Any) -> None:
         self.children.__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: int | slice) -> None:
         self.children.__delitem__(key)
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         el = type(self)(self.qname)
         el.attrib = self.attrib.copy()
         el.type = self.type
@@ -209,27 +239,27 @@ class Element:
                        for n in self.children]
         return el
 
-    def __getstate__(self):
+    def __getstate__(self) -> tuple[QName, _AttributeDict, int | None, dict[str, str], list[Node]]:
         return self.qname, self.attrib, self.type, self.ns, self.children
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: tuple[QName, _AttributeDict, int | None, dict[str, str], list[Node]]) -> None:
         self.qname, self.attrib, self.type, self.ns, self.children = state
 
     copy = __copy__
 
-    def append(self, node):
+    def append(self, node: Node) -> None:
         self.children.append(node)
 
-    def extend(self, nl):
+    def extend(self, nl: Iterable[Node]) -> None:
         self.children.extend(nl)
 
-    def insert(self, i, node):
+    def insert(self, i: int, node: Node) -> None:
         self.children.insert(i, node)
 
-    def remove(self, node):
+    def remove(self, node: Node) -> None:
         self.children.remove(node)
 
-    def walk(self, step=None):
+    def walk(self, step: Callable[[Element, int], bool] | None = None) -> Iterator[tuple[Element, int]]:
         queue = collections.deque(((self, 0),))
         while queue:
             element, depth = queue.pop()
@@ -241,8 +271,8 @@ class Element:
                              for node in reversed(element)
                              if isinstance(node, Element))
 
-    def normalize(self):
-        children = []
+    def normalize(self) -> None:
+        children: list[Node] = []
         buf = []
         for node in self.children:
             if isinstance(node, str):
@@ -257,19 +287,19 @@ class Element:
         self.children[:] = children
 
 
-class _AttributeDict(util.FilterDict):
+class _AttributeDict(util.FilterDict[QName | str, str | None]):
 
     __slots__ = ()
 
-    def __convert__(self, key):
+    def __convert__(self, key: Any) -> QName | str:
         return QName(key.ns_uri, key.name.lower()) if isinstance(key, QName) else key.lower()
 
 
-class Fragment(list):
+class Fragment(list[Node]):
 
     __slots__ = ()
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         return type(self)(node.copy() if isinstance(node, Element) else node
                           for node in self)
 
@@ -282,11 +312,14 @@ _newline_re = re.compile(r'[\n\r]+')
 
 class MarkupLoader(html.parser.HTMLParser):
 
-    def __init__(self):
+    _stack: collections.deque[tuple[tuple[int, int], Element]]
+    _text: list[str]
+
+    def __init__(self) -> None:
         super().__init__(convert_charrefs=False)
         self._stack = collections.deque()
 
-    def load(self, object, src, lang='xhtml1'):
+    def load(self, object: Any, src: IO[str], lang: str = 'xhtml1') -> Markup:
         self.reset()
         self._stack.clear()
 
@@ -304,13 +337,13 @@ class MarkupLoader(html.parser.HTMLParser):
         self.close()
         return self._markup
 
-    def close(self):
+    def close(self) -> None:
         super().close()
         if self._stack:
             raise MarkupError(self._object, self.getpos(),
                               f"end tag for element '{self._peek().qname}' omitted")
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self._remove:
             # children of ayame:remove element
             return
@@ -331,7 +364,7 @@ class MarkupLoader(html.parser.HTMLParser):
         elif self._markup.root is None:
             self._markup.root = el
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self._remove:
             # children of ayame:remove element
             return
@@ -349,7 +382,7 @@ class MarkupLoader(html.parser.HTMLParser):
             self._markup.root = el
         self._pop(el.qname)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         qname = self._new_qname(tag)
         if qname == AYAME_REMOVE:
             # end tag of ayame:remove element
@@ -360,16 +393,16 @@ class MarkupLoader(html.parser.HTMLParser):
         # pop element
         self._pop(qname)
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         self._append_text(data)
 
-    def handle_charref(self, name):
+    def handle_charref(self, name: str) -> None:
         self._append_text(f'&#{name};')
 
-    def handle_entityref(self, name):
+    def handle_entityref(self, name: str) -> None:
         self._append_text(f'&{name};')
 
-    def handle_decl(self, decl):
+    def handle_decl(self, decl: str) -> None:
         if _xhtml1_strict_re.match(decl):
             self._markup.lang = 'xhtml1'
             self._markup.doctype = XHTML1_STRICT
@@ -379,7 +412,7 @@ class MarkupLoader(html.parser.HTMLParser):
         else:
             self._markup.doctype = f'<!{decl}>'
 
-    def handle_pi(self, data):
+    def handle_pi(self, data: str) -> None:
         if data.startswith('xml '):
             m = _xml_decl_re.match(data)
             if not m:
@@ -395,11 +428,12 @@ class MarkupLoader(html.parser.HTMLParser):
                                       'mismatched quotes')
                 self._markup.xml_decl[k] = v.strip(v[0])
 
-    def _new_qname(self, name, ns=None):
-        def ns_uri_of(pfx):
+    def _new_qname(self, name: str, ns: dict[str, str] | None = None) -> QName:
+        def ns_uri_of(pfx: str) -> str | None:
             for i in range(len(self._stack) - 1, -1, -1):
                 if pfx in (el := self._at(i)).ns:
                     return el.ns[pfx]
+            return None
 
         if ns is None:
             ns = {}
@@ -417,20 +451,20 @@ class MarkupLoader(html.parser.HTMLParser):
                                   'there is no default namespace')
         return QName(uri, name)
 
-    def _append_text(self, text):
+    def _append_text(self, text: str) -> None:
         if self._stack:
             if self._remove:
                 # children of ayame:remove element
                 return
             self._text.append(text)
 
-    def _push(self, element):
+    def _push(self, element: Element) -> None:
         if self._stack:
             self._flush_text()
             self._peek().append(element)
         self._stack.append((self.getpos(), element))
 
-    def _pop(self, qname):
+    def _pop(self, qname: QName) -> tuple[tuple[int, int], Element]:
         self._flush_text()
         if (not self._stack
             or self._peek().qname != qname):
@@ -438,24 +472,26 @@ class MarkupLoader(html.parser.HTMLParser):
                               f"end tag for element '{qname}' which is not open")
         return self._stack.pop()
 
-    def _flush_text(self):
+    def _flush_text(self) -> None:
         if self._text:
             self._peek().append(''.join(self._text))
             self._text.clear()
 
-    def _peek(self):
+    def _peek(self) -> Element:
         return self._stack[-1][1]
 
-    def _at(self, index):
+    def _at(self, index: int) -> Element:
         return self._stack[index][1]
 
-    def _new_element(self, name, attrs, type=Element.OPEN):
+    def _new_element(self, name: str, attrs: list[tuple[str, str | None]], type: int = Element.OPEN) -> Element:
         # gather xmlns
         xmlns = {}
         for n, v in tuple(attrs):
             if n == 'xmlns':
+                assert v is not None, f"'{n}' attribute requires value"
                 xmlns[''] = v
             elif n.startswith('xmlns:'):
+                assert v is not None, f"'{n}' attribute requires value"
                 xmlns[n[6:]] = v
             else:
                 continue
@@ -492,16 +528,17 @@ class MarkupLoader(html.parser.HTMLParser):
 
 class MarkupRenderer:
 
-    _registry = {}
+    _registry: ClassVar[dict[str, type[MarkupHandler]]] = {}
+    _stack: collections.deque[_ElementState]
 
     @classmethod
-    def register(cls, lang, handler):
+    def register(cls, lang: str, handler: type[MarkupHandler]) -> None:
         cls._registry[lang] = handler
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._stack = collections.deque()
 
-    def render(self, object, markup, encoding='utf-8', pretty=False):
+    def render(self, object: Any, markup: Markup, encoding: str = 'utf-8', pretty: bool | Mapping[str, Any] = False) -> bytes:
         self._stack.clear()
 
         self.object = object
@@ -520,7 +557,7 @@ class MarkupRenderer:
         # render DOCTYPE
         h.doctype(markup.doctype)
         # render nodes
-        queue = collections.deque(((-1, markup.root),))
+        queue: collections.deque[tuple[int, Any]] = collections.deque(((-1, markup.root),))
         while queue:
             index, node = queue.pop()
             if self._stack:
@@ -552,7 +589,7 @@ class MarkupRenderer:
         finally:
             self._buf.close()
 
-    def xml_decl(self, xml_decl, encoding):
+    def xml_decl(self, xml_decl: dict[str, str], encoding: str) -> None:
         self.write('<?xml',
                    # VersionInfo
                    ' version="', xml_decl.get('version', '1.0'), '"')
@@ -568,34 +605,33 @@ class MarkupRenderer:
 
         self.writeln('?>')
 
-    def write(self, *args):
+    def write(self, *args: str) -> None:
         write = self._buf.write
         for s in args:
             write(s)
 
-    def writeln(self, *args):
+    def writeln(self, *args: str) -> None:
         self.write(*args + ('\n',))
 
-    def push(self, index, element):
+    def push(self, index: int, element: Element) -> None:
         self._stack.append(_ElementState(index, element))
 
-    def pop(self):
+    def pop(self) -> _ElementState:
         return self._stack.pop()
 
-    def peek(self):
+    def peek(self) -> _ElementState:
         return self._stack[-1]
 
-    def at(self, index):
+    def at(self, index: int) -> _ElementState:
         return self._stack[index]
 
-    def depth(self):
+    def depth(self) -> int:
         return len(self._stack)
 
-    def prefix_for(self, ns_uri):
+    def prefix_for(self, ns_uri: str) -> str:
         known = set()
         for i in range(len(self._stack) - 1, -1, -1):
-            el = self.at(i).element
-            for pfx in el.ns:
+            for pfx in (el := self.at(i).element).ns:
                 if pfx in known:
                     raise RenderingError(self.object, f"namespace URI for '{pfx}' was overwritten")
                 elif el.ns[pfx] == ns_uri:
@@ -604,30 +640,23 @@ class MarkupRenderer:
         raise RenderingError(self.object, f"unknown namespace URI '{ns_uri}'")
 
 
+@dataclasses.dataclass
 class _ElementState:
 
-    __slots__ = ('index', 'element', 'pending', 'flags')
+    # index in parent element
+    index: int
+    # element
+    element: Element
+    # number of pending children
+    pending: int = dataclasses.field(init=False)
+    # indent flags for children
+    flags: int = 0
 
-    def __init__(self, index, element):
-        # index in parent element
-        self.index = index
-        # element
-        self.element = element
-        # number of pending children
-        self.pending = len(element)
-        # indent flags for children
-        self.flags = 0
-
-
-class Space(str):
-
-    __slots__ = ()
-
-    def __repr__(self):
-        return type(self).__name__
+    def __post_init__(self) -> None:
+        self.pending = len(self.element)
 
 
-Space = Space()
+Space = type('Space', (str,), {'__repr__': lambda self: type(self).__name__})()
 
 
 class MarkupHandler(metaclass=abc.ABCMeta):
@@ -639,39 +668,40 @@ class MarkupHandler(metaclass=abc.ABCMeta):
     INDENT_AROUND = INDENT_BEFORE | INDENT_AFTER
     INDENT_ALL = INDENT_AROUND | INDENT_INSIDE | INDENT_TEXT
 
-    def __init__(self, renderer):
+    def __init__(self, renderer: MarkupRenderer) -> None:
         self.renderer = renderer
 
     @property
     @abc.abstractmethod
-    def xml(self):
+    def xml(self) -> bool:
         raise NotImplementedError
 
-    def doctype(self, doctype):
+    def doctype(self, doctype: str) -> None:
         if doctype:
             self.renderer.writeln(doctype)
 
     @abc.abstractmethod
-    def is_empty(self, element):
+    def is_empty(self, element: Element) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def start_tag(self):
+    def start_tag(self) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def end_tag(self):
+    def end_tag(self) -> None:
         raise NotImplementedError
 
-    def text(self, index, text):
+    def text(self, index: int, text: str) -> None:
         if text:
             self.renderer.write(text)
 
-    def indent(self, pos, indent):
-        def next_nonblank(element, index):
+    def indent(self, pos: int, indent: int) -> bool:
+        def next_nonblank(element: Element, index: int) -> bool:
             for node in element.children[index:]:
                 if node:
-                    return node
+                    return True
+            return False
 
         r = self.renderer
 
@@ -703,9 +733,9 @@ class MarkupHandler(metaclass=abc.ABCMeta):
             return True
         return False
 
-    def compile(self, element):
+    def compile(self, element: Element) -> int:
         flags = self.INDENT_AROUND
-        children = []
+        children: list[Node] = []
         for node in element.children:
             if isinstance(node, Element):
                 flags = self.INDENT_ALL
@@ -746,22 +776,22 @@ class MarkupHandler(metaclass=abc.ABCMeta):
 
 class MarkupPrettifier(MarkupHandler):
 
-    def __init__(self, handler, indent=2):
+    def __init__(self, handler: MarkupHandler, indent: int = 2) -> None:
         self._handler = handler
         self._indent = indent
         self._bol = False
 
     @property
-    def xml(self):
+    def xml(self) -> bool:
         return self._handler.xml
 
-    def doctype(self, doctype):
+    def doctype(self, doctype: str) -> None:
         self._handler.doctype(doctype)
 
-    def is_empty(self, element):
+    def is_empty(self, element: Element) -> bool:
         return self._handler.is_empty(element)
 
-    def start_tag(self):
+    def start_tag(self) -> None:
         h = self._handler
 
         curr = h.renderer.peek()
@@ -780,7 +810,7 @@ class MarkupPrettifier(MarkupHandler):
         else:
             self._bol = False
 
-    def end_tag(self):
+    def end_tag(self) -> None:
         h = self._handler
 
         curr = h.renderer.peek()
@@ -795,7 +825,7 @@ class MarkupPrettifier(MarkupHandler):
         else:
             self._bol = False
 
-    def text(self, index, text):
+    def text(self, index: int, text: str) -> None:
         h = self._handler
 
         if text is Space:
@@ -806,23 +836,23 @@ class MarkupPrettifier(MarkupHandler):
 
             self._bol = False
 
-    def indent(self, pos, indent=-1):
+    def indent(self, pos: int, indent: int = -1) -> bool:
         return self._handler.indent(pos, self._indent)
 
-    def compile(self, element):
+    def compile(self, element: Element) -> int:
         return self._handler.compile(element)
 
 
 class XMLHandler(MarkupHandler):
 
     @property
-    def xml(self):
+    def xml(self) -> bool:
         return True
 
-    def is_empty(self, element):
+    def is_empty(self, element: Element) -> bool:
         return not element.children
 
-    def start_tag(self, empty='/>'):
+    def start_tag(self, empty: str = '/>') -> None:
         r = self.renderer
 
         el = r.peek().element
@@ -853,7 +883,7 @@ class XMLHandler(MarkupHandler):
             r.write(n, '="', v or '', '"')
         r.write('>' if el.type != Element.EMPTY else empty)
 
-    def end_tag(self):
+    def end_tag(self) -> None:
         r = self.renderer
 
         el = r.peek().element
@@ -863,7 +893,7 @@ class XMLHandler(MarkupHandler):
             r.write(pfx, ':')
         r.write(el.qname.name, '>')
 
-    def compile(self, element):
+    def compile(self, element: Element) -> int:
         if element.children:
             return super().compile(element)
         return self.INDENT_AROUND
@@ -874,16 +904,16 @@ MarkupRenderer.register('xml', XMLHandler)
 
 class XHTML1Handler(XMLHandler):
 
-    def doctype(self, doctype):
+    def doctype(self, doctype: str) -> None:
         self.renderer.writeln(doctype if doctype else XHTML1_STRICT)
 
-    def is_empty(self, element):
+    def is_empty(self, element: Element) -> bool:
         return element.qname.name in _xhtml1__EMPTY__
 
-    def start_tag(self, empty=' />'):
+    def start_tag(self, empty: str = ' />') -> None:
         super().start_tag(empty)
 
-    def compile(self, element):
+    def compile(self, element: Element) -> int:
         if element.qname.ns_uri != XHTML_NS:
             return super().compile(element)
 
@@ -911,7 +941,7 @@ class XHTML1Handler(XMLHandler):
             flags = self.INDENT_AROUND
         elif name in _xhtml1__PCDATA__:
             flags = self.INDENT_AROUND
-            children = []
+            children: list[str] = []
             indent = 0
             for n in element.children:
                 if isinstance(n, str):
@@ -950,8 +980,8 @@ class XHTML1Handler(XMLHandler):
                     flags = self.INDENT_AROUND
         return flags
 
-    def _has_block_element(self, root):
-        def step(el, depth):
+    def _has_block_element(self, root: Element) -> bool:
+        def step(el: Element, depth: int) -> bool:
             return (depth == 0
                     or (el.qname.ns_uri == XHTML_NS
                         and el.qname.name in ('ins', 'del', 'button')))
@@ -963,15 +993,17 @@ class XHTML1Handler(XMLHandler):
                 elif (el.qname.name not in ('ins', 'del', 'button')
                       and el.qname.name in _xhtml1_Block):
                     return True
+        return False
 
-    def _has_br_element(self, root):
-        def step(el, _):
+    def _has_br_element(self, root: Element) -> bool:
+        def step(el: Element, _: int) -> bool:
             return el.qname.ns_uri == XHTML_NS
 
         for el, depth in root.walk(step=step):
             if depth > 0:
                 if el.qname.name == 'br':
                     return True
+        return False
 
 
 MarkupRenderer.register('xhtml1', XHTML1Handler)

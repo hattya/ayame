@@ -1,6 +1,12 @@
 Ayame Changelog
 ===============
 
+Version 0.5
+-----------
+
+* Add type annotations.
+
+
 Version 0.4
 -----------
 

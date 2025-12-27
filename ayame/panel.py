@@ -6,6 +6,7 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 from . import core, basic, form, markup, model as mm
 from .exception import RenderingError
 
@@ -15,13 +16,13 @@ __all__ = ['Panel', 'FeedbackPanel']
 
 class Panel(core.MarkupContainer):
 
-    def __init__(self, id, model=None):
+    def __init__(self, id: str, model: mm.Model | None = None) -> None:
         super().__init__(id, model)
         self.has_markup = True
         self.render_body_only = True
 
-    def on_render(self, element):
-        def step(el, _):
+    def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
+        def step(el: markup.Element, _: int) -> bool:
             return el.qname not in (markup.AYAME_PANEL, markup.AYAME_HEAD)
 
         # load markup for Panel
@@ -51,13 +52,15 @@ class Panel(core.MarkupContainer):
 
 class FeedbackPanel(Panel):
 
-    def __init__(self, id):
+    __errors: list[str]
+
+    def __init__(self, id: str) -> None:
         super().__init__(id)
         self.__errors = []
 
         self.add(self._ListView('feedback', mm.Model(self.__errors)))
 
-    def on_configure(self):
+    def on_configure(self) -> None:
         if self.request.path:
             if isinstance((c := self.page().find(self.request.path)), form.Form):
                 for c, _ in c.walk():
@@ -68,5 +71,5 @@ class FeedbackPanel(Panel):
 
     class _ListView(basic.ListView):
 
-        def populate_item(self, item):
+        def populate_item(self, item: basic.ListItem) -> None:
             item.add(basic.Label('message', item.model_object))

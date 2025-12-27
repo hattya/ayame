@@ -6,12 +6,17 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import collections
+from collections.abc import Iterator, MutableMapping
 import re
 import sys
+import types
+from typing import IO
 
 import ayame
-from . import core, local
+from . import core, local, res
+from ._typing import Locale
 from .exception import ResourceError
 
 
@@ -49,7 +54,7 @@ class Localizer:
 
     extension = '.properties'
 
-    def get(self, component, locale, key):
+    def get(self, component: core.Component, locale: Locale, key: str) -> str | None:
         for bundle, prefix in self._iter_resource(component, locale):
             if bundle:
                 if prefix:
@@ -57,13 +62,14 @@ class Localizer:
                         return v
                 if (v := bundle.get(key)) is not None:
                     return v
+        return None
 
-    def _iter_resource(self, component, locale):
-        rl = component.config['ayame.resource.loader']
-        sep = component.config['ayame.markup.separator']
-        cache = component.config['ayame.i18n.cache']
+    def _iter_resource(self, component: core.Component, locale: Locale) -> Iterator[tuple[dict[str, str] | None, str]]:
+        rl: res.ResourceLoader = component.config['ayame.resource.loader']
+        sep: str = component.config['ayame.markup.separator']
+        cache: MutableMapping[str, tuple[float, dict[str, str]]] = component.config['ayame.i18n.cache']
 
-        def load(module, *args):
+        def load(module: types.ModuleType, *args: str) -> dict[str, str] | None:
             name = '_'.join(args)
             key = f'{module.__name__}:{name}'
             try:
@@ -93,10 +99,10 @@ class Localizer:
                     yield load(m, n, lc), prefix
                 yield load(m, n), prefix
 
-    def _iter_class(self, component):
-        queue = collections.deque()
+    def _iter_class(self, component: core.Component) -> Iterator[tuple[type, tuple[type, ...], str]]:
+        queue: collections.deque[tuple[type, tuple[type, ...], str]] = collections.deque()
         path = component.path().split(':')
-        scope = ()
+        scope: tuple[type, ...] = ()
         for i, c in enumerate(reversed(tuple(component.iter_parent()))):
             cls = type(c)
             if cls.markup_type.scope:
@@ -113,24 +119,24 @@ class Localizer:
                 queue.extend((c, self._scope_of(c), prefix) for c in cls.__bases__
                              if self._is_target_class(c))
 
-    def _is_base_class(self, cls):
+    def _is_base_class(self, cls: type) -> bool:
         return cls in (core.Page, core.MarkupContainer, core.Component, ayame.Ayame)
 
-    def _is_target_class(self, cls):
+    def _is_target_class(self, cls: type) -> bool:
         return issubclass(cls, (core.Component, ayame.Ayame))
 
-    def _scope_of(self, cls):
+    def _scope_of(self, cls: type) -> tuple[type, ...]:
         if issubclass(cls, core.MarkupContainer):
             return cls.markup_type.scope
         return ()
 
-    def _load(self, fp):
+    def _load(self, fp: IO[str]) -> dict[str, str]:
         match = _kv_re.match
         sub = _backslash_re.sub
         has_lcont = _lcont_re.search
         ctrl_get = _ctrl_chr.get
 
-        def repl(m):
+        def repl(m: re.Match[str]) -> str:
             ch = m.group(1)
             return ctrl_get(ch, ch)
 

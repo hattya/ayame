@@ -6,12 +6,16 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import html
 import re
+from typing import Any
 
+import werkzeug.datastructures
 import werkzeug.exceptions
 import werkzeug.formparser
 
+from ._typing import Headers, WSGIEnvironment
 from .exception import AyameError
 
 
@@ -30,7 +34,7 @@ _accept_re = re.compile(r"""
 """, re.VERBOSE)
 
 
-def parse_accept(value):
+def parse_accept(value: str | None) -> tuple[tuple[str, float], ...]:
     if not value:
         return ()
 
@@ -42,8 +46,8 @@ def parse_accept(value):
     return tuple((v, -q) for q, i, v in sorted(qlist))
 
 
-def parse_form_data(environ):
-    form_data = {}
+def parse_form_data(environ: WSGIEnvironment) -> dict[str, list[str] | list[werkzeug.datastructures.FileStorage]]:
+    form_data: dict[str, Any] = {}
     if environ['REQUEST_METHOD'] in ('POST', 'PUT', 'PATCH'):
         try:
             _, form, files = werkzeug.formparser.parse_form_data(environ)
@@ -56,7 +60,7 @@ def parse_form_data(environ):
 
 class _HTTPStatusMeta(type):
 
-    def __new__(cls, name, bases, ns):
+    def __new__(cls, name: str, bases: tuple[type, ...], ns: dict[str, Any]) -> type:
         if 'code' not in ns:
             ns['code'] = 0
         if 'reason' not in ns:
@@ -79,7 +83,11 @@ class _HTTPStatusMeta(type):
 
 class HTTPStatus(AyameError, metaclass=_HTTPStatusMeta):
 
-    def __init__(self, description='', headers=None):
+    code: int
+    reason: str
+    status: str
+
+    def __init__(self, description: str = '', headers: Headers | None = None) -> None:
         super().__init__(self.status)
         self.description = description
         self.headers = list(headers) if headers is not None else []
@@ -117,7 +125,7 @@ class _HTTPMove(HTTPRedirection):
 
     _template = 'The requested resource has moved to <a href="{location}">{location}</a>.'
 
-    def __init__(self, location, headers=None):
+    def __init__(self, location: str, headers: Headers | None = None) -> None:
         if headers is None:
             headers = []
         super().__init__(self._template.format(location=html.escape(location)),
@@ -162,7 +170,7 @@ class Unauthrized(HTTPClientError):
 
     code = 401
 
-    def __init__(self, headers=None):
+    def __init__(self, headers: Headers | None = None) -> None:
         super().__init__('This server could not verify that you are authorized to access the requested resource.',
                          headers)
 
@@ -171,7 +179,7 @@ class Forbidden(HTTPClientError):
 
     code = 403
 
-    def __init__(self, uri, headers=None):
+    def __init__(self, uri: str, headers: Headers | None = None) -> None:
         super().__init__(f'You do not have permission to access <code>{uri}</code> on this server.',
                          headers)
 
@@ -180,7 +188,7 @@ class NotFound(HTTPClientError):
 
     code = 404
 
-    def __init__(self, uri, headers=None):
+    def __init__(self, uri: str, headers: Headers | None = None) -> None:
         super().__init__(f'The requested URI <code>{uri}</code> was not found on this server',
                          headers)
 
@@ -189,7 +197,7 @@ class MethodNotAllowed(HTTPClientError):
 
     code = 405
 
-    def __init__(self, method, uri, allow, headers=None):
+    def __init__(self, method: str, uri: str, allow: list[str], headers: Headers | None = None) -> None:
         if headers is None:
             headers = []
         super().__init__(f'The requested method <code>{method}</code> is not allowed for the URI <code>{uri}</code>.',
@@ -200,7 +208,7 @@ class RequestTimeout(HTTPClientError):
 
     code = 408
 
-    def __init__(self, headers=None):
+    def __init__(self, headers: Headers | None = None) -> None:
         super().__init__('This server timed out while waiting for the request from the client.',
                          headers)
 
@@ -218,6 +226,6 @@ class NotImplemented(HTTPServerError):
 
     code = 501
 
-    def __init__(self, method, uri, headers=None):
+    def __init__(self, method: str, uri: str, headers: Headers | None = None) -> None:
         super().__init__(f'The requested method <code>{method}</code> is not implemented for the URI <code>{uri}</code>',
                          headers)

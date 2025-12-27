@@ -6,8 +6,10 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
 import re
+from typing import Any
 
 from . import core, markup
 from .exception import ValidationError
@@ -84,20 +86,20 @@ _MAXLENGTH = markup.QName(markup.XHTML_NS, 'maxlength')
 class Validator(core.Behavior, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def validate(self, object):
+    def validate(self, object: Any) -> None:
         raise NotImplementedError
 
-    def error(self, **kwargs):
+    def error(self, **kwargs: Any) -> ValidationError:
         return ValidationError(validator=self, **kwargs)
 
 
 class RegexValidator(Validator):
 
-    def __init__(self, pattern, flags=0):
+    def __init__(self, pattern: str, flags: int | re.RegexFlag = 0) -> None:
         super().__init__()
         self.regex = re.compile(pattern, flags)
 
-    def validate(self, object):
+    def validate(self, object: Any) -> None:
         if not (isinstance(object, str)
                 and self.regex.match(object)):
             e = self.error()
@@ -107,24 +109,24 @@ class RegexValidator(Validator):
 
 class EmailValidator(RegexValidator):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(_email, re.IGNORECASE | re.VERBOSE)
 
 
 class URLValidator(RegexValidator):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(_url, re.IGNORECASE | re.VERBOSE)
 
 
 class RangeValidator(Validator):
 
-    def __init__(self, min=None, max=None):
+    def __init__(self, min: Any = None, max: Any = None) -> None:
         super().__init__()
         self.min = min
         self.max = max
 
-    def validate(self, object):
+    def validate(self, object: Any) -> None:
         if ((self.min is not None
              and not isinstance(object, type(self.min)))
             or (self.max is not None
@@ -155,16 +157,16 @@ class RangeValidator(Validator):
 
 class StringValidator(RangeValidator):
 
-    def validate(self, object):
+    def validate(self, object: Any) -> None:
         if not isinstance(object, str):
             raise self.error(variation='type')
         super().validate(len(object))
 
-    def on_component(self, component, element):
+    def on_component(self, component: core.Component, element: markup.Element) -> None:
         if (self.max is not None
             and self.is_text_input(element)):
             element.attrib[_MAXLENGTH] = str(self.max)
 
-    def is_text_input(self, element):
+    def is_text_input(self, element: markup.Element) -> bool:
         return (element.qname == _INPUT
                 and element.attrib[_TYPE] in ('text', 'password'))

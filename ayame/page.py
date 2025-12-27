@@ -6,7 +6,12 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 from . import basic, core
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import http
 
 
 __all__ = ['HTTPStatusPage']
@@ -14,7 +19,7 @@ __all__ = ['HTTPStatusPage']
 
 class HTTPStatusPage(core.Page):
 
-    def __init__(self, error):
+    def __init__(self, error: http.HTTPStatus) -> None:
         super().__init__()
         self._error = error
         self.status = error.status

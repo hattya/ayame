@@ -6,6 +6,13 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, AnyStr
+
+if TYPE_CHECKING:
+    from . import converter, core, validator
+
+
 __all__ = ['AyameError', 'ComponentError', 'ConversionError', 'MarkupError',
            'RenderingError', 'ResourceError', 'RouteError', 'ValidationError']
 
@@ -20,11 +27,12 @@ class ComponentError(AyameError):
 
 class ConversionError(AyameError):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, converter: converter.Converter | None = None, value: Any | None = None,
+                 type: type | tuple[type, ...] | None = None):
         super().__init__(*args)
-        self.converter = kwargs.get('converter')
-        self.value = kwargs.get('value')
-        self.type = kwargs.get('type')
+        self.converter = converter
+        self.value = value
+        self.type = type
 
 
 class MarkupError(AyameError):
@@ -37,7 +45,8 @@ class _Redirect(AyameError):
     PERMANENT = 1
     TEMPORARY = 2
 
-    def __init__(self, object, values=None, anchor=None, type=None):
+    def __init__(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None,
+                 type: int | None = None):
         super().__init__(object, values, anchor, type)
 
 
@@ -59,25 +68,26 @@ class _RequestSlash(RouteError):
 
 class ValidationError(AyameError):
 
-    def __init__(self, *args, **kwargs):
+    vars: dict[str, Any]
+
+    def __init__(self, *args: Any, component: core.Component | None = None,
+                 validator: validator.Validator | None = None, variation: str | None = None) -> None:
         super().__init__(*args)
-        self.component = kwargs.get('component')
+        self.component = component
         self.keys = []
         self.vars = {}
 
-        validator = kwargs.get('validator')
         if validator:
             key = type(validator).__name__
-            variation = kwargs.get('variation')
             if variation:
                 key += '.' + variation
             self.keys.append(key)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         args = repr(self.args)[1:-1].rstrip(',') + ', ' if self.args else ''
         return f'{type(self).__name__}({args}keys={self.keys}, vars={list(self.vars)})'
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.component:
             for key in self.keys:
                 if (msg := self.component.tr(key)) is not None:

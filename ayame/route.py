@@ -6,11 +6,15 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import collections
+from collections.abc import Callable, Iterable, Iterator, Mapping
 import re
+from typing import overload, Any, Literal
 import urllib.parse
 
 from . import http, uri, util
+from ._typing import WSGIEnvironment
 from .exception import _RequestSlash, RouteError
 
 
@@ -84,7 +88,14 @@ _sep_re = re.compile(r'[\s,]')
 
 class Rule:
 
-    def __init__(self, path, object, methods=None, redirection=False):
+    __map: Map | None
+
+    _regex: re.Pattern[str] | None
+    _segs: list[tuple[bool, str]]
+    _convs: dict[str, Converter]
+    _vars: set[str]
+
+    def __init__(self, path: str, object: Any, methods: Iterable[str] | None = None, redirection: bool = False) -> None:
         self.__map = None
         self.__path = path
         self.__leaf = not path.endswith('/')
@@ -98,34 +109,34 @@ class Rule:
         self._vars = set()
 
     @property
-    def map(self):
+    def map(self) -> Map | None:
         return self.__map
 
     @property
-    def path(self):
+    def path(self) -> str:
         return self.__path
 
     @property
-    def object(self):
+    def object(self) -> Any:
         return self.__object
 
     @property
-    def methods(self):
+    def methods(self) -> tuple[str, ...]:
         return self.__methods
 
-    def is_leaf(self):
+    def is_leaf(self) -> bool:
         return self.__leaf
 
-    def has_redirect(self):
+    def has_redirect(self) -> bool:
         return self.__redirection
 
-    def bind(self, map):
+    def bind(self, map: Map) -> None:
         if self.map is not None:
             raise RouteError(f'rule {self!r} already bound to map {self.map!r}')
         self.__map = map
         self._compile()
 
-    def _compile(self):
+    def _compile(self) -> None:
         assert self.map is not None, 'rule not bound to map'
         path = self.path if self.is_leaf() else self.path.rstrip('/')
 
@@ -133,6 +144,7 @@ class Rule:
         self._convs.clear()
         self._vars.clear()
 
+        conv: Converter | str | None
         buf = [r'\A']
         for var, conv, args in self._parse(path):
             if conv is None:
@@ -159,7 +171,7 @@ class Rule:
 
         self._regex = re.compile(''.join(buf))
 
-    def _parse(self, path):
+    def _parse(self, path: str) -> Iterator[tuple[str, str | None, str | None]]:
         pos = 0
         for m in _rule_re.finditer(path):
             g = m.groupdict()
@@ -172,13 +184,13 @@ class Rule:
         if pos < len(path):
             yield path[pos:], None, None
 
-    def _parse_args(self, expr):
-        def error(msg, offset):
+    def _parse_args(self, expr: str) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        def error(msg: str, offset: int) -> SyntaxError:
             return SyntaxError(msg, ('<args>', 1, offset, expr))
 
         pos = 0
         args = []
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         for m in _args_re.finditer(expr):
             if m.group('error'):
                 raise error('invalid syntax', m.start('error') + 1)
@@ -218,11 +230,11 @@ class Rule:
             raise error('invalid syntax', max(pos, 1))
         return tuple(args), kwargs
 
-    def match(self, path):
-        assert self.map is not None, 'rule not bound to map'
+    def match(self, path: str) -> dict[str, Any] | None:
+        assert self.map is not None and self._regex is not None, 'rule not bound to map'
         m = self._regex.search(path)
         if not m:
-            return
+            return None
         g = m.groupdict()
         slash = g.pop('__slash__')
         if (self.map.slash
@@ -235,17 +247,17 @@ class Rule:
             try:
                 values[var] = self._convs[var].to_python(val)
             except ValueError:
-                return
+                return None
         return values
 
-    def build(self, values, anchor=None, method=None, query=True):
+    def build(self, values: Mapping[str, Any], anchor: Any = None, method: str | None = None, query: bool = True) -> str | None:
         assert self.map is not None, 'rule not bound to map'
         if not (method is None
                 or method in self.methods):
-            return
+            return None
         for var in self._vars:
             if var not in values:
-                return
+                return None
         # path
         buf = []
         cache = {}
@@ -253,12 +265,12 @@ class Rule:
             if dyn:
                 cache[var] = util.to_list(values[var])
                 if not cache[var]:
-                    return
+                    return None
                 val = cache[var].pop(0)
                 try:
                     buf.append(self._convs[var].to_uri(val))
                 except ValueError:
-                    return
+                    return None
             else:
                 buf.append(var)
         # query
@@ -279,8 +291,13 @@ class Rule:
 
 class Map:
 
-    def __init__(self, encoding='utf-8', slash=True, converters=None,
-                 sort_key=None):
+    converters: dict[str, type[Converter]]
+
+    _rules: list[Rule]
+    _ref: dict[Any, list[Rule]]
+
+    def __init__(self, encoding: str = 'utf-8', slash: bool = True, converters: Mapping[str, type[Converter]] | None = None,
+                 sort_key: Callable[[Any], Any] | None = None) -> None:
         self.encoding = encoding
         self.slash = slash
         self.converters = {
@@ -296,54 +313,60 @@ class Map:
         self._rules = []
         self._ref = collections.defaultdict(list)
 
-    def add(self, rule):
+    def add(self, rule: Rule) -> None:
         rule.bind(self)
         self._rules.append(rule)
         self._ref[rule.object].append(rule)
 
-    def connect(self, path, object, methods=None):
+    def connect(self, path: str, object: Any, methods: Iterable[str] | None = None) -> None:
         self.add(Rule(path, object, methods))
 
-    def redirect(self, path, dest, methods=None):
+    def redirect(self, path: str, dest: Any, methods: Iterable[str] | None = None) -> None:
         self.add(Rule(path, dest, methods, True))
 
-    def mount(self, path):
+    def mount(self, path: str) -> _SubMap:
         return _SubMap(self, path)
 
-    def bind(self, environ):
+    def bind(self, environ: WSGIEnvironment) -> Router:
         return Router(self, environ)
 
 
 class _SubMap:
 
-    def __init__(self, map, path):
+    def __init__(self, map: Map, path: str) -> None:
         self.map = map
         self.path = path
 
-    def add(self, rule):
+    def add(self, rule: Rule) -> None:
         self.map.add(Rule(self.path + rule.path, rule.object, rule.methods, rule.has_redirect()))
 
-    def connect(self, path, object, methods=None):
+    def connect(self, path: str, object: Any, methods: Iterable[str] | None = None) -> None:
         self.map.add(Rule(self.path + path, object, methods))
 
-    def redirect(self, path, dest, methods=None):
+    def redirect(self, path: str, dest: Any, methods: Iterable[str] | None = None) -> None:
         self.map.add(Rule(self.path + path, dest, methods, True))
 
 
 class Router:
 
-    def __init__(self, map, environ):
+    def __init__(self, map: Map, environ: WSGIEnvironment) -> None:
         self.map = map
         self.environ = environ
 
-    def match(self, as_rule=False):
-        def repl(m):
+    @overload
+    def match(self, as_rule: Literal[True]) -> tuple[Rule, dict[str, Any]]: ...
+    @overload
+    def match(self, as_rule: Literal[False] = False) -> tuple[Any, dict[str, Any]]: ...
+
+    def match(self, as_rule: bool = False) -> tuple[Rule | Any, dict[str, Any]]:
+        def repl(m: re.Match[str]) -> str:
+            assert values is not None
             var = m.group(1)
             return rule._convs[var].to_uri(values[var])
 
         path = self.environ['PATH_INFO']
         method = self.environ['REQUEST_METHOD']
-        allow = set()
+        allow: set[str] = set()
         for rule in self.map._rules:
             try:
                 values = rule.match(path)
@@ -365,8 +388,8 @@ class Router:
             raise http.NotImplemented(method, uri.request_path(self.environ))
         raise http.NotFound(uri.request_path(self.environ))
 
-    def build(self, object, values=None, anchor=None, method=None, query=True,
-              relative=False):
+    def build(self, object: Any, values: Mapping[str, Any] | None = None, anchor: Any = None, method: str | None = None, query: bool = True,
+              relative: bool = False) -> str:
         if values is None:
             values = {}
 
@@ -384,22 +407,23 @@ class Converter:
 
     pattern = r'[^/]+'
 
-    def __init__(self, map, *args, **kwargs):
+    def __init__(self, map: Map, *args: Any, **kwargs: Any) -> None:
         self.map = map
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> Any:
         return value
 
-    def to_uri(self, value):
+    def to_uri(self, value: Any) -> str:
         return uri.quote(value, encoding=self.map.encoding)
 
 
 class _StringConverter(Converter):
 
-    def __init__(self, map, len=None, min=None):
+    def __init__(self, map: Map, len: int | None = None, min: int | None = None) -> None:
         super().__init__(map)
         self.len = len
         self.min = min
+        cnt: Any
         if min is not None:
             max = len if len is not None else ''
             cnt = fr'{min},{max}'
@@ -409,7 +433,7 @@ class _StringConverter(Converter):
             cnt = '1,'
         self.pattern = fr'[^/]{{{cnt}}}'
 
-    def to_uri(self, value):
+    def to_uri(self, value: Any) -> str:
         uri = super().to_uri(value)
         if self.min is not None:
             if (len(uri) < self.min
@@ -431,7 +455,7 @@ class _IntegerConverter(Converter):
 
     pattern = r'\d+'
 
-    def __init__(self, map, digits=None, min=None, max=None):
+    def __init__(self, map: Map, digits: int | None = None, min: int | None = None, max: int | None = None) -> None:
         super().__init__(map)
         self.digits = digits
         self.min = min
@@ -439,7 +463,7 @@ class _IntegerConverter(Converter):
         if digits is not None:
             self.pattern = fr'\d{{{digits}}}'
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> int:
         v = int(value)
         if ((self.min is not None
              and v < self.min)
@@ -448,7 +472,7 @@ class _IntegerConverter(Converter):
             raise ValueError()
         return v
 
-    def to_uri(self, value):
+    def to_uri(self, value: Any) -> str:
         v = self.to_python(value)
         if self.digits is not None:
             uri = f'{v:0{self.digits}d}'

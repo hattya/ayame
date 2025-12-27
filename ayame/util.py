@@ -6,19 +6,35 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
 import collections.abc
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
+import dataclasses
 import hashlib
 import itertools
 import random
 import threading
+from typing import cast, overload, Any, Generic, Protocol, TypeVar
+
+from ._typing import Self
 
 
 __all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',
            'RWLock', 'LRUCache', 'LFUCache']
 
 
-def fqon_of(o):
+T = TypeVar('T')
+KT = TypeVar('KT')
+VT = TypeVar('VT')
+_KT = TypeVar('_KT')
+_VT = TypeVar('_VT')
+
+_unset = object()
+
+
+def fqon_of(o: Any) -> str:
     if not hasattr(o, '__name__'):
         o = type(o)
 
@@ -30,16 +46,17 @@ def fqon_of(o):
                 pass
             case _:
                 return f'{o.__module__}.{o.__name__}'
-    return o.__name__
+    n: str = o.__name__
+    return n
 
 
-def to_bytes(s, encoding='utf-8', errors='strict'):
+def to_bytes(s: Any, encoding: str = 'utf-8', errors: str = 'strict') -> bytes:
     if isinstance(s, bytes):
         return s
     return (s if isinstance(s, str) else str(s)).encode(encoding, errors)
 
 
-def to_list(o):
+def to_list(o: Any) -> list[Any]:
     if o is None:
         return []
     elif (isinstance(o, collections.abc.Iterable)
@@ -48,15 +65,15 @@ def to_list(o):
     return [o]
 
 
-def new_token(algorithm='sha1'):
+def new_token(algorithm: str = 'sha1') -> str:
     m = hashlib.new(algorithm)
     m.update(to_bytes(random.random()))
     return m.hexdigest()
 
 
-class FilterDict(dict):
+class FilterDict(dict[KT, VT]):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: VT) -> None:
         super().__init__(*args, **kwargs)
         convert = self.__convert__
         pop = super().pop
@@ -65,36 +82,59 @@ class FilterDict(dict):
             if new_key != key:
                 self[new_key] = pop(key)
 
-    def __convert__(self, key):
-        return key
+    def __convert__(self, key: Any) -> KT:
+        return cast(KT, key)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> VT:
         return super().__getitem__(self.__convert__(key))
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: VT) -> None:
         super().__setitem__(self.__convert__(key), value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         super().__delitem__(self.__convert__(key))
 
-    def __contains__(self, key):
+    def __contains__(self, key: Any) -> bool:
         return super().__contains__(self.__convert__(key))
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         return type(self)(self)
 
     copy = __copy__
 
-    def get(self, key, *args):
-        return super().get(self.__convert__(key), *args)
+    @overload
+    def get(self, key: Any, default: None = None, /) -> VT | None: ...
+    @overload
+    def get(self, key: Any, default: VT, /) -> VT: ...
+    @overload
+    def get(self, key: Any, default: T, /) -> VT | T: ...
 
-    def pop(self, key, *args):
-        return super().pop(self.__convert__(key), *args)
+    def get(self, key: Any, default: object = _unset, /) -> Any:
+        if default is _unset:
+            return super().get(self.__convert__(key))
+        return super().get(self.__convert__(key), default)
 
-    def setdefault(self, key, *args):
-        return super().setdefault(self.__convert__(key), *args)
+    @overload
+    def pop(self, key: Any, /) -> VT: ...
+    @overload
+    def pop(self, key: Any, default: VT, /) -> VT: ...
+    @overload
+    def pop(self, key: Any, default: T, /) -> VT | T: ...
 
-    def update(self, *args, **kwargs):
+    def pop(self, key: Any, default: object = _unset, /) -> Any:
+        if default is _unset:
+            return super().pop(self.__convert__(key))
+        return super().pop(self.__convert__(key), default)
+
+    @overload
+    def setdefault(self: FilterDict[KT, VT | None], key: Any, default: None = None, /) -> VT | None: ...
+    @overload
+    def setdefault(self, key: Any, default: VT, /) -> VT: ...
+
+    def setdefault(self, key: Any, default: Any = None, /) -> Any:
+        return super().setdefault(self.__convert__(key), default)
+
+    def update(self, *args: Any, **kwargs: VT) -> None:
         keys = tuple(self)
         super().update(*args, **kwargs)
         convert = self.__convert__
@@ -108,27 +148,27 @@ class FilterDict(dict):
 
 class RWLock:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._rcnt = 0
         self._rwait = 0
         self._lock = threading.Lock()
         self._r = threading.Condition(self._lock)
         self._w = threading.Condition(self._lock)
 
-    def read(self):
+    def read(self) -> AbstractContextManager[Any]:
         return self._Lock(self.acquire_read, self.release_read)
 
-    def write(self):
+    def write(self) -> AbstractContextManager[Any]:
         return self._Lock(self.acquire_write, self.release_write)
 
-    def acquire_read(self):
+    def acquire_read(self) -> None:
         with self._lock:
             while self._rcnt < 0:
                 # wait for writer
                 self._r.wait()
             self._rcnt += 1
 
-    def release_read(self):
+    def release_read(self) -> None:
         with self._lock:
             if self._rcnt == 0:
                 raise RuntimeError('read lock is not acquired')
@@ -142,7 +182,7 @@ class RWLock:
             else:
                 self._rcnt -= 1
 
-    def acquire_write(self):
+    def acquire_write(self) -> None:
         with self._lock:
             while self._rcnt < 0:
                 # wait for writer
@@ -154,7 +194,7 @@ class RWLock:
                 # wait for readers
                 self._w.wait()
 
-    def release_write(self):
+    def release_write(self) -> None:
         with self._lock:
             if self._rcnt >= 0:
                 raise RuntimeError('write lock is not acquired')
@@ -166,99 +206,118 @@ class RWLock:
 
     class _Lock:
 
-        def __init__(self, acquire, release):
+        def __init__(self, acquire: Callable[[], None], release: Callable[[], None]) -> None:
             self._acquire = acquire
             self._release = release
 
-        def __enter__(self):
+        def __enter__(self) -> Self:
             self._acquire()
             return self
 
-        def __exit__(self, *exc_info):
+        def __exit__(self, *exc_info: object) -> None:
             self._release()
 
 
-class _Cache(metaclass=abc.ABCMeta):
+class _Cache(Generic[KT, VT], metaclass=abc.ABCMeta):
 
     __slots__ = ('_cap', '_ref', '_head', '_lock')
 
-    def __init__(self, cap=-1):
+    _ref: dict[KT, _Entry[KT, VT]]
+
+    def __init__(self, cap: int = -1) -> None:
         self._cap = cap
         self.on_init()
 
     @property
-    def cap(self):
+    def cap(self) -> int:
         with self._lock.read():
             return self._cap
 
     @cap.setter
-    def cap(self, cap):
+    def cap(self, cap: int) -> None:
         with self._lock.write():
             self._cap = cap
             self._sweep()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{type(self).__name__}({list(self.items())})'
 
-    def __len__(self):
+    def __len__(self) -> int:
         with self._lock.read():
             return len(self._ref)
 
     @abc.abstractmethod
-    def __getitem__(self, key):
+    def __getitem__(self, key: KT) -> VT:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: KT, value: VT) -> None:
         raise NotImplementedError
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: KT) -> None:
         with self._lock.write():
             self._evict(self._ref[key])
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[KT]:
         with self._lock.read():
             for e in self._iter():
                 yield e.key
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[KT]:
         with self._lock.read():
             for e in self._iter(reverse=True):
                 yield e.key
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         with self._lock.read():
             return key in self._ref
 
-    def items(self):
+    def items(self) -> Iterator[tuple[KT, VT]]:
         with self._lock.read():
             for e in self._iter():
                 yield (e.key, e.value)
 
     keys = __iter__
 
-    def values(self):
+    def values(self) -> Iterator[VT]:
         with self._lock.read():
             for e in self._iter():
                 yield e.value
 
-    def get(self, key, default=None):
+    @overload
+    def get(self, key: KT, default: None = None, /) -> VT | None: ...
+    @overload
+    def get(self, key: KT, default: VT, /) -> VT: ...
+    @overload
+    def get(self, key: KT, default: T, /) -> VT | T: ...
+
+    def get(self, key: KT, default: object = None, /) -> Any:
         try:
             return self[key]
         except KeyError:
             return default
 
-    def pop(self, key, *args):
+    @overload
+    def pop(self, key: KT, /) -> VT: ...
+    @overload
+    def pop(self, key: KT, default: VT, /) -> VT: ...
+    @overload
+    def pop(self, key: KT, default: T, /) -> VT | T: ...
+
+    def pop(self, key: KT, default: Any = _unset, /) -> Any:
         with self._lock.write():
-            e = self._ref.pop(key, *args)
-            if e in args:
-                return e
+            if default is _unset:
+                e = self._ref.pop(key)
+            else:
+                e = self._ref.pop(key, default)
+                if e is default:
+                    return e
             # reset for evict
             self._ref[key] = e
             self._evict(e)
             return e.value
 
-    def popitem(self):
+    def popitem(self) -> tuple[KT, VT]:
         with self._lock.write():
             k, e = self._ref.popitem()
             # reset for evict
@@ -266,75 +325,89 @@ class _Cache(metaclass=abc.ABCMeta):
             self._evict(e)
             return e.key, e.value
 
-    def setdefault(self, key, default=None):
+    @overload
+    def setdefault(self: _Cache[KT, VT | None], key: KT, default: None = None, /) -> T | None: ...
+    @overload
+    def setdefault(self, key: KT, default: VT, /) -> VT: ...
+
+    def setdefault(self, key: KT, default: Any = None, /) -> Any:
         try:
             return self[key]
         except KeyError:
             self[key] = default
             return default
 
-    def update(self, *args, **kwargs):
+    def update(self, *args: Any, **kwargs: VT) -> None:
         raise NotImplementedError
 
-    def peek(self, key):
+    def peek(self, key: KT) -> VT:
         with self._lock.read():
             return self._ref[key].value
 
-    def on_init(self):
+    def on_init(self) -> None:
         self._ref = {}
         self._lock = RWLock()
 
-    def on_evicted(self, key, value):
+    def on_evicted(self, key: KT, value: VT) -> None:
         pass
 
     @abc.abstractmethod
-    def _iter(self, reverse=False):
+    def _iter(self, reverse: bool = False) -> Iterator[_Entry[KT, VT]]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _sweep(self):
+    def _sweep(self) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _evict(self, e):
+    def _evict(self, e: _Entry[KT, VT]) -> None:
         self.on_evicted(e.key, e.value)
+
+    class _Entry(Protocol[_KT, _VT]):
+
+        key: _KT
+        value: _VT
 
 
 @collections.abc.MutableMapping.register
-class LRUCache(_Cache):
+class LRUCache(_Cache[KT, VT]):
 
     __slots__ = ()
 
-    def __getitem__(self, key):
+    _head: _Entry[KT, VT] | None
+
+    def __getitem__(self, key: KT) -> VT:
         with self._lock.write():
             return self._move_to_front(self._ref[key]).value
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: KT, value: VT) -> None:
         with self._lock.write():
             if key in self._ref:
-                e = self._ref[key]
+                e = cast(LRUCache._Entry[KT, VT], self._ref[key])
                 e.value = value
+                exists = True
             else:
                 self._ref[key] = e = self._Entry(key, value)
                 self._sweep()
+                exists = False
 
             if self._head is None:
                 self._head = e.next = e.prev = e
             else:
-                self._move_to_front(e)
+                self._move_to_front(e, exists)
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         with self._lock.read():
             c = type(self)(self._cap)
             for e in self._iter(reverse=True):
                 c[e.key] = e.value
             return c
 
-    def __getstate__(self):
+    def __getstate__(self) -> tuple[int, tuple[tuple[KT, VT], ...]]:
         with self._lock.read():
             return self._cap, tuple((e.key, e.value) for e in self._iter())
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: tuple[int, tuple[tuple[KT, VT], ...]]) -> None:
         self._cap = state[0]
         self.on_init()
         for k, v in reversed(state[1]):
@@ -342,16 +415,16 @@ class LRUCache(_Cache):
 
     copy = __copy__
 
-    def clear(self):
+    def clear(self) -> None:
         with self._lock.write():
             self._ref.clear()
             self._head = None
 
-    def on_init(self):
+    def on_init(self) -> None:
         super().on_init()
         self._head = None
 
-    def _iter(self, reverse=False):
+    def _iter(self, reverse: bool = False) -> Iterator[_Entry[KT, VT]]:
         if self._head is None:
             # no entries
             return
@@ -374,13 +447,14 @@ class LRUCache(_Cache):
                     break
                 e = p
 
-    def _sweep(self):
+    def _sweep(self) -> None:
         if self._cap >= 0:
             it = self._iter(reverse=True)
             while len(self._ref) > self._cap:
                 self._evict(next(it))
 
-    def _evict(self, e):
+    def _evict(self, e: _Cache._Entry[KT, VT]) -> None:
+        e = cast(LRUCache._Entry[KT, VT], e)
         e.next.prev = e.prev
         e.prev.next = e.next
         del self._ref[e.key]
@@ -392,34 +466,34 @@ class LRUCache(_Cache):
                 self._head = e.next
         self.on_evicted(e.key, e.value)
 
-    def _move_to_front(self, e):
+    def _move_to_front(self, e: _Cache._Entry[KT, VT], exists: bool = True) -> _Entry[KT, VT]:
+        e = cast(LRUCache._Entry[KT, VT], e)
         if e is self._head:
             # already at front
             return e
         # remove from current position
-        if (e.next is not None
-            and e.prev is not None):
+        if exists:
             e.next.prev = e.prev
             e.prev.next = e.next
         # insert at front
+        assert self._head is not None
         n = self._head
         e.next = n
         e.prev = n.prev
         self._head = n.prev.next = n.prev = e
         return e
 
-    class _Entry:
+    @dataclasses.dataclass
+    class _Entry(Generic[_KT, _VT]):
 
-        __slots__ = ('key', 'value', 'next', 'prev')
-
-        def __init__(self, key, value):
-            self.key = key
-            self.value = value
-            self.next = self.prev = None
+        key: _KT
+        value: _VT
+        next: LRUCache._Entry[_KT, _VT] = dataclasses.field(init=False)
+        prev: LRUCache._Entry[_KT, _VT] = dataclasses.field(init=False)
 
 
 @collections.abc.MutableMapping.register
-class LFUCache(_Cache):
+class LFUCache(_Cache[KT, VT]):
     """An implementation of LFU cache algorithm
 
     This is based upon K. Shah, A. Mitra and D. Matani,
@@ -428,9 +502,11 @@ class LFUCache(_Cache):
 
     __slots__ = ()
 
-    def __getitem__(self, key):
+    _head: _Frequency[KT, VT]
+
+    def __getitem__(self, key: KT) -> VT:
         with self._lock.write():
-            e = self._ref[key]
+            e = cast(LFUCache._Entry[KT, VT], self._ref[key])
             curr = e.parent
             # remove from current frequency node
             self._remove(e)
@@ -443,7 +519,7 @@ class LFUCache(_Cache):
 
             return e.value
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: KT, value: VT) -> None:
         with self._lock.write():
             if key in self._ref:
                 self._evict(self._ref[key])
@@ -455,7 +531,7 @@ class LFUCache(_Cache):
             self._ref[key] = e = self._Entry(key, value)
             freq.append(e)
 
-    def __copy__(self):
+    def __copy__(self) -> Self:
         with self._lock.read():
             c = type(self)(self._cap)
             for fv, g in itertools.groupby(self._iter(), lambda e: e.parent.value):
@@ -464,13 +540,13 @@ class LFUCache(_Cache):
                 c._head.next.value = fv
             return c
 
-    def __getstate__(self):
+    def __getstate__(self) -> tuple[int, tuple[tuple[int, tuple[tuple[KT, VT], ...]], ...]]:
         with self._lock.read():
             return (self._cap,
                     tuple((fv, tuple((e.key, e.value) for e in g))
                           for fv, g in itertools.groupby(self._iter(), lambda e: e.parent.value)))
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: tuple[int, tuple[tuple[int, tuple[tuple[KT, VT], ...]], ...]]) -> None:
         self._cap = state[0]
         self.on_init()
         for fv, g in state[1]:
@@ -480,16 +556,16 @@ class LFUCache(_Cache):
 
     copy = __copy__
 
-    def clear(self):
+    def clear(self) -> None:
         with self._lock.write():
             self._ref.clear()
             self._head.next = self._head.prev = self._head
 
-    def on_init(self):
+    def on_init(self) -> None:
         super().on_init()
         self._head = self._Frequency(0)
 
-    def _iter(self, reverse=False):
+    def _iter(self, reverse: bool = False) -> Iterator[_Entry[KT, VT]]:
         if self._head.next is self._head:
             # no entries
             return
@@ -497,6 +573,7 @@ class LFUCache(_Cache):
             # forward iterator
             freq = self._head.prev
             while freq is not self._head:
+                assert freq.head is not None
                 e = freq.head.prev
                 while True:
                     p = e.prev
@@ -509,6 +586,7 @@ class LFUCache(_Cache):
             # reverse iterator
             freq = self._head.next
             while freq is not self._head:
+                assert freq.head is not None
                 e = freq.head
                 while True:
                     n = e.next
@@ -518,7 +596,7 @@ class LFUCache(_Cache):
                     e = n
                 freq = freq.next
 
-    def _sweep(self, cap=None):
+    def _sweep(self, cap: int | None = None) -> None:
         if cap is None:
             cap = self._cap
 
@@ -526,51 +604,54 @@ class LFUCache(_Cache):
             while len(self._ref) > cap:
                 self._evict(self._lfu())
 
-    def _evict(self, e):
+    def _evict(self, e: _Cache._Entry[KT, VT]) -> None:
+        e = cast(LFUCache._Entry[KT, VT], e)
         self._remove(e)
         del self._ref[e.key]
         self.on_evicted(e.key, e.value)
 
-    def _new_freq(self, v, next):
-        freq = self._Frequency(v)
+    def _new_freq(self, v: int, next: _Frequency[KT, VT]) -> _Frequency[KT, VT]:
+        freq: LFUCache._Frequency[KT, VT] = self._Frequency(v)
         freq.next = next
         freq.prev = next.prev
         next.prev.next = next.prev = freq
         return freq
 
-    def _remove(self, e):
+    def _remove(self, e: _Entry[KT, VT]) -> None:
         freq = e.parent
         freq.remove(e)
         if freq.len == 0:
             freq.next.prev = freq.prev
             freq.prev.next = freq.next
 
-    def _lfu(self):
+    def _lfu(self) -> _Cache._Entry[KT, VT]:
         if self._head.next is self._head:
             raise RuntimeError(f"'{type(self).__name__}' is empty")
+        assert self._head.next.head is not None
         return self._ref[self._head.next.head.key]
 
-    class _Entry:
+    @dataclasses.dataclass
+    class _Entry(Generic[_KT, _VT]):
 
-        __slots__ = ('key', 'value', 'parent', 'next', 'prev')
+        key: _KT
+        value: _VT
+        parent: LFUCache._Frequency[_KT, _VT] = dataclasses.field(init=False)
+        next: LFUCache._Entry[_KT, _VT] = dataclasses.field(init=False)
+        prev: LFUCache._Entry[_KT, _VT] = dataclasses.field(init=False)
 
-        def __init__(self, key, value):
-            self.key = key
-            self.value = value
-            self.parent = None
-            self.next = self.prev = None
-
-    class _Frequency:
+    class _Frequency(Generic[_KT, _VT]):
 
         __slots__ = ('value', 'head', 'len', 'next', 'prev')
 
-        def __init__(self, value):
+        head: LFUCache._Entry[_KT, _VT] | None
+
+        def __init__(self, value: int) -> None:
             self.value = value
             self.head = None
             self.len = 0
             self.next = self.prev = self
 
-        def append(self, e):
+        def append(self, e: LFUCache._Entry[_KT, _VT]) -> None:
             if self.head is None:
                 self.head = e.next = e.prev = e
             else:
@@ -581,7 +662,7 @@ class LFUCache(_Cache):
             e.parent = self
             self.len += 1
 
-        def remove(self, e):
+        def remove(self, e: LFUCache._Entry[_KT, _VT]) -> None:
             if e.next is e:
                 self.head = None
             else:
@@ -589,5 +670,5 @@ class LFUCache(_Cache):
                 e.prev.next = e.next
                 if self.head is e:
                     self.head = e.next
-            e.parent = None
+            del e.parent
             self.len -= 1

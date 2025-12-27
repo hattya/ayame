@@ -6,9 +6,12 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
+from typing import Any
 import urllib.parse
 
 from . import util
+from ._typing import WSGIEnvironment
 
 
 __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
@@ -17,21 +20,21 @@ __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',
 _safe = "/-._~!$&'()*+,;=:@"
 
 
-def parse_qs(environ):
+def parse_qs(environ: WSGIEnvironment) -> dict[str, list[str]]:
     return urllib.parse.parse_qs(qs, keep_blank_values=True) if (qs := environ.get('QUERY_STRING')) else {}
 
 
-def quote(s, safe=_safe, encoding='utf-8', errors='strict'):
+def quote(s: Any, safe: str = _safe, encoding: str = 'utf-8', errors: str = 'strict') -> str:
     return urllib.parse.quote(util.to_bytes(s, encoding, errors),
                               util.to_bytes(safe, 'ascii', 'ignore'))
 
 
-def quote_plus(s, safe=_safe, encoding='utf-8', errors='strict'):
+def quote_plus(s: Any, safe: str = _safe, encoding: str = 'utf-8', errors: str = 'strict') -> str:
     return urllib.parse.quote_plus(util.to_bytes(s, encoding, errors),
                                    util.to_bytes(safe, 'ascii', 'ignore'))
 
 
-def application_uri(environ):
+def application_uri(environ: WSGIEnvironment) -> str:
     scheme = environ['wsgi.url_scheme']
     uri = [scheme, '://']
     # HTTP_HOST or SERVER_NAME + SERVER_PORT
@@ -57,7 +60,7 @@ def application_uri(environ):
     return ''.join(uri)
 
 
-def request_uri(environ, query=False):
+def request_uri(environ: WSGIEnvironment, query: bool = False) -> str:
     uri = [application_uri(environ)]
     # PATH_INFO
     if path_info := environ.get('PATH_INFO'):
@@ -72,7 +75,7 @@ def request_uri(environ, query=False):
     return ''.join(uri)
 
 
-def request_path(environ):
+def request_path(environ: WSGIEnvironment) -> str:
     path = []
     # SCRIPT_NAME
     script_name = environ.get('SCRIPT_NAME')
@@ -85,7 +88,7 @@ def request_path(environ):
     return ''.join(path)
 
 
-def is_relative_uri(uri):
+def is_relative_uri(uri: str | None) -> bool:
     if uri == '':
         return True
     elif (uri is None
@@ -94,7 +97,7 @@ def is_relative_uri(uri):
     return not urllib.parse.urlsplit(uri).scheme
 
 
-def relative_uri(environ, uri):
+def relative_uri(environ: WSGIEnvironment, uri: str) -> str:
     if not is_relative_uri(uri):
         return uri
     # PATH_INFO

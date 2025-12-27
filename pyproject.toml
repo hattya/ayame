@@ -55,6 +55,7 @@ packages = [
 "*" = [
     "*.html",
     "*.properties",
+    "py.typed",
 ]
 
 [tool.scmver]
@@ -64,12 +65,25 @@ fallback = {attr = "__version__:version", path = "ayame"}
 
 [tool.coverage.run]
 branch = true
+omit = [
+    "*/_typing.py",
+]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "except ImportError:",
+    "if TYPE_CHECKING:",
+    "@overload",
+    "\\.\\.\\.$",
 ]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "secure_cookie.*"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 160

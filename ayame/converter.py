@@ -6,9 +6,12 @@
 #   SPDX-License-Identifier: MIT
 #
 
+from __future__ import annotations
 import abc
+import builtins
 import collections
 import datetime
+from typing import Any
 
 from .exception import ConversionError
 
@@ -20,7 +23,9 @@ __all__ = ['ConverterRegistry', 'Converter', 'BooleanConverter',
 
 class ConverterRegistry:
 
-    def __init__(self):
+    __registry: dict[type, Converter]
+
+    def __init__(self) -> None:
         self.__registry = {}
 
         self.add(BooleanConverter())
@@ -31,10 +36,10 @@ class ConverterRegistry:
         self.add(DateTimeConverter())
         self.add(_ObjectConverter())
 
-    def get(self, type):
+    def get(self, type: type) -> Converter | None:
         return self.__registry.get(type)
 
-    def converter_for(self, value):
+    def converter_for(self, value: Any) -> Converter:
         cls = value if isinstance(value, type) else type(value)
 
         queue = collections.deque((cls,))
@@ -46,14 +51,14 @@ class ConverterRegistry:
                          if c is not object)
         return self.__registry[object]
 
-    def add(self, converter):
+    def add(self, converter: Converter) -> None:
         if isinstance(converter.type, tuple):
             self.__registry.update((t, converter) for t in converter.type
                                    if t is not None)
         elif converter.type is not None:
             self.__registry[converter.type] = converter
 
-    def remove(self, type):
+    def remove(self, type: type) -> None:
         if type in self.__registry:
             del self.__registry[type]
 
@@ -62,23 +67,24 @@ class Converter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def to_python(self, value):
+    def to_python(self, value: Any) -> Any:
         raise NotImplementedError
 
-    def to_string(self, value):
+    def to_string(self, value: Any) -> str:
         if (e := self.check_type(value)) is not None:
             raise e
 
         return str(value)
 
-    def check_type(self, value):
+    def check_type(self, value: Any) -> ConversionError | None:
         if not (self.type is None
                 or isinstance(value, self.type)):
             q = "'{}'".format
+            et: list[str] | str
             if isinstance(self.type, tuple):
                 et = []
                 for t in self.type:
@@ -91,8 +97,10 @@ class Converter(metaclass=abc.ABCMeta):
             else:
                 et = q(self.type)
             return self.error(value, message=f"expected {et} but got '{type(value)}'")
+        return None
 
-    def error(self, value, type=None, message=None):
+    def error(self, value: Any, type: builtins.type | tuple[builtins.type, ...] | None = None,
+              message: str | None = None) -> ConversionError:
         return ConversionError(message if message is not None else f"cannot convert '{value}' to '{type}'",
                                converter=self,
                                value=value,
@@ -102,20 +110,20 @@ class Converter(metaclass=abc.ABCMeta):
 class _ObjectConverter(Converter):
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return object
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> Any:
         return value
 
 
 class BooleanConverter(Converter):
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return bool
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> bool:
         if isinstance(value, str):
             if value.lower() in ('false', 'off', 'no', 'n'):
                 return False
@@ -125,10 +133,10 @@ class BooleanConverter(Converter):
 class FloatConverter(Converter):
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return float
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> float:
         try:
             return float(value) if value is not None else 0.0
         except (TypeError, ValueError):
@@ -138,10 +146,10 @@ class FloatConverter(Converter):
 class IntegerConverter(Converter):
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return int
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> int:
         try:
             return int(value) if value is not None else 0
         except (TypeError, ValueError):
@@ -153,16 +161,16 @@ class DateConverter(Converter):
     _format = '%Y-%m-%d'
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return datetime.date
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> datetime.date:
         try:
             return datetime.datetime.strptime(value, self._format).date()
         except (TypeError, ValueError):
             raise self.error(value)
 
-    def to_string(self, value):
+    def to_string(self, value: Any) -> str:
         if (e := self.check_type(value)) is not None:
             raise e
 
@@ -174,16 +182,16 @@ class TimeConverter(Converter):
     _format = '%H:%M:%S'
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return datetime.time
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> datetime.time:
         try:
             return datetime.datetime.strptime(value, self._format).time()
         except (TypeError, ValueError):
             raise self.error(value)
 
-    def to_string(self, value):
+    def to_string(self, value: Any) -> str:
         if (e := self.check_type(value)) is not None:
             raise e
 
@@ -193,14 +201,15 @@ class TimeConverter(Converter):
 class DateTimeConverter(Converter):
 
     @property
-    def type(self):
+    def type(self) -> builtins.type | tuple[builtins.type, ...]:
         return datetime.datetime
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> datetime.datetime:
         if not isinstance(value, str):
             raise self.error(value)
 
         ds = value
+        off: int | str
         # parse time zone
         if ds.endswith('Z'):
             # UTC
@@ -237,7 +246,7 @@ class DateTimeConverter(Converter):
             raise self.error(value)
         return dt.replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(minutes=off)
 
-    def to_string(self, value):
+    def to_string(self, value: Any) -> str:
         if (e := self.check_type(value)) is not None:
             raise e
 
