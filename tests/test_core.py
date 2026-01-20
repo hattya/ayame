@@ -1,7 +1,7 @@
 #
 # test_core
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -1100,11 +1100,8 @@ class CoreTestCase(AyameTestCase):
 
         with self.application():
             mc = Sausage('a')
-            m = mc.load_markup()
-        self.assertEqual(m.xml_decl, {})
-        self.assertEqual(m.lang, 'xhtml1')
-        self.assertEqual(m.doctype, '')
-        self.assertIsNone(m.root)
+            with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
+                mc.load_markup()
 
         class Lobster(ayame.Page):
             pass

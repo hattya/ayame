@@ -1,7 +1,7 @@
 #
 # ayame.core
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -543,22 +543,22 @@ class MarkupContainer(Component):
             # merge ayame:head element
             if ayame_head is not None:
                 extra_head = ayame_head.children + extra_head
+                ayame_head = None
         # merge ayame:head element into supermarkup
         if extra_head:
-            if ayame_head is None:
+            if ayame_head is not None:
+                # merge to ayame:head element
+                ayame_head.extend(extra_head)
+                return m
+            elif m.root is not None:
                 # merge to head element
-                assert m.root is not None
                 for node in m.root.children:
                     if (isinstance(node, markup.Element)
                         and node.qname == markup.HEAD):
                         node.type = markup.Element.OPEN
                         node.extend(extra_head)
-                        break
-                else:
-                    raise RenderingError(cls, "'head' element is not found")
-            else:
-                # merge to ayame:head element
-                ayame_head.extend(extra_head)
+                        return m
+            raise RenderingError(cls, "'head' element is not found")
         return m
 
     def find_head(self, root: markup.Element | None) -> markup.Element | None:
