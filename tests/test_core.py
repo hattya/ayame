@@ -6,11 +6,11 @@
 #   SPDX-License-Identifier: MIT
 #
 
-import textwrap
+import unittest.mock
 
 import ayame
-from ayame import basic, http, markup, model
-from base import AyameTestCase
+from ayame import http, markup, model
+from base import AyameTestCase, ElementBuilder
 
 
 class CoreTestCase(AyameTestCase):
@@ -23,6 +23,7 @@ class CoreTestCase(AyameTestCase):
         self.assertEqual(c.id, 'a')
         self.assertIsNone(c.model)
         self.assertIsNone(c.model_object)
+        self.assertEqual(c.model_object_as_string(), '')
         with self.assertRaisesRegex(ayame.ComponentError, r'\bmodel .* not set\b'):
             c.model_object = ''
         with self.assertRaises(ayame.AyameError):
@@ -45,71 +46,43 @@ class CoreTestCase(AyameTestCase):
             c.uri_for(c)
         with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c.page()
+        self.assertEqual(c.path(), 'a')
+
         c.add(None, True, 0, 3.14, '')
         self.assertEqual(c.behaviors, [])
-        self.assertEqual(c.path(), 'a')
+
         el = self.empty_element()
-        self.assertEqual(c.render(el), el)
+        self.assertIs(c.render(el), el)
+        self.assertIsNone(c.render(None))
         c.visible = False
         self.assertIsNone(c.render(el))
 
     def test_component_with_model(self):
         with self.assertRaisesRegex(ayame.ComponentError, r' not .* instance of Model\b'):
-            ayame.Component('1', '')
+            ayame.Component('a', '')
 
         m = model.Model(None)
-        self.assertIsNone(m.object)
         c = ayame.Component('a', m)
         self.assertEqual(c.id, 'a')
         self.assertIs(c.model, m)
-        self.assertIsNone(c.model.object)
         self.assertIsNone(c.model_object)
-        c.model.object = True
-        self.assertIs(c.model, m)
-        self.assertEqual(c.model.object, True)
-        self.assertEqual(c.model_object, True)
-        c.model_object = False
-        self.assertIs(c.model, m)
-        self.assertEqual(c.model.object, False)
-        self.assertEqual(c.model_object, False)
-        with self.assertRaises(ayame.AyameError):
-            c.app
-        with self.assertRaises(ayame.AyameError):
-            c.config
-        with self.assertRaises(ayame.AyameError):
-            c.environ
-        with self.assertRaises(ayame.AyameError):
-            c.request
-        with self.assertRaises(ayame.AyameError):
-            c.session
-        with self.assertRaises(ayame.AyameError):
-            c.forward(c)
-        with self.assertRaises(ayame.AyameError):
-            c.redirect(c)
-        with self.assertRaises(ayame.AyameError):
-            c.tr('key')
-        with self.assertRaises(ayame.AyameError):
-            c.uri_for(c)
-        with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
-            c.page()
-        c.add(None, True, 0, 3.14, '')
-        self.assertEqual(c.behaviors, [])
-        self.assertEqual(c.path(), 'a')
-        el = self.empty_element()
-        self.assertEqual(c.render(el), el)
-        c.visible = False
-        self.assertIsNone(c.render(el))
+        self.assertEqual(c.model_object_as_string(), '')
 
-        m = model.Model('&<>')
-        self.assertEqual(m.object, '&<>')
-        c = ayame.Component('a', m)
-        self.assertEqual(c.id, 'a')
-        self.assertIs(c.model, m)
-        self.assertEqual(c.model_object, '&<>')
-        self.assertEqual(c.model_object_as_string(), '&amp;&lt;&gt;')
-        c.escape_model_string = False
-        self.assertEqual(c.model_object, '&<>')
-        self.assertEqual(c.model_object_as_string(), '&<>')
+        for o, esc, raw in (
+            (True, 'True', 'True'),
+            (0, '0', '0'),
+            (3.14, '3.14', '3.14'),
+            ('&<>', '&amp;&lt;&gt;', '&<>'),
+        ):
+            with self.subTest(object=o):
+                c.model_object = o
+                self.assertIs(c.model, m)
+                self.assertEqual(c.model_object, o)
+                with self.application():
+                    c.escape_model_string = True
+                    self.assertEqual(c.model_object_as_string(), esc)
+                    c.escape_model_string = False
+                    self.assertEqual(c.model_object_as_string(), raw)
 
     def test_markup_container(self):
         mc = ayame.MarkupContainer('a')
@@ -119,14 +92,22 @@ class CoreTestCase(AyameTestCase):
         self.assertEqual(mc.children, [])
         self.assertIs(mc.find(None), mc)
         self.assertIs(mc.find(''), mc)
-        it = mc.walk()
-        self.assertEqual(list(it), [(mc, 0)])
+        with self.assertRaisesRegex(ayame.ComponentError, fr"\bcomponent .* '{__name__}' .* not found\b"):
+            mc.find(__name__)
+        self.assertEqual(list(mc.walk()), [
+            (mc, 0),
+        ])
+
+        mc.add(None, True, 0, 3.14, '')
+        self.assertEqual(mc.behaviors, [])
+        self.assertEqual(mc.children, [])
 
         b1 = ayame.Component('b1')
         mc.add(b1)
         with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
             b1.page()
         self.assertEqual(b1.path(), 'a:b1')
+        self.assertEqual(mc.behaviors, [])
         self.assertEqual(mc.children, [b1])
         self.assertIs(mc.find('b1'), b1)
         with self.assertRaisesRegex(ayame.ComponentError, r"'b1' .* exists\b"):
@@ -136,18 +117,22 @@ class CoreTestCase(AyameTestCase):
         with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
             b2.page()
         self.assertEqual(b2.path(), 'a:b2')
+        self.assertEqual(mc.behaviors, [])
         self.assertEqual(mc.children, [b1, b2])
         self.assertIs(mc.find('b2'), b2)
         with self.assertRaisesRegex(ayame.ComponentError, r"'b2' .* exists\b"):
             mc.add(b2)
-        it = mc.walk()
-        self.assertEqual(list(it), [(mc, 0), (b1, 1), (b2, 1)])
+        self.assertEqual(list(mc.walk()), [
+            (mc, 0),
+            (b1, 1), (b2, 1),
+        ])
 
         c1 = ayame.Component('c1')
         b2.add(c1)
         with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c1.page()
         self.assertEqual(c1.path(), 'a:b2:c1')
+        self.assertEqual(b2.behaviors, [])
         self.assertEqual(b2.children, [c1])
         self.assertIs(mc.find('b2:c1'), c1)
         with self.assertRaisesRegex(ayame.ComponentError, r"'c1' .* exists\b"):
@@ -157,560 +142,513 @@ class CoreTestCase(AyameTestCase):
         with self.assertRaisesRegex(ayame.ComponentError, r' not attached .*\.Page\b'):
             c2.page()
         self.assertEqual(c2.path(), 'a:b2:c2')
+        self.assertEqual(b2.behaviors, [])
         self.assertEqual(b2.children, [c1, c2])
         self.assertIs(mc.find('b2:c2'), c2)
         with self.assertRaisesRegex(ayame.ComponentError, r"'c2' .* exists\b"):
             b2.add(c2)
-        it = mc.walk()
-        self.assertEqual(list(it), [
+        self.assertEqual(list(mc.walk()), [
             (mc, 0),
-            (b1, 1),
-            (b2, 1), (c1, 2), (c2, 2),
+            (b1, 1), (b2, 1),
+            (c1, 2), (c2, 2),
         ])
-        it = mc.walk(step=lambda component, *args: component != b2)
-        self.assertEqual(list(it), [
+        self.assertEqual(list(mc.walk(step=lambda c, _: c != b2)), [
             (mc, 0),
-            (b1, 1),
-            (b2, 1),
+            (b1, 1), (b2, 1),
         ])
 
         el = self.empty_element()
-        self.assertEqual(mc.render(el), el)
+        self.assertIs(mc.render(el), el)
+        self.assertIsNone(mc.render(None))
         mc.visible = False
         self.assertIsNone(mc.render(el))
 
-    def test_render_no_child_component(self):
-        root = markup.Element(self.of('root'))
+    def test_markup_container_with_model(self):
         mc = ayame.MarkupContainer('a')
-        self.assertEqual(mc.render(root), root)
+        c = ayame.Component('b')
+        mc.add(c)
+
+        o = {'b': 'b'}
+        m = model.CompoundModel(o)
+        mc.model = m
+        self.assertIs(mc.model, m)
+        self.assertIs(mc.model_object, o)
+        self.assertIsInstance(c.model, model.WrapModel)
+        self.assertEqual(c.model_object, c.id)
+        c.model_object = []
+        self.assertEqual(c.model_object, [])
+
+        o = {'b': 'a:b'}
+        m = model.CompoundModel(o)
+        mc.model = m
+        self.assertIs(mc.model, m)
+        self.assertIs(mc.model_object, o)
+        self.assertIsInstance(c.model, model.WrapModel)
+        self.assertEqual(c.model_object, c.path())
+        c.model_object = []
+        self.assertEqual(c.model_object, [])
+
+        o = {'b': ''}
+        m = model.Model(o)
+        mc.model = m
+        self.assertIs(mc.model, m)
+        self.assertIs(mc.model_object, o)
+        self.assertIsNone(c.model)
+        self.assertIsNone(c.model_object)
+        with self.assertRaisesRegex(ayame.ComponentError, r'\bmodel .* not set\b'):
+            c.model_object = []
 
     def test_render_no_ayame_id(self):
-        root = markup.Element(self.of('root'))
+        el = self.empty_element()
         mc = ayame.MarkupContainer('a')
-        self.assertEqual(mc.render_component(root), (None, root))
+        self.assertEqual(mc.render_component(el), (None, el))
 
     def test_render_unknown_ayame_element(self):
-        root = markup.Element(self.ayame_of('spam'))
+        el = markup.Element(self.ayame_of(__name__))
         mc = ayame.MarkupContainer('a')
-        with self.assertRaisesRegex(ayame.RenderingError, r"\bunknown element 'ayame:spam'"):
-            mc.render(root)
+        with self.assertRaisesRegex(ayame.RenderingError, fr"\bunknown element 'ayame:{__name__}'"):
+            mc.render(el)
 
     def test_render_unknown_ayame_attribute(self):
-        root = markup.Element(self.of('root'),
-                              attrib={
-                                  markup.AYAME_ID: 'b',
-                                  self.ayame_of('spam'): '',
-                              })
+        el = self.empty_element(attrib={
+            markup.AYAME_ID: 'b',
+            self.ayame_of(__name__): 'b',
+        })
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.Component('b'))
-        with self.assertRaisesRegex(ayame.RenderingError, r"\bunknown attribute 'ayame:spam'"):
-            mc.render(root)
+        with self.assertRaisesRegex(ayame.RenderingError, fr"\bunknown attribute 'ayame:{__name__}'"):
+            mc.render(el)
 
     def test_render_no_associated_component(self):
-        root = markup.Element(self.of('root'),
-                              attrib={
-                                  markup.AYAME_ID: 'c',
-                                  self.of('id'): 'c',
-                              })
+        el = self.empty_element(attrib={
+            self.html_of('id'): __name__,
+            markup.AYAME_ID: __name__,
+        })
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.Component('b'))
-        with self.assertRaisesRegex(ayame.ComponentError, r"\bcomponent .* 'c' .* not found\b"):
-            mc.render(root)
+        with self.assertRaisesRegex(ayame.ComponentError, fr"\bcomponent .* '{__name__}' .* not found\b"):
+            mc.render(el)
 
     def test_render_replace_element_itself(self):
         class Component(ayame.Component):
-            def on_render(self, element):
-                return None
+            def on_render(self, _):
+                return self.model_object
 
-        root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'b'})
-        mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
-        self.assertEqual(mc.render(root), '')
+        el = self.empty_element()
+        for t, o, rv in (
+            (
+                markup.Element,
+                el,
+                el,
+            ),
+            (
+                str,
+                '',
+                '',
+            ),
+            (
+                list[markup.Node],
+                [el, ''],
+                [el, ''],
+            ),
+            (
+                None,
+                None,
+                '',
+            ),
+        ):
+            with self.subTest(type=t):
+                el = self.empty_element(attrib={
+                    markup.AYAME_ID: 'b',
+                })
+                mc = ayame.MarkupContainer('a')
+                mc.add(Component('b', model.Model(o)))
 
-    def test_render_replace_element_itself_with_string(self):
-        class Component(ayame.Component):
-            def on_render(self, element):
-                return ''
-
-        root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'b'})
-        mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
-        self.assertEqual(mc.render(root), '')
-
-    def test_render_replace_element_itself_with_list(self):
-        class Component(ayame.Component):
-            def on_render(self, element):
-                return ['>', '!', '<']
-
-        root = markup.Element(self.of('root'),
-                              attrib={markup.AYAME_ID: 'b'})
-        mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
-        self.assertEqual(mc.render(root), ['>', '!', '<'])
+                self.assertEqual(mc.render(el), rv)
 
     def test_render_remove_element(self):
         class Component(ayame.Component):
-            def on_render(self, element):
-                return None if int(self.id) % 2 else self.id
+            def on_render(self, _):
+                return None
 
-        root = markup.Element(self.of('root'))
-        root.append('>')
+        el = self.empty_element()
         for i in range(1, 10):
-            a = markup.Element(self.of('a'),
-                               attrib={markup.AYAME_ID: str(i)})
-            root.append(a)
-        root.append('<')
+            if i % 2:
+                el.append(str(i))
+            else:
+                el.append(self.empty_element(attrib={
+                    markup.AYAME_ID: str(i),
+                }))
         mc = ayame.MarkupContainer('a')
-        for i in range(1, 10):
+        for i in range(2, 10, 2):
             mc.add(Component(str(i)))
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '2', '4', '6', '8', '<'])
+        rv = mc.render(el)
+        self.assertIs(rv, el)
+        self.assertEqual(rv.attrib, {})
+        self.assertEqual(rv.children, ['1', '3', '5', '7', '9'])
 
-    def test_render_replace_element_with_string(self):
+    def test_render_replace_element(self):
         class Component(ayame.Component):
-            def on_render(self, element):
-                return ''
+            def on_render(self, _):
+                return self.model_object
 
-        root = markup.Element(self.of('root'))
-        root.append('>')
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
-        root.append('<')
-        mc = ayame.MarkupContainer('a')
-        mc.add(Component('b'))
+        el = self.empty_element()
+        for t, o, children in (
+            (
+                markup.Element,
+                el,
+                ['>', el, '<'],
+            ),
+            (
+                str,
+                '',
+                ['>', '', '<'],
+            ),
+            (
+                list[markup.Node],
+                [el, ''],
+                ['>', el, '', '<'],
+            ),
+            (
+                None,
+                None,
+                ['>', '<'],
+            ),
+        ):
+            with self.subTest(type=t):
+                el = self.empty_element()
+                el.append('>')
+                el.append(self.empty_element(attrib={
+                    markup.AYAME_ID: 'b',
+                }))
+                el.append('<')
+                mc = ayame.MarkupContainer('a')
+                mc.add(Component('b', model.Model(o)))
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '', '<'])
-
-    def test_render_replace_element_with_list(self):
-        class Component(ayame.Component):
-            def on_render(self, element):
-                return [self.id, str(int(self.id) + 2)]
-
-        root = markup.Element(self.of('root'))
-        root.append('>')
-        for i in range(2, 10, 4):
-            a = markup.Element(self.of('a'),
-                               attrib={markup.AYAME_ID: str(i)})
-            root.append(a)
-        root.append('<')
-        mc = ayame.MarkupContainer('a')
-        for i in range(2, 10, 4):
-            mc.add(Component(str(i)))
-
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '2', '4', '6', '8', '<'])
+                rv = mc.render(el)
+                self.assertIs(rv, el)
+                self.assertEqual(rv.attrib, {})
+                self.assertEqual(rv.children, children)
 
     def test_render_replace_ayame_element_itself(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                return None
+            def on_render_element(self, el):
+                return self.model_object if el.qname.ns_uri == markup.AYAME_NS else el
 
-        root = markup.Element(self.ayame_of('root'))
-        mc = MarkupContainer('a')
-        self.assertEqual(mc.render(root), '')
-
-    def test_render_replace_ayame_element_itself_with_string(self):
-        class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                return ''
-
-        root = markup.Element(self.ayame_of('root'))
-        mc = MarkupContainer('a')
-        self.assertEqual(mc.render(root), '')
-
-    def test_render_replace_ayame_element_itself_with_list(self):
-        class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                return ['>', '!', '<']
-
-        root = markup.Element(self.ayame_of('root'))
-        mc = MarkupContainer('a')
-        self.assertEqual(mc.render(root), ['>', '!', '<'])
+        el = self.empty_element()
+        for t, o, rv in (
+            (
+                str,
+                '',
+                '',
+            ),
+            (
+                list[markup.Node],
+                [el, ''],
+                [el, ''],
+            ),
+            (
+                None,
+                None,
+                '',
+            ),
+        ):
+            with self.subTest(type=t):
+                el = markup.Element(self.ayame_of(__name__))
+                mc = MarkupContainer('a', model.Model(o))
+                self.assertEqual(mc.render(el), rv)
 
     def test_render_remove_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                n = element.qname.name
-                return element if n == 'root' else None if n == 'a' else n
+            def on_render_element(self, el):
+                return None if el.qname.ns_uri == markup.AYAME_NS else el
 
-        root = markup.Element(self.of('root'))
-        root.append('>')
+        el = self.empty_element()
         for i in range(1, 10):
-            a = markup.Element(self.ayame_of('a' if i % 2 else str(i)))
-            root.append(a)
-        root.append('<')
+            if i % 2:
+                el.append(str(i))
+            else:
+                el.append(markup.Element(self.ayame_of(str(i))))
         mc = MarkupContainer('a')
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '2', '4', '6', '8', '<'])
+        rv = mc.render(el)
+        self.assertIs(rv, el)
+        self.assertEqual(rv.attrib, {})
+        self.assertEqual(rv.children, ['1', '3', '5', '7', '9'])
 
-    def test_render_replace_ayame_element_with_string(self):
+    def test_render_replace_ayame_element(self):
         class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                return '' if element is a else element
+            def on_render_element(self, el):
+                return self.model_object if el.qname.ns_uri == markup.AYAME_NS else el
 
-        root = markup.Element(self.of('root'))
-        root.append('>')
-        a = markup.Element(self.ayame_of('a'))
-        root.append(a)
-        root.append('<')
-        mc = MarkupContainer('a')
+        el = self.empty_element()
+        for t, o, children in (
+            (
+                str,
+                '',
+                ['>', '', '<'],
+            ),
+            (
+                list[markup.Node],
+                [el, ''],
+                ['>', el, '', '<'],
+            ),
+            (
+                None,
+                None,
+                ['>', '<'],
+            ),
+        ):
+            with self.subTest(type=t):
+                el = self.empty_element()
+                el.append('>')
+                el.append(markup.Element(self.ayame_of(__name__)))
+                el.append('<')
+                mc = MarkupContainer('a', model.Model(o))
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '', '<'])
-
-    def test_render_replace_ayame_element_with_list(self):
-        class MarkupContainer(ayame.MarkupContainer):
-            def on_render_element(self, element):
-                n = element.qname.name
-                if n == 'root':
-                    return element
-                elif element.qname.ns_uri == '':
-                    return n
-                return [n, markup.Element(markup.QName('', str(int(n) + 2)))]
-
-        root = markup.Element(self.of('root'))
-        root.append('>')
-        for i in range(2, 10, 4):
-            a = markup.Element(self.ayame_of(str(i)))
-            root.append(a)
-        root.append('<')
-        mc = MarkupContainer('a')
-
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(root.children, ['>', '2', '4', '6', '8', '<'])
+                rv = mc.render(el)
+                self.assertIs(rv, el)
+                self.assertEqual(rv.attrib, {})
+                self.assertEqual(rv.children, children)
 
     def test_render_ayame_container_no_ayame_id(self):
-        root = markup.Element(self.of('root'))
-        container = markup.Element(markup.AYAME_CONTAINER)
-        root.append(container)
+        el = markup.Element(markup.AYAME_CONTAINER)
         mc = ayame.MarkupContainer('a')
         with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:id' .* 'ayame:container'"):
-            mc.render(root)
+            mc.render(el)
 
     def test_render_ayame_container_no_associated_component(self):
-        root = markup.Element(self.of('root'))
-        container = markup.Element(markup.AYAME_CONTAINER,
-                                   attrib={markup.AYAME_ID: 'b'})
-        root.append(container)
+        el = markup.Element(markup.AYAME_CONTAINER,
+                            {
+                                markup.AYAME_ID: 'b',
+                            })
         mc = ayame.MarkupContainer('a')
         with self.assertRaisesRegex(ayame.ComponentError, r"\bcomponent .* 'b' .* not found\b"):
-            mc.render(root)
+            mc.render(el)
 
     def test_render_ayame_container(self):
-        def populate_item(li):
-            li.add(basic.Label('c', li.model_object))
+        class Container(ayame.MarkupContainer):
+            def on_render(self, el):
+                return el
 
-        root = markup.Element(self.of('root'))
-        container = markup.Element(markup.AYAME_CONTAINER,
-                                   attrib={markup.AYAME_ID: 'b'})
-        root.append(container)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'c'})
-        container.append(a)
+        b = ElementBuilder(markup.XHTML_NS)
+        with b.open('ul',
+                    ns=self.ns):
+            with b.open('li'):
+                b.str('spam')
+                b.empty('br')
+                with b.open('ayame:container',
+                            {
+                                'ayame:id': 'b',
+                            }):
+                    b.str('eggs')
+                    b.empty('br')
+                    b.str('ham')
+                    b.empty('br')
+                b.str('toast')
+            with b.open('li'):
+                b.str('beans')
+        el = b.root
         mc = ayame.MarkupContainer('a')
-        mc.add(basic.ListView('b', [str(i) for i in range(3)], populate_item))
+        mc.add(Container('b'))
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(len(root), 3)
-
-        a = root[0]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(a.children, ['0'])
-
-        a = root[1]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(a.children, ['1'])
-
-        a = root[2]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(a.children, ['2'])
+        rv = mc.render(el)
+        self.assertIs(rv, el)
+        with b.open('ul',
+                    ns=self.ns):
+            with b.open('li'):
+                b.str('spam')
+                b.empty('br')
+                b.str('eggs')
+                b.empty('br')
+                b.str('ham')
+                b.empty('br')
+                b.str('toast')
+            with b.open('li'):
+                b.str('beans')
+        self.assertElementEqual(rv, b.root)
 
     def test_render_ayame_enclosure_no_ayame_child(self):
-        root = markup.Element(self.of('root'))
-        enclosure = markup.Element(markup.AYAME_ENCLOSURE)
-        root.append(enclosure)
+        el = markup.Element(markup.AYAME_ENCLOSURE)
         mc = ayame.MarkupContainer('a')
         with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:child' .* 'ayame:enclosure'"):
-            mc.render(root)
+            mc.render(el)
 
     def test_render_ayame_enclosure_no_associated_component(self):
-        root = markup.Element(self.of('root'))
-        enclosure = markup.Element(markup.AYAME_ENCLOSURE,
-                                   attrib={markup.AYAME_CHILD: 'b'})
-        root.append(enclosure)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        enclosure.append(a)
+        el = markup.Element(markup.AYAME_ENCLOSURE,
+                            {
+                                markup.AYAME_CHILD: 'b',
+                            })
+        el.append(self.empty_element(attrib={
+            markup.AYAME_ID: 'b',
+        }))
         mc = ayame.MarkupContainer('a')
         with self.assertRaisesRegex(ayame.ComponentError, r"\bcomponent .* 'b' .* not found\b"):
-            mc.render(root)
+            mc.render(el)
 
-    def test_render_ayame_enclosure_with_visible_component(self):
-        root = markup.Element(self.of('root'))
-        a = markup.Element(self.of('a'))
-        root.append(a)
-        enclosure = markup.Element(markup.AYAME_ENCLOSURE,
-                                   attrib={markup.AYAME_CHILD: 'b1'})
-        a.append(enclosure)
-        b = markup.Element(self.of('b'),
-                           attrib={markup.AYAME_ID: 'b1'})
-        enclosure.append(b)
-        b = markup.Element(self.of('b'))
-        a.append(b)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b2'})
-        root.append(a)
-        mc = ayame.MarkupContainer('a')
-        mc.add(basic.Label('b1', 'spam'))
-        mc.add(basic.Label('b2', 'eggs'))
+    def test_render_ayame_enclosure(self):
+        for v in (True, False):
+            with self.subTest(visible=v):
+                b = ElementBuilder(markup.XHTML_NS)
+                with b.open('ul',
+                            ns=self.ns):
+                    with b.open('li'):
+                        b.str('spam')
+                        b.empty('br')
+                        with b.open('ayame:enclosure',
+                                    {
+                                        'ayame:child': 'b',
+                                    }):
+                            b.str('eggs')
+                            b.empty('br',
+                                    {
+                                        'ayame:id': 'b',
+                                    })
+                            b.str('ham')
+                            b.empty('br')
+                        b.str('toast')
+                    with b.open('li'):
+                        b.str('beans')
+                el = b.root
+                mc = ayame.MarkupContainer('a')
+                mc.add(ayame.Component('b'))
+                mc.find('b').visible = v
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(len(root), 2)
-
-        a = root[0]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(len(a), 2)
-
-        b = a[0]
-        self.assertEqual(b.qname, self.of('b'))
-        self.assertEqual(b.attrib, {})
-        self.assertEqual(b.children, ['spam'])
-
-        b = a[1]
-        self.assertEqual(b.qname, self.of('b'))
-        self.assertEqual(b.attrib, {})
-        self.assertEqual(b.children, [])
-
-        a = root[1]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(a.children, ['eggs'])
-
-    def test_render_ayame_enclosure_with_invisible_component(self):
-        root = markup.Element(self.of('root'))
-        a = markup.Element(self.of('a'))
-        root.append(a)
-        enclosure = markup.Element(markup.AYAME_ENCLOSURE,
-                                   attrib={markup.AYAME_CHILD: 'b1'})
-        a.append(enclosure)
-        b = markup.Element(self.of('b'),
-                           attrib={markup.AYAME_ID: 'b1'})
-        enclosure.append(b)
-        b = markup.Element(self.of('b'))
-        a.append(b)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b2'})
-        root.append(a)
-        mc = ayame.MarkupContainer('a')
-        mc.add(basic.Label('b1', 'spam'))
-        mc.add(basic.Label('b2', 'eggs'))
-        mc.find('b1').visible = False
-        mc.find('b2').visible = False
-
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(len(root), 1)
-
-        a = root[0]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(len(a), 1)
-
-        b = a[0]
-        self.assertEqual(b.qname, self.of('b'))
-        self.assertEqual(b.attrib, {})
-        self.assertEqual(b.children, [])
+                rv = mc.render(el)
+                self.assertIs(rv, el)
+                with b.open('ul',
+                            ns=self.ns):
+                    with b.open('li'):
+                        b.str('spam')
+                        b.empty('br')
+                        if v:
+                            b.str('eggs')
+                            b.empty('br')
+                            b.str('ham')
+                            b.empty('br')
+                        b.str('toast')
+                    with b.open('li'):
+                        b.str('beans')
+                self.assertElementEqual(rv, b.root)
 
     def test_render_ayame_message_element_no_value_for_key(self):
         with self.application(self.new_environ()):
-            message = markup.Element(markup.AYAME_MESSAGE,
-                                     attrib={markup.AYAME_KEY: 'b'})
+            el = markup.Element(markup.AYAME_MESSAGE,
+                                {
+                                    markup.AYAME_KEY: 'key',
+                                })
             mc = ayame.MarkupContainer('a')
-            with self.assertRaisesRegex(ayame.RenderingError, r" value .* ayame:message .* 'b'"):
-                mc.render(message)
+            with self.assertRaisesRegex(ayame.RenderingError, r" value .* ayame:message .* 'key'"):
+                mc.render(el)
 
     def test_render_ayame_message_element(self):
-        with self.application(self.new_environ(accept='en')):
-            p = BeansPage()
-            status, headers, content = p()
-        html = self.format(BeansPage, message='Hello World!')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_render_ayame_message_element_ja(self):
-        with self.application(self.new_environ(accept='ja, en')):
-            p = BeansPage()
-            status, headers, content = p()
-        html = self.format(BeansPage, message='\u3053\u3093\u306b\u3061\u306f\u4e16\u754c')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+        for a, m in (
+            (
+                'en',
+                'Hello World!',
+            ),
+            (
+                'ja, en',
+                '\u3053\u3093\u306b\u3061\u306f\u4e16\u754c',
+            ),
+        ):
+            with self.subTest(accept_language=a):
+                with self.application(self.new_environ(accept=a)):
+                    p = BeansPage()
+                    status, headers, content = p()
+                html = self.format(type(p), message=m)
+                self.assertEqual(status, http.OK.status)
+                self.assertEqual(headers, [
+                    ('Content-Type', 'text/html; charset=UTF-8'),
+                    ('Content-Length', str(len(html))),
+                ])
+                self.assertEqual(content, [html])
 
     def test_render_ayame_message_attribute_invalid_value(self):
-        with self.application(self.new_environ()):
-            root = markup.Element(self.of('root'),
-                                  attrib={
-                                      markup.AYAME_ID: 'b',
-                                      markup.AYAME_MESSAGE: 'id',
-                                  })
-            mc = ayame.MarkupContainer('a')
-            mc.add(ayame.Component('b'))
-            with self.assertRaisesRegex(ayame.RenderingError, r'\binvalid .* ayame:message '):
-                mc.render(root)
+        for a in (
+            {
+                markup.AYAME_ID: 'b',
+                markup.AYAME_MESSAGE: 'key',
+            },
+            {
+                markup.AYAME_MESSAGE: 'key',
+            },
+        ):
+            with (self.subTest(attrib=a),
+                  self.application(self.new_environ())):
+                el = self.empty_element(attrib=a)
+                mc = ayame.MarkupContainer('a')
+                mc.add(ayame.Component('b'))
+                with self.assertRaisesRegex(ayame.RenderingError, r'\binvalid .* ayame:message '):
+                    mc.render(el)
 
     def test_render_ayame_message_attribute(self):
-        with self.application(self.new_environ(accept='en')):
-            p = BaconPage()
-            status, headers, content = p()
-        html = self.format(BaconPage, message='Submit')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_render_ayame_message_attribute_ja(self):
-        with self.application(self.new_environ(accept='ja, en')):
-            p = BaconPage()
-            status, headers, content = p()
-        html = self.format(BaconPage, message='\u9001\u4fe1')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_render_ayame_head_unknown_root(self):
-        root = markup.Element(self.of('root'))
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
-        mc = ayame.MarkupContainer('a')
-        mc.add(AyameHeadContainer('b'))
-        with self.assertRaisesRegex(ayame.RenderingError, r"\broot element is not 'html'"):
-            mc.find_head(root)
-
-    def test_render_ayame_head_no_head(self):
-        root = markup.Element(markup.HTML)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
-        mc = ayame.MarkupContainer('a')
-        mc.add(AyameHeadContainer('b'))
-        with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
-            mc.render(root)
-
-    def test_render_ayame_head(self):
-        root = markup.Element(markup.HTML)
-        head = markup.Element(markup.HEAD)
-        root.append(head)
-        a = markup.Element(self.of('a'),
-                           attrib={markup.AYAME_ID: 'b'})
-        root.append(a)
-        h = markup.Element(self.of('h'))
-        mc = ayame.MarkupContainer('a')
-        mc.head = mc.find_head(root)
-        mc.add(AyameHeadContainer('b', h))
-
-        root = mc.render(root)
-        self.assertEqual(root.qname, markup.HTML)
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(len(root), 2)
-
-        head = root[0]
-        self.assertEqual(head.qname, markup.HEAD)
-        self.assertEqual(head.attrib, {})
-        self.assertEqual(head.type, markup.Element.OPEN)
-        self.assertEqual(len(head), 1)
-
-        h = head[0]
-        self.assertEqual(h.qname, self.of('h'))
-        self.assertEqual(h.attrib, {})
-        self.assertEqual(h.children, [])
-
-        a = root[1]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(a.children, [])
+        for a, m in (
+            (
+                'en',
+                'Submit',
+            ),
+            (
+                'ja, en',
+                '\u9001\u4fe1',
+            ),
+        ):
+            with self.subTest(accept_language=a):
+                with self.application(self.new_environ(accept=a)):
+                    p = BaconPage()
+                    status, headers, content = p()
+                html = self.format(type(p), message=m)
+                self.assertEqual(status, http.OK.status)
+                self.assertEqual(headers, [
+                    ('Content-Type', 'text/html; charset=UTF-8'),
+                    ('Content-Length', str(len(html))),
+                ])
+                self.assertEqual(content, [html])
 
     def test_render_invisible_child(self):
-        root = markup.Element(self.of('root'))
-        a = markup.Element(self.of('a'))
-        root.append(a)
-        b = markup.Element(self.of('b'),
-                           attrib={markup.AYAME_ID: 'b1'})
-        a.append(b)
-        c = markup.Element(self.of('c'),
-                           attrib={markup.AYAME_ID: 'c1'})
-        b.append(c)
-        b = markup.Element(self.of('b'),
-                           attrib={markup.AYAME_ID: 'b2'})
-        a.append(b)
-        c = markup.Element(self.of('c'),
-                           attrib={markup.AYAME_ID: 'c2'})
-        b.append(c)
+        b = ElementBuilder(markup.XHTML_NS)
+        with b.open('ul',
+                    ns=self.ns):
+            with b.open('li',
+                        {
+                            'ayame:id': 'b1',
+                        }):
+                b.str('spam')
+                with b.open('span',
+                            {
+                                'ayame:id': 'c1',
+                            }):
+                    b.str('eggs')
+                b.str('ham')
+            with b.open('li',
+                        {
+                            'ayame:id': 'b2',
+                        }):
+                b.str('toast')
+                with b.open('span',
+                            {
+                                'ayame:id': 'c2',
+                            }):
+                    b.str('beans')
+                b.str('bacon')
+        el = b.root
         mc = ayame.MarkupContainer('a')
         mc.add(ayame.MarkupContainer('b1'))
         mc.find('b1').add(ayame.Component('c1'))
-        mc.find('b1').visible = False
+        mc.find('b1:c1').visible = False
         mc.add(ayame.MarkupContainer('b2'))
         mc.find('b2').add(ayame.Component('c2'))
+        mc.find('b2').visible = False
 
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {})
-        self.assertEqual(len(root), 1)
-
-        a = root.children[0]
-        self.assertEqual(a.qname, self.of('a'))
-        self.assertEqual(a.attrib, {})
-        self.assertEqual(len(a), 1)
-
-        b = a.children[0]
-        self.assertEqual(b.qname, self.of('b'))
-        self.assertEqual(b.attrib, {})
-        self.assertEqual(len(b), 1)
-
-        c = b.children[0]
-        self.assertEqual(c.qname, self.of('c'))
-        self.assertEqual(c.attrib, {})
-        self.assertEqual(c.children, [])
+        rv = mc.render(el)
+        self.assertIs(rv, el)
+        with b.open('ul',
+                    ns=self.ns):
+            with b.open('li'):
+                b.str('spam')
+                b.str('ham')
+        self.assertElementEqual(rv, b.root)
 
     def test_markup_inheritance(self):
         class Spam(ayame.MarkupContainer):
@@ -719,127 +657,91 @@ class CoreTestCase(AyameTestCase):
         class Eggs(Spam):
             pass
 
-        class Ham(Eggs):
+        class Ham(Spam):
+            pass
+
+        for supercls in (Eggs, Ham):
+            for name in ('Toast', 'Beans'):
+                cls = type(name, (supercls,), {})
+                with (self.subTest(inheritance=f'Spam > {supercls.__name__} > {name}'),
+                      self.application()):
+                    mc = cls('a')
+                    m = mc.load_markup()
+                    self.assertEqual(m.xml_decl, {'version': '1.0'})
+                    self.assertEqual(m.lang, 'xhtml1')
+                    self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+                    self.assertTrue(m.root)
+
+                    b = ElementBuilder(markup.XHTML_NS)
+                    lv = self.lv
+                    with b.open('html',
+                                ns=self.ns):
+                        b.str(lv[1])
+                        with b.open('head'):
+                            b.str(lv[2])
+                            with b.open('title'):
+                                b.str('Spam')
+                            b.str(lv[2])
+                            b.empty('meta',
+                                    {
+                                        'name': 'class',
+                                        'content': 'Spam',
+                                    })
+                            b.str(lv[1])
+                            if supercls is Ham:
+                                b.str(lv[3])
+                                b.empty('meta',
+                                        {
+                                            'name': 'class',
+                                            'content': 'Ham',
+                                        })
+                                b.str(lv[2])
+                            if name == 'Beans':
+                                b.str(lv[3])
+                                b.empty('meta',
+                                        {
+                                            'name': 'class',
+                                            'content': 'Beans',
+                                        })
+                                b.str(lv[2])
+                        b.str(lv[1])
+                        with b.open('body'):
+                            b.str(lv[2])
+                            with b.open('p'):
+                                b.str('before ayame:child (Spam)')
+                            b.str(lv[2])
+                            b.str(lv[3])
+                            with b.open('p'):
+                                b.str(f'inside ayame:extend ({supercls.__name__})')
+                            b.str(lv[3])
+                            b.str(lv[3])
+                            with b.open('p'):
+                                b.str(f'inside ayame:extend ({name})')
+                            b.str(lv[2])
+                            b.str(lv[2])
+                            b.str(lv[2])
+                            with b.open('p'):
+                                b.str('after ayame:child (Spam)')
+                            b.str(lv[1])
+                        b.str(lv[0])
+                    self.assertElementEqual(m.root, b.root)
+
+    def test_markup_inheritance_with_empty_superclass(self):
+        class Bacon(ayame.MarkupContainer):
+            pass
+
+        class Toast(Bacon):
             pass
 
         with self.application():
-            mc = Ham('a')
+            mc = Toast('a')
             m = mc.load_markup()
-        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.xml_decl, {})
         self.assertEqual(m.lang, 'xhtml1')
-        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
-        self.assertTrue(m.root)
+        self.assertEqual(m.doctype, '')
+        self.assertIsNone(m.root)
 
-        html = m.root
-        self.assertEqual(html.qname, self.html_of('html'))
-        self.assertEqual(html.attrib, {})
-        self.assertEqual(html.type, markup.Element.OPEN)
-        self.assertEqual(html.ns, {
-            '': markup.XHTML_NS,
-            'xml': markup.XML_NS,
-            'ayame': markup.AYAME_NS,
-        })
-        self.assertEqual(len(html), 5)
-        self.assertWS(html, 0)
-        self.assertWS(html, 2)
-        self.assertWS(html, 4)
-
-        head = html[1]
-        self.assertEqual(head.qname, self.html_of('head'))
-        self.assertEqual(head.attrib, {})
-        self.assertEqual(head.type, markup.Element.OPEN)
-        self.assertEqual(head.ns, {})
-        self.assertEqual(len(head), 11)
-        self.assertWS(head, 0)
-        self.assertWS(head, 2)
-        self.assertWS(head, 4)
-        self.assertWS(head, 5)
-        self.assertWS(head, 7)
-        self.assertWS(head, 8)
-        self.assertWS(head, 10)
-
-        title = head[1]
-        self.assertEqual(title.qname, self.html_of('title'))
-        self.assertEqual(title.attrib, {})
-        self.assertEqual(title.type, markup.Element.OPEN)
-        self.assertEqual(title.ns, {})
-        self.assertEqual(title.children, ['Spam'])
-
-        meta = head[3]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Spam',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        meta = head[6]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Eggs',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        meta = head[9]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Ham',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        body = html[3]
-        self.assertEqual(body.qname, self.html_of('body'))
-        self.assertEqual(body.attrib, {})
-        self.assertEqual(body.type, markup.Element.OPEN)
-        self.assertEqual(body.ns, {})
-        self.assertEqual(len(body), 13)
-        self.assertWS(body, 0)
-        self.assertWS(body, 2)
-        self.assertWS(body, 3)
-        self.assertWS(body, 5)
-        self.assertWS(body, 6)
-        self.assertWS(body, 8)
-        self.assertWS(body, 9)
-        self.assertWS(body, 10)
-        self.assertWS(body, 12)
-
-        p = body[1]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['before ayame:child (Spam)'])
-
-        p = body[4]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['inside ayame:extend (Eggs)'])
-
-        p = body[7]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['inside ayame:extend (Ham)'])
-
-        p = body[11]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['after ayame:child (Spam)'])
-
-    def test_markup_inheritance_empty_submarkup(self):
+    def test_markup_inheritance_with_empty_subclass(self):
         class Spam(ayame.MarkupContainer):
             pass
 
@@ -854,393 +756,261 @@ class CoreTestCase(AyameTestCase):
         self.assertEqual(m.doctype, markup.XHTML1_STRICT)
         self.assertTrue(m.root)
 
-        html = m.root
-        self.assertEqual(html.qname, self.html_of('html'))
-        self.assertEqual(html.attrib, {})
-        self.assertEqual(html.type, markup.Element.OPEN)
-        self.assertEqual(html.ns, {
-            '': markup.XHTML_NS,
-            'xml': markup.XML_NS,
-            'ayame': markup.AYAME_NS,
-        })
-        self.assertEqual(len(html), 5)
-        self.assertWS(html, 0)
-        self.assertWS(html, 2)
-        self.assertWS(html, 4)
+        b = ElementBuilder(markup.XHTML_NS)
+        lv = self.lv
+        with b.open('html',
+                    ns=self.ns):
+            b.str(lv[1])
+            with b.open('head'):
+                b.str(lv[2])
+                with b.open('title'):
+                    b.str('Spam')
+                b.str(lv[2])
+                b.empty('meta',
+                        {
+                            'name': 'class',
+                            'content': 'Spam',
+                        })
+                b.str(lv[1])
+                b.str(lv[3])
+                b.empty('meta',
+                        {
+                            'name': 'class',
+                            'content': 'Sausage',
+                        })
+                b.str(lv[2])
+            b.str(lv[1])
+            with b.open('body'):
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('before ayame:child (Spam)')
+                b.str(lv[2])
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('after ayame:child (Spam)')
+                b.str(lv[1])
+            b.str(lv[0])
+        self.assertElementEqual(m.root, b.root)
 
-        head = html[1]
-        self.assertEqual(head.qname, self.html_of('head'))
-        self.assertEqual(head.attrib, {})
-        self.assertEqual(head.type, markup.Element.OPEN)
-        self.assertEqual(head.ns, {})
-        self.assertEqual(len(head), 8)
-        self.assertWS(head, 0)
-        self.assertWS(head, 2)
-        self.assertWS(head, 4)
-        self.assertWS(head, 5)
-        self.assertWS(head, 7)
-
-        title = head[1]
-        self.assertEqual(title.qname, self.html_of('title'))
-        self.assertEqual(title.attrib, {})
-        self.assertEqual(title.type, markup.Element.OPEN)
-        self.assertEqual(title.ns, {})
-        self.assertEqual(title.children, ['Spam'])
-
-        meta = head[3]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Spam',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        meta = head[6]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Sausage',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        body = html[3]
-        self.assertEqual(body.qname, self.html_of('body'))
-        self.assertEqual(body.attrib, {})
-        self.assertEqual(body.type, markup.Element.OPEN)
-        self.assertEqual(body.ns, {})
-        self.assertEqual(len(body), 6)
-        self.assertWS(body, 0)
-        self.assertWS(body, 2)
-        self.assertWS(body, 3)
-        self.assertWS(body, 5)
-
-        p = body[1]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['before ayame:child (Spam)'])
-
-        p = body[4]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['after ayame:child (Spam)'])
-
-    def test_markup_inheritance_merge_ayame_head(self):
-        class Bacon(ayame.MarkupContainer):
-            pass
-
-        class Sausage(Bacon):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            m = mc.load_markup()
-        self.assertEqual(m.xml_decl, {'version': '1.0'})
-        self.assertEqual(m.lang, 'xhtml1')
-        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
-        self.assertTrue(m.root)
-
-        html = m.root
-        self.assertEqual(html.qname, self.html_of('html'))
-        self.assertEqual(html.attrib, {})
-        self.assertEqual(html.type, markup.Element.OPEN)
-        self.assertEqual(html.ns, {
-            '': markup.XHTML_NS,
-            'xml': markup.XML_NS,
-            'ayame': markup.AYAME_NS,
-        })
-        self.assertEqual(len(html), 5)
-        self.assertWS(html, 0)
-        self.assertWS(html, 2)
-        self.assertWS(html, 4)
-
-        ayame_head = html[1]
-        self.assertEqual(ayame_head.qname, self.ayame_of('head'))
-        self.assertEqual(ayame_head.attrib, {})
-        self.assertEqual(ayame_head.type, markup.Element.OPEN)
-        self.assertEqual(ayame_head.ns, {})
-        self.assertEqual(len(ayame_head), 8)
-        self.assertWS(ayame_head, 0)
-        self.assertWS(ayame_head, 2)
-        self.assertWS(ayame_head, 4)
-        self.assertWS(ayame_head, 5)
-        self.assertWS(ayame_head, 7)
-
-        title = ayame_head[1]
-        self.assertEqual(title.qname, self.html_of('title'))
-        self.assertEqual(title.attrib, {})
-        self.assertEqual(title.type, markup.Element.OPEN)
-        self.assertEqual(title.ns, {})
-        self.assertEqual(title.children, ['Bacon'])
-
-        meta = ayame_head[3]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Bacon',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        meta = ayame_head[6]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Sausage',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
-
-        body = html[3]
-        self.assertEqual(body.qname, self.html_of('body'))
-        self.assertEqual(body.attrib, {})
-        self.assertEqual(body.type, markup.Element.OPEN)
-        self.assertEqual(body.ns, {})
-        self.assertEqual(len(body), 6)
-        self.assertWS(body, 0)
-        self.assertWS(body, 2)
-        self.assertWS(body, 3)
-        self.assertWS(body, 5)
-
-        p = body[1]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['before ayame:child (Bacon)'])
-
-        p = body[4]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['after ayame:child (Bacon)'])
-
-    def test_markup_inheritance_no_superclass(self):
-        class Sausage(ayame.MarkupContainer):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.AyameError, r'^superclass .* not found$'):
-                mc.load_markup()
-
-    def test_markup_inheritance_multiple_inheritance(self):
-        class Spam(ayame.MarkupContainer):
-            pass
-
-        class Toast(ayame.MarkupContainer):
-            pass
-
-        class Beans(ayame.MarkupContainer):
-            pass
-
-        class Bacon(ayame.MarkupContainer):
-            pass
-
-        class Sausage(Spam, Toast, Beans, Bacon):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.AyameError, r' multiple inheritance$'):
-                mc.load_markup()
-
-    def test_markup_inheritance_no_ayame_child(self):
-        class Toast(ayame.MarkupContainer):
-            pass
-
-        class Sausage(Toast):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:child' .* not found\b"):
-                mc.load_markup()
-
-    def test_markup_inheritance_no_head(self):
-        class Beans(ayame.MarkupContainer):
-            pass
-
-        class Sausage(Beans):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
-                mc.load_markup()
-
-    def test_markup_inheritance_ayame_child_as_root(self):
+    def test_markup_inheritance_with_duplicate_ayame_elements(self):
         class Tomato(ayame.MarkupContainer):
             pass
 
-        class Sausage(Tomato):
+        class Lobster(Tomato):
             pass
 
         with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:child' .* root element\b"):
-                mc.load_markup()
-
-    def test_markup_inheritance_empty_markup(self):
-        class Lobster(ayame.MarkupContainer):
-            pass
-
-        class Sausage(Lobster):
-            pass
-
-        with self.application():
-            mc = Sausage('a')
-            with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
-                mc.load_markup()
-
-        class Lobster(ayame.Page):
-            pass
-
-        with self.application(self.new_environ()):
-            p = Lobster()
-            status, headers, content = p()
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', '0'),
-        ])
-        self.assertEqual(content, [b''])
-
-    def test_markup_inheritance_duplicate_ayame_elements(self):
-        class Shallots(ayame.MarkupContainer):
-            pass
-
-        class Aubergine(Shallots):
-            pass
-
-        with self.application():
-            mc = Aubergine('a')
+            mc = Lobster('a')
             m = mc.load_markup()
         self.assertEqual(m.xml_decl, {'version': '1.0'})
         self.assertEqual(m.lang, 'xhtml1')
         self.assertEqual(m.doctype, markup.XHTML1_STRICT)
         self.assertTrue(m.root)
 
-        html = m.root
-        self.assertEqual(html.qname, self.html_of('html'))
-        self.assertEqual(html.attrib, {})
-        self.assertEqual(html.type, markup.Element.OPEN)
-        self.assertEqual(html.ns, {
-            '': markup.XHTML_NS,
-            'xml': markup.XML_NS,
-            'ayame': markup.AYAME_NS,
-        })
-        self.assertEqual(len(html), 5)
-        self.assertWS(html, 0)
-        self.assertWS(html, 2)
-        self.assertWS(html, 4)
+        b = ElementBuilder(markup.XHTML_NS)
+        lv = self.lv
+        with b.open('html',
+                    ns=self.ns):
+            b.str(lv[1])
+            with b.open('head'):
+                b.str(lv[2])
+                with b.open('title'):
+                    b.str('Tomato')
+                b.str(lv[2])
+                b.empty('meta',
+                        {
+                            'name': 'class',
+                            'content': 'Tomato',
+                        })
+                b.str(lv[1])
+                b.str(lv[3])
+                b.empty('meta',
+                        {
+                            'name': 'class',
+                            'content': 'Lobster',
+                        })
+                b.str(lv[2])
+            b.str(lv[1])
+            with b.open('body'):
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('before ayame:child (Tomato)')
+                b.str(lv[2])
+                b.str(lv[3])
+                with b.open('p'):
+                    b.str('inside ayame:extend (Lobster)')
+                b.str(lv[2])
+                b.str(lv[2])
+                b.empty('ayame:child')
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('after ayame:child (Tomato)')
+                b.str(lv[1])
+            b.str(lv[0])
+        self.assertElementEqual(m.root, b.root)
 
-        head = html[1]
-        self.assertEqual(head.qname, self.html_of('head'))
-        self.assertEqual(head.attrib, {})
-        self.assertEqual(head.type, markup.Element.OPEN)
-        self.assertEqual(head.ns, {})
-        self.assertEqual(len(head), 8)
-        self.assertWS(head, 0)
-        self.assertWS(head, 2)
-        self.assertWS(head, 4)
-        self.assertWS(head, 5)
-        self.assertWS(head, 7)
+    def test_markup_inheritance_with_superclass_ayame_head(self):
+        class Shallots(ayame.MarkupContainer):
+            pass
 
-        title = head[1]
-        self.assertEqual(title.qname, self.html_of('title'))
-        self.assertEqual(title.attrib, {})
-        self.assertEqual(title.type, markup.Element.OPEN)
-        self.assertEqual(title.ns, {})
-        self.assertEqual(title.children, ['Shallots'])
+        class Beans(Shallots):
+            pass
 
-        meta = head[3]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Shallots',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
+        with self.application():
+            mc = Beans('a')
+            m = mc.load_markup()
+        self.assertEqual(m.xml_decl, {'version': '1.0'})
+        self.assertEqual(m.lang, 'xhtml1')
+        self.assertEqual(m.doctype, markup.XHTML1_STRICT)
+        self.assertTrue(m.root)
 
-        meta = head[6]
-        self.assertEqual(meta.qname, self.html_of('meta'))
-        self.assertEqual(meta.attrib, {
-            self.html_of('name'): 'class',
-            self.html_of('content'): 'Aubergine',
-        })
-        self.assertEqual(meta.type, markup.Element.EMPTY)
-        self.assertEqual(meta.ns, {})
-        self.assertEqual(meta.children, [])
+        b = ElementBuilder(markup.XHTML_NS)
+        lv = self.lv
+        with b.open('html',
+                    ns=self.ns):
+            b.str(lv[1])
+            with b.open('head'):
+                b.str(lv[2])
+                with b.open('title'):
+                    b.str('Shallots')
+                b.str(lv[2])
+                with b.open('ayame:head'):
+                    b.str(lv[3])
+                    b.empty('meta',
+                            {
+                                'name': 'class',
+                                'content': 'Shallots',
+                            })
+                    b.str(lv[2])
+                    b.str(lv[3])
+                    b.empty('meta',
+                            {
+                                'name': 'class',
+                                'content': 'Beans',
+                            })
+                    b.str(lv[2])
+                b.str(lv[1])
+            b.str(lv[1])
+            with b.open('body'):
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('before ayame:child (Shallots)')
+                b.str(lv[2])
+                b.str(lv[3])
+                with b.open('p'):
+                    b.str('inside ayame:extend (Beans)')
+                b.str(lv[2])
+                b.str(lv[2])
+                with b.open('p'):
+                    b.str('after ayame:child (Shallots)')
+                b.str(lv[1])
+            b.str(lv[0])
+        self.assertElementEqual(m.root, b.root)
 
-        body = html[3]
-        self.assertEqual(body.qname, self.html_of('body'))
-        self.assertEqual(body.attrib, {})
-        self.assertEqual(body.type, markup.Element.OPEN)
-        self.assertEqual(body.ns, {})
-        self.assertEqual(len(body), 8)
-        self.assertWS(body, 0)
-        self.assertWS(body, 2)
-        self.assertWS(body, 3)
-        self.assertWS(body, 5)
-        self.assertWS(body, 7)
+    def test_markup_inheritance_with_multiple_inheritance(self):
+        class Spam(ayame.MarkupContainer):
+            pass
 
-        p = body[1]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['before ayame:child (Shallots)'])
+        class Eggs(ayame.MarkupContainer):
+            pass
 
-        ayame_child = body[4]
-        self.assertEqual(ayame_child.qname, self.ayame_of('child'))
-        self.assertEqual(ayame_child.attrib, {})
-        self.assertEqual(ayame_child.type, markup.Element.EMPTY)
-        self.assertEqual(ayame_child.ns, {})
-        self.assertEqual(ayame_child.children, [])
+        class Toast(Spam, Eggs):
+            pass
 
-        p = body[6]
-        self.assertEqual(p.qname, self.html_of('p'))
-        self.assertEqual(p.attrib, {})
-        self.assertEqual(p.type, markup.Element.OPEN)
-        self.assertEqual(p.ns, {})
-        self.assertEqual(p.children, ['after ayame:child (Shallots)'])
+        with self.application():
+            mc = Toast('a')
+            with self.assertRaisesRegex(ayame.AyameError, r' multiple inheritance$'):
+                mc.load_markup()
+
+    def test_markup_inheritance_without_superclass(self):
+        class Toast(ayame.MarkupContainer):
+            pass
+
+        class Beans(ayame.MarkupContainer):
+            pass
+
+        for cls in (Toast, Beans):
+            with (self.subTest(cls=cls.__name__),
+                  self.application()):
+                mc = cls('a')
+                with self.assertRaisesRegex(ayame.AyameError, r'^superclass .* not found$'):
+                    mc.load_markup()
+
+    def test_markup_inheritance_without_ayame_child(self):
+        class Aubergine(ayame.MarkupContainer):
+            pass
+
+        class Toast(Aubergine):
+            pass
+
+        class Beans(Aubergine):
+            pass
+
+        for cls in (Toast, Beans):
+            with (self.subTest(cls=cls.__name__),
+                  self.application()):
+                mc = cls('a')
+                with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:child' .* not found\b"):
+                    mc.load_markup()
+
+    def test_markup_inheritance_with_ayame_child_as_root(self):
+        class Truffle(ayame.MarkupContainer):
+            pass
+
+        class Toast(Truffle):
+            pass
+
+        class Beans(Truffle):
+            pass
+
+        for cls in (Toast, Beans):
+            with (self.subTest(cls=cls.__name__),
+                  self.application()):
+                mc = cls('a')
+                with self.assertRaisesRegex(ayame.RenderingError, r"'ayame:child' .* root element\b"):
+                    mc.load_markup()
+
+    def test_markup_inheritance_without_head(self):
+        class Bacon(ayame.MarkupContainer):
+            pass
+
+        class Pate(ayame.MarkupContainer):
+            pass
+
+        for cls in (Bacon, Pate):
+            with self.application():
+                mc = type('Beans', (cls,), {})('a')
+                with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
+                    mc.load_markup()
+
+    def test_markup_cache(self):
+        with unittest.mock.patch.dict(self.app.config):
+            self.app.config['ayame.markup.cache'] = cache = self.app.config['ayame.markup.cache'].copy()
+            self.app.config['ayame.resource.loader'] = self.new_resource_loader()
+            cache.clear()
+
+            with self.application(self.new_environ()):
+                p = SpamPage()
+                p()
+            self.assertEqual(len(cache), 1)
+
+            with self.application(self.new_environ()):
+                p = SpamPage()
+                with self.assertRaises(OSError):
+                    p()
+            self.assertEqual(len(cache), 0)
+
+            with self.application(self.new_environ()):
+                p = SpamPage()
+                with self.assertRaises(ayame.ResourceError):
+                    p()
+            self.assertEqual(len(cache), 0)
 
     def test_page(self):
-        class SpamPage(ayame.Page):
-            html_t = textwrap.dedent("""\
-                <?xml version="1.0"?>
-                {doctype}
-                <html xmlns="{xhtml}">
-                  <head>
-                    <title>SpamPage</title>
-                  </head>
-                  <body>
-                    <p>Hello World!</p>
-                  </body>
-                </html>
-            """)
-
-            def __init__(self):
-                super().__init__()
-                self.add(basic.Label('message', 'Hello World!'))
-                self.headers['Content-Type'] = 'text/plain'
-
         with self.application(self.new_environ()):
             p = SpamPage()
             status, headers, content = p()
-        html = self.format(SpamPage)
+        html = self.format(type(p))
         self.assertEqual(status, http.OK.status)
         self.assertEqual(headers, [
             ('Content-Type', 'text/html; charset=UTF-8'),
@@ -1248,8 +1018,8 @@ class CoreTestCase(AyameTestCase):
         ])
         self.assertEqual(content, [html])
 
-        self.assertEqual(p.page(), p)
-        self.assertEqual(p.find('message').page(), p)
+        self.assertIs(p.page(), p)
+        self.assertIs(p.find('message').page(), p)
         self.assertEqual(p.path(), '')
         self.assertEqual(p.find('message').path(), 'message')
 
@@ -1274,380 +1044,363 @@ class CoreTestCase(AyameTestCase):
 
     def test_behavior_render(self):
         class Behavior(ayame.Behavior):
-            def on_before_render(self, component):
-                super().on_before_render(component)
-                component.model_object.append('before-render')
+            def on_before_render(self, c):
+                super().on_before_render(c)
+                c.model_object.append('before-render')
 
-            def on_component(self, component, element):
-                super().on_component(component, element)
-                component.model_object.append('component')
+            def on_component(self, c, el):
+                super().on_component(c, el)
+                c.model_object.append('component')
 
-            def on_after_render(self, component):
-                super().on_after_render(component)
-                component.model_object.append('after-render')
+            def on_after_render(self, c):
+                super().on_after_render(c)
+                c.model_object.append('after-render')
 
-        c = ayame.Component('a', model.Model([]))
-        c.add(Behavior())
-        self.assertEqual(len(c.behaviors), 1)
-        self.assertEqual(c.behaviors[0].component, c)
+        for cls in (ayame.Component, ayame.MarkupContainer):
+            with self.subTest(cls=cls):
+                c = cls('a', model.Model([]))
+                c.add(Behavior())
+                self.assertEqual(len(c.behaviors), 1)
+                self.assertEqual(c.behaviors[0].component, c)
 
-        self.assertIsNone(c.render(None))
-        self.assertEqual(c.model_object, ['before-render', 'component', 'after-render'])
+                el = self.empty_element()
+                self.assertIs(c.render(el), el)
+                self.assertEqual(c.model_object, ['before-render', 'component', 'after-render'])
 
-        mc = ayame.MarkupContainer('a', model.Model([]))
-        mc.add(Behavior())
-        self.assertEqual(len(c.behaviors), 1)
-        self.assertEqual(mc.behaviors[0].component, mc)
+    def test_attribute_modifier(self):
+        for cls in (ayame.Component, ayame.MarkupContainer):
+            with self.subTest(cls=cls):
+                el = self.empty_element(attrib={
+                    self.html_of('data-spam'): '',
+                    self.html_of('data-ham'): '',
+                })
+                c = cls('a')
+                c.add(ayame.AttributeModifier(self.html_of('data-spam'), model.Model('spam')))
+                c.add(ayame.AttributeModifier(self.html_of('data-eggs'), model.Model('eggs')))
+                c.add(ayame.AttributeModifier(self.html_of('data-ham'), model.Model(None)))
+                c.add(ayame.AttributeModifier(self.html_of('data-toast'), model.Model(None)))
+                self.assertEqual([b.component for b in c.behaviors], [c] * 4)
 
-        self.assertIsNone(mc.render(None))
-        self.assertEqual(mc.model_object, ['before-render', 'component', 'after-render'])
-
-    def test_attribute_modifier_on_component(self):
-        root = markup.Element(self.of('root'),
-                              attrib={self.of('a'): ''})
-        c = ayame.Component('a')
-        c.add(ayame.AttributeModifier('a', model.Model(None)))
-        c.add(ayame.AttributeModifier(self.of('b'),
-                                      model.Model(None)))
-        c.add(ayame.AttributeModifier('c', model.Model('')))
-        self.assertEqual(len(c.behaviors), 3)
-        self.assertEqual(c.behaviors[0].component, c)
-        self.assertEqual(c.behaviors[1].component, c)
-        self.assertEqual(c.behaviors[2].component, c)
-
-        root = c.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {self.of('c'): ''})
-        self.assertEqual(root.children, [])
-
-    def test_attribute_modifier_on_markup_container(self):
-        root = markup.Element(self.of('root'),
-                              attrib={self.of('a'): ''})
-        mc = ayame.MarkupContainer('a')
-        mc.add(ayame.AttributeModifier('a', model.Model(None)))
-        mc.add(ayame.AttributeModifier(self.of('b'),
-                                       model.Model(None)))
-        mc.add(ayame.AttributeModifier('c', model.Model('')))
-        self.assertEqual(len(mc.behaviors), 3)
-        self.assertEqual(mc.behaviors[0].component, mc)
-        self.assertEqual(mc.behaviors[1].component, mc)
-        self.assertEqual(mc.behaviors[2].component, mc)
-
-        root = mc.render(root)
-        self.assertEqual(root.qname, self.of('root'))
-        self.assertEqual(root.attrib, {self.of('c'): ''})
-        self.assertEqual(root.children, [])
+                rv = c.render(el)
+                self.assertIs(rv, el)
+                self.assertEqual(rv.attrib, {
+                    self.html_of('data-spam'): 'spam',
+                    self.html_of('data-eggs'): 'eggs',
+                })
 
     def test_fire_get(self):
-        query = '{path}=clay1'
-        with self.application(self.new_environ(query=query)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 1,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+        for visible, query, o in (
+            # fire path
+            (
+                True,
+                f'{ayame.AYAME_PATH}=clay1',
+                {
+                    'clay1': 1,
+                    'clay2': 0,
+                },
+            ),
+            # duplicate path
+            (
+                True,
+                '&'.join((
+                    f'{ayame.AYAME_PATH}=clay1',
+                    f'{ayame.AYAME_PATH}=obstacle:clay2',
+                )),
+                {
+                    'clay1': 1,
+                    'clay2': 0,
+                },
+            ),
+            # nonexistent path
+            (
+                True,
+                f'{ayame.AYAME_PATH}=clay2',
+                {
+                    'clay1': 0,
+                    'clay2': 0,
+                },
+            ),
+            # invisible component
+            (
+                False,
+                f'{ayame.AYAME_PATH}=clay1',
+                {
+                    'clay1': 0,
+                    'clay2': 0,
+                },
+            ),
+        ):
+            with self.subTest(query=query):
+                with self.application(self.new_environ(query=query)):
+                    p = EggsPage()
+                    p.find('clay1').visible = visible
+                    status, headers, content = p()
+                html = self.format(type(p), clay1=visible)
+                self.assertEqual(status, http.OK.status)
+                self.assertEqual(headers, [
+                    ('Content-Type', 'text/html; charset=UTF-8'),
+                    ('Content-Length', str(len(html))),
+                ])
+                self.assertEqual(content, [html])
 
-    def test_fire_get_duplicate_ayame_path(self):
-        query = ('{path}=clay1&'
-                 '{path}=obstacle:clay2')
-        with self.application(self.new_environ(query=query)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 1,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_fire_get_nonexistent_path(self):
-        query = '{path}=clay2'
-        with self.application(self.new_environ(query=query)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_fire_get_invisible_component(self):
-        query = '{path}=clay1'
-        with self.application(self.new_environ(query=query)):
-            p = EggsPage()
-            p.find('clay1').visible = False
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage, clay1=False)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+                self.assertEqual(p.model_object, o)
 
     def test_fire_post(self):
-        data = self.form_data(('{path}', 'obstacle:clay2'))
-        with self.application(self.new_environ(method='POST', form=data)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 1,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+        for visible, data, o in (
+            # fire path
+            (
+                True,
+                self.form_data(
+                    (ayame.AYAME_PATH, 'obstacle:clay2'),
+                ),
+                {
+                    'clay1': 0,
+                    'clay2': 1,
+                },
+            ),
+            # duplicate path
+            (
+                True,
+                self.form_data(
+                    (ayame.AYAME_PATH, 'obstacle:clay2'),
+                    (ayame.AYAME_PATH, 'clay1'),
+                ),
+                {
+                    'clay1': 0,
+                    'clay2': 1,
+                },
+            ),
+            # nonexistent path
+            (
+                True,
+                self.form_data(
+                    (ayame.AYAME_PATH, 'clay2'),
+                ),
+                {
+                    'clay1': 0,
+                    'clay2': 0,
+                },
+            ),
+            # invisible component
+            (
+                False,
+                self.form_data(
+                    (ayame.AYAME_PATH, 'clay1'),
+                ),
+                {
+                    'clay1': 0,
+                    'clay2': 0,
+                },
+            ),
+        ):
+            with self.subTest(form_data=data):
+                with self.application(self.new_environ(method='POST', form=data)):
+                    p = EggsPage()
+                    p.find('clay1').visible = visible
+                    status, headers, content = p()
+                html = self.format(type(p), clay1=visible)
+                self.assertEqual(status, http.OK.status)
+                self.assertEqual(headers, [
+                    ('Content-Type', 'text/html; charset=UTF-8'),
+                    ('Content-Length', str(len(html))),
+                ])
+                self.assertEqual(content, [html])
 
-    def test_fire_post_duplicate_ayame_path(self):
-        data = self.form_data(('{path}', 'obstacle:clay2'),
-                              ('{path}', 'clay1'))
-        with self.application(self.new_environ(method='POST', form=data)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 1,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_fire_post_nonexistent_path(self):
-        data = self.form_data(('{path}', 'clay2'))
-        with self.application(self.new_environ(method='POST', form=data)):
-            p = EggsPage()
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-    def test_fire_post_invisible_component(self):
-        data = self.form_data(('{path}', 'clay1'))
-        with self.application(self.new_environ(method='POST', form=data)):
-            p = EggsPage()
-            p.find('clay1').visible = False
-            status, headers, content = p()
-            self.assertEqual(p.model_object, {
-                'clay1': 0,
-                'clay2': 0,
-            })
-        html = self.format(EggsPage, clay1=False)
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+                self.assertEqual(p.model_object, o)
 
     def test_fire_component(self):
-        query = '{path}=c'
-        with self.application(self.new_environ(query=query)):
-            c = Component('c')
-            c.fire()
-            self.assertEqual(c.model_object, 1)
+        class Component(ayame.Component):
+            def __init__(self, id):
+                super().__init__(id, model.Model(0))
 
-    def test_fire_component_unknown_path(self):
-        query = '{path}=g'
-        with self.application(self.new_environ(query=query)):
-            c = Component('c')
-            c.fire()
-            self.assertEqual(c.model_object, 0)
+            def on_fire(self):
+                super().on_fire()
+                self.model_object += 1
 
-    def test_fire_component_invisible(self):
-        query = '{path}=c'
-        with self.application(self.new_environ(query=query)):
-            c = Component('c')
-            c.visible = False
-            c.fire()
-            self.assertEqual(c.model_object, 0)
+        for visible, query, o in (
+            # fire path
+            (
+                True,
+                f'{ayame.AYAME_PATH}=c',
+                1,
+            ),
+            # nonexistent path
+            (
+                True,
+                f'{ayame.AYAME_PATH}=_',
+                0,
+            ),
+            # invisible component
+            (
+                False,
+                f'{ayame.AYAME_PATH}=c',
+                0,
+            ),
+        ):
+            with self.subTest(query=query):
+                with self.application(self.new_environ(query=query)):
+                    c = Component('c')
+                    c.visible = visible
+                    c.fire()
+                self.assertEqual(c.model_object, o)
+
+    def test_page_with_empty_markup(self):
+        class Bacon(ayame.Page):
+            pass
+
+        with self.application(self.new_environ()):
+            p = Bacon()
+            status, headers, content = p()
+        html = b''
+        self.assertEqual(status, http.OK.status)
+        self.assertEqual(headers, [
+            ('Content-Type', 'text/html; charset=UTF-8'),
+            ('Content-Length', str(len(html))),
+        ])
+        self.assertEqual(content, [html])
+
+        self.assertIs(p.page(), p)
+        self.assertEqual(p.path(), '')
 
     def test_nested(self):
         regex = r' not .* subclass of MarkupContainer$'
 
         with self.assertRaisesRegex(ayame.AyameError, regex):
-            class C:
+            class Spam:
+                @ayame.nested
+                def f(self):
+                    pass
+
+        with self.assertRaisesRegex(ayame.AyameError, regex):
+            class Eggs:
                 @ayame.nested
                 class C:
                     pass
 
         with self.assertRaisesRegex(ayame.AyameError, regex):
-            class C:
-                @ayame.nested
-                def f(self):
-                    pass
+            class Ham:
+                C = ayame.nested(ayame.MarkupContainer)
 
-        class C:
+        class Toast:
             @ayame.nested
-            class MarkupContainer(ayame.MarkupContainer):
+            class C(ayame.MarkupContainer):
                 pass
 
-        self.assertIsInstance(C.MarkupContainer('a'), ayame.MarkupContainer)
+        self.assertIsInstance(Toast.C('a'), ayame.MarkupContainer)
 
     def test_nested_class_markup(self):
-        class HamPage(ayame.Page):
-            html_t = textwrap.dedent("""\
-                <?xml version="1.0"?>
-                {doctype}
-                <html xmlns="{xhtml}">
-                  <head>
-                    <title>HamPage</title>
-                  </head>
-                  <body>
-                    <p>{name}</p>
-                  </body>
-                </html>
-            """)
+        for cls, mt in (
+            (
+                ToastPage,
+                markup.MarkupType('.htm', 'text/html', ()),
+            ),
+            (
+                ToastPage.NestedPage,
+                markup.MarkupType('.html', 'text/html', (ToastPage,)),
+            ),
+        ):
+            with self.subTest(cls=cls):
+                with self.application(self.new_environ()):
+                    p = cls()
+                    status, headers, content = p()
+                html = self.format(cls, name=cls.__qualname__)
+                self.assertEqual(status, http.OK.status)
+                self.assertEqual(headers, [
+                    ('Content-Type', 'text/html; charset=UTF-8'),
+                    ('Content-Length', str(len(html))),
+                ])
+                self.assertEqual(content, [html])
 
-        class ToastPage(HamPage):
-            markup_type = markup.MarkupType('.htm', 'text/html', ())
+                self.assertEqual(cls.markup_type, mt)
 
-            @ayame.nested
-            class NestedPage(HamPage):
+    def test_ayame_head_for_component_markup(self):
+        el = self.empty_element()
+        mc = ayame.MarkupContainer('a')
+        with self.assertRaisesRegex(ayame.RenderingError, r"'head' .* not found\b"):
+            mc.head
+        with self.assertRaisesRegex(ayame.RenderingError, r"\broot element is not 'html'"):
+            mc.find_head(el)
+
+        b = ElementBuilder(markup.XHTML_NS)
+        with b.open('html',
+                    ns=self.ns):
+            with b.open('body'):
                 pass
+        el = b.root
+        self.assertIsNone(mc.find_head(el))
 
-        mt = markup.MarkupType('.htm', 'text/html', ())
-        self.assertEqual(ToastPage.markup_type, mt)
-        mt = markup.MarkupType('.html', 'text/html', (ToastPage,))
-        self.assertEqual(ToastPage.NestedPage.markup_type, mt)
-
-        with self.application(self.new_environ()):
-            p = ToastPage()
-            status, headers, content = p()
-        html = self.format(ToastPage, name='ToastPage')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
-
-        with self.application(self.new_environ()):
-            p = ToastPage.NestedPage()
-            status, headers, content = p()
-        html = self.format(ToastPage, name='ToastPage.NestedPage')
-        self.assertEqual(status, http.OK.status)
-        self.assertEqual(headers, [
-            ('Content-Type', 'text/html; charset=UTF-8'),
-            ('Content-Length', str(len(html))),
-        ])
-        self.assertEqual(content, [html])
+        with b.open('html',
+                    ns=self.ns):
+            with b.open('head'):
+                pass
+        el = b.root
+        mc.head = mc.find_head(el)
+        mc.head.append(markup.Element(self.html_of('title'),
+                                      type=markup.Element.OPEN))
+        mc.head[-1].append('title')
+        with b.open('html',
+                    ns=self.ns):
+            with b.open('head'):
+                with b.open('title'):
+                    b.str('title')
+        self.assertElementEqual(el, b.root)
 
     def test_element(self):
-        class Lobster(ayame.MarkupContainer):
+        class Bacon(ayame.MarkupContainer):
             pass
 
-        with self.application():
-            mc = Lobster('a')
-            mc.add(ayame.MarkupContainer('b'))
-            mc.has_markup = False
-            self.assertIsNone(mc.find('b').element())
-            mc.has_markup = True
-            self.assertIsNone(mc.find('b').element())
-
-        class Toast(ayame.MarkupContainer):
+        class Aubergine(ayame.MarkupContainer):
             pass
 
-        with self.application():
-            mc = Toast('a')
-            mc.add(ayame.MarkupContainer('b'))
-            mc.has_markup = True
-            mc.find('b').element()
+        for cls in (Bacon, Aubergine):
+            with (self.subTest(cls=cls),
+                  self.application()):
+                mc = cls('a')
+                mc.add(ayame.MarkupContainer('b'))
+
+                mc.has_markup = False
+                self.assertIsNone(mc.find('b').element())
+                mc.has_markup = True
+                self.assertIsNone(mc.find('b').element())
 
         with self.application():
             p = EggsPage()
-            self.assertIsInstance(p.find('clay1').element(), markup.Element)
-            self.assertIsInstance(p.find('obstacle:clay2').element(), markup.Element)
-
-    def test_cache(self):
-        config = self.app.config.copy()
-        try:
-            self.app.config['ayame.resource.loader'] = self.new_resource_loader()
-            self.app.config['ayame.markup.cache'] = cache = config['ayame.markup.cache'].copy()
-
-            with self.application(self.new_environ()):
-                p = EggsPage()
-                p()
-            self.assertEqual(len(cache), 1)
-
-            with self.application(self.new_environ()):
-                p = EggsPage()
-                with self.assertRaises(OSError):
-                    p()
-            self.assertEqual(len(cache), 0)
-
-            with self.application(self.new_environ()):
-                p = EggsPage()
-                with self.assertRaises(ayame.ResourceError):
-                    p()
-            self.assertEqual(len(cache), 0)
-        finally:
-            self.app.config = config
+            clay1 = p.find('clay1').element()
+            clay2 = p.find('obstacle:clay2').element()
+            self.assertIsInstance(clay1, markup.Element)
+            self.assertIsInstance(clay2, markup.Element)
+            self.assertIsNot(clay1, clay2)
 
 
-class Component(ayame.Component):
+class SpamPage(ayame.Page):
 
-    def __init__(self, id):
-        super().__init__(id, model.Model(0))
+    html_t = """\
+        <?xml version="1.0"?>
+        {doctype}
+        <html xmlns="{xhtml}">
+          <head>
+            <title>SpamPage</title>
+          </head>
+          <body>
+            <p>Hello World!</p>
+          </body>
+        </html>
+    """
 
-    def on_fire(self):
-        self.model_object += 1
+    def __init__(self):
+        super().__init__()
+        self.add(self.Label('message', model.Model('Hello World!')))
+        self.headers['Content-Type'] = 'text/plain'
 
-
-class AyameHeadContainer(ayame.MarkupContainer):
-
-    def __init__(self, id, el=None):
-        super().__init__(id)
-        self._el = el
-
-    def on_render(self, element):
-        for par in self.iter_parent():
-            pass
-        par.head.children.append(self._el)
-        return element
+    class Label(ayame.Component):
+        def on_render(self, el):
+            el[:] = self.model_object
+            return el
 
 
 class EggsPage(ayame.Page):
 
-    html_t = textwrap.dedent("""\
+    html_t = """\
         <?xml version="1.0"?>
         {doctype}
         <html xmlns="{xhtml}">
@@ -1661,7 +1414,7 @@ class EggsPage(ayame.Page):
             </div>
           </body>
         </html>
-    """)
+    """
     kwargs = {
         'clay1': lambda v=True: '<p>clay1</p>' if v else '',
     }
@@ -1682,9 +1435,34 @@ class EggsPage(ayame.Page):
             self.model_object += 1
 
 
+class HamPage(ayame.Page):
+
+    html_t = """\
+        <?xml version="1.0"?>
+        {doctype}
+        <html xmlns="{xhtml}">
+          <head>
+            <title>HamPage</title>
+          </head>
+          <body>
+            <p>{name}</p>
+          </body>
+        </html>
+    """
+
+
+class ToastPage(HamPage):
+
+    markup_type = markup.MarkupType('.htm', 'text/html', ())
+
+    @ayame.nested
+    class NestedPage(HamPage):
+        pass
+
+
 class BeansPage(ayame.Page):
 
-    html_t = textwrap.dedent("""\
+    html_t = """\
         <?xml version="1.0"?>
         {doctype}
         <html xmlns="{xhtml}">
@@ -1695,12 +1473,12 @@ class BeansPage(ayame.Page):
             <p>{message}</p>
           </body>
         </html>
-    """)
+    """
 
 
 class BaconPage(ayame.Page):
 
-    html_t = textwrap.dedent("""\
+    html_t = """\
         <?xml version="1.0"?>
         {doctype}
         <html xmlns="{xhtml}">
@@ -1715,4 +1493,4 @@ class BaconPage(ayame.Page):
             </form>
           </body>
         </html>
-    """)
+    """

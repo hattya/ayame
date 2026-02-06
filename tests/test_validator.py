@@ -1,48 +1,53 @@
 #
 # test_validator
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
+import unittest.mock
+
 import ayame
-from ayame import core, markup, validator
+from ayame import markup, validator
 from base import AyameTestCase
 
 
 class ValidatorTestCase(AyameTestCase):
 
-    def test_validation_error(self):
-        c = core.Component(__name__)
-
+    @unittest.mock.patch.object(ayame.Component, 'tr')
+    def test_validation_error(self, tr):
         e = ayame.ValidationError()
         self.assertEqual(repr(e), 'ValidationError(keys=[], vars=[])')
-        self.assertEqual(str(e), '')
-        e.component = c
         self.assertEqual(str(e), '')
 
         e = ayame.ValidationError('a')
         self.assertEqual(repr(e), "ValidationError('a', keys=[], vars=[])")
         self.assertEqual(str(e), 'a')
-        e.component = c
-        self.assertEqual(str(e), 'a')
         e = ayame.ValidationError('a', 'b')
         self.assertEqual(repr(e), "ValidationError('a', 'b', keys=[], vars=[])")
-        self.assertEqual(str(e), 'a')
-        e.component = c
         self.assertEqual(str(e), 'a')
 
         e = ayame.ValidationError(0)
         self.assertEqual(repr(e), 'ValidationError(0, keys=[], vars=[])')
         self.assertEqual(str(e), '0')
-        e.component = c
-        self.assertEqual(str(e), '0')
         e = ayame.ValidationError(0, 1)
         self.assertEqual(repr(e), 'ValidationError(0, 1, keys=[], vars=[])')
         self.assertEqual(str(e), '0')
-        e.component = c
-        self.assertEqual(str(e), '0')
+
+        class Validator(validator.Validator):
+            def validate(self, _):
+                pass
+
+        c = ayame.Component(__name__)
+
+        tr.return_value = None
+        e = ayame.ValidationError('args', component=c, validator=Validator(), variation='variation')
+        self.assertEqual(str(e), 'args')
+
+        tr.side_effect = lambda v: v
+        e = ayame.ValidationError('args', component=c, validator=Validator(), variation='variation')
+        self.assertEqual(str(e), 'Validator.variation')
 
     def test_validator(self):
         class Validator(validator.Validator):
@@ -240,18 +245,20 @@ class ValidatorTestCase(AyameTestCase):
         self.assertEqual(e.vars, {'exact': 4})
 
     def test_string_validator_maxlength(self):
-        root = markup.Element(validator._INPUT,
-                              attrib={validator._TYPE: 'text'})
+        el = markup.Element(validator._INPUT,
+                            {
+                                validator._TYPE: 'text',
+                            })
         mc = ayame.MarkupContainer('a')
         v = validator.StringValidator()
         mc.add(v)
 
-        root = mc.render(root)
-        self.assertEqual(root.attrib, {validator._TYPE: 'text'})
+        el = mc.render(el)
+        self.assertEqual(el.attrib, {validator._TYPE: 'text'})
 
         v.max = 3
-        root = mc.render(root)
-        self.assertEqual(root.attrib, {
+        el = mc.render(el)
+        self.assertEqual(el.attrib, {
             validator._TYPE: 'text',
             validator._MAXLENGTH: '3',
         })

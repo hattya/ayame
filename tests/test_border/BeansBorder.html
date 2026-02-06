@@ -8,12 +8,16 @@
     </ayame:head>
   </head>
   <body>
-    <p>before ayame:border (BeansBorder)</p>
-    <ayame:border>
-      <p>before ayame:body (BeansBorder)</p>
-      <!-- ayame:body/ -->
-      <p>after ayame:body (BeansBorder)</p>
-    </ayame:border>
-    <p>after ayame:border (BeansBorder)</p>
+    <p>before ayame:extend (BeansBorder)</p>
+    <ayame:extend>
+      <p>before ayame:border (BeansBorder)</p>
+      <ayame:border>
+        <p>before ayame:body (BeansBorder)</p>
+        <ayame:body />
+        <p>after ayame:body (BeansBorder)</p>
+      </ayame:border>
+      <p>after ayame:border (BeansBorder)</p>
+    </ayame:extend>
+    <p>after ayame:extend (BeansBorder)</p>
   </body>
 </html>

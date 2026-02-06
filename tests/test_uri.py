@@ -1,7 +1,7 @@
 #
 # test_uri
 #
-#   Copyright (c) 2011-2021 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -13,60 +13,45 @@ from base import AyameTestCase
 class URITestCase(AyameTestCase):
 
     def test_quote(self):
-        v = uri.quote('a@example.com')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, 'a@example.com')
-
-        v = uri.quote('/~a/cgi-bin/index.cgi')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '/~a/cgi-bin/index.cgi')
-
-        v = uri.quote('/a/=/1')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '/a/=/1')
-
-        # iroha in hiragana
-        v = uri.quote('/\u3044\u308d\u306f')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '/%E3%81%84%E3%82%8D%E3%81%AF')
-
-        v = uri.quote(0)
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '0')
-
-        v = uri.quote(3.14)
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '3.14')
+        for s, ev in (
+            ('a@example.com', 'a@example.com'),
+            ('/~a/cgi-bin/index.cgi', '/~a/cgi-bin/index.cgi'),
+            ('/a/=/1', '/a/=/1'),
+            ('/\u3044\u308d\u306f', '/%E3%81%84%E3%82%8D%E3%81%AF'), # iroha in hiragana
+            (0, '0'),
+            (3.14, '3.14'),
+        ):
+            with self.subTest(s=s):
+                v = uri.quote(s)
+                self.assertIsInstance(v, str)
+                self.assertEqual(v, ev)
 
     def test_quote_plus(self):
-        v = uri.quote_plus('a b c')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, 'a+b+c')
-
-        v = uri.quote_plus('abc')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, 'abc')
-
-        # iroha in hiragana
-        v = uri.quote_plus('\u3044 \u308d \u306f')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '%E3%81%84+%E3%82%8D+%E3%81%AF')
-
-        v = uri.quote_plus('\u3044\u308d\u306f')
-        self.assertIsInstance(v, str)
-        self.assertEqual(v, '%E3%81%84%E3%82%8D%E3%81%AF')
+        for s, ev in (
+            ('a b c', 'a+b+c'),
+            ('abc', 'abc'),
+            # iroha in hiragana
+            ('\u3044 \u308d \u306f', '%E3%81%84+%E3%82%8D+%E3%81%AF'),
+            ('\u3044\u308d\u306f', '%E3%81%84%E3%82%8D%E3%81%AF'),
+        ):
+            with self.subTest(s=s):
+                v = uri.quote_plus(s)
+                self.assertIsInstance(v, str)
+                self.assertEqual(v, ev)
 
     def test_parse_qs_empty(self):
         environ = {}
         self.assertEqual(uri.parse_qs(environ), {})
 
     def test_parse_qs_ascii(self):
-        query = ('a=1&'
-                 'b=1&'
-                 'b=2&'
-                 'c=1&'
-                 'c=2&'
-                 'c=3')
+        query = '&'.join((
+            'a=1',
+            'b=1',
+            'b=2',
+            'c=1',
+            'c=2',
+            'c=3',
+        ))
         environ = {'QUERY_STRING': uri.quote(query)}
         self.assertEqual(uri.parse_qs(environ), {
             'a': ['1'],
@@ -75,12 +60,14 @@ class URITestCase(AyameTestCase):
         })
 
     def test_parse_qs_utf_8(self):
-        query = ('\u3044=\u58f1&'
-                 '\u308d=\u58f1&'
-                 '\u308d=\u5f10&'
-                 '\u306f=\u58f1&'
-                 '\u306f=\u5f10&'
-                 '\u306f=\u53c2')
+        query = '&'.join((
+            '\u3044=\u58f1',
+            '\u308d=\u58f1',
+            '\u308d=\u5f10',
+            '\u306f=\u58f1',
+            '\u306f=\u5f10',
+            '\u306f=\u53c2',
+        ))
         environ = {'QUERY_STRING': uri.quote(query)}
         self.assertEqual(uri.parse_qs(environ), {
             '\u3044': ['\u58f1'],
@@ -89,66 +76,35 @@ class URITestCase(AyameTestCase):
         })
 
     def test_application_uri_server_name(self):
-        environ = {
-            'wsgi.url_scheme': 'http',
-            'SERVER_NAME': 'localhost',
-            'SERVER_PORT': '80',
-        }
-        self.assertEqual(uri.application_uri(environ), 'http://localhost/')
-
-        environ = {
-            'wsgi.url_scheme': 'http',
-            'SERVER_NAME': 'localhost',
-            'SERVER_PORT': '8080',
-        }
-        self.assertEqual(uri.application_uri(environ), 'http://localhost:8080/')
-
-        environ = {
-            'wsgi.url_scheme': 'https',
-            'SERVER_NAME': 'localhost',
-            'SERVER_PORT': '443',
-        }
-        self.assertEqual(uri.application_uri(environ), 'https://localhost/')
-
-        environ = {
-            'wsgi.url_scheme': 'https',
-            'SERVER_NAME': 'localhost',
-            'SERVER_PORT': '8008',
-        }
-        self.assertEqual(uri.application_uri(environ), 'https://localhost:8008/')
+        for scheme, port, ev in (
+            ('http', '80', 'http://localhost/'),
+            ('http', '8080', 'http://localhost:8080/'),
+            ('https', '443', 'https://localhost/'),
+            ('https', '8443', 'https://localhost:8443/'),
+        ):
+            with self.subTest(scheme=scheme, SERVER_PORT=port):
+                environ = {
+                    'wsgi.url_scheme': scheme,
+                    'SERVER_NAME': 'localhost',
+                    'SERVER_PORT': port,
+                }
+                self.assertEqual(uri.application_uri(environ), ev)
 
     def test_application_uri_http_host(self):
-        environ = {
-            'wsgi.url_scheme': 'http',
-            'SERVER_NAME': '127.0.0.1',
-            'SERVER_PORT': '8080',
-            'HTTP_HOST': 'localhost:80',
-        }
-        self.assertEqual(uri.application_uri(environ), 'http://localhost/')
-
-        environ = {
-            'wsgi.url_scheme': 'http',
-            'SERVER_NAME': '127.0.0.1',
-            'SERVER_PORT': '80',
-            'HTTP_HOST': 'localhost:8080',
-        }
-        self.assertEqual(uri.application_uri(environ), 'http://localhost:8080/')
-
-        environ = {
-            'wsgi.url_scheme': 'https',
-            'SERVER_NAME': '127.0.0.1',
-            'SERVER_PORT': '8008',
-            'HTTP_HOST': 'localhost:443',
-        }
-        self.assertEqual(uri.application_uri(environ), 'https://localhost/')
-
-        environ = {
-            'wsgi.url_scheme': 'https',
-            'SERVER_NAME': '127.0.0.1',
-            'SERVER_PORT': '443',
-            'HTTP_HOST': 'localhost:8008',
-        }
-        self.assertEqual(uri.application_uri(environ), 'https://localhost:8008/')
+        for scheme, port, host, ev in (
+            ('http', '8080', 'localhost', 'http://localhost/'),
+            ('http', '80', 'localhost:8080', 'http://localhost:8080/'),
+            ('https', '8443', 'localhost', 'https://localhost/'),
+            ('https', '443', 'localhost:8443', 'https://localhost:8443/'),
+        ):
+            with self.subTest(scheme=scheme, SERVER_PORT=port, HTTP_HOST=host):
+                environ = {
+                    'wsgi.url_scheme': scheme,
+                    'SERVER_NAME': '127.0.0.1',
+                    'SERVER_PORT': port,
+                    'HTTP_HOST': host,
+                }
+                self.assertEqual(uri.application_uri(environ), ev)
 
     def test_application_uri_script_name(self):
         environ = {
@@ -174,79 +130,81 @@ class URITestCase(AyameTestCase):
     def test_request_uri(self):
         # SCRIPT_NAME and PATH_INFO are empty
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/')
 
         # SCRIPT_NAME is empty
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'PATH_INFO': '/',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/')
 
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '',
             'PATH_INFO': '/',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/')
 
     def test_request_uri_script_name(self):
         # PATH_INFO is empty
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/ayame')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/ayame')
 
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
             'PATH_INFO': '',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/ayame')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/ayame')
 
         # SCRIPT_NAME and PATH_INFO
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
             'PATH_INFO': '/',
         }
-        self.assertEqual(uri.request_uri(environ), 'http://localhost/ayame/')
+        self.assertEqual(uri.request_uri(environ), 'https://localhost/ayame/')
 
     def test_request_uri_query_string(self):
+        # QUERY_STRING is empty
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
             'PATH_INFO': '/',
         }
-        self.assertEqual(uri.request_uri(environ, True), 'http://localhost/ayame/')
+        self.assertEqual(uri.request_uri(environ, True), 'https://localhost/ayame/')
 
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
             'PATH_INFO': '/',
             'QUERY_STRING': '',
         }
-        self.assertEqual(uri.request_uri(environ, True), 'http://localhost/ayame/')
+        self.assertEqual(uri.request_uri(environ, True), 'https://localhost/ayame/')
 
+        # SCRIPT_NAME and QUERY_STRING
         environ = {
-            'wsgi.url_scheme': 'http',
+            'wsgi.url_scheme': 'https',
             'HTTP_HOST': 'localhost',
             'SCRIPT_NAME': '/ayame',
             'PATH_INFO': '/',
             'QUERY_STRING': 'FrontPage',
         }
-        self.assertEqual(uri.request_uri(environ, True), 'http://localhost/ayame/?FrontPage')
+        self.assertEqual(uri.request_uri(environ, True), 'https://localhost/ayame/?FrontPage')
 
     def test_request_path(self):
         # SCRIPT_NAME and PATH_INFO are empty
@@ -298,6 +256,10 @@ class URITestCase(AyameTestCase):
 
     def test_relative_uri(self):
         environ = {}
+        self.assertEqual(uri.relative_uri(environ, '/spam.html'), '/spam.html')
+        self.assertEqual(uri.relative_uri(environ, 'spam.html'), 'spam.html')
+
+        environ = {'PATH_INFO': ''}
         self.assertEqual(uri.relative_uri(environ, '/spam.html'), '/spam.html')
         self.assertEqual(uri.relative_uri(environ, 'spam.html'), 'spam.html')
 

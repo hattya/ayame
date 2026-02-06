@@ -1,7 +1,7 @@
 #
 # test_model
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -32,6 +32,9 @@ class ModelTestCase(AyameTestCase):
             def wrap(self, component):
                 return super().wrap(component)
 
+        with self.assertRaises(TypeError):
+            model.InheritableModel(None)
+
         m = InheritableModel(None)
         with self.assertRaises(NotImplementedError):
             m.wrap(None)
@@ -46,19 +49,24 @@ class ModelTestCase(AyameTestCase):
             def object(self, object):
                 model.WrapModel.object.__set__(self, object)
 
-        m = WrapModel(model.Model(None))
+        with self.assertRaises(TypeError):
+            model.WrapModel(model.Model(None))
+
+        m = model.Model(None)
+        wm = WrapModel(m)
+        self.assertIs(wm.wrapped_model, m)
         with self.assertRaises(NotImplementedError):
-            m.object
+            wm.object
         with self.assertRaises(NotImplementedError):
-            m.object = ''
+            wm.object = ''
 
     def test_compound_model_attr(self):
-        class Object:
+        class O:
             attr = 'value'
 
-        o = Object()
+        o = O()
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
+        mc = ayame.MarkupContainer(__name__, m)
         mc.add(ayame.Component('attr'))
         self.assertEqual(len(mc.children), 1)
         self.assertEqual(o.attr, 'value')
@@ -69,7 +77,7 @@ class ModelTestCase(AyameTestCase):
         self.assertEqual(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_property(self):
-        class Object:
+        class O:
             def __init__(self):
                 self.__attr = 'value'
 
@@ -81,9 +89,9 @@ class ModelTestCase(AyameTestCase):
             def attr(self, attr):
                 self.__attr = attr
 
-        o = Object()
+        o = O()
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
+        mc = ayame.MarkupContainer(__name__, m)
         mc.add(ayame.Component('attr'))
         self.assertEqual(len(mc.children), 1)
         self.assertEqual(o.attr, 'value')
@@ -94,75 +102,75 @@ class ModelTestCase(AyameTestCase):
         self.assertEqual(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_method(self):
-        class Object:
+        class O:
             def __init__(self):
-                self.__method = 'value'
+                self.__attr = 'value'
 
-            def get_method(self):
-                return self.__method
+            def get_attr(self):
+                return self.__attr
 
-            def set_method(self, method):
-                self.__method = method
+            def set_attr(self, attr):
+                self.__attr = attr
 
-        o = Object()
+        o = O()
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
-        mc.add(ayame.Component('method'))
+        mc = ayame.MarkupContainer(__name__, m)
+        mc.add(ayame.Component('attr'))
         self.assertEqual(len(mc.children), 1)
-        self.assertEqual(o.get_method(), 'value')
-        self.assertEqual(mc.find('method').model.object, 'value')
+        self.assertEqual(o.get_attr(), 'value')
+        self.assertEqual(mc.find('attr').model.object, 'value')
 
-        mc.find('method').model.object = 'new_value'
-        self.assertEqual(o.get_method(), 'new_value')
-        self.assertEqual(mc.find('method').model.object, 'new_value')
+        mc.find('attr').model.object = 'new_value'
+        self.assertEqual(o.get_attr(), 'new_value')
+        self.assertEqual(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_method_noncallable(self):
-        class Object:
-            get_method = set_method = None
+        class O:
+            get_attr = set_attr = None
 
-        o = Object()
+        o = O()
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
-        mc.add(ayame.Component('method'))
+        mc = ayame.MarkupContainer(__name__, m)
+        mc.add(ayame.Component('attr'))
         self.assertEqual(len(mc.children), 1)
-        self.assertIsNone(mc.find('method').model.object)
+        self.assertIsNone(mc.find('attr').model.object)
 
-        with self.assertRaisesRegex(AttributeError, r'^method$'):
-            mc.find('method').model.object = 'new_value'
+        with self.assertRaisesRegex(AttributeError, r'^attr$'):
+            mc.find('attr').model.object = 'new_value'
 
     def test_compound_model_dict(self):
-        o = {'mapping': 'value'}
+        o = {'attr': 'value'}
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
-        mc.add(ayame.Component('mapping'))
+        mc = ayame.MarkupContainer(__name__, m)
+        mc.add(ayame.Component('attr'))
         self.assertEqual(len(mc.children), 1)
-        self.assertEqual(o['mapping'], 'value')
-        self.assertEqual(mc.find('mapping').model.object, 'value')
+        self.assertEqual(o['attr'], 'value')
+        self.assertEqual(mc.find('attr').model.object, 'value')
 
-        mc.find('mapping').model.object = 'new_value'
-        self.assertEqual(o['mapping'], 'new_value')
-        self.assertEqual(mc.find('mapping').model.object, 'new_value')
+        mc.find('attr').model.object = 'new_value'
+        self.assertEqual(o['attr'], 'new_value')
+        self.assertEqual(mc.find('attr').model.object, 'new_value')
 
     def test_compound_model_replace(self):
         o = {
+            'a': 'a',
             'b': 'b',
-            'c': 'c',
         }
         m = model.CompoundModel(o)
-        mc = ayame.MarkupContainer('a', m)
-        mc.add(ayame.MarkupContainer('b'))
+        mc = ayame.MarkupContainer(__name__, m)
+        mc.add(ayame.MarkupContainer('a'))
         self.assertEqual(len(mc.children), 1)
-        self.assertEqual(mc.find('b').model.object, 'b')
+        self.assertEqual(mc.find('a').model.object, 'a')
 
-        mc.find('b').add(ayame.Component('c'))
+        mc.find('a').add(ayame.Component('b'))
         self.assertEqual(len(mc.children), 1)
-        self.assertEqual(len(mc.find('b').children), 1)
-        self.assertEqual(mc.find('b:c').model.object, 'c')
+        self.assertEqual(len(mc.find('a').children), 1)
+        self.assertEqual(mc.find('a:b').model.object, 'b')
 
         mc.model = model.CompoundModel(object())
-        self.assertIsNone(mc.find('b').model.object)
-        self.assertIsNone(mc.find('b:c').model.object)
+        self.assertIsNone(mc.find('a').model.object)
+        self.assertIsNone(mc.find('a:b').model.object)
+        with self.assertRaisesRegex(AttributeError, r'^a$'):
+            setattr(mc.find('a').model, 'object', '')
         with self.assertRaisesRegex(AttributeError, r'^b$'):
-            setattr(mc.find('b').model, 'object', '')
-        with self.assertRaisesRegex(AttributeError, r'^c$'):
-            setattr(mc.find('b:c').model, 'object', '')
+            setattr(mc.find('a:b').model, 'object', '')

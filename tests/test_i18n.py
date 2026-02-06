@@ -1,10 +1,12 @@
 #
 # test_i18n
 #
-#   Copyright (c) 2012-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2012-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
+
+import unittest.mock
 
 import ayame
 from ayame import i18n
@@ -16,7 +18,7 @@ class I18nTestCase(AyameTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.app = Application(__name__)
+        cls.app = App(__name__)
 
     def test_iter_class(self):
         with self.application():
@@ -29,7 +31,7 @@ class I18nTestCase(AyameTestCase):
                 (ayame.MarkupContainer, (), 'b'),
                 (Component, (), ''),
                 (ayame.Component, (), ''),
-                (Application, (), ''),
+                (App, (), ''),
                 (ayame.Ayame, (), ''),
             ])
             self.assertEqual(list(l._iter_class(p.find('a2:b'))), [
@@ -39,7 +41,7 @@ class I18nTestCase(AyameTestCase):
                 (ayame.MarkupContainer, (), 'b'),
                 (Component, (), ''),
                 (ayame.Component, (), ''),
-                (Application, (), ''),
+                (App, (), ''),
                 (ayame.Ayame, (), ''),
             ])
             self.assertEqual(list(l._iter_class(p.find('a1'))), [
@@ -47,7 +49,7 @@ class I18nTestCase(AyameTestCase):
                 (ayame.Page, (), 'a1'),
                 (MarkupContainer, (), ''),
                 (ayame.MarkupContainer, (), ''),
-                (Application, (), ''),
+                (App, (), ''),
                 (ayame.Ayame, (), ''),
             ])
             self.assertEqual(list(l._iter_class(p.find('a2'))), [
@@ -55,13 +57,13 @@ class I18nTestCase(AyameTestCase):
                 (ayame.Page, (), 'a2'),
                 (Page.MarkupContainer, (Page,), ''),
                 (ayame.MarkupContainer, (), ''),
-                (Application, (), ''),
+                (App, (), ''),
                 (ayame.Ayame, (), ''),
             ])
             self.assertEqual(list(l._iter_class(p)), [
                 (Page, (), ''),
                 (ayame.Page, (), ''),
-                (Application, (), ''),
+                (App, (), ''),
                 (ayame.Ayame, (), ''),
             ])
 
@@ -90,20 +92,24 @@ class I18nTestCase(AyameTestCase):
                 'lobster ': '  lobster',
             })
 
+    def test_get_unknown_module(self):
+        class P(Page):
+            __module__ = None
+
+        locale = (None,) * 2
+        self._test_get(P(), locale)
+
     def test_get(self):
         locale = (None,) * 2
         self._test_get(Page(), locale)
 
     def test_get_ja(self):
-        locale = ('ja', 'JP')
+        locale = ('ja', None)
         self._test_get(Page(), locale)
 
-    def test_get_unknown_module(self):
-        class P(Page):
-            __module__ = None
-
-        locale = ('en', 'US')
-        self._test_get(P(), locale)
+    def test_get_ja_JP(self):
+        locale = ('ja', 'JP')
+        self._test_get(Page(), locale)
 
     def _test_get(self, page, locale):
         with self.application():
@@ -118,26 +124,24 @@ class I18nTestCase(AyameTestCase):
                         self.assertEqual(l.get(c, locale, k), v)
 
     def test_cache(self):
-        config = self.app.config.copy()
-        try:
-            with self.application():
-                locale = (None,) * 2
-                l = i18n.Localizer()
-                p = Page()
-                for i in range(1, 3):
-                    self.app.config['ayame.resource.loader'] = self.new_resource_loader()
-                    self.app.config['ayame.i18n.cache'] = config['ayame.i18n.cache'].copy()
+        with unittest.mock.patch.dict(self.app.config):
+            locale = (None,) * 2
+            l = i18n.Localizer()
+            p = Page()
+            for i in range(1, 3):
+                self.app.config['ayame.resource.loader'] = self.new_resource_loader()
+                self.app.config['ayame.i18n.cache'] = cache = self.app.config['ayame.i18n.cache'].copy()
+                cache.clear()
 
-                    c = p.find(f'a{i}:b')
-                    with self.subTest(path=c.path()):
-                        self.assertEqual(l.get(c, locale, 'spam'), 'spam')
-                        self.assertIsNone(l.get(c, locale, 'spam'))
-                        self.assertIsNone(l.get(c, locale, 'eggs'))
-        finally:
-            self.app.config = config
+                c = p.find(f'a{i}:b')
+                with (self.subTest(path=c.path()),
+                      self.application()):
+                    self.assertEqual(l.get(c, locale, 'spam'), 'spam')
+                    self.assertIsNone(l.get(c, locale, 'spam'))
+                    self.assertIsNone(l.get(c, locale, 'eggs'))
 
 
-class Application(ayame.Ayame):
+class App(ayame.Ayame):
     pass
 
 

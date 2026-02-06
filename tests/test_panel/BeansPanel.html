@@ -8,10 +8,14 @@
     </ayame:head>
   </head>
   <body>
-    <p>before ayame:panel (BeansPanel)</p>
-    <ayame:panel>
-      <p>inside ayame:panel (<span ayame:id="class"></span>)</p>
-    </ayame:panel>
-    <p>after ayame:panel (BeansPanel)</p>
+    <p>before ayame:extend (BeansPanel)</p>
+    <ayame:extend>
+      <p>before ayame:panel (BeansPanel)</p>
+      <ayame:panel>
+        <p>inside ayame:panel (<span ayame:id="class"></span>)</p>
+      </ayame:panel>
+      <p>after ayame:panel (BeansPanel)</p>
+    </ayame:extend>
+    <p>after ayame:extend (BeansPanel)</p>
   </body>
 </html>

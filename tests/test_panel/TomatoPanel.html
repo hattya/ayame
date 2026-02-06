@@ -3,8 +3,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:ayame="http://hattya.github.io/ayame">
   <head>
     <title>TomatoPanel</title>
+    <ayame:head>
+      <meta name="class" content="TomatoPanel" />
+    </ayame:head>
   </head>
   <body>
-    <ayame:panel><p><ayame:message key="message" /></p></ayame:panel>
+    <p>before ayame:panel (TomatoPanel)</p>
+    <!-- ayame:panel>
+      <p>inside ayame:panel (<span ayame:id="class"></span>)</p>
+    </ayame:panel -->
+    <p>after ayame:panel (TomatoPanel)</p>
   </body>
 </html>

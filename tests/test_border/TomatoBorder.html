@@ -3,8 +3,27 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:ayame="http://hattya.github.io/ayame">
   <head>
     <title>TomatoBorder</title>
+    <ayame:head>
+      <meta name="class" content="TomatoBorder" />
+    </ayame:head>
+    <ayame:head>
+      <meta name="unused" content="_" />
+    </ayame:head>
   </head>
   <body>
-    <ayame:border><p><ayame:message key="before" />, <ayame:body />, <ayame:message key="after" /></p></ayame:border>
+    <p>before ayame:border (TomatoBorder)</p>
+    <ayame:border>
+      <p>before ayame:body (TomatoBorder)</p>
+      <ayame:body />
+      <ayame:body />
+      <p>after ayame:body (TomatoBorder)</p>
+    </ayame:border>
+    <ayame:border>
+      <p>before ayame:body (TomatoBorder)</p>
+      <ayame:body />
+      <ayame:body />
+      <p>after ayame:body (TomatoBorder)</p>
+    </ayame:border>
+    <p>after ayame:border (TomatoBorder)</p>
   </body>
 </html>
