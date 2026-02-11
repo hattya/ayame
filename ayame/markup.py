@@ -1,7 +1,7 @@
 #
 # ayame.markup
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -229,6 +229,9 @@ class Element:
 
     def __delitem__(self, key: int | slice) -> None:
         self.children.__delitem__(key)
+
+    def __iter__(self) -> Iterator[Node]:
+        return self.children.__iter__()
 
     def __copy__(self) -> Self:
         el = type(self)(self.qname)

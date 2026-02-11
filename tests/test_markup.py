@@ -6,6 +6,7 @@
 #   SPDX-License-Identifier: MIT
 #
 
+import collections.abc
 import io
 import pickle
 import textwrap
@@ -186,6 +187,8 @@ class ElementTestCase(AyameTestCase):
         self.assertRegex(repr(el), r' {} ')
         self.assertEqual(len(el), 0)
         self.assertTrue(el)
+        self.assertIsInstance(el, collections.abc.Iterable)
+        self.assertEqual(list(el), [])
 
         p = self.new_element('p', {'id': 'spam'})
         self.assertEqual(p.qname, self.html_of('p'))
@@ -200,6 +203,8 @@ class ElementTestCase(AyameTestCase):
         self.assertRegex(repr(p), fr' {{{markup.XHTML_NS}}}p ')
         self.assertEqual(len(p), 0)
         self.assertTrue(p)
+        self.assertIsInstance(el, collections.abc.Iterable)
+        self.assertEqual(list(el), [])
 
     def test_attrib(self):
         p = self.new_element('p', {'ID': 'spam'})
@@ -236,6 +241,12 @@ class ElementTestCase(AyameTestCase):
         self.assertEqual(p.children, ['d', 'e', 'f'])
         del p[0:]
         self.assertEqual(p.children, [])
+
+    def test_iter(self):
+        p = self.new_element('p')
+        br = self.new_element('br', empty=True)
+        p.children[:] = ['a', 'b', 'c', br, 'd', 'e', 'f']
+        self.assertEqual(list(p), ['a', 'b', 'c', br, 'd', 'e', 'f'])
 
     def test_copy(self):
         self._test_dup(lambda el: el.copy())
