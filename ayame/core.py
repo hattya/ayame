@@ -555,7 +555,7 @@ class MarkupContainer(Component):
                 for node in m.root.children:
                     if (isinstance(node, markup.Element)
                         and node.qname == markup.HEAD):
-                        node.type = markup.Element.OPEN
+                        node.type = markup.Element.Type.OPEN
                         node.extend(extra_head)
                         return m
             raise RenderingError(cls, "'head' element is not found")
@@ -569,7 +569,7 @@ class MarkupContainer(Component):
         for node in root.children:
             if (isinstance(node, markup.Element)
                 and node.qname == markup.HEAD):
-                node.type = markup.Element.OPEN
+                node.type = markup.Element.Type.OPEN
                 return node
         return None
 

@@ -1,7 +1,7 @@
 #
 # ayame.app
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -92,10 +92,10 @@ class Ayame:
                 try:
                     status, headers, content = self.handle_request(o)
                 except _Redirect as r:
-                    if r.args[3] == _Redirect.PERMANENT:
+                    if r.args[3] == _Redirect.Type.PERMANENT:
                         raise http.MovedPermanently(uri.application_uri(environ)
                                                     + self.uri_for(*r.args[:3], relative=True)[1:])
-                    elif r.args[3] != _Redirect.INTERNAL:
+                    elif r.args[3] != _Redirect.Type.INTERNAL:
                         raise http.Found(uri.application_uri(environ)
                                          + self.uri_for(*r.args[:3], relative=True)[1:])
                     o = r.args[0]
@@ -140,11 +140,11 @@ class Ayame:
         return status, headers, exc_info, content
 
     def forward(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None) -> None:
-        raise _Redirect(object, values, anchor, _Redirect.INTERNAL)
+        raise _Redirect(object, values, anchor, _Redirect.Type.INTERNAL)
 
     def redirect(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None,
                  permanent: bool = False) -> None:
-        raise _Redirect(object, values, anchor, _Redirect.PERMANENT if permanent else _Redirect.TEMPORARY)
+        raise _Redirect(object, values, anchor, _Redirect.Type.PERMANENT if permanent else _Redirect.Type.TEMPORARY)
 
     def uri_for(self, *args: Any, **kwargs: Any) -> str:
         return self._router.build(*args, **kwargs)

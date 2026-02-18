@@ -1336,7 +1336,7 @@ class CoreTestCase(AyameTestCase):
         el = b.root
         mc.head = mc.find_head(el)
         mc.head.append(markup.Element(self.html_of('title'),
-                                      type=markup.Element.OPEN))
+                                      type=markup.Element.Type.OPEN))
         mc.head[-1].append('title')
         with b.open('html',
                     ns=self.ns):

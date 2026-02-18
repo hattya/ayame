@@ -249,10 +249,10 @@ class ElementBuilder:
         return self.__root
 
     def open(self, name, attrib=None, ns=None):
-        return self.element(name, attrib, markup.Element.OPEN, ns)
+        return self.element(name, attrib, markup.Element.Type.OPEN, ns)
 
     def empty(self, name, attrib=None, ns=None):
-        with self.element(name, attrib, markup.Element.EMPTY, ns):
+        with self.element(name, attrib, markup.Element.Type.EMPTY, ns):
             pass
 
     @contextlib.contextmanager

@@ -12,6 +12,7 @@ import collections
 import collections.abc
 from collections.abc import Callable, Iterable, Iterator, Mapping
 import dataclasses
+import enum
 import html.parser
 import io
 import re
@@ -185,13 +186,10 @@ class Element:
 
     __slots__ = ('qname', 'attrib', 'type', 'ns', 'children')
 
-    OPEN = 1 << 0
-    EMPTY = 1 << 1
-
     children: list[Node]
 
     def __init__(self, qname: QName, attrib: Mapping[QName | str, str | None] | None = None,
-                 type: int | None = None, ns: dict[str, str] | None = None) -> None:
+                 type: Type | None = None, ns: dict[str, str] | None = None) -> None:
         self.qname = qname
         self.attrib = _AttributeDict()
         if attrib:
@@ -242,10 +240,10 @@ class Element:
                        for n in self.children]
         return el
 
-    def __getstate__(self) -> tuple[QName, _AttributeDict, int | None, dict[str, str], list[Node]]:
+    def __getstate__(self) -> tuple[QName, _AttributeDict, Type | None, dict[str, str], list[Node]]:
         return self.qname, self.attrib, self.type, self.ns, self.children
 
-    def __setstate__(self, state: tuple[QName, _AttributeDict, int | None, dict[str, str], list[Node]]) -> None:
+    def __setstate__(self, state: tuple[QName, _AttributeDict, Type | None, dict[str, str], list[Node]]) -> None:
         self.qname, self.attrib, self.type, self.ns, self.children = state
 
     copy = __copy__
@@ -288,6 +286,12 @@ class Element:
         if buf:
             children.append(''.join(buf))
         self.children[:] = children
+
+    @enum.unique
+    class Type(enum.Flag):
+
+        OPEN = 1 << 0
+        EMPTY = 1 << 1
 
 
 class _AttributeDict(util.FilterDict[QName | str, str | None]):
@@ -372,7 +376,7 @@ class MarkupLoader(html.parser.HTMLParser):
             # children of ayame:remove element
             return
         # new element
-        el = self._new_element(tag, attrs, type=Element.EMPTY)
+        el = self._new_element(tag, attrs, type=Element.Type.EMPTY)
         if el.qname == AYAME_REMOVE:
             return
         elif (not self._stack
@@ -486,7 +490,7 @@ class MarkupLoader(html.parser.HTMLParser):
     def _at(self, index: int) -> Element:
         return self._stack[index][1]
 
-    def _new_element(self, name: str, attrs: list[tuple[str, str | None]], type: int = Element.OPEN) -> Element:
+    def _new_element(self, name: str, attrs: list[tuple[str, str | None]], type: Element.Type = Element.Type.OPEN) -> Element:
         # gather xmlns
         xmlns = {}
         for n, v in tuple(attrs):
@@ -567,10 +571,10 @@ class MarkupRenderer:
                 self.peek().pending -= 1
             if isinstance(node, Element):
                 # render start tag or empty tag
-                node.type = Element.OPEN if not h.is_empty(node) else Element.EMPTY
+                node.type = Element.Type.OPEN if not h.is_empty(node) else Element.Type.EMPTY
                 self.push(index, node)
                 h.start_tag()
-                if node.type == Element.OPEN:
+                if node.type == Element.Type.OPEN:
                     # push children
                     queue.extend((i, node[i])
                                  for i in range(len(node) - 1, -1, -1))
@@ -643,6 +647,17 @@ class MarkupRenderer:
         raise RenderingError(self.object, f"unknown namespace URI '{ns_uri}'")
 
 
+class IndentRule(enum.Flag):
+
+    NONE = 0
+    BEFORE = 1 << 0
+    INSIDE = 1 << 1
+    AFTER = 1 << 2
+    TEXT = 1 << 3
+    AROUND = BEFORE | AFTER
+    ALL = BEFORE | AFTER | INSIDE | TEXT
+
+
 @dataclasses.dataclass
 class _ElementState:
 
@@ -652,8 +667,8 @@ class _ElementState:
     element: Element
     # number of pending children
     pending: int = dataclasses.field(init=False)
-    # indent flags for children
-    flags: int = 0
+    # indent rule for children
+    rule: IndentRule = IndentRule.NONE
 
     def __post_init__(self) -> None:
         self.pending = len(self.element)
@@ -663,13 +678,6 @@ Space = type('Space', (str,), {'__repr__': lambda self: type(self).__name__})()
 
 
 class MarkupHandler(metaclass=abc.ABCMeta):
-
-    INDENT_BEFORE = 1 << 0
-    INDENT_INSIDE = 1 << 1
-    INDENT_AFTER = 1 << 2
-    INDENT_TEXT = 1 << 3
-    INDENT_AROUND = INDENT_BEFORE | INDENT_AFTER
-    INDENT_ALL = INDENT_AROUND | INDENT_INSIDE | INDENT_TEXT
 
     def __init__(self, renderer: MarkupRenderer) -> None:
         self.renderer = renderer
@@ -699,7 +707,7 @@ class MarkupHandler(metaclass=abc.ABCMeta):
         if text:
             self.renderer.write(text)
 
-    def indent(self, pos: int, indent: int) -> bool:
+    def indent(self, rule: IndentRule, indent: int) -> bool:
         def next_nonblank(element: Element, index: int) -> bool:
             for node in element.children[index:]:
                 if node:
@@ -711,22 +719,22 @@ class MarkupHandler(metaclass=abc.ABCMeta):
         curr = r.peek()
         # calculate indent level
         lv = -1
-        if pos == self.INDENT_BEFORE:
+        if rule == IndentRule.BEFORE:
             if r.depth() > 1:
                 lv = r.depth() - 1
-        elif pos == self.INDENT_INSIDE:
+        elif rule == IndentRule.INSIDE:
             if curr.pending > 0:
                 # after start tag
                 lv = r.depth()
             else:
                 # before end tag
                 lv = r.depth() - 1
-        elif pos == self.INDENT_AFTER:
+        elif rule == IndentRule.AFTER:
             if (r.depth() > 1
                 and next_nonblank(r.at(-2).element, curr.index + 1)):
                 lv = r.depth() - 1
-        elif pos == self.INDENT_TEXT:
-            if not curr.flags & self.INDENT_TEXT:
+        elif rule == IndentRule.TEXT:
+            if not curr.rule & IndentRule.TEXT:
                 r.write(' ')
                 return False
             lv = r.depth()
@@ -736,12 +744,12 @@ class MarkupHandler(metaclass=abc.ABCMeta):
             return True
         return False
 
-    def compile(self, element: Element) -> int:
-        flags = self.INDENT_AROUND
+    def compile(self, element: Element) -> IndentRule:
+        rule = IndentRule.AROUND
         children: list[Node] = []
         for node in element.children:
             if isinstance(node, Element):
-                flags = self.INDENT_ALL
+                rule = IndentRule.ALL
                 children.append(node)
             elif isinstance(node, str):
                 if not node:
@@ -771,10 +779,10 @@ class MarkupHandler(metaclass=abc.ABCMeta):
                 raise RenderingError(self.renderer.object, f"invalid type '{type(node)}'")
         if (children
             and children[-1] is Space):
-            flags = self.INDENT_ALL
+            rule = IndentRule.ALL
             del children[-1]
         element.children[:] = children
-        return flags
+        return rule
 
 
 class MarkupPrettifier(MarkupHandler):
@@ -798,18 +806,18 @@ class MarkupPrettifier(MarkupHandler):
         h = self._handler
 
         curr = h.renderer.peek()
-        curr.flags = h.compile(curr.element)
+        curr.rule = h.compile(curr.element)
         curr.pending = len(curr.element)
 
         if (not self._bol
-            and curr.flags & self.INDENT_BEFORE):
-            h.indent(self.INDENT_BEFORE, self._indent)
+            and curr.rule & IndentRule.BEFORE):
+            h.indent(IndentRule.BEFORE, self._indent)
 
         h.start_tag()
 
-        pos = self.INDENT_INSIDE if curr.element.type == Element.OPEN else self.INDENT_AFTER
-        if curr.flags & pos:
-            self._bol = h.indent(pos, self._indent)
+        rule = IndentRule.INSIDE if curr.element.type == Element.Type.OPEN else IndentRule.AFTER
+        if curr.rule & rule:
+            self._bol = h.indent(rule, self._indent)
         else:
             self._bol = False
 
@@ -818,13 +826,13 @@ class MarkupPrettifier(MarkupHandler):
 
         curr = h.renderer.peek()
         if (not self._bol
-            and curr.flags & self.INDENT_INSIDE):
-            h.indent(self.INDENT_INSIDE, self._indent)
+            and curr.rule & IndentRule.INSIDE):
+            h.indent(IndentRule.INSIDE, self._indent)
 
         h.end_tag()
 
-        if curr.flags & self.INDENT_AFTER:
-            self._bol = h.indent(self.INDENT_AFTER, self._indent)
+        if curr.rule & IndentRule.AFTER:
+            self._bol = h.indent(IndentRule.AFTER, self._indent)
         else:
             self._bol = False
 
@@ -833,16 +841,16 @@ class MarkupPrettifier(MarkupHandler):
 
         if text is Space:
             if not self._bol:
-                self._bol = h.indent(self.INDENT_TEXT, self._indent)
+                self._bol = h.indent(IndentRule.TEXT, self._indent)
         else:
             h.text(index, text)
 
             self._bol = False
 
-    def indent(self, pos: int, indent: int = -1) -> bool:
-        return self._handler.indent(pos, self._indent)
+    def indent(self, rule: IndentRule, indent: int = -1) -> bool:
+        return self._handler.indent(rule, self._indent)
 
-    def compile(self, element: Element) -> int:
+    def compile(self, element: Element) -> IndentRule:
         return self._handler.compile(element)
 
 
@@ -884,7 +892,7 @@ class XMLHandler(MarkupHandler):
             elif default_ns:
                 raise RenderingError(self.renderer.object, 'cannot combine with default namespace')
             r.write(n, '="', v or '', '"')
-        r.write('>' if el.type != Element.EMPTY else empty)
+        r.write('>' if el.type != Element.Type.EMPTY else empty)
 
     def end_tag(self) -> None:
         r = self.renderer
@@ -896,10 +904,10 @@ class XMLHandler(MarkupHandler):
             r.write(pfx, ':')
         r.write(el.qname.name, '>')
 
-    def compile(self, element: Element) -> int:
+    def compile(self, element: Element) -> IndentRule:
         if element.children:
             return super().compile(element)
-        return self.INDENT_AROUND
+        return IndentRule.AROUND
 
 
 MarkupRenderer.register('xml', XMLHandler)
@@ -916,7 +924,7 @@ class XHTML1Handler(XMLHandler):
     def start_tag(self, empty: str = ' />') -> None:
         super().start_tag(empty)
 
-    def compile(self, element: Element) -> int:
+    def compile(self, element: Element) -> IndentRule:
         if element.qname.ns_uri != XHTML_NS:
             return super().compile(element)
 
@@ -929,21 +937,21 @@ class XHTML1Handler(XMLHandler):
             element.ns['xml'] = XML_NS
             element.ns[''] = XHTML_NS
 
-        flags = 0
+        rule = IndentRule.NONE
         if name in _xhtml1__EMPTY__:
             element.children.clear()
             if name == 'br':
-                flags = self.INDENT_AFTER
+                rule = IndentRule.AFTER
             elif name not in ('img', 'input'):
-                flags = self.INDENT_AROUND
+                rule = IndentRule.AROUND
         elif name not in _xhtml1__PCDATA__all:
             element.children[:] = (n for n in element.children
                                    if not isinstance(n, str))
-            flags = self.INDENT_ALL ^ self.INDENT_TEXT
+            rule = IndentRule.ALL ^ IndentRule.TEXT
         elif name == 'pre':
-            flags = self.INDENT_AROUND
+            rule = IndentRule.AROUND
         elif name in _xhtml1__PCDATA__:
-            flags = self.INDENT_AROUND
+            rule = IndentRule.AROUND
             children: list[str] = []
             indent = 0
             for n in element.children:
@@ -963,7 +971,7 @@ class XHTML1Handler(XMLHandler):
                             children.append(Space)
             if (children
                 and children[-1] is Space):
-                flags = self.INDENT_ALL
+                rule = IndentRule.ALL
                 del children[-1]
             if indent > 0:
                 for i, s in enumerate(children):
@@ -973,15 +981,15 @@ class XHTML1Handler(XMLHandler):
         else:
             super().compile(element)
             if name in ('fieldset', 'object'):
-                flags = self.INDENT_ALL
+                rule = IndentRule.ALL
             elif name in _xhtml1_Block_all:
                 if self._has_block_element(element):
-                    flags = self.INDENT_ALL
+                    rule = IndentRule.ALL
                 elif self._has_br_element(element):
-                    flags = self.INDENT_ALL ^ self.INDENT_TEXT
+                    rule = IndentRule.ALL ^ IndentRule.TEXT
                 elif name not in ('ins', 'del', 'button'):
-                    flags = self.INDENT_AROUND
-        return flags
+                    rule = IndentRule.AROUND
+        return rule
 
     def _has_block_element(self, root: Element) -> bool:
         def step(el: Element, depth: int) -> bool:

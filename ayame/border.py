@@ -1,7 +1,7 @@
 #
 # ayame.border
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -62,7 +62,7 @@ class Border(core.MarkupContainer):
                     and ayame_body is None):
                     # replace children of ayame:body element
                     ayame_body = el
-                    ayame_body.type = markup.Element.OPEN
+                    ayame_body.type = markup.Element.Type.OPEN
                     ayame_body.children[:] = element.children
             elif el.qname == markup.AYAME_HEAD:
                 if ('html' in m.lang

@@ -1,12 +1,13 @@
 #
 # ayame.exception
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
 
 from __future__ import annotations
+import enum
 from typing import TYPE_CHECKING, Any, AnyStr
 
 if TYPE_CHECKING:
@@ -41,13 +42,16 @@ class MarkupError(AyameError):
 
 class _Redirect(AyameError):
 
-    INTERNAL = -1
-    PERMANENT = 1
-    TEMPORARY = 2
-
     def __init__(self, object: Any, values: dict[AnyStr, Any] | None = None, anchor: AnyStr | None = None,
-                 type: int | None = None):
+                 type: Type | None = None):
         super().__init__(object, values, anchor, type)
+
+    @enum.unique
+    class Type(enum.Enum):
+
+        INTERNAL = enum.auto()
+        PERMANENT = enum.auto()
+        TEMPORARY = enum.auto()
 
 
 class RenderingError(AyameError):

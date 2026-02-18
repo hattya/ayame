@@ -82,7 +82,7 @@ class Form(core.MarkupContainer):
         # insert hidden field for marking
         div = markup.Element(markup.DIV)
         div.attrib[_CLASS] = 'ayame-hidden'
-        input = markup.Element(_INPUT, type=markup.Element.EMPTY)
+        input = markup.Element(_INPUT, type=markup.Element.Type.EMPTY)
         input.attrib[_TYPE] = 'hidden'
         input.attrib[_NAME] = core.AYAME_PATH
         input.attrib[_VALUE] = self.path()
@@ -389,7 +389,7 @@ class RadioChoice(Choice):
     def __init__(self, id: str, model: mm.Model | None = None,
                  choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model, choices, renderer)
-        self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
+        self.suffix[:] = (markup.Element(_BR, type=markup.Element.Type.EMPTY),)
 
     def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         # clear children
@@ -405,7 +405,7 @@ class RadioChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # radio button
-                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
+                input = markup.Element(_INPUT, type=markup.Element.Type.EMPTY)
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = 'radio'
                 input.attrib[_NAME] = name
@@ -418,7 +418,7 @@ class RadioChoice(Choice):
                 s = self.renderer.label_for(choice)
                 if not isinstance(s, str):
                     s = self.converter_for(s).to_string(s)
-                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
+                label = markup.Element(_LABEL, type=markup.Element.Type.EMPTY)
                 label.attrib[_FOR] = id
                 label.append(html.escape(s))
                 label = self.render_element(label, i, choice)
@@ -435,7 +435,7 @@ class CheckBoxChoice(Choice):
     def __init__(self, id: str, model: mm.Model | None = None,
                  choices: Sequence[Any] | None = None, renderer: ChoiceRenderer | None = None) -> None:
         super().__init__(id, model, choices, renderer)
-        self.suffix[:] = (markup.Element(_BR, type=markup.Element.EMPTY),)
+        self.suffix[:] = (markup.Element(_BR, type=markup.Element.Type.EMPTY),)
 
     def on_render(self, element: markup.Element) -> markup.Node | list[markup.Node] | None:
         # clear children
@@ -452,7 +452,7 @@ class CheckBoxChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # checkbox
-                input = markup.Element(_INPUT, type=markup.Element.EMPTY)
+                input = markup.Element(_INPUT, type=markup.Element.Type.EMPTY)
                 input.attrib[_ID] = id
                 input.attrib[_TYPE] = 'checkbox'
                 input.attrib[_NAME] = name
@@ -466,7 +466,7 @@ class CheckBoxChoice(Choice):
                 s = self.renderer.label_for(choice)
                 if not isinstance(s, str):
                     s = self.converter_for(s).to_string(s)
-                label = markup.Element(_LABEL, type=markup.Element.EMPTY)
+                label = markup.Element(_LABEL, type=markup.Element.Type.EMPTY)
                 label.attrib[_FOR] = id
                 label.append(html.escape(s))
                 label = self.render_element(label, i, choice)
@@ -505,7 +505,7 @@ class SelectChoice(Choice):
                 # append prefix
                 element.extend(self.prefix.copy())
                 # option
-                option = markup.Element(_OPTION, type=markup.Element.EMPTY)
+                option = markup.Element(_OPTION, type=markup.Element.Type.EMPTY)
                 option.attrib[_VALUE] = self.renderer.value_of(i, choice)
                 if (selected is not None
                     and is_selected(selected, choice)):

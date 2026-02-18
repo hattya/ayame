@@ -67,7 +67,7 @@ class MarkupTestCase(AyameTestCase):
 
     def test_fragment(self):
         br = markup.Element(self.html_of('br'),
-                            type=markup.Element.EMPTY)
+                            type=markup.Element.Type.EMPTY)
         f = markup.Fragment(('before', br, 'after'))
         self.assertEqual(len(f), 3)
 
@@ -123,7 +123,7 @@ class MarkupTestCase(AyameTestCase):
 
         r.push(0, self.empty_element())
         self.assertFalse(h.indent(0, 1))
-        self.assertEqual(h.compile(self.empty_element()), h.INDENT_AROUND)
+        self.assertEqual(h.compile(self.empty_element()), markup.IndentRule.AROUND)
 
     def test_markup_prettifier(self):
         class MarkupHandler(markup.MarkupHandler):
@@ -161,7 +161,7 @@ class MarkupTestCase(AyameTestCase):
         self.assertEqual(r._buf.getvalue(), 'doctype\nstart_tag\nend_tag\ntext\n')
 
         self.assertFalse(h.indent(0))
-        self.assertEqual(h.compile(el), h.INDENT_AROUND)
+        self.assertEqual(h.compile(el), markup.IndentRule.AROUND)
 
 
 class ElementTestCase(AyameTestCase):
@@ -170,7 +170,7 @@ class ElementTestCase(AyameTestCase):
         _ = self.html_of
         return markup.Element(_(name),
                               attrib={_(n): v for n, v in attrib.items()} if attrib else None,
-                              type=markup.Element.EMPTY if empty else markup.Element.OPEN,
+                              type=markup.Element.Type['EMPTY' if empty else 'OPEN'],
                               ns={
                                   '': markup.XHTML_NS,
                                   'xml': markup.XML_NS
@@ -193,7 +193,7 @@ class ElementTestCase(AyameTestCase):
         p = self.new_element('p', {'id': 'spam'})
         self.assertEqual(p.qname, self.html_of('p'))
         self.assertEqual(p.attrib, {self.html_of('id'): 'spam'})
-        self.assertEqual(p.type, markup.Element.OPEN)
+        self.assertEqual(p.type, markup.Element.Type.OPEN)
         self.assertEqual(p.ns, {
             '': markup.XHTML_NS,
             'xml': markup.XML_NS,
