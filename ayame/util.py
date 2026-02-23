@@ -1,7 +1,7 @@
 #
 # ayame.util
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -9,16 +9,16 @@
 from __future__ import annotations
 import abc
 import collections.abc
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 import dataclasses
 import hashlib
 import itertools
 import random
 import threading
-from typing import cast, overload, Any, Generic, Protocol, TypeVar
+from typing import cast, overload, Any, Generic, Protocol, TypeAlias, TypeVar
 
-from ._typing import Self
+from ._typing import Self, SupportsKeysAndGetItem
 
 
 __all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',
@@ -30,6 +30,8 @@ KT = TypeVar('KT')
 VT = TypeVar('VT')
 _KT = TypeVar('_KT')
 _VT = TypeVar('_VT')
+
+MappingLike: TypeAlias = SupportsKeysAndGetItem[Any, VT] | Iterable[tuple[Any, VT]]
 
 _unset = object()
 
@@ -73,14 +75,9 @@ def new_token(algorithm: str = 'sha1') -> str:
 
 class FilterDict(dict[KT, VT]):
 
-    def __init__(self, *args: Any, **kwargs: VT) -> None:
-        super().__init__(*args, **kwargs)
-        convert = self.__convert__
-        pop = super().pop
-        for key in tuple(self):
-            new_key = convert(key)
-            if new_key != key:
-                self[new_key] = pop(key)
+    def __init__(self, m: MappingLike[VT] | None = None, **kwargs: VT) -> None:
+        super().__init__()
+        self.update(m, **kwargs)
 
     def __convert__(self, key: Any) -> KT:
         return cast(KT, key)
@@ -96,6 +93,15 @@ class FilterDict(dict[KT, VT]):
 
     def __contains__(self, key: Any) -> bool:
         return super().__contains__(self.__convert__(key))
+
+    def __or__(self, other: MappingLike[VT]) -> Self:  # type: ignore[override]
+        rv = self.copy()
+        rv.update(other)
+        return rv
+
+    def __ior__(self, other: MappingLike[VT]) -> Self:  # type: ignore[override]
+        self.update(other)
+        return self
 
     def __copy__(self) -> Self:
         return type(self)(self)
@@ -134,16 +140,19 @@ class FilterDict(dict[KT, VT]):
     def setdefault(self, key: Any, default: Any = None, /) -> Any:
         return super().setdefault(self.__convert__(key), default)
 
-    def update(self, *args: Any, **kwargs: VT) -> None:
-        keys = tuple(self)
-        super().update(*args, **kwargs)
-        convert = self.__convert__
-        pop = super().pop
-        for key in tuple(self):
-            if key not in keys:
-                new_key = convert(key)
-                if new_key != key:
-                    self[new_key] = pop(key)
+    def update(self, m: MappingLike[VT] | None = None, **kwargs: VT) -> None:  # type:ignore[override]
+        def gen(m: MappingLike[VT] | None = None, **kwargs: VT) -> Iterator[tuple[KT, VT]]:
+            if m is not None:
+                if isinstance(m, SupportsKeysAndGetItem):
+                    for k in m.keys():
+                        yield (self.__convert__(k), m[k])
+                elif isinstance(m, Iterable):
+                    for k, v in m:
+                        yield (self.__convert__(k), v)
+            for k, v in kwargs.items():
+                yield (self.__convert__(k), v)
+
+        super().update(gen(m, **kwargs))
 
 
 class RWLock:

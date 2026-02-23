@@ -5,6 +5,7 @@ Version 0.5
 -----------
 
 * Add type annotations.
+* Add support union operators for :class:`ayame.util.FilterDict`.
 
 
 Version 0.4

@@ -115,19 +115,21 @@ class UtilTestCase(AyameTestCase):
             def __convert__(self, key):
                 return key.lower() if isinstance(key, str) else super().__convert__(key)
 
-        d = LowerDict(A=1, a=-1)
-        self.assertEqual(d['A'], 1)
-        self.assertEqual(d['a'], 1)
-        self.assertIn('A', d)
-        self.assertIn('a', d)
-        with self.assertRaises(KeyError):
-            d['_']
-        self.assertEqual(d.get('A'), 1)
-        self.assertEqual(d.get('a'), 1)
-        self.assertEqual(d.get('_', 0), 0)
-        d.setdefault('A', -1)
-        d.setdefault('a', -1)
-        self.assertEqual(d, {'a': 1})
+        for v in (
+            [('a', -1), ('A', -1)],
+            { 'a': -1,   'A': -1 },
+        ):
+            with self.subTest(type=type(v)):
+                d = LowerDict(v, a=-1, A=1)
+                self.assertEqual(d['A'], 1)
+                self.assertEqual(d['a'], 1)
+                self.assertIn('A', d)
+                self.assertIn('a', d)
+                self.assertEqual(d.get('A'), 1)
+                self.assertEqual(d.get('a'), 1)
+                self.assertEqual(d.setdefault('A', -1), 1)
+                self.assertEqual(d.setdefault('A', -1), 1)
+                self.assertEqual(d, {'a': 1})
 
         d['B'] = 2
         self.assertEqual(d['B'], 2)
@@ -136,33 +138,52 @@ class UtilTestCase(AyameTestCase):
         self.assertIn('b', d)
         self.assertEqual(d.get('B'), 2)
         self.assertEqual(d.get('b'), 2)
-        d.setdefault('B', -1)
-        d.setdefault('b', -1)
+        self.assertEqual(d.setdefault('B', -1), 2)
+        self.assertEqual(d.setdefault('b', -1), 2)
         self.assertEqual(d, {'a': 1, 'b': 2})
 
-        del d['b']
+        with self.assertRaises(KeyError):
+            d['_']
+        self.assertEqual(d.get('_', 0), 0)
+        self.assertIsNone(d.setdefault('_'))
+        self.assertEqual(d, {'a': 1, 'b': 2, '_': None})
+
+        del d['_']
         with self.assertRaises(KeyError):
             del d['_']
-        self.assertEqual(d, {'a': 1})
-        self.assertEqual(d.pop('a'), 1)
+        self.assertEqual(d, {'a': 1, 'b': 2})
+        self.assertEqual(d.pop('A'), 1)
+        self.assertEqual(d.pop('b'), 2)
         self.assertEqual(d.pop('_', 0), 0)
         with self.assertRaises(KeyError):
             d.pop('_')
         self.assertEqual(d, {})
 
-        d.update(A=1)
+        d.update([('a', -1), ('A', -1)], a=-1, A=1)
         self.assertEqual(d, {'a': 1})
-        d.update(A=1, b=2)
+        d.update({ 'b': -2,   'B': -2 }, b=-2, B=2)
         self.assertEqual(d, {'a': 1, 'b': 2})
-        d[0] = 'a'
-        self.assertEqual(d, {'a': 1, 'b': 2, 0: 'a'})
 
         x = d.copy()
         self.assertIsInstance(x, LowerDict)
         self.assertEqual(x, d)
-        x[0] = 'b'
-        self.assertEqual(d, {'a': 1, 'b': 2, 0: 'a'})
-        self.assertEqual(x, {'a': 1, 'b': 2, 0: 'b'})
+        self.assertIsNot(x, d)
+        d[0] = 'd'
+        x[0] = 'x'
+        self.assertEqual(d, {'a': 1, 'b': 2, 0: 'd'})
+        self.assertEqual(x, {'a': 1, 'b': 2, 0: 'x'})
+
+        d.clear()
+        x = d | {'A': 1} | [('B', 2)] | None | object()
+        self.assertEqual(d, {})
+        self.assertEqual(x, {'a': 1, 'b': 2})
+
+        d.clear()
+        d |= {'A': 1}
+        d |= [('B', 2)]
+        d |= None
+        d |= object()
+        self.assertEqual(d, {'a': 1, 'b': 2})
 
     def test_cache(self):
         class Cache(util._Cache):
