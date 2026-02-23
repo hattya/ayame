@@ -414,7 +414,7 @@ class MarkupContainer(Component):
             c = self.find(get(element, markup.AYAME_CHILD))
             return element.children if c.visible else None
         elif element.qname == markup.AYAME_MESSAGE:
-            mc = _MessageContainer(util.new_token()[:7], get(element, markup.AYAME_KEY, False))
+            mc = _MessageContainer(util.new_token(), get(element, markup.AYAME_KEY, False))
             self.add(mc)
             element.attrib[markup.AYAME_ID] = mc.id
             return element
@@ -427,7 +427,7 @@ class MarkupContainer(Component):
             if ayame_id is not None:
                 self.find(ayame_id).add(_AttributeLocalizer())
             else:
-                ayame_id = util.new_token()[:7]
+                ayame_id = util.new_token()
                 self.add(_MessageContainer(ayame_id))
                 element.attrib[markup.AYAME_ID] = ayame_id
         # render component

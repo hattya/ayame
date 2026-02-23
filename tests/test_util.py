@@ -100,15 +100,14 @@ class UtilTestCase(AyameTestCase):
         self.assertEqual(util.to_list({'a': 1}), ['a'])
 
     def test_new_token(self):
-        a = util.new_token()
-        b = util.new_token()
-        self.assertNotEqual(a, b)
-        self.assertEqual(len(a), len(b))
+        for n in range(101):
+            with self.subTest(n=n):
+                a = util.new_token(n)
+                b = util.new_token(n)
+                self.assertEqual(len(a), n)
+                self.assertEqual(len(b), n)
 
-        a = util.new_token()
-        b = util.new_token('sha512')
-        self.assertNotEqual(len(a), len(b))
-        self.assertLess(len(a), len(b))
+        self.assertNotEqual(util.new_token(), util.new_token())
 
     def test_filter_dict(self):
         class LowerDict(util.FilterDict):

@@ -12,9 +12,8 @@ import collections.abc
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 import dataclasses
-import hashlib
 import itertools
-import random
+import secrets
 import threading
 from typing import cast, overload, Any, Generic, Protocol, TypeAlias, TypeVar
 
@@ -67,10 +66,8 @@ def to_list(o: Any) -> list[Any]:
     return [o]
 
 
-def new_token(algorithm: str = 'sha1') -> str:
-    m = hashlib.new(algorithm)
-    m.update(to_bytes(random.random()))
-    return m.hexdigest()
+def new_token(n: int = 8) -> str:
+    return secrets.token_hex((n + 1) // 2)[:n]
 
 
 class FilterDict(dict[KT, VT]):

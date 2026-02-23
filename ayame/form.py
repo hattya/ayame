@@ -1,7 +1,7 @@
 #
 # ayame.form
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -369,7 +369,7 @@ class Choice(FormComponent):
         return e
 
     def _id_prefix_for(self, element: markup.Element) -> str:
-        return element.attrib.get(_ID) or 'ayame-' + util.new_token()[:7]
+        return element.attrib.get(_ID) or 'ayame-' + util.new_token()
 
     def render_element(self, element: markup.Element, index: int, choice: Any) -> markup.Element:
         return element
