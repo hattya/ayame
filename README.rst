@@ -25,7 +25,6 @@ Requirements
 ------------
 
 - Python 3.10+
-- secure-cookie
 - Werkzeug
 
 

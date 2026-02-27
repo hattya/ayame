@@ -50,7 +50,9 @@ class Ayame:
             'ayame.request': Request,
             'ayame.resource.loader': res.ResourceLoader(),
             'ayame.route.map': route.Map(),
-            'ayame.session.store': session.FileSystemSessionStore(session_dir, 'ayame_%s.sess'),
+            'ayame.session.store': session.FileSystemSessionStore(session_dir),
+            'ayame.session.gc': 0.01,
+            'ayame.session.sliding': True,
             'ayame.session.name': 'session_id',
             'ayame.session.expires': None,
             'ayame.session.max_age': None,
@@ -87,7 +89,7 @@ class Ayame:
         try:
             o, values = ctx._router.match()
             ctx.request = self.config['ayame.request'](environ, values)
-            ctx.session = session.get(self, environ)
+            ctx.session = session.load(self, environ)
             for _ in range(self.config['ayame.max.redirect']):
                 try:
                     status, headers, content = self.handle_request(o)

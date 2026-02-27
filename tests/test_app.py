@@ -199,6 +199,7 @@ class SimpleAppTestCase(AyameTestCase):
     def setUp(self):
         self.app = ayame.Ayame(__name__)
         self.app.config['ayame.session.store'].path = self.session_dir.name
+        self.app.config['ayame.session.sliding'] = False
         map = self.app.config['ayame.route.map']
         map.connect('/page', SimplePage)
         map.connect('/int', 0)

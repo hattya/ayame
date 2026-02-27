@@ -6,6 +6,7 @@ Version 0.5
 
 * Add type annotations.
 * Add support union operators for :class:`ayame.util.FilterDict`.
+* Replace ``secure-cookie`` with custom sessions.
 
 
 Version 0.4
