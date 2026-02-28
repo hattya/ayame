@@ -25,6 +25,7 @@ Requirements
 ------------
 
 - Python 3.10+
+- ItsDangerous
 - Werkzeug
 
 

@@ -8,6 +8,7 @@
 
 import datetime
 import os
+import secrets
 import tempfile
 import unittest.mock
 
@@ -160,6 +161,45 @@ class SessionTestCase(AyameTestCase):
             store.save(session.Session())
         self.assertIsNone(store.drop(session.Session()))
         self.assertIsNone(store.gc())
+
+
+class CookieSessionTestCase(AyameTestCase):
+
+    def setUp(self):
+        self.store = session.CookieSessionStore(secrets.token_urlsafe(32))
+
+    def test_basic(self):
+        for c, m in (
+            (None, False),
+            ('', False),
+            ('_', True),
+        ):
+            with self.subTest(value=repr(c)):
+                sess = self.store.load(c)
+                self.assertEqual(sess, {})
+                self.assertEqual(sess.sid, '')
+                self.assertEqual(sess.modified, m)
+
+        # save (modified == False)
+        sess = self.store.load(None)
+        self.assertTrue(self.store.save(sess))
+        # save (modified == True)
+        sess = self.store.load(None)
+        data = {'cookie': True}
+        sess.update(data)
+        sess = self.store.load(self.store.save(sess))
+        self.assertEqual(sess, data)
+        self.assertEqual(sess.sid, '')
+        self.assertFalse(sess.modified)
+
+    def test_expired(self):
+        with unittest.mock.patch.object(self.store, 'max_age', -1):
+            sess = self.store.load(None)
+            sess['cookie'] = True
+            sess = self.store.load(self.store.save(sess))
+            self.assertEqual(sess, {})
+            self.assertEqual(sess.sid, '')
+            self.assertTrue(sess.modified)
 
 
 class FileSystemSessionTestCase(AyameTestCase):

@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 import abc
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 import datetime
 import json
 import os
@@ -18,6 +18,7 @@ import tempfile
 import time
 from typing import TYPE_CHECKING, Any
 
+import itsdangerous
 import werkzeug.datastructures
 import werkzeug.http
 
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 
 
 __all__ = ['load', 'save', 'max_age', 'Session', 'SessionStore',
-           'FileSystemSessionStore']
+           'CookieSessionStore', 'FileSystemSessionStore']
 
 MAX_AGE = 60 * 60 * 24 * 400
 
@@ -133,6 +134,28 @@ class SessionStore(metaclass=abc.ABCMeta):
 
     def gc(self) -> None:
         pass
+
+
+class CookieSessionStore(SessionStore):
+
+    def __init__(self, secret_key: str | bytes | Iterable[str] | Iterable[bytes],
+                 salt: str | bytes | None = 'session', max_age: int | None = None) -> None:
+        super().__init__(max_age)
+        self.serializer = itsdangerous.URLSafeTimedSerializer(secret_key, salt)
+
+    def load(self, value: str | None) -> Session:
+        m = False
+        if value:
+            try:
+                return Session(self.serializer.loads(value, max_age=self.max_age))
+            except Exception:
+                m = True
+        sess = Session()
+        sess.modified = m
+        return sess
+
+    def save(self, sess: Session) -> str:
+        return self.serializer.dumps(sess)
 
 
 class FileSystemSessionStore(SessionStore):
