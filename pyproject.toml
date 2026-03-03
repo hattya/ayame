@@ -38,6 +38,17 @@ dynamic = [
     "version",
 ]
 
+[project.optional-dependencies]
+redis = [
+    "redis[hiredis]",
+]
+test = [
+    "fakeredis",
+]
+valkey = [
+    "valkey[libvalkey]",
+]
+
 [project.urls]
 Homepage = "https://github.com/hattya/ayame"
 

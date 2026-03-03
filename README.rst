@@ -29,6 +29,19 @@ Requirements
 - Werkzeug
 
 
+Extras
+------
+
+``test``
+  - FakeRedis
+
+``redis``
+  - redis-py
+
+``valkey``
+  - valkey-py
+
+
 Example Application
 -------------------
 

@@ -10,12 +10,29 @@ import datetime
 import os
 import secrets
 import tempfile
+import time
+import unittest
 import unittest.mock
 
+try:
+    import fakeredis
+except ImportError:
+    fakeredis = None
+try:
+    import redis
+except ImportError:
+    redis = None
+try:
+    import valkey
+except ImportError:
+    valkey = None
 import werkzeug.http
 
 from ayame import session
 from base import AyameTestCase
+
+
+requires_fakeredis = unittest.skipUnless(fakeredis, 'requires fakeredis')
 
 
 class SessionTestCase(AyameTestCase):
@@ -162,6 +179,10 @@ class SessionTestCase(AyameTestCase):
         self.assertIsNone(store.drop(session.Session()))
         self.assertIsNone(store.gc())
 
+    def test_missing_attribute(self):
+        with self.assertRaises(AttributeError):
+            session._
+
 
 class CookieSessionTestCase(AyameTestCase):
 
@@ -297,3 +318,119 @@ class FileSystemSessionTestCase(AyameTestCase):
         self.store.max_age = -1
         self.store.gc()
         self.assertEqual(len(self.ls()), 2)
+
+
+@requires_fakeredis
+class RESPSessionTestCase(AyameTestCase):
+
+    def setUp(self):
+        self.store = session._RESPSessionStore(fakeredis.FakeRedis())
+
+    def keys(self):
+        return self.store.client.scan(match=f'{self.store.prefix}:*')[1]
+
+    def test_basic(self):
+        for sid, m in (
+            (None, False),
+            ('', False),
+            ('_', True),
+        ):
+            with self.subTest(value=repr(sid)):
+                sess = self.store.load(sid)
+                self.assertEqual(sess, {})
+                self.assertNotEqual(sess.sid, sid)
+                self.assertEqual(sess.modified, m)
+
+        # save (modified == False)
+        sess = self.store.load(None)
+        self.assertTrue(self.store.save(sess))
+        self.assertEqual(len(self.keys()), 0)
+        # save (modified == True)
+        sess = self.store.load(None)
+        sid = sess.sid
+        data = {'resp': True}
+        sess.update(data)
+        sess = self.store.load(self.store.save(sess))
+        self.assertEqual(sess, data)
+        self.assertEqual(sess.sid, sid)
+        self.assertFalse(sess.modified)
+        self.assertEqual(len(self.keys()), 1)
+
+        # error on load
+        with unittest.mock.patch.object(self.store.client, 'get', side_effect=Exception):
+            sess = self.store.load(sid)
+            self.assertEqual(sess, {})
+            self.assertNotEqual(sess.sid, sid)
+            self.assertTrue(sess.modified)
+        # error on save
+        sess = self.store.load(None)
+        sess['resp'] = object()
+        with self.assertRaises(TypeError):
+            self.store.save(sess)
+        self.assertEqual(len(self.keys()), 1)
+
+    def test_expired(self):
+        c_set = self.store.client.set
+        with unittest.mock.patch.object(self.store.client, 'set', side_effect=lambda *a, **kw: c_set(*a, px=1)):
+            sess = self.store.load(None)
+            sess['resp'] = True
+            self.assertTrue(self.store.save(sess))
+            self.assertEqual(len(self.keys()), 1)
+
+            time.sleep(0.01)
+
+            sid = sess.sid
+            sess = self.store.load(sid)
+            self.assertEqual(sess, {})
+            self.assertNotEqual(sess.sid, sid)
+            self.assertEqual(len(self.keys()), 0)
+
+    def test_drop(self):
+        sess = self.store.load(None)
+        self.store.drop(sess)
+        self.assertEqual(len(self.keys()), 0)
+
+        sess = self.store.load(None)
+        sess['resp'] = True
+        self.assertTrue(self.store.save(sess))
+        self.assertEqual(len(self.keys()), 1)
+        self.store.drop(sess)
+        self.assertEqual(len(self.keys()), 0)
+
+
+@unittest.skipUnless(redis, 'requires redis')
+class RedisSessionTestCase(AyameTestCase):
+
+    def test_hint(self):
+        cls = session.RedisSessionStore
+        try:
+            del session.RedisSessionStore
+            with self.assertRaisesRegex(ImportError, r'^RedisSessionStore .* ayame\[redis\]'):
+                session.RedisSessionStore
+        finally:
+            session.RedisSessionStore = cls
+
+    @requires_fakeredis
+    def test_init(self):
+        c = fakeredis.FakeRedis()
+        store = session.RedisSessionStore(c)
+        self.assertIs(store.client, c)
+
+
+@unittest.skipUnless(valkey, 'requires valkey')
+class ValkeySessionTestCase(AyameTestCase):
+
+    def test_hint(self):
+        cls = session.ValkeySessionStore
+        try:
+            del session.ValkeySessionStore
+            with self.assertRaisesRegex(ImportError, r'^ValkeySessionStore .* ayame\[valkey\]'):
+                session.ValkeySessionStore
+        finally:
+            session.ValkeySessionStore = cls
+
+    @requires_fakeredis
+    def test_init(self):
+        c = fakeredis.FakeRedis()
+        store = session.ValkeySessionStore(c)
+        self.assertIs(store.client, c)

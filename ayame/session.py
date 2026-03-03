@@ -16,7 +16,7 @@ import random
 import secrets
 import tempfile
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import itsdangerous
 import werkzeug.datastructures
@@ -30,6 +30,16 @@ if TYPE_CHECKING:
 
 __all__ = ['load', 'save', 'max_age', 'Session', 'SessionStore',
            'CookieSessionStore', 'FileSystemSessionStore']
+
+
+class RESPClient(Protocol):
+
+    def get(self, name: bytes | str | memoryview) -> Any: ...
+    def set(self, name: bytes | str | memoryview, value: bytes | str | memoryview | int | float,
+            ex: int | datetime.timedelta | None = None,
+            px: int | datetime.timedelta | None = None) -> Any: ...
+    def delete(self, *names: bytes | str | memoryview) -> Any: ...
+
 
 MAX_AGE = 60 * 60 * 24 * 400
 
@@ -218,3 +228,71 @@ class FileSystemSessionStore(SessionStore):
                         pass
         except OSError:
             pass
+
+
+class _RESPSessionStore(SessionStore):
+
+    def __init__(self, client: RESPClient, prefix: str | None = None, max_age: int | None = None):
+        super().__init__(max_age)
+        self.client = client
+        self.prefix = prefix or 'ayame:session'
+
+    def load(self, value: str | None) -> Session:
+        m = False
+        if value:
+            try:
+                if v := self.client.get(self._name_for(value)):
+                    return Session(json.loads(v if isinstance(v, str) else v.decode('utf-8')), sid=value)
+            except Exception:
+                pass
+            m = True
+        sess = Session(sid=secrets.token_urlsafe())
+        sess.modified = m
+        return sess
+
+    def save(self, sess: Session) -> str:
+        if sess.modified:
+            self.client.set(self._name_for(sess.sid), json.dumps(sess), ex=self.max_age)
+        return sess.sid
+
+    def drop(self, sess: Session) -> None:
+        self.client.delete(self._name_for(sess.sid))
+
+    def _name_for(self, sid: str) -> str:
+        return f'{self.prefix}:{sid}'
+
+
+try:
+    import redis
+except ImportError:
+    pass
+else:
+    __all__.append('RedisSessionStore')
+
+    class RedisSessionStore(_RESPSessionStore):
+
+        def __init__(self, client: redis.Redis, prefix: str | None = None, max_age: int | None = None):
+            super().__init__(client, prefix, max_age)
+
+
+try:
+    import valkey
+except ImportError:
+    pass
+else:
+    __all__.append('ValkeySessionStore')
+
+    class ValkeySessionStore(_RESPSessionStore):
+
+        def __init__(self, client: valkey.Valkey, prefix: str | None = None, max_age: int | None = None):
+            super().__init__(client, prefix, max_age)
+
+
+def __getattr__(name: str) -> Any:
+    hint = f"{name} requires optional dependencies, try 'pip install {__package__}[{{extra}}]'"
+    match name:
+        case 'RedisSessionStore':
+            raise ImportError(hint.format(extra='redis'))
+        case 'ValkeySessionStore':
+            raise ImportError(hint.format(extra='valkey'))
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
