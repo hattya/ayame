@@ -7,12 +7,10 @@
 #
 
 from collections.abc import Iterable
-import sys
 from typing import TYPE_CHECKING, runtime_checkable, Any, Protocol, TypeAlias, TypeVar
 
 
-__all__ = ['Headers', 'Locale', 'OptExcInfo', 'Self', 'SupportsKeysAndGetItem',
-           'InputStream', 'StartResponse', 'WSGIEnvironment']
+__all__ = ['Headers', 'Locale', 'OptExcInfo', 'SupportsKeysAndGetItem']
 
 _KT = TypeVar('_KT')
 _VT_co = TypeVar('_VT_co', covariant=True)
@@ -24,16 +22,6 @@ if TYPE_CHECKING:
     from _typeshed import OptExcInfo
 else:
     OptExcInfo = Any
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-    from wsgiref.types import InputStream, StartResponse, WSGIEnvironment
-elif TYPE_CHECKING:
-    from typing_extensions import Self
-    from _typeshed.wsgi import InputStream, StartResponse, WSGIEnvironment
-else:
-    Self = Any
-    InputStream = StartResponse = WSGIEnvironment = Any
 
 
 @runtime_checkable

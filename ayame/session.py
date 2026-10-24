@@ -16,13 +16,12 @@ import random
 import secrets
 import tempfile
 import time
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, Self
+from wsgiref.types import WSGIEnvironment
 
 import itsdangerous
 import werkzeug.datastructures
 import werkzeug.http
-
-from ._typing import Self, WSGIEnvironment
 
 if TYPE_CHECKING:
     from . import app as am
@@ -91,9 +90,9 @@ def max_age(app: am.Ayame) -> int | None:
             dt: datetime.datetime | None = werkzeug.http.parse_date(v) if isinstance(v, str) else v
             if dt:
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=datetime.timezone.utc)
-                elif dt.tzinfo != datetime.timezone.utc:
-                    dt = dt.astimezone(datetime.timezone.utc)
+                    dt = dt.replace(tzinfo=datetime.UTC)
+                elif dt.tzinfo != datetime.UTC:
+                    dt = dt.astimezone(datetime.UTC)
                 ts = dt.timestamp()
             else:
                 ts = 0.0

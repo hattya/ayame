@@ -7,10 +7,9 @@
 #
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from . import basic, core, form, markup
-from ._typing import Self
 from .exception import RenderingError
 
 if TYPE_CHECKING:

@@ -352,7 +352,7 @@ class ConverterTestCase(AyameTestCase):
             '2011-01-01 09:00:00+09:00',
         ):
             with self.subTest(value=v):
-                self.assertEqual(c.to_python(v), datetime.datetime(2011, 1, 1, tzinfo=datetime.timezone.utc))
+                self.assertEqual(c.to_python(v), datetime.datetime(2011, 1, 1, tzinfo=datetime.UTC))
         for v in (
             '2011-01-01T00:00:00',
             '2011-01-01T00:00:00-0500',

@@ -1,7 +1,7 @@
 #
 # ayame.local
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -9,8 +9,8 @@
 from __future__ import annotations
 import contextvars
 from typing import TYPE_CHECKING
+from wsgiref.types import WSGIEnvironment
 
-from ._typing import WSGIEnvironment
 from .exception import AyameError
 
 if TYPE_CHECKING:

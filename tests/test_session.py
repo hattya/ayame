@@ -108,13 +108,13 @@ class SessionTestCase(AyameTestCase):
                     self.app.config['ayame.session.expires'] = expires
                     self.assertIsNone(session.max_age(self.app))
 
-            now = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=60)
+            now = datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=60)
             for expires in (now.ctime(), now.isoformat(), now, now.replace(tzinfo=None), now.astimezone(jst), int(now.timestamp()), now.timestamp(), None):
                 with self.subTest(expires=expires):
                     self.app.config['ayame.session.expires'] = expires
                     self.assertIsNone(session.max_age(self.app))
 
-            now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=3)
+            now = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=3)
             for expires in (now.ctime(), now, now.replace(tzinfo=None), now.astimezone(jst), int(now.timestamp()), now.timestamp()):
                 with self.subTest(expires=expires):
                     self.app.config['ayame.session.expires'] = expires

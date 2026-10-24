@@ -1,7 +1,7 @@
 #
 # ayame.route
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -12,9 +12,9 @@ from collections.abc import Callable, Iterable, Iterator, Mapping
 import re
 from typing import overload, Any, Literal
 import urllib.parse
+from wsgiref.types import WSGIEnvironment
 
 from . import http, uri, util
-from ._typing import WSGIEnvironment
 from .exception import _RequestSlash, RouteError
 
 

@@ -16,10 +16,9 @@ import enum
 import html.parser
 import io
 import re
-from typing import overload, Any, ClassVar, IO, NamedTuple, TypeAlias
+from typing import overload, Any, ClassVar, IO, NamedTuple, Self, TypeAlias
 
 from . import util
-from ._typing import Self
 from .exception import MarkupError, RenderingError
 
 

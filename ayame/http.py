@@ -1,7 +1,7 @@
 #
 # ayame.http
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -10,12 +10,13 @@ from __future__ import annotations
 import html
 import re
 from typing import Any
+from wsgiref.types import WSGIEnvironment
 
 import werkzeug.datastructures
 import werkzeug.exceptions
 import werkzeug.formparser
 
-from ._typing import Headers, WSGIEnvironment
+from ._typing import Headers
 from .exception import AyameError
 
 

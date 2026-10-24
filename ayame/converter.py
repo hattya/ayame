@@ -244,7 +244,7 @@ class DateTimeConverter(Converter):
             dt = datetime.datetime.strptime(ds, '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             raise self.error(value)
-        return dt.replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(minutes=off)
+        return dt.replace(tzinfo=datetime.UTC) + datetime.timedelta(minutes=off)
 
     def to_string(self, value: Any) -> str:
         if (e := self.check_type(value)) is not None:

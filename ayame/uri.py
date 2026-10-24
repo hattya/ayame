@@ -1,7 +1,7 @@
 #
 # ayame.uri
 #
-#   Copyright (c) 2011-2025 Akinori Hattori <hattya@gmail.com>
+#   Copyright (c) 2011-2026 Akinori Hattori <hattya@gmail.com>
 #
 #   SPDX-License-Identifier: MIT
 #
@@ -9,9 +9,9 @@
 from __future__ import annotations
 from typing import Any
 import urllib.parse
+from wsgiref.types import WSGIEnvironment
 
 from . import util
-from ._typing import WSGIEnvironment
 
 
 __all__ = ['parse_qs', 'quote', 'quote_plus', 'application_uri', 'request_uri',

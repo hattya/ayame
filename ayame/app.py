@@ -11,13 +11,14 @@ from collections.abc import Callable, Iterable
 import locale
 import os
 import sys
-from typing import Any, AnyStr
+from typing import Any, AnyStr, Self
+from wsgiref.types import StartResponse, WSGIEnvironment, InputStream
 
 import werkzeug.datastructures
 
 from . import (converter, core, http, i18n, local, markup, page, res, route,
                session, uri, util)
-from ._typing import Headers, Locale, OptExcInfo, Self, InputStream, StartResponse, WSGIEnvironment
+from ._typing import Headers, Locale, OptExcInfo
 from .exception import AyameError, _Redirect
 
 

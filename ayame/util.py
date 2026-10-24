@@ -15,9 +15,9 @@ import dataclasses
 import itertools
 import secrets
 import threading
-from typing import cast, overload, Any, Generic, Protocol, TypeAlias, TypeVar
+from typing import cast, overload, Any, Generic, Protocol, Self, TypeAlias, TypeVar
 
-from ._typing import Self, SupportsKeysAndGetItem
+from ._typing import SupportsKeysAndGetItem
 
 
 __all__ = ['fqon_of', 'to_bytes', 'to_list', 'new_token', 'FilterDict',

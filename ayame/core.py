@@ -11,11 +11,12 @@ import collections
 import collections.abc
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 import html
-from typing import TYPE_CHECKING, cast, Any, TypeAlias
+from typing import TYPE_CHECKING, cast, Any, Self, TypeAlias
 import wsgiref.headers
+from wsgiref.types import WSGIEnvironment
 
 from . import http, local, markup, model as mm, util
-from ._typing import Headers, Self, WSGIEnvironment
+from ._typing import Headers
 from .exception import AyameError, ComponentError, RenderingError
 
 if TYPE_CHECKING:
