@@ -8,6 +8,7 @@ Version 0.5
 * Add support union operators for :class:`ayame.util.FilterDict`.
 * Replace ``secure-cookie`` with custom sessions.
 * Drop Python 3.10 support.
+* Support Python 3.15.
 
 
 Version 0.4
