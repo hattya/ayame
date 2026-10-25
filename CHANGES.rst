@@ -4,6 +4,8 @@ Ayame Changelog
 Version 0.5
 -----------
 
+Release date: 2026-10-25
+
 * Add type annotations.
 * Add support union operators for :class:`ayame.util.FilterDict`.
 * Replace ``secure-cookie`` with custom sessions.
